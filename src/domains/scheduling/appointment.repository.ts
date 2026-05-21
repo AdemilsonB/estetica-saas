@@ -71,7 +71,7 @@ export class AppointmentRepository {
 
   async create(
     tenantId: string,
-    data: Prisma.AppointmentUncheckedCreateInput,
+    data: Omit<Prisma.AppointmentUncheckedCreateInput, "tenantId">,
   ): Promise<Appointment> {
     return prisma.appointment.create({
       data: {

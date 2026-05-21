@@ -1,4 +1,5 @@
 import { NotificationChannel, NotificationStatus } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 export type NotificationDraft = {
   tenantId: string;
@@ -8,7 +9,7 @@ export type NotificationDraft = {
   template: string;
   recipient: string;
   provider: string;
-  payload: Record<string, unknown>;
+  payload: Prisma.InputJsonValue;
 };
 
 export type NotificationDeliveryResult = {

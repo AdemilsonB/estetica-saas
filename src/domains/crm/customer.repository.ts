@@ -51,7 +51,7 @@ export class CustomerRepository {
 
   async create(
     tenantId: string,
-    data: Prisma.CustomerUncheckedCreateInput,
+    data: Omit<Prisma.CustomerUncheckedCreateInput, "tenantId">,
   ): Promise<Customer> {
     return prisma.customer.create({
       data: {

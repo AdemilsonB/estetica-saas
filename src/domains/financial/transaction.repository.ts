@@ -44,7 +44,7 @@ export class TransactionRepository {
 
   async create(
     tenantId: string,
-    data: Prisma.TransactionUncheckedCreateInput,
+    data: Omit<Prisma.TransactionUncheckedCreateInput, "tenantId">,
   ): Promise<Transaction> {
     return prisma.transaction.create({
       data: {

@@ -18,7 +18,7 @@ export class CatalogServiceRepository {
 
   async create(
     tenantId: string,
-    data: Prisma.ServiceUncheckedCreateInput,
+    data: Omit<Prisma.ServiceUncheckedCreateInput, "tenantId">,
   ): Promise<Service> {
     return prisma.service.create({
       data: {

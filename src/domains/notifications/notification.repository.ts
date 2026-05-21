@@ -5,7 +5,7 @@ import { prisma } from "@/shared/database/prisma";
 export class NotificationRepository {
   async createLog(
     tenantId: string,
-    data: Prisma.NotificationLogUncheckedCreateInput,
+    data: Omit<Prisma.NotificationLogUncheckedCreateInput, "tenantId">,
   ) {
     return prisma.notificationLog.create({
       data: {
