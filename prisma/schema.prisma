@@ -1,13 +1,166 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum UserRole {
+  OWNER
+  MANAGER
+  PROFESSIONAL
+  RECEPTIONIST
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum NotificationChannel {
+  WHATSAPP
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model Tenant {
+  id           String           @id @default(cuid())
+  name         String
+  slug         String           @unique
+  plan         String           @default("free")
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  users        User[]
+  customers    Customer[]
+  services     Service[]
+  appointments Appointment[]
+  transactions Transaction[]
+  notifications NotificationLog[]
+}
+
+model User {
+  id                      String         @id @default(cuid())
+  tenantId                String
+  email                   String
+  name                    String
+  role                    UserRole       @default(PROFESSIONAL)
+  permissions             String[]
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  tenant                  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointmentsAssigned    Appointment[]  @relation("ProfessionalAppointments")
+  createdAppointments     Appointment[]  @relation("AppointmentCreatedBy")
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+}
+
+model Customer {
+  id           String         @id @default(cuid())
+  tenantId     String
+  name         String
+  phone        String?
+  email        String?
+  notes        String?
+  tags         String[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([tenantId])
+  @@index([tenantId, phone])
+}
+
+model Service {
+  id           String         @id @default(cuid())
+  tenantId     String
+  name         String
+  duration     Int
+  price        Decimal        @db.Decimal(10, 2)
+  active       Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([tenantId])
+}
+
+model Appointment {
+  id              String            @id @default(cuid())
+  tenantId        String
+  customerId      String
+  professionalId  String
+  serviceId       String
+  startsAt        DateTime
+  endsAt          DateTime
+  status          AppointmentStatus @default(SCHEDULED)
+  notes           String?
+  price           Decimal           @db.Decimal(10, 2)
+  createdByUserId String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer        Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  professional    User              @relation("ProfessionalAppointments", fields: [professionalId], references: [id], onDelete: Restrict)
+  service         Service           @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  createdByUser   User              @relation("AppointmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  transactions    Transaction[]
+
+  @@index([tenantId])
+  @@index([tenantId, startsAt])
+  @@index([tenantId, professionalId, startsAt])
+}
+
+model Transaction {
+  id            String          @id @default(cuid())
+  tenantId      String
+  appointmentId String?
+  type          TransactionType
+  category      String
+  description   String
+  amount        Decimal         @db.Decimal(10, 2)
+  paidAt        DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointment   Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, paidAt])
+}
+
+model NotificationLog {
+  id             String              @id @default(cuid())
+  tenantId       String
+  appointmentId  String?
+  customerId     String?
+  channel        NotificationChannel
+  template       String
+  recipient      String
+  status         NotificationStatus  @default(PENDING)
+  provider       String
+  payload        Json
+  errorMessage   String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, channel, status])
 }
