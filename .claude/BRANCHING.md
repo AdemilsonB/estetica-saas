@@ -18,7 +18,8 @@ main          ← produção (sempre estável)
 - `main` nunca recebe commits diretos — apenas via Pull Request
 - Cada feature/fix vive em sua própria branch
 - Branch é criada a partir de `main` sempre atualizada
-- Após merge, a branch de feature é deletada
+- Branches `feat/` são mantidas após o merge (rastreabilidade)
+- Branches `fix/` e `hotfix/` podem ser deletadas após o merge
 
 ---
 
@@ -119,6 +120,10 @@ EOF
 )"
 
 # 5. Após aprovação, merge squash via GitHub
+# feat/ → mantém branch após merge
+gh pr merge --squash
+
+# fix/ ou hotfix/ → pode deletar
 gh pr merge --squash --delete-branch
 ```
 
