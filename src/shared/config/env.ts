@@ -4,7 +4,7 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
-  NEXT_PUBLIC_APP_URL: z.url(),
+  NEXT_PUBLIC_APP_URL: z.url().optional(),
   DATABASE_URL: z.string().min(1),
   DIRECT_URL: z.string().min(1).optional(),
   SUPABASE_URL: z.url(),
