@@ -37,16 +37,32 @@ Não é ERP. Não é agenda online. É uma plataforma operacional inteligente.
 
 ## Status atual
 
-- [x] Projeto Next.js criado
-- [x] Shadcn UI configurado (Nova/Rose)
-- [x] Repositório GitHub iniciado
-- [x] Vercel conectado
-- [x] Estrutura de pastas e agentes criada
-- [ ] Supabase projeto criado e conectado
-- [ ] Prisma schema configurado
-- [ ] Shared utilities (errors, events, middleware)
-- [ ] Domínio IAM
-- [ ] Domínio CRM
-- [ ] Domínio Scheduling
-- [ ] Domínio Financial
-- [ ] Domínio Notifications
+### Infraestrutura
+- [x] Projeto Next.js 16 + React 19 + TypeScript
+- [x] Shadcn UI configurado (Nova/Rose) + TailwindCSS 4
+- [x] Repositório GitHub + Vercel CI/CD
+- [x] Estrutura de pastas, agentes e contexto
+- [x] Supabase integração configurada (adapters, auth, session)
+- [x] Prisma 7 schema completo (7 models, multi-tenant, índices)
+- [x] Shared: errors tipados, event bus, middleware, validação, RBAC, config env
+
+### Backend (domínios)
+- [x] IAM — RBAC, session, permissões (sem UI de login/registro)
+- [x] CRM — repository, service, API (GET/POST/PATCH + busca + paginação)
+- [x] Scheduling — repository, service, availability, API (GET/POST + filtros)
+- [x] Financial — repository, service, API (GET/POST + filtros + paginação)
+- [x] Notifications — subscriptions de eventos, provider WhatsApp (stub)
+- [x] Billing — tipos e documentação (stub Fase 2)
+- [x] Automation — tipos e documentação (stub Fase 2)
+
+### Frontend
+- [ ] Shell de navegação (sidebar + bottom nav mobile)
+- [ ] IAM: login, registro de tenant, onboarding
+- [ ] CRM: listagem, perfil e cadastro de clientes
+- [ ] Scheduling: agenda semanal, modal de agendamento
+- [ ] Financial: listagem de transações, fechamento de caixa
+- [ ] Dashboard: métricas básicas
+
+### Integrações
+- [ ] Evolution API (WhatsApp) — provider stub existente, sem credenciais
+- [ ] pg-boss — instalado, sem jobs registrados

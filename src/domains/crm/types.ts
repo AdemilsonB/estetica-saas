@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+export const listCustomersSchema = z.object({
+  search: z.string().trim().max(100).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export type ListCustomersQuery = z.infer<typeof listCustomersSchema>;
+
 export const createCustomerSchema = z.object({
   name: z.string().trim().min(2).max(120),
   phone: z.string().trim().min(8).max(30).optional(),

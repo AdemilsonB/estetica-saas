@@ -1,5 +1,5 @@
 import { customerService } from "@/domains/crm/customer.service";
-import { createCustomerSchema } from "@/domains/crm/types";
+import { createCustomerSchema, listCustomersSchema } from "@/domains/crm/types";
 import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
 import { ensurePermission, PERMISSIONS } from "@/shared/auth/permissions";
 import { getSessionContext } from "@/shared/auth/session";
@@ -13,8 +13,16 @@ export async function GET(request: Request) {
   try {
     const session = await getSessionContext(request);
     ensurePermission(session, PERMISSIONS.customers.view);
-    const customers = await customerService.list(session.tenantId);
-    return Response.json(customers);
+
+    const { searchParams } = new URL(request.url);
+    const filters = listCustomersSchema.parse({
+      search: searchParams.get("search") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
+      pageSize: searchParams.get("pageSize") ?? undefined,
+    });
+
+    const result = await customerService.list(session.tenantId, filters);
+    return Response.json(result);
   } catch (error) {
     return handleApiError(error);
   }

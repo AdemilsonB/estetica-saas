@@ -1,4 +1,4 @@
-import { ConflictError } from "@/shared/errors";
+import { SlotUnavailableError } from "@/shared/errors";
 
 import { appointmentRepository } from "./appointment.repository";
 
@@ -17,7 +17,7 @@ export class AvailabilityService {
     );
 
     if (overlapping) {
-      throw new ConflictError("Horario nao disponivel para este profissional.");
+      throw new SlotUnavailableError();
     }
   }
 }

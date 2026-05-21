@@ -1,6 +1,15 @@
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, UserRole } from "@prisma/client";
+import { config as loadEnv } from "dotenv";
 
-const prisma = new PrismaClient();
+loadEnv({ path: ".env.local", override: false });
+loadEnv();
+
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+});
+
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const tenant = await prisma.tenant.upsert({

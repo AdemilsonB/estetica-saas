@@ -228,12 +228,110 @@ Exemplos:
 
 ---
 
+---
+
+## IAM — Endpoint de registro obrigatório
+
+> Documentação completa: `src/domains/iam/DOMAIN.md` e `docs/features/auth-screens.md`
+
+### `POST /api/iam/register`
+
+Chamado pelo frontend após `supabase.auth.signUp()` ou Google OAuth.
+Cria o `Tenant` e o `User` (OWNER) no banco e atualiza o metadata do Supabase.
+
+**Input** (body JSON):
+```typescript
+{
+  businessName: string  // nome do negócio → vira tenant.name e tenant.slug
+  userName: string      // nome do owner → vira user.name
+}
+```
+
+**Auth**: Bearer token do Supabase obrigatório. `userId` é extraído do token — nunca do body.
+
+**O que o endpoint faz:**
+1. Extrai `userId` do token Supabase (via `getSessionContext`)
+2. Verifica se já existe um User com esse `userId` → se sim, retorna 409
+3. Gera `slug` a partir do `businessName` (kebab-case, único)
+4. Cria `Tenant` no banco
+5. Cria `User` com `role: OWNER` e todas as permissões
+6. Atualiza `user_metadata` do Supabase com `{ tenantId, role: 'OWNER' }` via service role key
+7. Retorna `{ tenantId, userId }`
+
+**Template:**
+```typescript
+// app/api/iam/register/route.ts
+import { z } from 'zod'
+import { createSupabaseAdmin } from '@/shared/config/providers'
+import { getSessionContext } from '@/shared/auth/session'
+import { handleApiError } from '@/shared/http/handle-api-error'
+import { validateInput } from '@/shared/http/validate-input'
+import { ConflictError } from '@/shared/errors'
+import { prisma } from '@/shared/database/prisma'
+import { ROLE_PERMISSIONS } from '@/shared/auth/permissions'
+import { UserRole } from '@prisma/client'
+
+const registerSchema = z.object({
+  businessName: z.string().trim().min(2).max(100),
+  userName: z.string().trim().min(2).max(100),
+})
+
+export async function POST(request: Request) {
+  try {
+    const session = await getSessionContext(request)
+    const { businessName, userName } = await validateInput(request, registerSchema)
+
+    // Impede re-registro
+    const existingUser = await prisma.user.findFirst({
+      where: { id: session.userId },
+    })
+    if (existingUser) throw new ConflictError('Usuario ja possui uma conta cadastrada.')
+
+    // Gera slug único a partir do nome do negócio
+    const baseSlug = businessName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')
+    const slug = `${baseSlug}-${Date.now()}`
+
+    // Cria tenant + user em transação
+    const tenant = await prisma.tenant.create({
+      data: {
+        name: businessName,
+        slug,
+        plan: 'free',
+        users: {
+          create: {
+            id: session.userId,
+            email: session.userEmail, // precisa estar em SessionContext
+            name: userName,
+            role: UserRole.OWNER,
+            permissions: ROLE_PERMISSIONS[UserRole.OWNER],
+          },
+        },
+      },
+    })
+
+    // Atualiza metadata do Supabase com tenantId
+    const adminClient = createSupabaseAdmin()
+    await adminClient.auth.admin.updateUserById(session.userId, {
+      user_metadata: { tenantId: tenant.id, role: UserRole.OWNER },
+    })
+
+    return Response.json({ tenantId: tenant.id, userId: session.userId }, { status: 201 })
+  } catch (error) {
+    return handleApiError(error)
+  }
+}
+```
+
+**Nota:** `SessionContext` em `src/shared/types/auth.ts` precisa incluir `userEmail` para o registro funcionar. Ao implementar, adicionar esse campo ao tipo e ao `getSessionContext`.
+
+---
+
 ## Checklist antes de entregar
 
 - [ ] `tenantId` filtrado em todas as queries do repository
 - [ ] Service verifica existência antes de update/delete
 - [ ] Evento publicado após create, update e delete
-- [ ] API Route usa `withTenant()` antes de qualquer operação
+- [ ] API Route usa `withTenant()` ou `getSessionContext()` antes de qualquer operação
 - [ ] Input validado com Zod antes de passar ao service
 - [ ] Erros tipados para todos os casos de falha
 - [ ] Sem `any` no TypeScript

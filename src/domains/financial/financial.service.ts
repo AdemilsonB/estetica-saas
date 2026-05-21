@@ -2,12 +2,12 @@ import { Prisma } from "@prisma/client";
 
 import { eventBus } from "@/shared/events/event-bus";
 
-import { transactionRepository } from "./transaction.repository";
+import { transactionRepository, type TransactionFilters } from "./transaction.repository";
 import type { CreateTransactionInput } from "./types";
 
 export class FinancialService {
-  async list(tenantId: string) {
-    return transactionRepository.list(tenantId);
+  async list(tenantId: string, filters?: TransactionFilters) {
+    return transactionRepository.list(tenantId, filters);
   }
 
   async create(tenantId: string, input: CreateTransactionInput) {

@@ -1,0 +1,36 @@
+# Normaliza line endings para LF em todos os arquivos de texto
+# Garante consistência entre Windows (CRLF) e Linux/Mac/Vercel (LF)
+
+* text=auto eol=lf
+
+# Arquivos que devem sempre usar LF
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.mjs   text eol=lf
+*.cjs   text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.mdx   text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.env   text eol=lf
+*.sh    text eol=lf
+*.prisma text eol=lf
+
+# Arquivos binários — não processar line endings
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.svg   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+*.pdf   binary
+*.zip   binary

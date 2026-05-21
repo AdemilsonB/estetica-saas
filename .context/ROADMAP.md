@@ -1,54 +1,70 @@
 # ROADMAP.md — Fases e status
 
-## Fase 1 — MVP (atual)
+## Fase 1 — MVP (em andamento)
 
-### Infraestrutura
-- [x] Next.js 15 + TypeScript + TailwindCSS
+### Infraestrutura ✅
+- [x] Next.js 16 + TypeScript + TailwindCSS 4
 - [x] Shadcn UI (Nova/Rose)
 - [x] GitHub + Vercel CI/CD
 - [x] Estrutura de agentes e contexto
-- [ ] Supabase conectado (DATABASE_URL)
-- [ ] Prisma schema base + migration inicial
-- [ ] Shared: errors, events, middleware, validation
+- [x] Supabase integração configurada (adapters, auth, providers)
+- [x] Prisma 7 schema completo + migrations + seed de desenvolvimento
+- [x] Shared: errors tipados, event bus, middleware, validação, RBAC, config env
 
-### Domínio IAM
-- [ ] Model: Tenant, User
-- [ ] Auth com Supabase (login, cadastro, magic link)
-- [ ] Middleware de tenant
-- [ ] RBAC: roles e permissões
+### Domínio IAM 🟡 Parcial
+- [x] Models: Tenant, User (schema Prisma)
+- [x] Middleware de tenant (withTenant, getSessionContext)
+- [x] RBAC: roles e permissões granulares (ROLE_PERMISSIONS)
+- [x] Auth com Supabase configurado (adapters, session)
 - [ ] Página de login
-- [ ] Onboarding de novo tenant
+- [ ] Registro de tenant + onboarding
+- [ ] Invite de usuários
 
-### Domínio CRM
-- [ ] Model: Customer
-- [ ] CustomerRepository + CustomerService
-- [ ] API: CRUD de clientes
+### Domínio CRM ✅ Backend completo
+- [x] Model: Customer (schema Prisma)
+- [x] CustomerRepository + CustomerService
+- [x] API: CRUD de clientes (GET com busca + paginação, POST, PATCH)
 - [ ] Página de listagem de clientes
 - [ ] Página de perfil do cliente
 - [ ] Formulário de cadastro/edição
 
-### Domínio Scheduling
-- [ ] Model: Appointment, Service
-- [ ] AppointmentRepository + AppointmentService
-- [ ] AvailabilityService (verificação de conflitos)
-- [ ] API: CRUD de agendamentos
-- [ ] API: listagem de disponibilidade
+### Domínio Scheduling ✅ Backend completo
+- [x] Models: Appointment, Service (schema Prisma)
+- [x] AppointmentRepository + SchedulingService
+- [x] AvailabilityService (verificação de conflitos de horário)
+- [x] API: agendamentos (GET com filtros de data/status/profissional, POST)
+- [x] API: serviços (GET, POST)
+- [x] API: atualização de status (PATCH)
 - [ ] Agenda semanal (tela principal)
 - [ ] Modal de criação de agendamento
-- [ ] Gestão de serviços
+- [ ] Gestão de serviços (UI)
 
-### Domínio Financial
-- [ ] Model: Transaction
-- [ ] TransactionRepository + TransactionService
-- [ ] API: CRUD de transações
+### Domínio Financial ✅ Backend completo
+- [x] Model: Transaction (schema Prisma)
+- [x] TransactionRepository + FinancialService
+- [x] Geração automática de receita ao concluir agendamento (via eventos)
+- [x] API: transações (GET com filtros tipo/data + paginação, POST)
 - [ ] Fechamento de caixa
-- [ ] Página financeira básica
+- [ ] Página financeira
 
-### Domínio Notifications
-- [ ] Integração Evolution API (WhatsApp)
-- [ ] Confirmação automática de agendamento
-- [ ] Lembrete 24h antes
-- [ ] Listener de eventos
+### Domínio Notifications 🟡 Parcial
+- [x] Model: NotificationLog (schema Prisma)
+- [x] NotificationRepository + NotificationService
+- [x] Subscriptions de eventos (criado, cancelado, no_show)
+- [ ] Integração Evolution API (WhatsApp) — provider stub, sem credenciais
+- [ ] Lembrete 24h antes (requer pg-boss)
+
+---
+
+## Fase 2 — Operação avançada
+
+- [ ] Estoque e consumo por serviço
+- [ ] Comissões por profissional
+- [ ] Motor de automações (Billing + Automation — stubs criados)
+- [ ] Campanhas de retenção
+- [ ] Dashboard com analytics
+- [ ] Relatórios avançados
+- [ ] Billing SaaS (planos, limites, trials) — stub criado
 
 ---
 

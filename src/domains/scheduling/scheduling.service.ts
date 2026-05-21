@@ -5,9 +5,14 @@ import {
 
 import { prisma } from "@/shared/database/prisma";
 import { eventBus } from "@/shared/events/event-bus";
-import { NotFoundError } from "@/shared/errors";
+import {
+  AppointmentNotFoundError,
+  CustomerNotFoundError,
+  ProfessionalNotFoundError,
+  ServiceNotFoundError,
+} from "@/shared/errors";
 
-import { appointmentRepository } from "./appointment.repository";
+import { appointmentRepository, type AppointmentFilters } from "./appointment.repository";
 import { availabilityService } from "./availability.service";
 import { catalogServiceRepository } from "./service.repository";
 import type {
@@ -30,8 +35,8 @@ export class SchedulingService {
     });
   }
 
-  async listAppointments(tenantId: string) {
-    return appointmentRepository.findAll(tenantId);
+  async listAppointments(tenantId: string, filters?: AppointmentFilters) {
+    return appointmentRepository.findAll(tenantId, filters);
   }
 
   async createAppointment(
@@ -41,21 +46,21 @@ export class SchedulingService {
   ) {
     const service = await catalogServiceRepository.findById(tenantId, input.serviceId);
     if (!service) {
-      throw new NotFoundError("Servico");
+      throw new ServiceNotFoundError();
     }
 
     const customer = await prisma.customer.findFirst({
       where: { id: input.customerId, tenantId },
     });
     if (!customer) {
-      throw new NotFoundError("Cliente");
+      throw new CustomerNotFoundError();
     }
 
     const professional = await prisma.user.findFirst({
       where: { id: input.professionalId, tenantId },
     });
     if (!professional) {
-      throw new NotFoundError("Profissional");
+      throw new ProfessionalNotFoundError();
     }
 
     const startsAt = new Date(input.startsAt);
@@ -84,7 +89,7 @@ export class SchedulingService {
       appointment.id,
     );
     if (!appointmentDetails) {
-      throw new NotFoundError("Agendamento");
+      throw new AppointmentNotFoundError();
     }
 
     eventBus.publish({
@@ -102,7 +107,7 @@ export class SchedulingService {
   ) {
     const current = await appointmentRepository.findById(tenantId, appointmentId);
     if (!current) {
-      throw new NotFoundError("Agendamento");
+      throw new AppointmentNotFoundError();
     }
 
     await appointmentRepository.updateStatus(
@@ -113,7 +118,7 @@ export class SchedulingService {
 
     const appointment = await appointmentRepository.findById(tenantId, appointmentId);
     if (!appointment) {
-      throw new NotFoundError("Agendamento");
+      throw new AppointmentNotFoundError();
     }
 
     const eventType = this.resolveStatusEvent(input.status);

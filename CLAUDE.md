@@ -145,13 +145,24 @@ export class XService {
 
 ## Domínios — Fase 1 (MVP)
 
-| Domínio | Status | Descrição |
-|---|---|---|
-| IAM | 🔴 não iniciado | Auth, tenants, roles, permissões |
-| CRM | 🔴 não iniciado | Clientes, histórico |
-| Scheduling | 🔴 não iniciado | Agenda, agendamentos |
-| Financial | 🔴 não iniciado | Transações, caixa |
-| Notifications | 🔴 não iniciado | WhatsApp, email |
+| Domínio | Status | Backend | Frontend |
+|---|---|---|---|
+| IAM | 🟡 parcial | session, RBAC, permissões ✅ | login, onboarding ❌ |
+| CRM | 🟢 backend completo | repository, service, API (busca + paginação) ✅ | UI ❌ |
+| Scheduling | 🟢 backend completo | repository, service, availability, API (filtros) ✅ | UI ❌ |
+| Financial | 🟢 backend completo | repository, service, API (filtros + paginação) ✅ | UI ❌ |
+| Notifications | 🟡 parcial | subscriptions de eventos ✅ | WhatsApp provider stub ⚠️ |
+| Billing | 🔴 stub Fase 2 | tipos + DOMAIN.md criados | — |
+| Automation | 🔴 stub Fase 2 | tipos + DOMAIN.md criados | — |
+
+## Próximo passo crítico
+
+Frontend — sem ele não há produto. Ordem recomendada:
+1. Shell de navegação (sidebar desktop + bottom nav mobile)
+2. IAM: login + registro de tenant
+3. Scheduling: agenda semanal (tela principal)
+4. CRM: listagem de clientes
+5. Financial: resumo do dia
 
 ---
 

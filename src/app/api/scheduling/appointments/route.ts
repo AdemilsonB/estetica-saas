@@ -1,5 +1,7 @@
 import { schedulingService } from "@/domains/scheduling/scheduling.service";
-import { createAppointmentSchema } from "@/domains/scheduling/types";
+import { createAppointmentSchema, listAppointmentsSchema } from "@/domains/scheduling/types";
+import { type AppointmentFilters } from "@/domains/scheduling/appointment.repository";
+import { AppointmentStatus } from "@prisma/client";
 import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
 import { ensurePermission, PERMISSIONS } from "@/shared/auth/permissions";
 import { getSessionContext } from "@/shared/auth/session";
@@ -13,7 +15,23 @@ export async function GET(request: Request) {
   try {
     const session = await getSessionContext(request);
     ensurePermission(session, PERMISSIONS.appointments.view);
-    const appointments = await schedulingService.listAppointments(session.tenantId);
+
+    const { searchParams } = new URL(request.url);
+    const query = listAppointmentsSchema.parse({
+      from: searchParams.get("from") ?? undefined,
+      to: searchParams.get("to") ?? undefined,
+      status: searchParams.get("status") ?? undefined,
+      professionalId: searchParams.get("professionalId") ?? undefined,
+    });
+
+    const filters: AppointmentFilters = {
+      from: query.from ? new Date(query.from) : undefined,
+      to: query.to ? new Date(query.to) : undefined,
+      status: query.status as AppointmentStatus | undefined,
+      professionalId: query.professionalId,
+    };
+
+    const appointments = await schedulingService.listAppointments(session.tenantId, filters);
     return Response.json(appointments);
   } catch (error) {
     return handleApiError(error);

@@ -1,5 +1,6 @@
 import { financialService } from "@/domains/financial/financial.service";
-import { createTransactionSchema } from "@/domains/financial/types";
+import { createTransactionSchema, listTransactionsSchema } from "@/domains/financial/types";
+import { TransactionType } from "@prisma/client";
 import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
 import { ensurePermission, PERMISSIONS } from "@/shared/auth/permissions";
 import { getSessionContext } from "@/shared/auth/session";
@@ -13,8 +14,24 @@ export async function GET(request: Request) {
   try {
     const session = await getSessionContext(request);
     ensurePermission(session, PERMISSIONS.financial.view);
-    const transactions = await financialService.list(session.tenantId);
-    return Response.json(transactions);
+
+    const { searchParams } = new URL(request.url);
+    const query = listTransactionsSchema.parse({
+      type: searchParams.get("type") ?? undefined,
+      from: searchParams.get("from") ?? undefined,
+      to: searchParams.get("to") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
+      pageSize: searchParams.get("pageSize") ?? undefined,
+    });
+
+    const result = await financialService.list(session.tenantId, {
+      type: query.type as TransactionType | undefined,
+      from: query.from ? new Date(query.from) : undefined,
+      to: query.to ? new Date(query.to) : undefined,
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+    return Response.json(result);
   } catch (error) {
     return handleApiError(error);
   }

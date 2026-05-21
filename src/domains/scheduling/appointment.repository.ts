@@ -2,10 +2,30 @@ import { AppointmentStatus, type Appointment, type Prisma } from "@prisma/client
 
 import { prisma } from "@/shared/database/prisma";
 
+export type AppointmentFilters = {
+  from?: Date;
+  to?: Date;
+  status?: AppointmentStatus;
+  professionalId?: string;
+};
+
 export class AppointmentRepository {
-  async findAll(tenantId: string) {
+  async findAll(tenantId: string, filters: AppointmentFilters = {}) {
+    const { from, to, status, professionalId } = filters;
     return prisma.appointment.findMany({
-      where: { tenantId },
+      where: {
+        tenantId,
+        ...(status && { status }),
+        ...(professionalId && { professionalId }),
+        ...(from || to
+          ? {
+              startsAt: {
+                ...(from && { gte: from }),
+                ...(to && { lte: to }),
+              },
+            }
+          : {}),
+      },
       include: {
         customer: true,
         professional: true,

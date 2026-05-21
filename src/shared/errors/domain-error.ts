@@ -39,3 +39,45 @@ export class ValidationError extends DomainError {
     super(message, "VALIDATION_ERROR", 422, details);
   }
 }
+
+// --- Scheduling ---
+
+export class SlotUnavailableError extends DomainError {
+  constructor() {
+    super("Horario nao disponivel para este profissional.", "SLOT_UNAVAILABLE", 409);
+  }
+}
+
+export class AppointmentNotFoundError extends DomainError {
+  constructor() {
+    super("Agendamento nao encontrado.", "APPOINTMENT_NOT_FOUND", 404);
+  }
+}
+
+export class ServiceNotFoundError extends DomainError {
+  constructor() {
+    super("Servico nao encontrado.", "SERVICE_NOT_FOUND", 404);
+  }
+}
+
+// --- CRM ---
+
+export class CustomerNotFoundError extends DomainError {
+  constructor() {
+    super("Cliente nao encontrado.", "CUSTOMER_NOT_FOUND", 404);
+  }
+}
+
+// --- IAM ---
+
+export class UserNotFoundError extends DomainError {
+  constructor() {
+    super("Usuario nao encontrado.", "USER_NOT_FOUND", 404);
+  }
+}
+
+export class ProfessionalNotFoundError extends DomainError {
+  constructor() {
+    super("Profissional nao encontrado ou nao pertence a este tenant.", "PROFESSIONAL_NOT_FOUND", 404);
+  }
+}

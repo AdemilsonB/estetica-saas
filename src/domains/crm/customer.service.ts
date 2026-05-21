@@ -1,12 +1,12 @@
 import { eventBus } from "@/shared/events/event-bus";
-import { ConflictError, NotFoundError } from "@/shared/errors";
+import { ConflictError, CustomerNotFoundError } from "@/shared/errors";
 
-import { customerRepository } from "./customer.repository";
+import { customerRepository, type CustomerFilters } from "./customer.repository";
 import type { CreateCustomerInput, UpdateCustomerInput } from "./types";
 
 export class CustomerService {
-  async list(tenantId: string) {
-    return customerRepository.findAll(tenantId);
+  async list(tenantId: string, filters?: CustomerFilters) {
+    return customerRepository.findAll(tenantId, filters);
   }
 
   async create(tenantId: string, input: CreateCustomerInput) {
@@ -38,7 +38,7 @@ export class CustomerService {
   async update(tenantId: string, customerId: string, input: UpdateCustomerInput) {
     const customer = await customerRepository.findById(tenantId, customerId);
     if (!customer) {
-      throw new NotFoundError("Cliente");
+      throw new CustomerNotFoundError();
     }
 
     if (input.phone && input.phone !== customer.phone) {

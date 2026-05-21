@@ -242,6 +242,170 @@ if (!data?.length) return (
 
 ---
 
+---
+
+## Telas de autenticação — padrões Supabase
+
+> Spec completa em `docs/features/auth-screens.md` e `src/domains/iam/DOMAIN.md`.
+
+### Client Supabase para uso no frontend (browser)
+
+```typescript
+// src/integrations/supabase/client.ts
+import { createBrowserClient } from '@supabase/ssr'
+
+export const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+```
+
+### Template: hook de login com email/senha
+
+```typescript
+// src/domains/iam/hooks/useSignIn.ts
+'use client'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { supabase } from '@/integrations/supabase/client'
+
+export function useSignIn() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+
+  async function signIn(email: string, password: string) {
+    setIsLoading(true)
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
+      router.push('/dashboard')
+      router.refresh()
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Erro ao fazer login'
+      toast.error(msg === 'Invalid login credentials' ? 'Email ou senha incorretos' : msg)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return { signIn, isLoading }
+}
+```
+
+### Template: hook de cadastro
+
+```typescript
+// src/domains/iam/hooks/useSignUp.ts
+'use client'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { supabase } from '@/integrations/supabase/client'
+
+export function useSignUp() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+
+  async function signUp(data: {
+    email: string
+    password: string
+    businessName: string
+    userName: string
+  }) {
+    setIsLoading(true)
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+      })
+      if (signUpError) throw signUpError
+
+      // Cria Tenant + User no banco
+      const res = await fetch('/api/iam/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessName: data.businessName, userName: data.userName }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Erro ao criar conta')
+      }
+
+      toast.success('Conta criada! Verifique seu email para confirmar.')
+      router.push('/dashboard')
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Erro ao criar conta'
+      toast.error(msg)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return { signUp, isLoading }
+}
+```
+
+### Template: Google OAuth
+
+```typescript
+// Botão "Continuar com Google" — usar em login E cadastro
+async function handleGoogleSignIn() {
+  await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    },
+  })
+}
+```
+
+### Template: esqueci minha senha
+
+```typescript
+async function handleForgotPassword(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/auth/reset-password`,
+  })
+  if (error) throw error
+  // Mostrar estado de sucesso na UI
+}
+```
+
+### Template: redefinir senha (após clicar no link do email)
+
+```typescript
+async function handleResetPassword(newPassword: string) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) throw error
+  // Redirect para /auth/login com toast de sucesso
+}
+```
+
+### Estrutura de rotas de auth
+
+```
+app/
+└── (auth)/
+    ├── layout.tsx              # sem sidebar, fundo clean
+    ├── login/page.tsx          # abas: Entrar + Criar conta
+    ├── forgot-password/page.tsx
+    ├── reset-password/page.tsx
+    ├── onboarding/page.tsx     # pós-Google OAuth sem tenant
+    └── callback/route.ts       # server route — troca code por session
+```
+
+### Regras visuais das telas de auth
+
+- Layout split desktop: 50% visual do produto / 50% formulário
+- Mobile: só o formulário (sem split)
+- Botão Google: outline, com ícone SVG oficial do Google
+- Indicador de força de senha: barra colorida abaixo do campo (red/yellow/green)
+- Animação suave ao trocar entre as abas
+- Sem sidebar ou navigation nas rotas de auth
+
+---
+
 ## Checklist antes de entregar
 
 - [ ] Loading state implementado

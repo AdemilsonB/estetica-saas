@@ -1,3 +1,4 @@
+import { registerFinancialSubscriptions } from "@/domains/financial/subscriptions";
 import { registerNotificationSubscriptions } from "@/domains/notifications/subscriptions";
 
 let initialized = false;
@@ -7,6 +8,7 @@ export function initializeDomainRuntime() {
     return;
   }
 
+  registerFinancialSubscriptions();
   registerNotificationSubscriptions();
   initialized = true;
 }
