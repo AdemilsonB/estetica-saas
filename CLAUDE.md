@@ -166,8 +166,19 @@ Frontend — sem ele não há produto. Ordem recomendada:
 
 ---
 
+## Workflow de branches e commits
+
+- Branch dedicada por feature/fix — nunca committar direto em `main`
+- Nomenclatura: `feat/`, `fix/`, `refactor/`, `chore/`, `hotfix/`
+- Commits seguem Conventional Commits: `feat(escopo): descrição`
+- Pull Request para `main` ao concluir — com checklist abaixo
+- Ver `.claude/BRANCHING.md` para o fluxo completo
+
+---
+
 ## Checklist antes de entregar qualquer feature
 
+- [ ] Branch dedicada criada (`feat/` ou `fix/`)
 - [ ] `tenantId` em todo model novo no Prisma
 - [ ] Repository com filtro de tenant em todas as queries
 - [ ] Service com regras de negócio e publicação de eventos
@@ -175,12 +186,14 @@ Frontend — sem ele não há produto. Ordem recomendada:
 - [ ] Erros tipados para todos os casos de falha
 - [ ] Componente com loading state e error state
 - [ ] Sem `any` no TypeScript
+- [ ] Pull Request aberta para `main`
 
 ---
 
 ## Arquivos de contexto complementares
 
 - `.claude/AGENTS.md` — como usar cada agente
+- `.claude/BRANCHING.md` — workflow de branches, commits e PRs
 - `.claude/agent-backend.md` — agente de domínios e API
 - `.claude/agent-frontend.md` — agente de UI e componentes
 - `.claude/agent-database.md` — agente de schema e migrations
