@@ -1,6 +1,15 @@
+import { UserRole } from "@prisma/client";
+
 import { prisma } from "@/shared/database/prisma";
-import { NotFoundError } from "@/shared/errors";
+import { supabaseAdmin } from "@/integrations/supabase/admin";
+import { NotFoundError, ConflictError } from "@/shared/errors";
+import { iamRepository } from "./iam.repository";
 import type { SessionContext } from "@/shared/types/auth";
+
+type RegisterInput = {
+  businessName: string;
+  userName: string;
+};
 
 export class IamService {
   async getCurrentUser(session: SessionContext) {
@@ -24,6 +33,36 @@ export class IamService {
     }
 
     return user;
+  }
+
+  async register(userId: string, input: RegisterInput) {
+    const { data: authUser, error } =
+      await supabaseAdmin.auth.admin.getUserById(userId);
+
+    if (error || !authUser.user) {
+      throw new NotFoundError("Usuario Supabase");
+    }
+
+    const existingUser = await prisma.user.findFirst({ where: { id: userId } });
+    if (existingUser) {
+      throw new ConflictError("Tenant ja cadastrado para este usuario.");
+    }
+
+    const { tenant, user } = await iamRepository.createTenantWithOwner({
+      userId,
+      email: authUser.user.email!,
+      businessName: input.businessName,
+      userName: input.userName,
+    });
+
+    await supabaseAdmin.auth.admin.updateUserById(userId, {
+      user_metadata: {
+        tenantId: tenant.id,
+        role: UserRole.OWNER,
+      },
+    });
+
+    return { tenantId: tenant.id, userId: user.id };
   }
 }
 
