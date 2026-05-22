@@ -303,49 +303,54 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
   async function onSubmit(data: SignupForm) {
     const supabase = createSupabaseBrowserClient();
 
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+    // Em dev: cria usuário via admin API sem disparar email
+    if (process.env.NODE_ENV === "development") {
+      const devRes = await fetch("/api/dev/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email, password: data.password }),
+      });
+
+      if (!devRes.ok) {
+        const body = await devRes.json();
+        const msg = body.error ?? "";
+        if (msg.includes("already been registered") || msg.includes("already exists")) {
+          toast.error("Este email ja possui uma conta. Faca login.");
+        } else {
+          toast.error(msg || "Erro ao criar conta.");
+        }
+        return;
+      }
+    } else {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (signUpError) {
+        if (signUpError.message.includes("already registered")) {
+          toast.error("Este email ja possui uma conta. Faca login.");
+        } else {
+          toast.error(signUpError.message);
+        }
+        return;
+      }
+
+      toast.success("Conta criada! Verifique seu email para confirmar.");
+      return;
+    }
+
+    const { data: signed, error: signInError } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     });
 
-    if (signUpError) {
-      if (signUpError.message.includes("already registered")) {
-        toast.error("Este email ja possui uma conta. Faca login.");
-      } else {
-        toast.error(signUpError.message);
-      }
-      return;
-    }
-
-    if (!authData.user) {
-      toast.error("Erro ao criar conta. Tente novamente.");
-      return;
-    }
-
-    let session = authData.session;
-
-    if (!session) {
-      if (process.env.NODE_ENV === "development") {
-        await fetch("/api/dev/confirm-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: authData.user.id }),
-        });
-        const { data: refreshed } = await supabase.auth.signInWithPassword({
-          email: data.email,
-          password: data.password,
-        });
-        session = refreshed.session;
-      } else {
-        toast.success("Conta criada! Verifique seu email para confirmar.");
-        return;
-      }
-    }
-
-    if (!session) {
+    if (signInError || !signed.session) {
       toast.error("Erro ao iniciar sessao. Tente fazer login.");
       return;
     }
+
+    const session = signed.session;
 
     const res = await fetch("/api/iam/register", {
       method: "POST",
