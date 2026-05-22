@@ -35,17 +35,17 @@ export async function middleware(request: NextRequest) {
     if (!user) {
       return NextResponse.redirect(new URL("/auth/login", request.url));
     }
-    if (!user.user_metadata?.tenantId) {
+    if (!user.app_metadata?.tenantId) {
       return NextResponse.redirect(new URL("/auth/onboarding", request.url));
     }
   }
 
   const isAuthRoute = pathname.startsWith("/auth");
   const isPublicAuthRoute =
-    pathname.includes("/callback") || pathname.includes("/reset-password");
+    pathname === "/auth/callback" || pathname === "/auth/reset-password";
 
   if (isAuthRoute && !isPublicAuthRoute) {
-    if (user?.user_metadata?.tenantId) {
+    if (user?.app_metadata?.tenantId) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
