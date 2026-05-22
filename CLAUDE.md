@@ -5,6 +5,100 @@
 
 ---
 
+## Idioma e comunicação
+
+**Todo output deve ser em Português do Brasil** — código, comentários de código, mensagens de commit, logs, nomes de branch, respostas, perguntas e explicações. Sem exceções.
+
+---
+
+## Autonomia de execução
+
+Quando um prompt de desenvolvimento estiver aprovado e a sessão iniciada, **execute até o fim sem pedir confirmação a cada passo**.
+
+Interrompa e aguarde resposta APENAS nas seguintes situações críticas:
+- Vai **deletar dados ou arquivos irreversivelmente**
+- Vai **alterar schema do banco em produção** de forma destrutiva (drop de coluna/tabela)
+- Identificou **ambiguidade que impede a implementação correta** — não uma dúvida de preferência estética, mas um bloqueio real de lógica de negócio
+- O escopo do prompt se mostrou **substancialmente maior** do que o planejado (mais de 2x o estimado)
+
+Em todos os outros casos — criação de arquivos, edição de componentes, migrations aditivas, refatorações dentro do escopo — **execute diretamente e informe o que foi feito ao concluir**.
+
+Ao concluir uma sessão, apresente um resumo em PT-BR:
+```
+✅ Concluído:
+- [o que foi feito]
+
+📁 Arquivos criados/modificados:
+- [lista com paths]
+
+⚠️ Pendências (se houver):
+- [o que ficou de fora do escopo e por quê]
+```
+
+---
+
+## Protocolo obrigatório antes de iniciar qualquer desenvolvimento
+
+**Nunca inicie implementação sem antes fazer as perguntas necessárias.** Este protocolo é obrigatório mesmo que a tarefa pareça simples.
+
+Ao receber uma demanda, siga esta sequência:
+
+### 1. Leia o contexto existente
+Antes de qualquer pergunta, verifique internamente:
+- Qual domínio DDD é afetado? (`iam`, `crm`, `scheduling`, `financial`, `notifications`)
+- Existe backend já implementado para isso? (ver tabela de status dos domínios abaixo)
+- Existe componente ou hook que resolve parte do problema?
+- Qual agente deve ser ativado? (ver `.claude/AGENTS.md`)
+
+### 2. Faça as perguntas certas — agrupadas, máximo 5 por vez
+
+Para qualquer demanda, cubra obrigatoriamente:
+
+**Sobre o comportamento:**
+- O que o usuário vê/faz antes, durante e depois da ação?
+- Quem usa isso? (dono do salão, atendente, cliente final)
+- Existe algum caso de erro ou edge case óbvio que precisa de tratamento especial?
+
+**Sobre o escopo:**
+- É criação do zero ou alteração de algo existente?
+- Afeta mais de um domínio? Se sim, como se comunicam?
+- Tem regra de negócio específica do setor de estética que eu preciso saber?
+
+**Sobre pré-condições:**
+- O que precisa existir antes (model Prisma, API, componente base)?
+
+Apresente as perguntas assim:
+```
+Antes de começar, preciso entender melhor alguns pontos:
+
+**Comportamento:**
+1. [pergunta]
+2. [pergunta]
+
+**Escopo:**
+3. [pergunta]
+
+**Pré-condições:**
+4. [pergunta]
+```
+
+### 3. Confirme o entendimento antes de codificar
+
+Após as respostas, apresente:
+```
+Meu entendimento da tarefa:
+- O que farei: [lista objetiva]
+- O que não está no escopo: [lista]
+- Agente(s) que vou usar: [database / backend / frontend / review]
+- Estimativa: [simples <30min / médio 1-3h / complexo >3h]
+
+Posso começar?
+```
+
+Só inicie o código após confirmação explícita.
+
+---
+
 ## O que é esse projeto
 
 SaaS operacional para negócios de estética (barbearias, salões, clínicas, estúdios).
@@ -94,6 +188,9 @@ Prisma Client
 - Hardcode de IDs, roles ou strings mágicas sem constante
 - `console.log` em produção (usar logger estruturado)
 - `tenantId` vindo do body da requisição
+- Iniciar implementação sem completar o protocolo de perguntas acima
+- Considerar uma entrega concluída sem PR mergeada na `main`
+- Deixar branch de feature sem mergear ao final da sessão
 
 ---
 
@@ -145,15 +242,15 @@ export class XService {
 
 ## Domínios — Fase 1 (MVP)
 
-| Domínio | Status | Backend | Frontend |
-|---|---|---|---|
-| IAM | 🟡 parcial | session, RBAC, permissões ✅ | login, onboarding ❌ |
-| CRM | 🟢 backend completo | repository, service, API (busca + paginação) ✅ | UI ❌ |
-| Scheduling | 🟢 backend completo | repository, service, availability, API (filtros) ✅ | UI ❌ |
-| Financial | 🟢 backend completo | repository, service, API (filtros + paginação) ✅ | UI ❌ |
-| Notifications | 🟡 parcial | subscriptions de eventos ✅ | WhatsApp provider stub ⚠️ |
-| Billing | 🔴 stub Fase 2 | tipos + DOMAIN.md criados | — |
-| Automation | 🔴 stub Fase 2 | tipos + DOMAIN.md criados | — |
+| Domínio       | Status              | Backend                                             | Frontend                  |
+| ------------- | ------------------- | --------------------------------------------------- | ------------------------- |
+| IAM           | 🟡 parcial           | session, RBAC, permissões ✅                         | login, onboarding ❌       |
+| CRM           | 🟢 backend completo  | repository, service, API (busca + paginação) ✅      | UI ❌                      |
+| Scheduling    | 🟢 backend completo  | repository, service, availability, API (filtros) ✅  | UI ❌                      |
+| Financial     | 🟢 backend completo  | repository, service, API (filtros + paginação) ✅    | UI ❌                      |
+| Notifications | 🟡 parcial           | subscriptions de eventos ✅                          | WhatsApp provider stub ⚠️ |
+| Billing       | 🔴 stub Fase 2       | tipos + DOMAIN.md criados                           | —                         |
+| Automation    | 🔴 stub Fase 2       | tipos + DOMAIN.md criados                           | —                         |
 
 ## Próximo passo crítico
 
@@ -170,7 +267,7 @@ Frontend — sem ele não há produto. Ordem recomendada:
 
 - Branch dedicada por feature/fix — nunca committar direto em `main`
 - Nomenclatura: `feat/`, `fix/`, `refactor/`, `chore/`, `hotfix/`
-- Commits seguem Conventional Commits: `feat(escopo): descrição`
+- Commits seguem Conventional Commits em PT-BR: `feat(escopo): descrição em português`
 - Pull Request para `main` ao concluir — com checklist abaixo
 - Ver `.claude/BRANCHING.md` para o fluxo completo
 
@@ -187,11 +284,13 @@ Frontend — sem ele não há produto. Ordem recomendada:
 - [ ] Componente com loading state e error state
 - [ ] Sem `any` no TypeScript
 - [ ] Pull Request aberta para `main`
+- [ ] PR mergeada na `main` — nenhuma entrega é considerada concluída até o merge acontecer
 
 ---
 
 ## Arquivos de contexto complementares
 
+- `.claude/PLANEJAMENTO.md` — protocolo de planejamento e refinamento de demandas
 - `.claude/AGENTS.md` — como usar cada agente
 - `.claude/BRANCHING.md` — workflow de branches, commits e PRs
 - `.claude/agent-backend.md` — agente de domínios e API

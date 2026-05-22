@@ -129,6 +129,22 @@ gh pr merge --squash --delete-branch
 
 ---
 
+## Regra obrigatória — merge na main ao concluir
+
+**Nenhuma entrega é considerada concluída até estar na `main`.**
+
+Ao finalizar qualquer implementação, o Claude deve obrigatoriamente:
+
+1. Verificar se há commits pendentes de push na branch atual
+2. Abrir PR para `main` via `gh pr create`
+3. Mergear a PR via `gh pr merge --squash`
+4. Confirmar que `main` está atualizada com `git log origin/main --oneline -3`
+
+Isso se aplica a toda branch de `feat/`, `fix/`, `refactor/` e `chore/` — sem exceção.
+O código que não está na `main` não existe do ponto de vista do produto.
+
+---
+
 ## Quando o Claude cria branches automaticamente
 
 O Claude cria uma nova branch **antes de começar qualquer implementação** quando:
