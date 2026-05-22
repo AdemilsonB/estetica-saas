@@ -1,6 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// Rotas de auth acessíveis sem sessão
+const AUTH_ROUTES = ["/login", "/forgot-password"];
+// Rotas de auth que precisam de token válido no URL (não redirecionam usuário autenticado)
+const TOKEN_ROUTES = ["/reset-password", "/callback"];
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -31,28 +36,30 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/dashboard")) {
-    if (!user) {
-      return NextResponse.redirect(new URL("/auth/login", request.url));
-    }
-    if (!user.app_metadata?.tenantId) {
-      return NextResponse.redirect(new URL("/auth/onboarding", request.url));
-    }
+  const isAuthRoute = AUTH_ROUTES.includes(pathname);
+  const isTokenRoute = TOKEN_ROUTES.includes(pathname);
+  const isOnboarding = pathname === "/onboarding";
+
+  // Usuário autenticado com tenant acessando rota de login → app
+  if (user?.app_metadata?.tenantId && (isAuthRoute || isOnboarding)) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
-  const isAuthRoute = pathname.startsWith("/auth");
-  const isPublicAuthRoute =
-    pathname === "/auth/callback" || pathname === "/auth/reset-password";
+  // Usuário autenticado sem tenant, fora do onboarding e fora de rotas de token → onboarding
+  if (user && !user.app_metadata?.tenantId && !isOnboarding && !isTokenRoute) {
+    return NextResponse.redirect(new URL("/onboarding", request.url));
+  }
 
-  if (isAuthRoute && !isPublicAuthRoute) {
-    if (user?.app_metadata?.tenantId) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
+  // Usuário não autenticado tentando acessar rota protegida → login
+  if (!user && !isAuthRoute && !isTokenRoute) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   return supabaseResponse;
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/auth/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|api/).*)",
+  ],
 };

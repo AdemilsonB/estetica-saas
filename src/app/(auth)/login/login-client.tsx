@@ -197,7 +197,7 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
       return;
     }
 
-    router.push("/dashboard");
+    router.push("/");
     router.refresh();
   }
 
@@ -226,7 +226,7 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
             Senha
           </Label>
           <a
-            href="/auth/forgot-password"
+            href="/forgot-password"
             className="text-xs text-[#787774] hover:text-[#191919]"
           >
             Esqueceu sua senha?
@@ -322,9 +322,28 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
       return;
     }
 
-    const session = authData.session;
+    let session = authData.session;
+
     if (!session) {
-      toast.success("Conta criada! Verifique seu email para confirmar.");
+      if (process.env.NODE_ENV === "development") {
+        await fetch("/api/dev/confirm-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: authData.user.id }),
+        });
+        const { data: refreshed } = await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+        });
+        session = refreshed.session;
+      } else {
+        toast.success("Conta criada! Verifique seu email para confirmar.");
+        return;
+      }
+    }
+
+    if (!session) {
+      toast.error("Erro ao iniciar sessao. Tente fazer login.");
       return;
     }
 
@@ -347,7 +366,7 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
     }
 
     toast.success("Conta criada com sucesso!");
-    router.push("/dashboard");
+    router.push("/");
     router.refresh();
   }
 
