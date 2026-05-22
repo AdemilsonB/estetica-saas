@@ -189,6 +189,8 @@ Prisma Client
 - `console.log` em produção (usar logger estruturado)
 - `tenantId` vindo do body da requisição
 - Iniciar implementação sem completar o protocolo de perguntas acima
+- Considerar uma entrega concluída sem PR mergeada na `main`
+- Deixar branch de feature sem mergear ao final da sessão
 
 ---
 
@@ -282,6 +284,7 @@ Frontend — sem ele não há produto. Ordem recomendada:
 - [ ] Componente com loading state e error state
 - [ ] Sem `any` no TypeScript
 - [ ] Pull Request aberta para `main`
+- [ ] PR mergeada na `main` — nenhuma entrega é considerada concluída até o merge acontecer
 
 ---
 
