@@ -22,7 +22,8 @@
       "Bash(gh pr merge *)",
       "Bash(gh pr checkout *)",
       "Bash(gh issue *)",
-      "Bash(gh repo *)"
+      "Bash(gh repo *)",
+      "Bash(npm list *)"
     ]
   }
 }
