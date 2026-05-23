@@ -26,6 +26,14 @@ function endOfDay(d: Date) {
   return r
 }
 
+function startOfWeek(d: Date) {
+  const r = new Date(d)
+  const day = r.getDay()
+  r.setDate(r.getDate() - day + (day === 0 ? -6 : 1))
+  r.setHours(0, 0, 0, 0)
+  return r
+}
+
 function formatDayLabel(d: Date) {
   const today = new Date()
   const isToday = d.toDateString() === today.toDateString()
@@ -50,6 +58,16 @@ function groupByHour(appointments: Appointment[]) {
   return groups
 }
 
+function groupByDay(appointments: Appointment[]) {
+  const groups: Record<string, Appointment[]> = {}
+  for (const appt of appointments) {
+    const key = new Date(appt.startsAt).toDateString()
+    if (!groups[key]) groups[key] = []
+    groups[key].push(appt)
+  }
+  return groups
+}
+
 type ViewMode = 'day' | 'week'
 
 export function AgendaDayView() {
@@ -66,20 +84,42 @@ export function AgendaDayView() {
   const professionalId =
     currentUser?.role === 'PROFESSIONAL' ? currentUser.id : undefined
 
-  const from = startOfDay(selectedDate).toISOString()
-  const to = endOfDay(selectedDate).toISOString()
+  const weekStart = startOfWeek(selectedDate)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekStart.getDate() + 6)
+  weekEnd.setHours(23, 59, 59, 999)
 
-  const { data: appointments = [], isLoading, error } = useAppointments({
-    from,
-    to,
-    professionalId,
-  })
+  const from =
+    viewMode === 'day'
+      ? startOfDay(selectedDate).toISOString()
+      : weekStart.toISOString()
+  const to =
+    viewMode === 'day'
+      ? endOfDay(selectedDate).toISOString()
+      : weekEnd.toISOString()
+
+  const {
+    data: appointments = [],
+    isLoading,
+    error,
+    refetch,
+  } = useAppointments({ from, to, professionalId })
 
   const sorted = [...appointments].sort(
     (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
   )
+
+  // Dados para modo dia
   const groups = groupByHour(sorted)
   const hours = Object.keys(groups).sort()
+
+  // Dados para modo semana
+  const dayGroups = groupByDay(sorted)
+  const dayKeys = Object.keys(dayGroups).sort(
+    (a, b) => new Date(a).getTime() - new Date(b).getTime(),
+  )
+
+  const isEmpty = viewMode === 'day' ? hours.length === 0 : dayKeys.length === 0
 
   function handleCardClick(appt: Appointment) {
     setSelectedAppointment(appt)
@@ -152,16 +192,18 @@ export function AgendaDayView() {
             variant="outline"
             size="sm"
             className="mt-3"
-            onClick={() => window.location.reload()}
+            onClick={() => refetch()}
           >
             Tentar novamente
           </Button>
         </div>
-      ) : hours.length === 0 ? (
+      ) : isEmpty ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/60 py-16 text-center">
           <CalendarDays className="size-10 text-slate-300" />
           <p className="mt-4 text-sm font-medium text-slate-500">
-            Nenhum agendamento para este dia
+            {viewMode === 'week'
+              ? 'Nenhum agendamento para esta semana'
+              : 'Nenhum agendamento para este dia'}
           </p>
           {can('appointments:create') && (
             <Button
@@ -175,7 +217,7 @@ export function AgendaDayView() {
             </Button>
           )}
         </div>
-      ) : (
+      ) : viewMode === 'day' ? (
         <div className="space-y-6">
           {hours.map((hour) => (
             <div key={hour}>
@@ -184,6 +226,29 @@ export function AgendaDayView() {
               </p>
               <div className="space-y-2">
                 {groups[hour].map((appt) => (
+                  <AppointmentCard
+                    key={appt.id}
+                    appointment={appt}
+                    onClick={handleCardClick}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {dayKeys.map((key) => (
+            <div key={key}>
+              <p className="mb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase capitalize">
+                {new Date(key).toLocaleDateString('pt-BR', {
+                  weekday: 'long',
+                  day: '2-digit',
+                  month: 'long',
+                })}
+              </p>
+              <div className="space-y-2">
+                {dayGroups[key].map((appt) => (
                   <AppointmentCard
                     key={appt.id}
                     appointment={appt}

@@ -68,7 +68,9 @@ export function AgendaWeekStrip({ selectedDate, onSelectDate }: Props) {
           const isToday = d.toDateString() === new Date().toDateString()
           return (
             <button
-              key={i}
+              key={d.toISOString()}
+              aria-label={d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+              aria-pressed={isSelected}
               onClick={() => onSelectDate(d)}
               className={cn(
                 'flex flex-col items-center rounded-xl py-2 text-center transition',
