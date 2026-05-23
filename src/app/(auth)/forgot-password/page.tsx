@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
 
   async function onSubmit(data: Form) {
     const supabase = createSupabaseBrowserClient();
-    const redirectTo = `${window.location.origin}/auth/reset-password`;
+    const redirectTo = `${window.location.origin}/reset-password`;
 
     const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
       redirectTo,
@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
             {cooldown > 0 ? `Reenviar em ${cooldown}s` : "Reenviar email"}
           </Button>
           <a
-            href="/auth/login"
+            href="/login"
             className="block text-sm text-[#787774] hover:text-[#191919]"
           >
             ← Voltar para o login
@@ -140,7 +140,7 @@ export default function ForgotPasswordPage() {
         </form>
 
         <a
-          href="/auth/login"
+          href="/login"
           className="block text-center text-sm text-[#787774] hover:text-[#191919]"
         >
           ← Voltar para o login
