@@ -25,8 +25,8 @@ export async function getSessionContext(
     return getDevelopmentHeaderSession(request);
   }
 
-  // 3. Cookie do @supabase/ssr (browser via createBrowserClient)
-  // O cookie real é sb-{project-ref}-auth-token, não sb-access-token
+  // 3. Cookie do @supabase/ssr — usa getUser() sem argumento, idêntico ao middleware,
+  // para que o SDK leia o cookie sb-{ref}-auth-token e devolva app_metadata completo
   const cookieStore = await cookies();
   const supabase = createServerClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
     cookies: {
@@ -34,14 +34,27 @@ export async function getSessionContext(
       setAll() {},
     },
   });
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    return getSupabaseSessionFromToken(session.access_token);
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new UnauthorizedError(
+      "Sessao ausente. Envie Bearer token do Supabase ou use o modo de desenvolvimento explicitamente.",
+    );
   }
 
-  throw new UnauthorizedError(
-    "Sessao ausente. Envie Bearer token do Supabase ou use o modo de desenvolvimento explicitamente.",
-  );
+  const tenantId = user.app_metadata?.tenantId ?? user.user_metadata?.tenantId;
+  const role = user.app_metadata?.role ?? user.user_metadata?.role;
+  const permissions: string[] =
+    user.app_metadata?.permissions ?? user.user_metadata?.permissions ?? [];
+
+  if (!tenantId) {
+    throw new UnauthorizedError("Tenant ausente na sessao autenticada.");
+  }
+  if (!role || !Object.values(UserRole).includes(role as UserRole)) {
+    throw new UnauthorizedError("Role ausente ou invalida na sessao autenticada.");
+  }
+
+  return { tenantId, userId: user.id, role: role as UserRole, permissions };
 }
 
 async function getDevelopmentHeaderSession(
