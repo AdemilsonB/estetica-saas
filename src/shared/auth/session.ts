@@ -1,4 +1,6 @@
 import { UserRole } from "@prisma/client";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
 import { getSupabaseSessionFromToken } from "@/integrations/supabase/auth";
 import { env, isProduction } from "@/shared/config/env";
@@ -12,13 +14,33 @@ const devSessionHeaderName = "x-auth-mode";
 export async function getSessionContext(
   request: Request,
 ): Promise<SessionContext> {
+  // 1. Bearer token no header Authorization (clientes API, mobile, testes)
   const accessToken = extractAccessToken(request);
   if (accessToken) {
     return getSupabaseSessionFromToken(accessToken);
   }
 
+  // 2. Modo desenvolvimento com headers explícitos
   if (!isProduction && request.headers.get(devSessionHeaderName) === "headers") {
     return getDevelopmentHeaderSession(request);
+  }
+
+  // 3. Cookie do @supabase/ssr (browser via createBrowserClient)
+  // O cookie real é sb-{project-ref}-auth-token, não sb-access-token
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+      cookies: {
+        getAll() { return cookieStore.getAll(); },
+        setAll() {},
+      },
+    });
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      return getSupabaseSessionFromToken(session.access_token);
+    }
+  } catch {
+    // cookies() pode falhar fora do contexto Next.js — continua para o erro abaixo
   }
 
   throw new UnauthorizedError(
