@@ -72,7 +72,12 @@ export default function OnboardingPage() {
     }
 
     // Força refresh do JWT para que o middleware veja o tenantId recém-criado em app_metadata
-    await supabase.auth.refreshSession();
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) {
+      toast.error("Erro ao sincronizar sessao. Faca login novamente.");
+      router.push("/login");
+      return;
+    }
     toast.success("Tudo pronto! Bem-vindo ao workspace.");
     router.push("/dashboard");
     router.refresh();
