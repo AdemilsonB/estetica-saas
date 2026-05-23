@@ -26,10 +26,6 @@ const loginSchema = z.object({
 
 const signupSchema = z
   .object({
-    businessName: z
-      .string()
-      .min(2, "Nome do negocio muito curto"),
-    userName: z.string().min(2, "Nome muito curto"),
     email: z.string().email("Email invalido"),
     password: z.string().min(8, "Minimo 8 caracteres"),
     confirmPassword: z.string(),
@@ -303,7 +299,6 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
   async function onSubmit(data: SignupForm) {
     const supabase = createSupabaseBrowserClient();
 
-    // Em dev: cria usuário via admin API sem disparar email
     if (process.env.NODE_ENV === "development") {
       const devRes = await fetch("/api/dev/signup", {
         method: "POST",
@@ -350,66 +345,12 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
       return;
     }
 
-    const session = signed.session;
-
-    const res = await fetch("/api/iam/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-        businessName: data.businessName,
-        userName: data.userName,
-      }),
-    });
-
-    if (!res.ok) {
-      const body = await res.json();
-      toast.error(body.error?.message ?? "Erro ao configurar sua conta.");
-      return;
-    }
-
-    // Força refresh do JWT para que o middleware veja o tenantId recém-criado em app_metadata
-    const { error: refreshError } = await supabase.auth.refreshSession();
-    if (refreshError) {
-      // Não redirecionamos para /login pois o usuário já está nesta tela (aba de cadastro).
-      // O toast orienta o próximo passo; o usuário pode usar a aba "Entrar" diretamente.
-      toast.error("Conta criada, mas erro ao iniciar sessao. Use a aba Entrar para continuar.");
-      return;
-    }
-
-    toast.success("Conta criada com sucesso!");
-    router.push("/");
+    router.push("/onboarding");
     router.refresh();
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label className="text-[#37352f]">Nome do negocio</Label>
-        <Input
-          placeholder="Ex: Barbearia do Joao"
-          className="border-[#e5e5e5] bg-[#f7f6f3] focus-visible:ring-[#191919]"
-          {...register("businessName")}
-        />
-        {errors.businessName && (
-          <p className="text-xs text-red-500">{errors.businessName.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-[#37352f]">Seu nome</Label>
-        <Input
-          placeholder="Nome completo"
-          className="border-[#e5e5e5] bg-[#f7f6f3] focus-visible:ring-[#191919]"
-          {...register("userName")}
-        />
-        {errors.userName && (
-          <p className="text-xs text-red-500">{errors.userName.message}</p>
-        )}
-      </div>
-
       <div className="space-y-1.5">
         <Label className="text-[#37352f]">Email</Label>
         <Input
