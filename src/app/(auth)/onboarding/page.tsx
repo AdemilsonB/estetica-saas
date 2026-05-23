@@ -1,86 +1,104 @@
-"use client";
+// src/app/(auth)/onboarding/page.tsx
+'use client'
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Loader2, Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Loader2, Sparkles } from 'lucide-react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { createSupabaseBrowserClient } from "@/integrations/supabase/client";
-
-const schema = z.object({
-  businessName: z.string().min(2, "Nome do negocio muito curto"),
-  userName: z.string().min(2, "Nome muito curto"),
-});
-
-type Form = z.infer<typeof schema>;
+type Mode = 'loading' | 'create' | 'join'
 
 export default function OnboardingPage() {
-  const router = useRouter();
-  const [initialName, setInitialName] = useState("");
+  const router = useRouter()
+  const [mode, setMode] = useState<Mode>('loading')
+  const [pendingTenantId, setPendingTenantId] = useState('')
+  const [businessName, setBusinessName] = useState('')
+  const [userName, setUserName] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
+    const supabase = createSupabaseBrowserClient()
     supabase.auth.getUser().then(({ data }) => {
-      const name =
-        data.user?.user_metadata?.full_name ??
-        data.user?.user_metadata?.name ??
-        "";
-      setInitialName(name);
-    });
-  }, []);
+      const meta = data.user?.user_metadata
+      if (meta?.pendingTenantId) {
+        setPendingTenantId(meta.pendingTenantId as string)
+        setUserName(meta.full_name ?? meta.name ?? '')
+        setMode('join')
+      } else {
+        setUserName(meta?.full_name ?? meta?.name ?? '')
+        setMode('create')
+      }
+    })
+  }, [])
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<Form>({
-    resolver: zodResolver(schema),
-    values: { businessName: "", userName: initialName },
-  });
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    setIsSubmitting(true)
+    try {
+      const supabase = createSupabaseBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { toast.error('Sessão expirada.'); router.push('/login'); return }
 
-  async function onSubmit(data: Form) {
-    const supabase = createSupabaseBrowserClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session) {
-      toast.error("Sessao expirada. Faca login novamente.");
-      router.push("/login");
-      return;
+      const res = await fetch('/api/iam/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ businessName, userName }),
+      })
+      if (!res.ok) {
+        const body = await res.json()
+        toast.error(body.error?.message ?? 'Erro ao configurar sua conta.')
+        return
+      }
+      toast.success('Tudo pronto! Bem-vindo ao workspace.')
+      router.push('/dashboard')
+      router.refresh()
+    } finally {
+      setIsSubmitting(false)
     }
+  }
 
-    const res = await fetch("/api/iam/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify(data),
-    });
+  async function handleJoin(e: React.FormEvent) {
+    e.preventDefault()
+    setIsSubmitting(true)
+    try {
+      const supabase = createSupabaseBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { toast.error('Sessão expirada.'); router.push('/login'); return }
 
-    if (!res.ok) {
-      const body = await res.json();
-      toast.error(body.error?.message ?? "Erro ao configurar sua conta.");
-      return;
+      const res = await fetch('/api/iam/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ userName }),
+      })
+      if (!res.ok) {
+        const body = await res.json()
+        toast.error(body.error?.message ?? 'Erro ao ingressar no workspace.')
+        return
+      }
+      toast.success('Bem-vindo à equipe!')
+      router.push('/agenda')
+      router.refresh()
+    } finally {
+      setIsSubmitting(false)
     }
+  }
 
-    // Força refresh do JWT para que o middleware veja o tenantId recém-criado em app_metadata
-    const { error: refreshError } = await supabase.auth.refreshSession();
-    if (refreshError) {
-      toast.error("Erro ao sincronizar sessao. Faca login novamente.");
-      router.push("/login");
-      return;
-    }
-    toast.success("Tudo pronto! Bem-vindo ao workspace.");
-    router.push("/dashboard");
-    router.refresh();
+  if (mode === 'loading') {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-slate-400" />
+      </div>
+    )
   }
 
   return (
@@ -90,59 +108,74 @@ export default function OnboardingPage() {
           <Sparkles className="size-5 text-white" />
         </div>
 
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#191919]">
-            Quase la!
-          </h1>
-          <p className="mt-2 text-sm text-[#787774]">
-            Como se chama seu negocio? Voce pode alterar isso depois nas
-            configuracoes.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-[#37352f]">Nome do negocio</Label>
-            <Input
-              placeholder="Ex: Barbearia do Joao"
-              className="border-[#e5e5e5] bg-white focus-visible:ring-[#191919]"
-              {...register("businessName")}
-            />
-            {errors.businessName && (
-              <p className="text-xs text-red-500">
-                {errors.businessName.message}
+        {mode === 'create' ? (
+          <>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-[#191919]">Quase lá!</h1>
+              <p className="mt-2 text-sm text-[#787774]">
+                Como se chama seu negócio? Você pode alterar isso depois.
               </p>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-[#37352f]">Seu nome</Label>
-            <Input
-              placeholder="Nome completo"
-              className="border-[#e5e5e5] bg-white focus-visible:ring-[#191919]"
-              {...register("userName")}
-            />
-            {errors.userName && (
-              <p className="text-xs text-red-500">{errors.userName.message}</p>
-            )}
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full bg-[#191919] text-white hover:bg-[#2d2d2d]"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 size-4 animate-spin" />
-                Configurando...
-              </>
-            ) : (
-              "Comecar →"
-            )}
-          </Button>
-        </form>
+            </div>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Nome do negócio</Label>
+                <Input
+                  placeholder="Ex: Barbearia do João"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  required
+                  minLength={2}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Seu nome</Label>
+                <Input
+                  placeholder="Nome completo"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  required
+                  minLength={2}
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full bg-[#191919] text-white hover:bg-[#2d2d2d]"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? <><Loader2 className="mr-2 size-4 animate-spin" />Configurando...</> : 'Começar →'}
+              </Button>
+            </form>
+          </>
+        ) : (
+          <>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-[#191919]">Você foi convidado!</h1>
+              <p className="mt-2 text-sm text-[#787774]">
+                Como você quer ser chamado pela equipe?
+              </p>
+            </div>
+            <form onSubmit={handleJoin} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Seu nome</Label>
+                <Input
+                  placeholder="Nome completo"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  required
+                  minLength={2}
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full bg-[#191919] text-white hover:bg-[#2d2d2d]"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? <><Loader2 className="mr-2 size-4 animate-spin" />Entrando...</> : 'Entrar na equipe →'}
+              </Button>
+            </form>
+          </>
+        )}
       </div>
     </div>
-  );
+  )
 }
