@@ -52,7 +52,7 @@ export default function OnboardingPage() {
 
     if (!session) {
       toast.error("Sessao expirada. Faca login novamente.");
-      router.push("/auth/login");
+      router.push("/login");
       return;
     }
 
@@ -71,6 +71,8 @@ export default function OnboardingPage() {
       return;
     }
 
+    // Força refresh do JWT para que o middleware veja o tenantId recém-criado em app_metadata
+    await supabase.auth.refreshSession();
     toast.success("Tudo pronto! Bem-vindo ao workspace.");
     router.push("/dashboard");
     router.refresh();
