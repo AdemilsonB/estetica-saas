@@ -27,20 +27,16 @@ export async function getSessionContext(
 
   // 3. Cookie do @supabase/ssr (browser via createBrowserClient)
   // O cookie real é sb-{project-ref}-auth-token, não sb-access-token
-  try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll() {},
-      },
-    });
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      return getSupabaseSessionFromToken(session.access_token);
-    }
-  } catch {
-    // cookies() pode falhar fora do contexto Next.js — continua para o erro abaixo
+  const cookieStore = await cookies();
+  const supabase = createServerClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+    cookies: {
+      getAll() { return cookieStore.getAll(); },
+      setAll() {},
+    },
+  });
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    return getSupabaseSessionFromToken(session.access_token);
   }
 
   throw new UnauthorizedError(

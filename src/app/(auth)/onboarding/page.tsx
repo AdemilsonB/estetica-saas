@@ -56,6 +56,10 @@ export default function OnboardingPage() {
         toast.error(body.error?.message ?? 'Erro ao configurar sua conta.')
         return
       }
+
+      // Atualiza o JWT para incluir tenantId e role em app_metadata
+      await supabase.auth.refreshSession()
+
       toast.success('Tudo pronto! Bem-vindo ao workspace.')
       router.push('/dashboard')
       router.refresh()
@@ -85,6 +89,10 @@ export default function OnboardingPage() {
         toast.error(body.error?.message ?? 'Erro ao ingressar no workspace.')
         return
       }
+
+      // Atualiza o JWT para incluir tenantId e role em app_metadata
+      await supabase.auth.refreshSession()
+
       toast.success('Bem-vindo à equipe!')
       router.push('/agenda')
       router.refresh()
