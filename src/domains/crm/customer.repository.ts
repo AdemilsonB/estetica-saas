@@ -75,6 +75,22 @@ export class CustomerRepository {
       where: { id: customerId, tenantId },
     });
   }
+
+  async findWithAppointments(tenantId: string, customerId: string) {
+    return prisma.customer.findFirst({
+      where: { id: customerId, tenantId },
+      include: {
+        appointments: {
+          include: {
+            service: { select: { id: true, name: true } },
+            professional: { select: { id: true, name: true } },
+          },
+          orderBy: { startsAt: 'desc' },
+          take: 50,
+        },
+      },
+    })
+  }
 }
 
 export const customerRepository = new CustomerRepository();

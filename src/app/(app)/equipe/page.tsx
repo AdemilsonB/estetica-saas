@@ -1,0 +1,142 @@
+// src/app/(app)/equipe/page.tsx
+'use client'
+
+import { useState } from 'react'
+import { UserPlus, Users, Mail } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
+import { TeamMemberCard } from '@/components/domain/iam/team-member-card'
+import { InviteMemberModal } from '@/components/domain/iam/invite-member-modal'
+import { useTeamMembers, useTeamInvites, type UserRole } from '@/hooks/iam/use-team'
+import { usePermissions } from '@/hooks/use-permissions'
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  OWNER: 'Dono',
+  MANAGER: 'Gerente',
+  PROFESSIONAL: 'Profissional',
+  RECEPTIONIST: 'Recepcionista',
+}
+
+export default function EquipePage() {
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const { can } = usePermissions()
+  const {
+    data: members,
+    isLoading: loadingMembers,
+    isError: errorMembers,
+    refetch: refetchMembers,
+  } = useTeamMembers()
+  const { data: invites, isLoading: loadingInvites } = useTeamInvites()
+
+  const canManage = can('users:manage')
+  const canInvite = can('users:invite')
+
+  if (!can('users:view')) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+          <p className="text-sm font-medium text-red-700">
+            Apenas donos e gerentes podem acessar a gestão de equipe.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-8">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
+            Equipe
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Gerencie os membros e convites do seu negócio
+          </p>
+        </div>
+        {canInvite && (
+          <Button
+            onClick={() => setInviteOpen(true)}
+            className="rounded-full bg-slate-950 text-white hover:bg-slate-800"
+          >
+            <UserPlus className="size-4" />
+            <span className="hidden sm:inline">Convidar</span>
+          </Button>
+        )}
+      </div>
+
+      {/* Membros ativos */}
+      <div>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+          Membros ativos
+        </h2>
+
+        {loadingMembers ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-2xl" />
+            ))}
+          </div>
+        ) : errorMembers ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+            <p className="text-sm text-red-600">Erro ao carregar equipe.</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => refetchMembers()}>
+              Tentar novamente
+            </Button>
+          </div>
+        ) : !members || members.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/60 py-12 text-center">
+            <Users className="size-8 text-slate-300" />
+            <p className="mt-3 text-sm text-slate-500">Nenhum membro ainda</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {members.map((member) => (
+              <TeamMemberCard
+                key={member.id}
+                member={member}
+                canManage={canManage}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Convites pendentes */}
+      {!loadingInvites && invites && invites.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+            Convites pendentes
+          </h2>
+          <div className="space-y-3">
+            {invites.map((invite) => (
+              <div
+                key={invite.id}
+                className="flex items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-4"
+              >
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-200">
+                  <Mail className="size-4 text-slate-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-slate-700">
+                    {invite.email}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Expira em{' '}
+                    {new Date(invite.expiresAt).toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+                <Badge className="shrink-0 bg-amber-100 text-amber-700 text-xs">
+                  {ROLE_LABELS[invite.role]}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <InviteMemberModal open={inviteOpen} onClose={() => setInviteOpen(false)} />
+    </div>
+  )
+}

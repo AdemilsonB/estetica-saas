@@ -10,6 +10,19 @@ type RouteContext = {
   params: Promise<{ customerId: string }>;
 };
 
+export async function GET(request: Request, context: RouteContext) {
+  initializeDomainRuntime();
+  try {
+    const session = await getSessionContext(request);
+    ensurePermission(session, PERMISSIONS.customers.view);
+    const { customerId } = await context.params;
+    const profile = await customerService.getProfile(session.tenantId, customerId);
+    return Response.json(profile);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
 export async function PATCH(request: Request, context: RouteContext) {
   initializeDomainRuntime();
 

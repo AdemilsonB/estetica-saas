@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { AppointmentCard } from './appointment-card'
 import { AppointmentDrawer } from './appointment-drawer'
 import { CreateAppointmentModal } from './create-appointment-modal'
+import { RegisterPaymentModal } from '@/components/domain/financial/register-payment-modal'
 import { AgendaWeekStrip } from './agenda-week-strip'
 import { useAppointments } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
@@ -77,6 +78,8 @@ export function AgendaDayView() {
     useState<Appointment | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [paymentAppointment, setPaymentAppointment] = useState<Appointment | null>(null)
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   const { can } = usePermissions()
   const { data: currentUser } = useCurrentUser()
 
@@ -268,11 +271,24 @@ export function AgendaDayView() {
           setDrawerOpen(false)
           setSelectedAppointment(null)
         }}
+        onCompleted={(appt) => {
+          setPaymentAppointment(appt)
+          setPaymentModalOpen(true)
+        }}
       />
 
       <CreateAppointmentModal
         open={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
+      />
+
+      <RegisterPaymentModal
+        appointment={paymentAppointment}
+        open={paymentModalOpen}
+        onClose={() => {
+          setPaymentModalOpen(false)
+          setPaymentAppointment(null)
+        }}
       />
     </div>
   )
