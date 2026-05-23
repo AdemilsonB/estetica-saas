@@ -370,6 +370,13 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
       return;
     }
 
+    // Força refresh do JWT para que o middleware veja o tenantId recém-criado em app_metadata
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) {
+      toast.error("Erro ao sincronizar sessao. Faca login novamente.");
+      return;
+    }
+
     toast.success("Conta criada com sucesso!");
     router.push("/");
     router.refresh();
