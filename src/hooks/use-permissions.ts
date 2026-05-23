@@ -29,7 +29,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 }
 
 export function usePermissions() {
-  const { data: user } = useCurrentUser()
+  const { data: user, isLoading } = useCurrentUser()
 
   function can(permission: string): boolean {
     if (!user) return false
@@ -38,5 +38,5 @@ export function usePermissions() {
     return allPerms.has(permission)
   }
 
-  return { can, user, isLoading: !user }
+  return { can, user, isLoading }
 }

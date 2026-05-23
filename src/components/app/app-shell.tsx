@@ -12,7 +12,6 @@ import {
   UserCog,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useCurrentUser } from '@/hooks/use-current-user'
 import { usePermissions } from '@/hooks/use-permissions'
 import { cn } from '@/lib/utils'
 
@@ -56,8 +55,7 @@ const NAV_ITEMS = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
-  const { data: user, isLoading } = useCurrentUser()
-  const { can } = usePermissions()
+  const { can, user, isLoading } = usePermissions()
 
   const visibleItems = NAV_ITEMS.filter(
     (item) => item.permission === null || can(item.permission),
