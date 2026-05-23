@@ -1,7 +1,7 @@
 // src/components/domain/crm/customer-list.tsx
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Search, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,14 +13,10 @@ import { usePermissions } from '@/hooks/use-permissions'
 
 function useDebounce(value: string, delay: number) {
   const [debounced, setDebounced] = useState(value)
-  const timeout = useCallback(
-    (v: string) => {
-      const timer = setTimeout(() => setDebounced(v), delay)
-      return () => clearTimeout(timer)
-    },
-    [delay],
-  )
-  useState(() => timeout(value))
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(timer)
+  }, [value, delay])
   return debounced
 }
 
