@@ -28,6 +28,10 @@ export const PERMISSIONS = {
     view: "services:view",
     manage: "services:manage",
   },
+  settings: {
+    view: "settings:view",
+    manage: "settings:manage",
+  },
 } as const;
 
 export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
@@ -45,6 +49,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     PERMISSIONS.services.view,
     PERMISSIONS.services.manage,
     PERMISSIONS.users.view,
+    PERMISSIONS.settings.view,
+    PERMISSIONS.settings.manage,
   ],
   [UserRole.PROFESSIONAL]: [
     PERMISSIONS.appointments.view,
