@@ -134,6 +134,36 @@ export class IamRepository {
       },
     });
   }
+
+  async findTenant(tenantId: string) {
+    return prisma.tenant.findFirst({
+      where: { id: tenantId },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        phone: true,
+        address: true,
+      },
+    });
+  }
+
+  async updateTenant(
+    tenantId: string,
+    data: { name?: string; phone?: string | null; address?: string | null },
+  ) {
+    return prisma.tenant.update({
+      where: { id: tenantId },
+      data,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        phone: true,
+        address: true,
+      },
+    });
+  }
 }
 
 export const iamRepository = new IamRepository();
