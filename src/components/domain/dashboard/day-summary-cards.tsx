@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { CalendarCheck, DollarSign, TrendingUp, Users } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAppointments } from '@/hooks/scheduling/use-appointments'
@@ -17,17 +18,27 @@ function endOfDay(d: Date) {
 }
 
 export function DaySummaryCards() {
-  const today = new Date()
-  const { data: appointments = [], isLoading } = useAppointments({
-    from: startOfDay(today).toISOString(),
-    to: endOfDay(today).toISOString(),
+  const { from, to } = useMemo(() => {
+    const today = new Date()
+    return {
+      from: startOfDay(today).toISOString(),
+      to: endOfDay(today).toISOString(),
+    }
+  }, [])
+
+  const { data: appointments = [], isLoading, isError } = useAppointments({
+    from,
+    to,
   })
 
   const completed = appointments.filter((a) => a.status === 'COMPLETED')
   const pending = appointments.filter((a) =>
     ['SCHEDULED', 'CONFIRMED'].includes(a.status),
   )
-  const totalRevenue = completed.reduce((sum, a) => sum + Number(a.price), 0)
+  const totalRevenue = completed.reduce((sum, a) => {
+    const n = Number(a.price)
+    return sum + (Number.isFinite(n) ? n : 0)
+  }, 0)
   const avgTicket = completed.length > 0 ? totalRevenue / completed.length : 0
 
   const cards = [
@@ -82,6 +93,8 @@ export function DaySummaryCards() {
                 <Skeleton className="mt-4 h-7 w-24" />
                 <Skeleton className="mt-1 h-3 w-32" />
               </>
+            ) : isError ? (
+              <p className="mt-4 text-sm text-slate-400">Erro ao carregar</p>
             ) : (
               <>
                 <p className="mt-4 text-2xl font-semibold text-slate-950">
