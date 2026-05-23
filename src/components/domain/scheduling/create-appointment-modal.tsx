@@ -58,9 +58,6 @@ export function CreateAppointmentModal({ open, onClose, defaultStartsAt }: Props
     e.preventDefault()
     if (!selectedCustomerId || !selectedServiceId || !startsAt || !currentUser) return
 
-    const service = services.find((s) => s.id === selectedServiceId)
-    if (!service) return
-
     createAppointment.mutate(
       {
         customerId: selectedCustomerId,
