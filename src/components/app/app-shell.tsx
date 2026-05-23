@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
 import {
   CalendarDays,
   CreditCard,
+  LogOut,
   Settings,
   Sparkles,
   Users,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { usePermissions } from '@/hooks/use-permissions'
+import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
@@ -55,11 +57,18 @@ const NAV_ITEMS = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const { can, user, isLoading } = usePermissions()
 
   const visibleItems = NAV_ITEMS.filter(
     (item) => item.permission === null || can(item.permission),
   )
+
+  async function handleLogout() {
+    const supabase = createSupabaseBrowserClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(244,114,182,0.16),_transparent_28%),linear-gradient(180deg,_#fff8fb_0%,_#fffdfd_45%,_#fff5f8_100%)] text-slate-950">
@@ -142,8 +151,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 })}
           </nav>
 
-          {/* Config no rodapé */}
-          <div className="mt-auto pt-8">
+          {/* Config e logout no rodapé */}
+          <div className="mt-auto space-y-1 pt-8">
             {(() => {
               const configItem = visibleItems.at(-1)
               if (!configItem) return null
@@ -164,6 +173,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Link>
               )
             })()}
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+            >
+              <LogOut className="size-4" />
+              Sair da conta
+            </button>
           </div>
         </aside>
 
@@ -188,6 +204,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </h2>
                 )}
               </div>
+              <button
+                onClick={handleLogout}
+                className="inline-flex size-10 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100 xl:hidden"
+                aria-label="Sair da conta"
+              >
+                <LogOut className="size-4" />
+              </button>
             </div>
           </header>
 
