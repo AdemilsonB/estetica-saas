@@ -19,6 +19,7 @@ import type {
   CreateAppointmentInput,
   CreateServiceInput,
   UpdateAppointmentStatusInput,
+  UpdateServiceInput,
 } from "./types";
 
 export class SchedulingService {
@@ -130,6 +131,18 @@ export class SchedulingService {
     }
 
     return appointment;
+  }
+
+  async updateService(tenantId: string, serviceId: string, input: UpdateServiceInput) {
+    const existing = await catalogServiceRepository.findById(tenantId, serviceId);
+    if (!existing) throw new ServiceNotFoundError();
+    return catalogServiceRepository.update(tenantId, serviceId, input);
+  }
+
+  async deactivateService(tenantId: string, serviceId: string) {
+    const existing = await catalogServiceRepository.findById(tenantId, serviceId);
+    if (!existing) throw new ServiceNotFoundError();
+    return catalogServiceRepository.deactivate(tenantId, serviceId);
   }
 
   private resolveStatusEvent(status: AppointmentStatus) {

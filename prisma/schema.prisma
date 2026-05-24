@@ -47,8 +47,13 @@ model Tenant {
   name         String
   slug         String           @unique
   plan           String            @default("free")
-  brandingConfig Json?
-  createdAt      DateTime          @default(now())
+  brandingConfig    Json?
+  phone             String?
+  address           String?
+  zApiInstanceId    String?
+  zApiToken         String?
+  whatsappEnabled   Boolean           @default(false)
+  createdAt         DateTime          @default(now())
   updatedAt    DateTime         @updatedAt
   users        User[]
   customers    Customer[]

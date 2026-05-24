@@ -17,6 +17,14 @@ export const createServiceSchema = z.object({
   active: z.boolean().default(true),
 });
 
+export const updateServiceSchema = z.object({
+  name: z.string().trim().min(2).max(100).optional(),
+  duration: z.number().int().min(5).max(480).optional(),
+  price: z.number().positive().optional(),
+});
+
+export type UpdateServiceInput = z.infer<typeof updateServiceSchema>;
+
 export const createAppointmentSchema = z.object({
   customerId: z.string().cuid(),
   professionalId: z.string().cuid(),

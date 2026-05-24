@@ -132,6 +132,19 @@ export class IamService {
 
     return user;
   }
+
+  async getTenant(tenantId: string) {
+    const tenant = await iamRepository.findTenant(tenantId);
+    if (!tenant) throw new NotFoundError("Tenant nao encontrado.");
+    return tenant;
+  }
+
+  async updateTenant(
+    tenantId: string,
+    data: { name?: string; phone?: string | null; address?: string | null },
+  ) {
+    return iamRepository.updateTenant(tenantId, data);
+  }
 }
 
 export const iamService = new IamService();

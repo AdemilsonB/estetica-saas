@@ -27,6 +27,24 @@ export class CatalogServiceRepository {
       },
     });
   }
+
+  async update(
+    tenantId: string,
+    serviceId: string,
+    data: { name?: string; duration?: number; price?: number },
+  ) {
+    return prisma.service.update({
+      where: { id: serviceId, tenantId },
+      data,
+    });
+  }
+
+  async deactivate(tenantId: string, serviceId: string) {
+    return prisma.service.update({
+      where: { id: serviceId, tenantId },
+      data: { active: false },
+    });
+  }
 }
 
 export const catalogServiceRepository = new CatalogServiceRepository();
