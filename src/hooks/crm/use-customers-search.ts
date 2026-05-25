@@ -14,7 +14,8 @@ async function searchCustomers(q: string): Promise<CustomerSummary[]> {
   url.searchParams.set('limit', '10')
   const res = await fetch(url)
   if (!res.ok) throw new Error('Falha ao buscar clientes')
-  return res.json()
+  const result: { data: CustomerSummary[] } = await res.json()
+  return result.data
 }
 
 export function useCustomersSearch(query: string) {
