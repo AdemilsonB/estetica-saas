@@ -320,6 +320,9 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
       const { error: signUpError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
       if (signUpError) {
@@ -330,9 +333,6 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
         }
         return;
       }
-
-      toast.success("Conta criada! Verifique seu email para confirmar.");
-      return;
     }
 
     const { data: signed, error: signInError } = await supabase.auth.signInWithPassword({

@@ -36,6 +36,7 @@ export async function getSessionContext(
   });
 
   const { data: { user } } = await supabase.auth.getUser();
+
   if (!user) {
     throw new UnauthorizedError(
       "Sessao ausente. Envie Bearer token do Supabase ou use o modo de desenvolvimento explicitamente.",
