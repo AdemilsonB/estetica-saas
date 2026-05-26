@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BusinessInfoForm } from '@/components/domain/settings/business-info-form'
+import { BusinessHoursForm } from '@/components/domain/settings/business-hours-form'
 import { ServiceCatalog } from '@/components/domain/settings/service-catalog'
 import { WhatsAppSettingsForm } from '@/components/domain/settings/whatsapp-settings-form'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -40,8 +41,9 @@ export default function ConfiguracoesPage() {
       </div>
 
       <Tabs defaultValue="negocio">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="negocio">Negócio</TabsTrigger>
+          <TabsTrigger value="horarios">Horários</TabsTrigger>
           <TabsTrigger value="servicos">Serviços</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
         </TabsList>
@@ -52,6 +54,18 @@ export default function ConfiguracoesPage() {
               Dados do negócio
             </h2>
             <BusinessInfoForm />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="horarios" className="mt-6">
+          <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">
+            <h2 className="mb-4 text-base font-semibold text-slate-950">
+              Horários de expediente
+            </h2>
+            <p className="mb-4 text-sm text-slate-500">
+              Configure os dias e horários em que seu negócio está aberto. Esses horários definem os slots disponíveis para agendamento.
+            </p>
+            <BusinessHoursForm />
           </div>
         </TabsContent>
 
