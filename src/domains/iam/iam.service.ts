@@ -145,6 +145,17 @@ export class IamService {
   ) {
     return iamRepository.updateTenant(tenantId, data);
   }
+
+  async getBusinessHours(tenantId: string) {
+    return iamRepository.getBusinessHours(tenantId);
+  }
+
+  async updateBusinessHours(
+    tenantId: string,
+    hours: Record<string, { open: string; close: string; active: boolean }>,
+  ) {
+    return iamRepository.updateBusinessHours(tenantId, hours);
+  }
 }
 
 export const iamService = new IamService();
