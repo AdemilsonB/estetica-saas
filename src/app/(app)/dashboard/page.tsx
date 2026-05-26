@@ -1,4 +1,4 @@
-import { DaySummaryCards } from '@/components/domain/dashboard/day-summary-cards'
+import { DashboardMetrics } from '@/components/domain/dashboard/dashboard-metrics'
 import { AgendaDayView } from '@/components/domain/scheduling/agenda-day-view'
 
 export const metadata = { title: 'Dashboard · Estética SaaS' }
@@ -11,11 +11,11 @@ export default function DashboardPage() {
           Visão geral do dia
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Resumo operacional e agenda de hoje
+          Resumo operacional · atualiza automaticamente a cada 30s
         </p>
       </div>
 
-      <DaySummaryCards />
+      <DashboardMetrics />
 
       <div>
         <h2 className="mb-4 text-lg font-semibold text-slate-950">
