@@ -77,3 +77,4 @@ next-env.d.ts
 *.key
 *.p12
 *.pfx
+.superpowers/
