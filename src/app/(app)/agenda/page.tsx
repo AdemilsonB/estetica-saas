@@ -1,19 +1,33 @@
-import { AgendaDayView } from '@/components/domain/scheduling/agenda-day-view'
+'use client'
 
-export const metadata = { title: 'Agenda · Estética SaaS' }
+import { useState } from 'react'
+import { AgendaDayView } from '@/components/domain/scheduling/agenda-day-view'
+import { AgendaWeekStrip } from '@/components/domain/scheduling/agenda-week-strip'
 
 export default function AgendaPage() {
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+
+  const formatted = selectedDate.toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="mb-6">
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
           Agenda
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Gerencie seus atendimentos do dia
-        </p>
+        <p className="mt-1 text-sm text-slate-500 capitalize">{formatted}</p>
       </div>
-      <AgendaDayView />
+
+      <AgendaWeekStrip
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
+      />
+
+      <AgendaDayView date={selectedDate} />
     </div>
   )
 }
