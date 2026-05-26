@@ -67,12 +67,14 @@ export class SchedulingService {
     const startsAt = new Date(input.startsAt);
     const endsAt = new Date(startsAt.getTime() + service.duration * 60 * 1000);
 
-    await availabilityService.ensureSlotAvailable(
-      tenantId,
-      input.professionalId,
-      startsAt,
-      endsAt,
-    );
+    if (!input.allowOverlap) {
+      await availabilityService.ensureSlotAvailable(
+        tenantId,
+        input.professionalId,
+        startsAt,
+        endsAt,
+      );
+    }
 
     const appointment = await appointmentRepository.create(tenantId, {
       customerId: input.customerId,
@@ -83,6 +85,7 @@ export class SchedulingService {
       notes: input.notes,
       price: new Prisma.Decimal(service.price),
       createdByUserId: userId,
+      allowOverlap: input.allowOverlap ?? false,
     });
 
     const appointmentDetails = await appointmentRepository.findById(

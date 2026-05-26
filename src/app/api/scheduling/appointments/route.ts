@@ -5,6 +5,7 @@ import { AppointmentStatus } from "@prisma/client";
 import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
 import { ensurePermission, PERMISSIONS } from "@/shared/auth/permissions";
 import { getSessionContext } from "@/shared/auth/session";
+import { ForbiddenError } from "@/shared/errors";
 import { handleApiError } from "@/shared/http/handle-api-error";
 import { created } from "@/shared/http/responses";
 import { validateInput } from "@/shared/http/validate-input";
@@ -45,6 +46,11 @@ export async function POST(request: Request) {
     const session = await getSessionContext(request);
     ensurePermission(session, PERMISSIONS.appointments.create);
     const input = await validateInput(request, createAppointmentSchema);
+
+    if (input.allowOverlap && session.role !== 'OWNER' && session.role !== 'MANAGER') {
+      throw new ForbiddenError("Apenas OWNER e MANAGER podem autorizar conflito de horario.");
+    }
+
     const appointment = await schedulingService.createAppointment(
       session.tenantId,
       session.userId,
