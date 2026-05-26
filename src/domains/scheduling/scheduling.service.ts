@@ -11,6 +11,10 @@ import {
   ProfessionalNotFoundError,
   ServiceNotFoundError,
 } from "@/shared/errors";
+import {
+  scheduleAppointmentReminder,
+  cancelAppointmentReminder,
+} from "@/shared/queue/jobs/appointment-reminder";
 
 import { appointmentRepository, type AppointmentFilters } from "./appointment.repository";
 import { availabilityService } from "./availability.service";
@@ -101,6 +105,14 @@ export class SchedulingService {
       payload: this.toAppointmentEventPayload(tenantId, appointmentDetails),
     });
 
+    const tenant = await prisma.tenant.findFirst({
+      where: { id: tenantId },
+      select: { whatsappEnabled: true },
+    });
+    if (tenant?.whatsappEnabled) {
+      await scheduleAppointmentReminder(tenantId, appointment.id, startsAt);
+    }
+
     return appointment;
   }
 
@@ -131,6 +143,10 @@ export class SchedulingService {
         type: eventType,
         payload: this.toAppointmentEventPayload(tenantId, appointment),
       });
+    }
+
+    if (input.status === AppointmentStatus.CANCELLED) {
+      await cancelAppointmentReminder(appointmentId);
     }
 
     return appointment;
