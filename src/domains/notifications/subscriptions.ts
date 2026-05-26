@@ -14,13 +14,14 @@ export function registerNotificationSubscriptions() {
   notificationsRegistered = true;
 
   eventBus.subscribe("scheduling.appointment.cancelled", async ({ tenantId, appointment, customer, service }) => {
+    if (!customer.phone) return;
     await notificationService.logAndDispatch({
       tenantId,
       appointmentId: appointment.id,
       channel: NotificationChannel.WHATSAPP,
       template: "appointment-cancelled",
-      recipient: customer.phone ?? customer.email ?? "",
-      provider: "evolution-api",
+      recipient: customer.phone,
+      provider: "z-api",
       payload: {
         appointmentId: appointment.id,
         status: appointment.status,
@@ -31,13 +32,32 @@ export function registerNotificationSubscriptions() {
   });
 
   eventBus.subscribe("scheduling.appointment.created", async ({ tenantId, appointment, customer, service }) => {
+    if (!customer.phone) return;
     await notificationService.logAndDispatch({
       tenantId,
       appointmentId: appointment.id,
       channel: NotificationChannel.WHATSAPP,
       template: "appointment-created",
-      recipient: customer.phone ?? customer.email ?? "",
-      provider: "evolution-api",
+      recipient: customer.phone,
+      provider: "z-api",
+      payload: {
+        appointmentId: appointment.id,
+        startsAt: appointment.startsAt.toISOString(),
+        customerName: customer.name,
+        serviceName: service.name,
+      },
+    });
+  });
+
+  eventBus.subscribe("scheduling.appointment.confirmed", async ({ tenantId, appointment, customer, service }) => {
+    if (!customer.phone) return;
+    await notificationService.logAndDispatch({
+      tenantId,
+      appointmentId: appointment.id,
+      channel: NotificationChannel.WHATSAPP,
+      template: "appointment-confirmed",
+      recipient: customer.phone,
+      provider: "z-api",
       payload: {
         appointmentId: appointment.id,
         startsAt: appointment.startsAt.toISOString(),
@@ -48,13 +68,14 @@ export function registerNotificationSubscriptions() {
   });
 
   eventBus.subscribe("scheduling.appointment.no_show", async ({ tenantId, appointment, customer, service }) => {
+    if (!customer.phone) return;
     await notificationService.logAndDispatch({
       tenantId,
       appointmentId: appointment.id,
       channel: NotificationChannel.WHATSAPP,
       template: "appointment-no-show",
-      recipient: customer.phone ?? customer.email ?? "",
-      provider: "evolution-api",
+      recipient: customer.phone,
+      provider: "z-api",
       payload: {
         appointmentId: appointment.id,
         status: appointment.status,
@@ -63,5 +84,4 @@ export function registerNotificationSubscriptions() {
       },
     });
   });
-
 }

@@ -47,6 +47,33 @@ function buildMessage(template: string, payload: Record<string, unknown>): strin
       `Até lá!`
     );
   }
+  if (template === "appointment-confirmed") {
+    const date = new Date(payload.startsAt as string);
+    const formatted = date.toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return (
+      `✅ Confirmado, ${payload.customerName}!\n` +
+      `Seu agendamento está confirmado:\n` +
+      `📅 ${formatted}\n` +
+      `✂️ ${payload.serviceName}\n` +
+      `Te esperamos!`
+    );
+  }
+
+  if (template === "appointment-no-show") {
+    return (
+      `Olá, ${payload.customerName}! 😕\n` +
+      `Notamos que você não compareceu ao seu agendamento de ${payload.serviceName}.\n` +
+      `Quando quiser reagendar, estamos à disposição!`
+    );
+  }
+
   return `Olá, ${payload.customerName}! Sua notificação foi enviada.`;
 }
 
