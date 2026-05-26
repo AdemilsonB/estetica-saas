@@ -71,8 +71,16 @@ function groupByDay(appointments: Appointment[]) {
 
 type ViewMode = 'day' | 'week'
 
-export function AgendaDayView() {
-  const [selectedDate, setSelectedDate] = useState(new Date())
+type Props = {
+  date?: Date
+}
+
+export function AgendaDayView({ date: dateProp }: Props = {}) {
+  const [internalDate, setInternalDate] = useState(new Date())
+  const selectedDate = dateProp ?? internalDate
+  const setSelectedDate = (d: Date) => {
+    if (!dateProp) setInternalDate(d)
+  }
   const [viewMode, setViewMode] = useState<ViewMode>('day')
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null)
@@ -165,14 +173,16 @@ export function AgendaDayView() {
         )}
       </div>
 
-      {/* Strip semanal (sempre visível para navegação) */}
-      <AgendaWeekStrip
-        selectedDate={selectedDate}
-        onSelectDate={(d) => {
-          setSelectedDate(d)
-          setViewMode('day')
-        }}
-      />
+      {/* Strip semanal (apenas quando gerenciado internamente) */}
+      {!dateProp && (
+        <AgendaWeekStrip
+          selectedDate={selectedDate}
+          onSelectDate={(d) => {
+            setSelectedDate(d)
+            setViewMode('day')
+          }}
+        />
+      )}
 
       {/* Label do dia selecionado (só no modo dia) */}
       {viewMode === 'day' && (

@@ -29,6 +29,7 @@ export type CreateAppointmentInput = {
   serviceId: string
   startsAt: string
   notes?: string
+  allowOverlap?: boolean
 }
 
 type ListParams = {

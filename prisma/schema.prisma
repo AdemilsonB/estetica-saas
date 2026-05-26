@@ -53,6 +53,7 @@ model Tenant {
   zApiInstanceId    String?
   zApiToken         String?
   whatsappEnabled   Boolean           @default(false)
+  businessHours     Json?
   createdAt         DateTime          @default(now())
   updatedAt    DateTime         @updatedAt
   users        User[]
@@ -138,6 +139,7 @@ model Appointment {
   endsAt          DateTime
   status          AppointmentStatus @default(SCHEDULED)
   notes           String?
+  allowOverlap    Boolean           @default(false)
   price           Decimal           @db.Decimal(10, 2)
   createdByUserId String
   createdAt       DateTime          @default(now())

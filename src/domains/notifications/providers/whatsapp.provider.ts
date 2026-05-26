@@ -29,6 +29,24 @@ function buildMessage(template: string, payload: Record<string, unknown>): strin
       `Até lá!`
     );
   }
+  if (template === "appointment-reminder") {
+    const date = new Date(payload.startsAt as string);
+    const formatted = date.toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return (
+      `Olá, ${payload.customerName}! 👋\n` +
+      `Lembrete: você tem um agendamento amanhã:\n` +
+      `📅 ${formatted}\n` +
+      `✂️ ${payload.serviceName}\n` +
+      `Até lá!`
+    );
+  }
   return `Olá, ${payload.customerName}! Sua notificação foi enviada.`;
 }
 

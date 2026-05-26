@@ -31,6 +31,7 @@ export const createAppointmentSchema = z.object({
   serviceId: z.string().cuid(),
   startsAt: z.string().datetime(),
   notes: z.string().trim().max(500).optional(),
+  allowOverlap: z.boolean().optional().default(false),
 });
 
 export const updateAppointmentStatusSchema = z.object({

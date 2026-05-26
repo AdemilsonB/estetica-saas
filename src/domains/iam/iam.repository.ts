@@ -164,6 +164,38 @@ export class IamRepository {
       },
     });
   }
+
+  static defaultBusinessHours(): Record<string, { open: string; close: string; active: boolean }> {
+    return {
+      "0": { open: "09:00", close: "18:00", active: false },
+      "1": { open: "09:00", close: "18:00", active: true },
+      "2": { open: "09:00", close: "18:00", active: true },
+      "3": { open: "09:00", close: "18:00", active: true },
+      "4": { open: "09:00", close: "18:00", active: true },
+      "5": { open: "09:00", close: "18:00", active: true },
+      "6": { open: "09:00", close: "13:00", active: true },
+    };
+  }
+
+  async getBusinessHours(tenantId: string) {
+    const tenant = await prisma.tenant.findFirst({
+      where: { id: tenantId },
+      select: { businessHours: true },
+    });
+    return (tenant?.businessHours as Record<string, { open: string; close: string; active: boolean }> | null)
+      ?? IamRepository.defaultBusinessHours();
+  }
+
+  async updateBusinessHours(
+    tenantId: string,
+    hours: Record<string, { open: string; close: string; active: boolean }>,
+  ) {
+    return prisma.tenant.update({
+      where: { id: tenantId },
+      data: { businessHours: hours },
+      select: { businessHours: true },
+    });
+  }
 }
 
 export const iamRepository = new IamRepository();
