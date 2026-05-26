@@ -176,6 +176,7 @@ export class SchedulingService {
         endsAt: appointment.endsAt,
         status: appointment.status,
         notes: appointment.notes,
+        allowOverlap: appointment.allowOverlap,
         price: appointment.price,
         createdByUserId: appointment.createdByUserId,
         createdAt: appointment.createdAt,
