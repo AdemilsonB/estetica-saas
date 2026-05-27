@@ -1,5 +1,6 @@
 import { NotificationStatus } from "@prisma/client";
 
+import { featureGuard, FEATURES } from "@/domains/billing/feature-guard";
 import { prisma } from "@/shared/database/prisma";
 
 import type { NotificationDeliveryResult, NotificationDraft } from "../types";
@@ -82,6 +83,8 @@ export class WhatsAppProvider {
     if (!draft.recipient) {
       return { status: NotificationStatus.FAILED, errorMessage: "Destinatario sem telefone." };
     }
+
+    await featureGuard.assertAccess(draft.tenantId, FEATURES.WHATSAPP_BASIC);
 
     const tenant = await prisma.tenant.findFirst({
       where: { id: draft.tenantId },

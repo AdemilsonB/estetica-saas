@@ -16,6 +16,8 @@ import {
   cancelAppointmentReminder,
 } from "@/shared/queue/jobs/appointment-reminder";
 
+import { featureGuard } from "@/domains/billing/feature-guard";
+
 import { appointmentRepository, type AppointmentFilters } from "./appointment.repository";
 import { availabilityService } from "./availability.service";
 import { catalogServiceRepository } from "./service.repository";
@@ -49,6 +51,9 @@ export class SchedulingService {
     userId: string,
     input: CreateAppointmentInput,
   ) {
+    const appointmentCount = await appointmentRepository.countThisMonth(tenantId);
+    await featureGuard.assertWithinLimit(tenantId, "appointments_month", appointmentCount);
+
     const service = await catalogServiceRepository.findById(tenantId, input.serviceId);
     if (!service) {
       throw new ServiceNotFoundError();
