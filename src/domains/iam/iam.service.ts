@@ -5,6 +5,8 @@ import { supabaseAdmin } from "@/integrations/supabase/admin";
 import { NotFoundError, ConflictError, ForbiddenError, UserNotFoundError } from "@/shared/errors";
 import { iamRepository } from "./iam.repository";
 import type { SessionContext } from "@/shared/types/auth";
+import { billingService } from "@/domains/billing/billing.service";
+import { featureGuard } from "@/domains/billing/feature-guard";
 
 type RegisterInput = {
   businessName: string;
@@ -70,6 +72,8 @@ export class IamService {
       },
     });
 
+    await billingService.startTrial(createResult.tenant.id);
+
     return { tenantId: createResult.tenant.id, userId: createResult.user.id };
   }
 
@@ -95,6 +99,9 @@ export class IamService {
   }
 
   async createInvite(tenantId: string, email: string, role: UserRole) {
+    const userCount = await iamRepository.countActiveUsers(tenantId);
+    await featureGuard.assertWithinLimit(tenantId, "users", userCount);
+
     const invite = await iamRepository.createInvite(tenantId, email, role);
     await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       data: { pendingTenantId: tenantId, pendingRole: role },

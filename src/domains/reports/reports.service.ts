@@ -2,6 +2,7 @@ import { AppointmentStatus, TransactionType } from '@prisma/client'
 
 import { prisma } from '@/shared/database/prisma'
 import { defaultFrom, defaultTo } from '@/lib/dates'
+import { featureGuard, FEATURES } from '@/domains/billing/feature-guard'
 
 import type {
   AppointmentsReport,
@@ -198,6 +199,8 @@ export class ReportsService {
     tenantId: string,
     input: ProfessionalsReportInput,
   ): Promise<ProfessionalsReport> {
+    await featureGuard.assertAccess(tenantId, FEATURES.REPORTS_ADVANCED)
+
     const from = input.from ? new Date(input.from) : defaultFrom()
     const to = input.to ? new Date(input.to) : defaultTo()
 

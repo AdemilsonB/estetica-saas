@@ -69,6 +69,10 @@ export class IamRepository {
     });
   }
 
+  async countActiveUsers(tenantId: string): Promise<number> {
+    return prisma.user.count({ where: { tenantId } });
+  }
+
   async findUserById(tenantId: string, userId: string) {
     return prisma.user.findFirst({
       where: { id: userId, tenantId },
