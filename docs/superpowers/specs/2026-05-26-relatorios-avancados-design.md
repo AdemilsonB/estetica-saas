@@ -243,6 +243,21 @@ Permissão de acesso à seção: usuário precisa de ao menos uma das permissõe
 
 ---
 
+## Ajuste de navegação (incluído neste pacote)
+
+**Problema:** o ícone da empresa (`Sparkles`) na sidebar desktop e no header mobile não é clicável — não há forma de voltar ao Dashboard sem usar o nav item diretamente (que nem existe como entrada fixa).
+
+**Solução — opção B (minimalista, padrão SaaS estruturado):**
+- O bloco do logo na sidebar (`src/components/app/app-shell.tsx`, linha ~78) vira um `<Link href="/dashboard">` com `title="Ir para Dashboard"` e cursor pointer
+- O ícone `Sparkles` no header mobile (linha ~190) recebe o mesmo `<Link>` e tooltip
+- `NAV_ITEMS` **não muda** — Dashboard não entra como item de nav separado
+- Hover state sutil no logo: `hover:bg-rose-50 transition rounded-2xl` para dar feedback visual
+- Nenhum breadcrumb adicionado — mantém o header atual limpo
+
+**Arquivo afetado:** apenas `src/components/app/app-shell.tsx`
+
+---
+
 ## O que está fora do escopo deste MVP
 
 - Gráficos (barras, linhas) — ficam para iteração futura
