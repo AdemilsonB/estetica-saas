@@ -27,11 +27,11 @@ export class ReportsService {
         tenantId,
         ...(input.type && { type: input.type }),
         paidAt: { gte: from, lte: to },
-        ...(input.professionalId && {
-          appointment: { professionalId: input.professionalId },
-        }),
-        ...(input.serviceId && {
-          appointment: { serviceId: input.serviceId },
+        ...((input.professionalId || input.serviceId) && {
+          appointment: {
+            ...(input.professionalId && { professionalId: input.professionalId }),
+            ...(input.serviceId && { serviceId: input.serviceId }),
+          },
         }),
       },
       include: {
@@ -52,15 +52,13 @@ export class ReportsService {
       .filter((t) => t.type === TransactionType.EXPENSE)
       .reduce((s, t) => s + Number(t.amount), 0)
 
-    const completedCount = await prisma.appointment.count({
-      where: {
-        tenantId,
-        status: AppointmentStatus.COMPLETED,
-        startsAt: { gte: from, lte: to },
-      },
-    })
-
-    const ticketMedio = completedCount > 0 ? receita / completedCount : 0
+    const appointmentIdsComReceita = new Set(
+      transactions
+        .filter((t) => t.type === TransactionType.INCOME && t.appointmentId)
+        .map((t) => t.appointmentId),
+    )
+    const ticketMedio =
+      appointmentIdsComReceita.size > 0 ? receita / appointmentIdsComReceita.size : 0
 
     const byGroup = new Map<string, { label: string; quantidade: number; receita: number }>()
     for (const tx of transactions) {
