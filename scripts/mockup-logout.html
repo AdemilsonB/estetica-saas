@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Logout Button</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  body { background: #f0f0ef; display: flex; gap: 32px; padding: 32px; flex-wrap: wrap; }
+
+  h2 { font-size: 13px; font-weight: 600; color: #787774; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+
+  /* ─── DESKTOP SIDEBAR ─── */
+  .desktop-frame {
+    width: 340px;
+    height: 680px;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(255,255,255,0.7);
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    position: relative;
+  }
+
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-icon { width: 48px; height: 48px; background: #ffe4ec; border-radius: 16px; display: grid; place-items: center; color: #e11d48; font-size: 20px; }
+  .brand-label p { font-size: 10px; font-weight: 700; letter-spacing: .2em; color: #f43f5e; text-transform: uppercase; }
+  .brand-label h1 { font-size: 17px; font-weight: 600; color: #0f172a; }
+
+  .tenant-card {
+    margin-top: 24px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.8);
+    background: rgba(255,255,255,0.9);
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(190,24,93,0.07);
+  }
+  .tenant-card p { font-size: 10px; font-weight: 700; letter-spacing: .2em; color: #94a3b8; text-transform: uppercase; }
+  .tenant-card h2 { font-size: 17px; font-weight: 600; color: #0f172a; margin-top: 6px; letter-spacing: 0; text-transform: none; }
+
+  nav { margin-top: 24px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    border-radius: 16px; padding: 10px 14px;
+    color: #475569; cursor: pointer; transition: background .15s;
+  }
+  .nav-item:hover { background: white; color: #0f172a; }
+  .nav-item.active { background: #fff1f5; color: #e11d48; }
+  .nav-icon {
+    width: 40px; height: 40px; border-radius: 14px;
+    background: #f1f5f9; color: #475569;
+    display: grid; place-items: center; font-size: 18px; flex-shrink: 0;
+  }
+  .nav-item.active .nav-icon { background: #ffe4ec; color: #e11d48; }
+  .nav-text strong { display: block; font-size: 13px; font-weight: 600; }
+  .nav-text span { font-size: 11px; color: #94a3b8; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid #f1f5f9;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+
+  .config-item {
+    display: flex; align-items: center; gap: 10px;
+    border-radius: 16px; padding: 10px 14px;
+    color: #64748b; cursor: pointer; font-size: 13px; font-weight: 500;
+  }
+  .config-item:hover { background: white; color: #0f172a; }
+
+  /* LOGOUT — destaque visual */
+  .logout-btn {
+    display: flex; align-items: center; gap: 10px;
+    border-radius: 16px; padding: 10px 14px;
+    color: #e11d48; cursor: pointer; font-size: 13px; font-weight: 600;
+    background: #fff1f5;
+    border: 1px solid #fecdd3;
+    transition: background .15s;
+  }
+  .logout-btn:hover { background: #ffe4ec; }
+
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    background: #f43f5e; color: white; padding: 2px 8px;
+    border-radius: 999px; margin-left: 8px; vertical-align: middle;
+  }
+
+  /* ─── MOBILE HEADER ─── */
+  .mobile-frame {
+    width: 390px;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  }
+
+  .mobile-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(12px);
+  }
+  .mobile-icon { width: 44px; height: 44px; background: #ffe4ec; border-radius: 14px; display: grid; place-items: center; color: #e11d48; font-size: 18px; flex-shrink: 0; }
+  .mobile-header-text { flex: 1; min-width: 0; }
+  .mobile-header-text p { font-size: 9px; font-weight: 700; letter-spacing: .18em; color: #f43f5e; text-transform: uppercase; }
+  .mobile-header-text h2 { font-size: 16px; font-weight: 600; color: #0f172a; letter-spacing: 0; text-transform: none; }
+
+  /* LOGOUT ICON — mobile header */
+  .logout-icon-btn {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: #fff1f5;
+    border: 1px solid #fecdd3;
+    display: grid; place-items: center;
+    cursor: pointer; color: #e11d48;
+    flex-shrink: 0;
+    font-size: 18px;
+  }
+  .logout-icon-btn:hover { background: #ffe4ec; }
+
+  .mobile-content { padding: 20px 16px; background: linear-gradient(180deg, #fff8fb, #fffdfd); min-height: 300px; }
+  .mobile-content h3 { font-size: 18px; font-weight: 600; color: #0f172a; }
+  .mobile-content p { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+  .mobile-bottom-nav {
+    display: flex;
+    border-top: 1px solid rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.9);
+    padding: 8px;
+    gap: 4px;
+  }
+  .bottom-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 3px; padding: 8px 4px; border-radius: 14px;
+    font-size: 10px; font-weight: 500; color: #64748b; cursor: pointer;
+  }
+  .bottom-item.active { background: #fff1f5; color: #e11d48; }
+  .bottom-item span { font-size: 18px; }
+
+  /* Tooltip annotation */
+  .annotation {
+    position: absolute; font-size: 11px; font-weight: 600;
+    color: #f43f5e; background: #fff1f5; border: 1.5px solid #fecdd3;
+    padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .arrow { display: inline-block; }
+</style>
+</head>
+<body>
+
+<div>
+  <h2>Desktop — Sidebar</h2>
+  <div style="position:relative; display:inline-block; margin-top:12px;">
+    <div class="desktop-frame">
+      <!-- Brand -->
+      <div class="brand">
+        <div class="brand-icon">✦</div>
+        <div class="brand-label">
+          <p>SaaS Estética</p>
+          <h1>Operational Workspace</h1>
+        </div>
+      </div>
+
+      <!-- Tenant card -->
+      <div class="tenant-card">
+        <p>Negócio ativo</p>
+        <h2>Ademilson Bertolin</h2>
+      </div>
+
+      <!-- Nav items -->
+      <nav>
+        <div class="nav-item active">
+          <div class="nav-icon">📅</div>
+          <div class="nav-text"><strong>Agenda</strong><span>Atendimentos e encaixes</span></div>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">👥</div>
+          <div class="nav-text"><strong>Clientes</strong><span>CRM e recorrência</span></div>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">💳</div>
+          <div class="nav-text"><strong>Financeiro</strong><span>Receitas e caixa</span></div>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">👤</div>
+          <div class="nav-text"><strong>Equipe</strong><span>Usuários e permissões</span></div>
+        </div>
+      </nav>
+
+      <!-- Footer -->
+      <div class="sidebar-footer">
+        <div class="config-item">⚙️ &nbsp; Config.</div>
+        <!-- LOGOUT BUTTON -->
+        <div class="logout-btn">
+          ↪ &nbsp; Sair da conta
+        </div>
+      </div>
+    </div>
+
+    <!-- Annotation -->
+    <div class="annotation" style="right:-140px; bottom:72px;">← Novo <span class="arrow">→</span></div>
+  </div>
+</div>
+
+<div>
+  <h2>Mobile — Header</h2>
+  <div style="position:relative; display:inline-block; margin-top:12px;">
+    <div class="mobile-frame">
+      <div class="mobile-header">
+        <div class="mobile-icon">✦</div>
+        <div class="mobile-header-text">
+          <p>Workspace operacional</p>
+          <h2>Olá, Ademilson</h2>
+        </div>
+        <!-- LOGOUT ICON -->
+        <div class="logout-icon-btn" title="Sair">↪</div>
+      </div>
+
+      <div class="mobile-content">
+        <h3>Visão geral do dia</h3>
+        <p>Resumo operacional e agenda de hoje</p>
+        <div style="margin-top:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04)"><div style="font-size:11px;color:#94a3b8">Atendimentos</div><div style="font-size:22px;font-weight:700;color:#0f172a;margin-top:4px">0</div></div>
+          <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04)"><div style="font-size:11px;color:#94a3b8">Receita do dia</div><div style="font-size:22px;font-weight:700;color:#0f172a;margin-top:4px">R$0</div></div>
+        </div>
+      </div>
+
+      <div class="mobile-bottom-nav">
+        <div class="bottom-item active"><span>📅</span>Agenda</div>
+        <div class="bottom-item"><span>👥</span>Clientes</div>
+        <div class="bottom-item"><span>💳</span>Financeiro</div>
+        <div class="bottom-item"><span>👤</span>Equipe</div>
+        <div class="bottom-item"><span>⚙️</span>Config.</div>
+      </div>
+    </div>
+
+    <!-- Annotation -->
+    <div class="annotation" style="right:-100px; top:20px;">← Novo</div>
+  </div>
+</div>
+
+</body>
+</html>
