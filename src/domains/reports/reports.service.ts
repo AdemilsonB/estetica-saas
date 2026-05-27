@@ -61,7 +61,7 @@ export class ReportsService {
       appointmentIdsComReceita.size > 0 ? receita / appointmentIdsComReceita.size : 0
 
     const byGroup = new Map<string, { label: string; quantidade: number; receita: number }>()
-    for (const tx of transactions) {
+    for (const tx of transactions.filter((t) => t.type === TransactionType.INCOME)) {
       const label =
         input.groupBy === 'profissional'
           ? (tx.appointment?.professional?.name ?? 'Sem profissional')

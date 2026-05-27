@@ -7,7 +7,7 @@ export const financialReportSchema = z.object({
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   type: z.nativeEnum(TransactionType).optional(),
-  professionalId: z.string().uuid().optional(),
+  professionalId: z.string().cuid().optional(),
   serviceId: z.string().cuid().optional(),
   groupBy: z.enum(['profissional', 'servico']).default('servico'),
 })
@@ -36,7 +36,7 @@ export const appointmentsReportSchema = z.object({
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   status: z.array(z.nativeEnum(AppointmentStatus)).optional(),
-  professionalId: z.string().uuid().optional(),
+  professionalId: z.string().cuid().optional(),
   serviceId: z.string().cuid().optional(),
   groupBy: z.enum(['profissional', 'servico']).default('profissional'),
 })
@@ -67,7 +67,7 @@ export type AppointmentsReport = {
 export const customersReportSchema = z.object({
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
-  professionalId: z.string().uuid().optional(),
+  professionalId: z.string().cuid().optional(),
   serviceId: z.string().cuid().optional(),
 })
 
@@ -94,7 +94,7 @@ export type CustomersReport = {
 export const professionalsReportSchema = z.object({
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
-  professionalIds: z.array(z.string().uuid()).optional(),
+  professionalIds: z.array(z.string().cuid()).optional(),
   serviceId: z.string().cuid().optional(),
   status: z.array(z.nativeEnum(AppointmentStatus)).optional(),
 })
