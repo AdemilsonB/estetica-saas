@@ -1,5 +1,6 @@
 export function exportCsv(rows: Record<string, unknown>[], filename: string): void {
   if (rows.length === 0) return
+  if (typeof document === 'undefined') return
 
   const headers = Object.keys(rows[0])
   const escape = (v: unknown): string => {
@@ -21,6 +22,8 @@ export function exportCsv(rows: Record<string, unknown>[], filename: string): vo
   const a = document.createElement('a')
   a.href = url
   a.download = filename
+  document.body.appendChild(a)
   a.click()
+  document.body.removeChild(a)
   URL.revokeObjectURL(url)
 }
