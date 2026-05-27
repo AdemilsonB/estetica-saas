@@ -1,0 +1,5 @@
+export { makeTenant } from './tenant.factory'
+export { makeUser } from './user.factory'
+export { makeCustomer } from './customer.factory'
+export { makeAppointment } from './appointment.factory'
+export { makeTransaction } from './transaction.factory'
