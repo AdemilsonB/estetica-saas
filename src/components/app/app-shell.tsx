@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
 import {
+  BarChart2,
   CalendarDays,
   CreditCard,
   LogOut,
@@ -38,6 +39,13 @@ const NAV_ITEMS = [
     icon: CreditCard,
     href: '/financeiro',
     permission: 'financial:view',
+  },
+  {
+    label: 'Relatórios',
+    description: 'Análises e exportações',
+    icon: BarChart2,
+    href: '/relatorios',
+    permission: 'financial:view', // MVP: cada página valida permissão específica internamente
   },
   {
     label: 'Equipe',
@@ -75,7 +83,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="mx-auto flex min-h-screen max-w-[1600px]">
         {/* Sidebar desktop */}
         <aside className="hidden w-[290px] flex-col border-r border-white/70 bg-white/70 px-5 py-6 backdrop-blur xl:flex">
-          <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard"
+            title="Ir para Dashboard"
+            className="flex items-center gap-3 rounded-2xl p-1 transition hover:bg-rose-50"
+          >
             <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-700 shadow-sm">
               <Sparkles className="size-5" />
             </div>
@@ -87,7 +99,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 Operational Workspace
               </h1>
             </div>
-          </div>
+          </Link>
 
           {/* Tenant info */}
           <div className="mt-8 rounded-[1.75rem] border border-white/80 bg-white/90 p-4 shadow-[0_20px_50px_rgba(190,24,93,0.08)]">
@@ -188,9 +200,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           <header className="sticky top-0 z-20 border-b border-white/70 bg-white/75 px-4 py-4 backdrop-blur sm:px-6 xl:px-8">
             <div className="flex items-center gap-3">
               <div className="xl:hidden">
-                <div className="inline-flex size-11 items-center justify-center rounded-2xl bg-rose-100 text-rose-700">
+                <Link
+                  href="/dashboard"
+                  title="Ir para Dashboard"
+                  className="inline-flex size-11 items-center justify-center rounded-2xl bg-rose-100 text-rose-700 transition hover:bg-rose-200"
+                >
                   <Sparkles className="size-5" />
-                </div>
+                </Link>
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold tracking-[0.18em] text-rose-500 uppercase">
