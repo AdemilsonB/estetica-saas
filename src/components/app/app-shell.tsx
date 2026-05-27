@@ -45,7 +45,7 @@ const NAV_ITEMS = [
     description: 'Análises e exportações',
     icon: BarChart2,
     href: '/relatorios',
-    permission: 'financial:view',
+    permission: 'financial:view', // MVP: cada página valida permissão específica internamente
   },
   {
     label: 'Equipe',
