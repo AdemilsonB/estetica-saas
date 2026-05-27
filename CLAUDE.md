@@ -39,63 +39,29 @@ Ao concluir uma sessão, apresente um resumo em PT-BR:
 
 ## Protocolo obrigatório antes de iniciar qualquer desenvolvimento
 
-**Nunca inicie implementação sem antes fazer as perguntas necessárias.** Este protocolo é obrigatório mesmo que a tarefa pareça simples.
+**Nunca inicie implementação sem antes estruturar a demanda.**
 
-Ao receber uma demanda, siga esta sequência:
+Use a skill `.claude/skills/agent-onboarding.md` como ponto de entrada para qualquer ideia nova.
+Ela conduz a exploração da ideia, propõe abordagens e produz um brief estruturado para o Orchestrator.
 
-### 1. Leia o contexto existente
-Antes de qualquer pergunta, verifique internamente:
-- Qual domínio DDD é afetado? (`iam`, `crm`, `scheduling`, `financial`, `notifications`)
-- Existe backend já implementado para isso? (ver tabela de status dos domínios abaixo)
-- Existe componente ou hook que resolve parte do problema?
-- Qual agente deve ser ativado? (ver `.claude/AGENTS.md`)
-
-### 2. Faça as perguntas certas — agrupadas, máximo 5 por vez
-
-Para qualquer demanda, cubra obrigatoriamente:
-
-**Sobre o comportamento:**
-- O que o usuário vê/faz antes, durante e depois da ação?
-- Quem usa isso? (dono do salão, atendente, cliente final)
-- Existe algum caso de erro ou edge case óbvio que precisa de tratamento especial?
-
-**Sobre o escopo:**
-- É criação do zero ou alteração de algo existente?
-- Afeta mais de um domínio? Se sim, como se comunicam?
-- Tem regra de negócio específica do setor de estética que eu preciso saber?
-
-**Sobre pré-condições:**
-- O que precisa existir antes (model Prisma, API, componente base)?
-
-Apresente as perguntas assim:
+**Fluxo completo:**
 ```
-Antes de começar, preciso entender melhor alguns pontos:
-
-**Comportamento:**
-1. [pergunta]
-2. [pergunta]
-
-**Escopo:**
-3. [pergunta]
-
-**Pré-condições:**
-4. [pergunta]
+Ideia do usuário
+      ↓
+agent-onboarding   ← explora intenção, propõe abordagens, estrutura brief
+      ↓
+orchestrator       ← executa o brief com o pipeline correto de skills
+      ↓
+[database] → [backend] → [frontend] → [testing + security] → [review]
+      ↓
+PR aberta para main
 ```
 
-### 3. Confirme o entendimento antes de codificar
+Só acione o Orchestrator diretamente (sem onboarding) se:
+- É um bug com arquivo + comportamento + erro exatos descritos
+- É uma mudança pontual e cirúrgica com escopo inequívoco
 
-Após as respostas, apresente:
-```
-Meu entendimento da tarefa:
-- O que farei: [lista objetiva]
-- O que não está no escopo: [lista]
-- Agente(s) que vou usar: [database / backend / frontend / review]
-- Estimativa: [simples <30min / médio 1-3h / complexo >3h]
-
-Posso começar?
-```
-
-Só inicie o código após confirmação explícita.
+Só inicie o código após o brief ser aprovado explicitamente pelo usuário.
 
 ---
 
@@ -305,7 +271,8 @@ Use a skill `.claude/skills/orchestrator.md` — ela analisa a tarefa, monta o p
 
 | Skill | Arquivo | Quando usar |
 |---|---|---|
-| **Orchestrator** | `.claude/skills/orchestrator.md` | Ponto de entrada para qualquer tarefa nova |
+| **Onboarding** | `.claude/skills/agent-onboarding.md` | **Primeiro passo** — toda ideia nova passa aqui |
+| **Orchestrator** | `.claude/skills/orchestrator.md` | Executa o brief estruturado pelo Onboarding |
 | **Database** | `.claude/skills/agent-database.md` | Schema Prisma, migrations, RLS |
 | **Backend** | `.claude/skills/agent-backend.md` | Services, repos, API Routes, Zod schemas |
 | **Frontend** | `.claude/skills/agent-frontend.md` | Pages, components, hooks de UI |
@@ -316,7 +283,7 @@ Use a skill `.claude/skills/orchestrator.md` — ela analisa a tarefa, monta o p
 ### Fluxo padrão de desenvolvimento
 
 ```
-Orchestrator → Database? → Backend → Frontend → Testing + Security → Review → PR
+Onboarding → Orchestrator → Database? → Backend → Frontend → Testing + Security → Review → PR
 ```
 
 Testing e Security podem rodar em paralelo após o código estar escrito.
