@@ -1,8 +1,12 @@
 # Skill: Orchestrator — Coordenador de Desenvolvimento
 
-> Ponto de entrada para qualquer tarefa de desenvolvimento.
+> Coordenador de execução — recebe briefs estruturados e os executa.
 > Analisa, planeja, delega para skills especializadas e valida cada etapa.
 > Não implementa código diretamente — coordena e garante qualidade.
+>
+> **Antes do Orchestrator vem o Onboarding Agent.**
+> Se a tarefa ainda é uma ideia bruta ou sem escopo definido,
+> use `.claude/skills/agent-onboarding.md` primeiro.
 
 ---
 
