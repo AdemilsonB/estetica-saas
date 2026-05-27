@@ -93,7 +93,7 @@ export default function ResetPasswordPage() {
           </div>
           <Button
             className="w-full bg-[#191919] text-white hover:bg-[#2d2d2d]"
-            onClick={() => router.push("/auth/forgot-password")}
+            onClick={() => router.push("/forgot-password")}
           >
             Solicitar novo link
           </Button>
@@ -119,7 +119,7 @@ export default function ResetPasswordPage() {
           </div>
           <Button
             className="w-full bg-[#191919] text-white hover:bg-[#2d2d2d]"
-            onClick={() => router.push("/auth/login")}
+            onClick={() => router.push("/login")}
           >
             Ir para o login
           </Button>

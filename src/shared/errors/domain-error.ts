@@ -1,3 +1,5 @@
+import type { PlanName } from "@prisma/client";
+
 export class DomainError extends Error {
   constructor(
     message: string,
@@ -79,5 +81,36 @@ export class UserNotFoundError extends DomainError {
 export class ProfessionalNotFoundError extends DomainError {
   constructor() {
     super("Profissional nao encontrado ou nao pertence a este tenant.", "PROFESSIONAL_NOT_FOUND", 404);
+  }
+}
+
+// --- Billing ---
+
+export class PlanFeatureError extends DomainError {
+  constructor(
+    public readonly feature: string,
+    public readonly requiredPlan: PlanName,
+  ) {
+    super(
+      `Feature "${feature}" requer plano ${requiredPlan} ou superior`,
+      "PLAN_FEATURE_REQUIRED",
+      403,
+      { feature, requiredPlan },
+    );
+  }
+}
+
+export class PlanLimitError extends DomainError {
+  constructor(
+    public readonly limitType: string,
+    public readonly limit: number,
+    public readonly current: number,
+  ) {
+    super(
+      `Limite de ${limitType} atingido (${current}/${limit})`,
+      "PLAN_LIMIT_EXCEEDED",
+      402,
+      { limitType, limit, current },
+    );
   }
 }

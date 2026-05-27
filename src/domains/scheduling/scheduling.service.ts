@@ -11,6 +11,12 @@ import {
   ProfessionalNotFoundError,
   ServiceNotFoundError,
 } from "@/shared/errors";
+import {
+  scheduleAppointmentReminder,
+  cancelAppointmentReminder,
+} from "@/shared/queue/jobs/appointment-reminder";
+
+import { featureGuard } from "@/domains/billing/feature-guard";
 
 import { appointmentRepository, type AppointmentFilters } from "./appointment.repository";
 import { availabilityService } from "./availability.service";
@@ -19,6 +25,7 @@ import type {
   CreateAppointmentInput,
   CreateServiceInput,
   UpdateAppointmentStatusInput,
+  UpdateServiceInput,
 } from "./types";
 
 export class SchedulingService {
@@ -44,6 +51,9 @@ export class SchedulingService {
     userId: string,
     input: CreateAppointmentInput,
   ) {
+    const appointmentCount = await appointmentRepository.countThisMonth(tenantId);
+    await featureGuard.assertWithinLimit(tenantId, "appointments_month", appointmentCount);
+
     const service = await catalogServiceRepository.findById(tenantId, input.serviceId);
     if (!service) {
       throw new ServiceNotFoundError();
@@ -66,12 +76,14 @@ export class SchedulingService {
     const startsAt = new Date(input.startsAt);
     const endsAt = new Date(startsAt.getTime() + service.duration * 60 * 1000);
 
-    await availabilityService.ensureSlotAvailable(
-      tenantId,
-      input.professionalId,
-      startsAt,
-      endsAt,
-    );
+    if (!input.allowOverlap) {
+      await availabilityService.ensureSlotAvailable(
+        tenantId,
+        input.professionalId,
+        startsAt,
+        endsAt,
+      );
+    }
 
     const appointment = await appointmentRepository.create(tenantId, {
       customerId: input.customerId,
@@ -82,6 +94,7 @@ export class SchedulingService {
       notes: input.notes,
       price: new Prisma.Decimal(service.price),
       createdByUserId: userId,
+      allowOverlap: input.allowOverlap ?? false,
     });
 
     const appointmentDetails = await appointmentRepository.findById(
@@ -96,6 +109,14 @@ export class SchedulingService {
       type: "scheduling.appointment.created",
       payload: this.toAppointmentEventPayload(tenantId, appointmentDetails),
     });
+
+    const tenant = await prisma.tenant.findFirst({
+      where: { id: tenantId },
+      select: { whatsappEnabled: true },
+    });
+    if (tenant?.whatsappEnabled) {
+      await scheduleAppointmentReminder(tenantId, appointment.id, startsAt);
+    }
 
     return appointment;
   }
@@ -129,7 +150,23 @@ export class SchedulingService {
       });
     }
 
+    if (input.status === AppointmentStatus.CANCELLED) {
+      await cancelAppointmentReminder(appointmentId);
+    }
+
     return appointment;
+  }
+
+  async updateService(tenantId: string, serviceId: string, input: UpdateServiceInput) {
+    const existing = await catalogServiceRepository.findById(tenantId, serviceId);
+    if (!existing) throw new ServiceNotFoundError();
+    return catalogServiceRepository.update(tenantId, serviceId, input);
+  }
+
+  async deactivateService(tenantId: string, serviceId: string) {
+    const existing = await catalogServiceRepository.findById(tenantId, serviceId);
+    if (!existing) throw new ServiceNotFoundError();
+    return catalogServiceRepository.deactivate(tenantId, serviceId);
   }
 
   private resolveStatusEvent(status: AppointmentStatus) {
@@ -163,6 +200,7 @@ export class SchedulingService {
         endsAt: appointment.endsAt,
         status: appointment.status,
         notes: appointment.notes,
+        allowOverlap: appointment.allowOverlap,
         price: appointment.price,
         createdByUserId: appointment.createdByUserId,
         createdAt: appointment.createdAt,

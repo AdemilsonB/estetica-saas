@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
 
   if (!code) {
-    return NextResponse.redirect(new URL("/auth/login", request.url));
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   const cookieStore = await cookies();
@@ -33,16 +33,16 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    return NextResponse.redirect(new URL("/auth/login", request.url));
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user?.user_metadata?.tenantId) {
+  if (user?.app_metadata?.tenantId) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  return NextResponse.redirect(new URL("/auth/onboarding", request.url));
+  return NextResponse.redirect(new URL("/onboarding", request.url));
 }

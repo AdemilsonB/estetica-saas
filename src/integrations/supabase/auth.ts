@@ -20,6 +20,17 @@ type SupabaseJwtClaims = {
   };
 };
 
+// Valida o token JWT e retorna apenas o userId — usado em rotas que precedem
+// a criação do tenant (ex: /api/iam/register), onde tenantId ainda não existe.
+export async function getVerifiedUserId(accessToken: string): Promise<string> {
+  const supabase = createSupabaseServerClient(accessToken);
+  const { data, error } = await supabase.auth.getUser(accessToken);
+  if (error || !data.user) {
+    throw new UnauthorizedError("Sessao invalida ou expirada.");
+  }
+  return data.user.id;
+}
+
 export async function getSupabaseSessionFromToken(
   accessToken: string,
 ): Promise<SessionContext> {

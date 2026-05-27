@@ -26,10 +26,6 @@ const loginSchema = z.object({
 
 const signupSchema = z
   .object({
-    businessName: z
-      .string()
-      .min(2, "Nome do negocio muito curto"),
-    userName: z.string().min(2, "Nome muito curto"),
     email: z.string().email("Email invalido"),
     password: z.string().min(8, "Minimo 8 caracteres"),
     confirmPassword: z.string(),
@@ -303,99 +299,58 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
   async function onSubmit(data: SignupForm) {
     const supabase = createSupabaseBrowserClient();
 
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-    });
+    if (process.env.NODE_ENV === "development") {
+      const devRes = await fetch("/api/dev/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email, password: data.password }),
+      });
 
-    if (signUpError) {
-      if (signUpError.message.includes("already registered")) {
-        toast.error("Este email ja possui uma conta. Faca login.");
-      } else {
-        toast.error(signUpError.message);
+      if (!devRes.ok) {
+        const body = await devRes.json();
+        const msg = body.error ?? "";
+        if (msg.includes("already been registered") || msg.includes("already exists")) {
+          toast.error("Este email ja possui uma conta. Faca login.");
+        } else {
+          toast.error(msg || "Erro ao criar conta.");
+        }
+        return;
       }
-      return;
-    }
+    } else {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
 
-    if (!authData.user) {
-      toast.error("Erro ao criar conta. Tente novamente.");
-      return;
-    }
-
-    let session = authData.session;
-
-    if (!session) {
-      if (process.env.NODE_ENV === "development") {
-        await fetch("/api/dev/confirm-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: authData.user.id }),
-        });
-        const { data: refreshed } = await supabase.auth.signInWithPassword({
-          email: data.email,
-          password: data.password,
-        });
-        session = refreshed.session;
-      } else {
-        toast.success("Conta criada! Verifique seu email para confirmar.");
+      if (signUpError) {
+        if (signUpError.message.includes("already registered")) {
+          toast.error("Este email ja possui uma conta. Faca login.");
+        } else {
+          toast.error(signUpError.message);
+        }
         return;
       }
     }
 
-    if (!session) {
+    const { data: signed, error: signInError } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    });
+
+    if (signInError || !signed.session) {
       toast.error("Erro ao iniciar sessao. Tente fazer login.");
       return;
     }
 
-    const res = await fetch("/api/iam/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-        businessName: data.businessName,
-        userName: data.userName,
-      }),
-    });
-
-    if (!res.ok) {
-      const body = await res.json();
-      toast.error(body.error?.message ?? "Erro ao configurar sua conta.");
-      return;
-    }
-
-    toast.success("Conta criada com sucesso!");
-    router.push("/");
+    router.push("/onboarding");
     router.refresh();
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label className="text-[#37352f]">Nome do negocio</Label>
-        <Input
-          placeholder="Ex: Barbearia do Joao"
-          className="border-[#e5e5e5] bg-[#f7f6f3] focus-visible:ring-[#191919]"
-          {...register("businessName")}
-        />
-        {errors.businessName && (
-          <p className="text-xs text-red-500">{errors.businessName.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-[#37352f]">Seu nome</Label>
-        <Input
-          placeholder="Nome completo"
-          className="border-[#e5e5e5] bg-[#f7f6f3] focus-visible:ring-[#191919]"
-          {...register("userName")}
-        />
-        {errors.userName && (
-          <p className="text-xs text-red-500">{errors.userName.message}</p>
-        )}
-      </div>
-
       <div className="space-y-1.5">
         <Label className="text-[#37352f]">Email</Label>
         <Input

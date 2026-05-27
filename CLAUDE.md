@@ -279,24 +279,70 @@ Frontend — sem ele não há produto. Ordem recomendada:
 - [ ] `tenantId` em todo model novo no Prisma
 - [ ] Repository com filtro de tenant em todas as queries
 - [ ] Service com regras de negócio e publicação de eventos
-- [ ] API Route com `withTenant()` e validação Zod
+- [ ] Zod schemas em `domains/[dominio]/schemas.ts` (nunca duplicados no frontend)
+- [ ] API Route com `getSessionContext()` e validação Zod
 - [ ] Erros tipados para todos os casos de falha
-- [ ] Componente com loading state e error state
+- [ ] Componente com loading state, error state e empty state
 - [ ] Sem `any` no TypeScript
+- [ ] Testes escritos: service (80%), repository (60%), API route (70%)
+- [ ] `npx tsc --noEmit` — zero erros
+- [ ] `npx vitest run` — todos os testes passando
+- [ ] Security Agent executado — nenhum item 🔴 CRÍTICO
 - [ ] Pull Request aberta para `main`
 - [ ] PR mergeada na `main` — nenhuma entrega é considerada concluída até o merge acontecer
 
 ---
 
+## Sistema de Skills — Como usar
+
+O projeto usa **Claude Code Skills** para orquestração de desenvolvimento.
+Cada skill é um agente especializado com responsabilidade exclusiva e gate de verificação obrigatório.
+
+**Ponto de entrada para qualquer tarefa:**
+Use a skill `.claude/skills/orchestrator.md` — ela analisa a tarefa, monta o pipeline correto e coordena as skills especializadas.
+
+### Skills disponíveis
+
+| Skill | Arquivo | Quando usar |
+|---|---|---|
+| **Orchestrator** | `.claude/skills/orchestrator.md` | Ponto de entrada para qualquer tarefa nova |
+| **Database** | `.claude/skills/agent-database.md` | Schema Prisma, migrations, RLS |
+| **Backend** | `.claude/skills/agent-backend.md` | Services, repos, API Routes, Zod schemas |
+| **Frontend** | `.claude/skills/agent-frontend.md` | Pages, components, hooks de UI |
+| **Testing** | `.claude/skills/agent-testing.md` | Vitest setup, testes unit + integração |
+| **Security** | `.claude/skills/agent-security.md` | Auditoria OWASP, tenancy, rate limiting |
+| **Review** | `.claude/skills/agent-review.md` | Gate de build final, aprovação de PR |
+
+### Fluxo padrão de desenvolvimento
+
+```
+Orchestrator → Database? → Backend → Frontend → Testing + Security → Review → PR
+```
+
+Testing e Security podem rodar em paralelo após o código estar escrito.
+Review é sempre o último — só aprova com `tsc --noEmit` e `vitest run` verdes.
+
+### Infraestrutura de testes
+
+```
+vitest.config.ts                    ← configuração global
+src/shared/test/
+  ├── setup.ts                      ← mocks globais (Prisma, eventBus)
+  ├── prisma-mock.ts                ← DeepMock do PrismaClient
+  └── factories/                    ← fixtures por entidade
+      ├── tenant.factory.ts
+      ├── user.factory.ts
+      ├── customer.factory.ts
+      ├── appointment.factory.ts
+      └── transaction.factory.ts
+```
+
+---
+
 ## Arquivos de contexto complementares
 
-- `.claude/PLANEJAMENTO.md` — protocolo de planejamento e refinamento de demandas
-- `.claude/AGENTS.md` — como usar cada agente
+- `.claude/AGENTS.md` — mapa de agents (referência humana)
 - `.claude/BRANCHING.md` — workflow de branches, commits e PRs
-- `.claude/agent-backend.md` — agente de domínios e API
-- `.claude/agent-frontend.md` — agente de UI e componentes
-- `.claude/agent-database.md` — agente de schema e migrations
-- `.claude/agent-review.md` — agente revisor de código
 - `.context/PATTERNS.md` — padrões detalhados de código
 - `.context/CONVENTIONS.md` — naming conventions
 - `docs/decisions.md` — decisões arquiteturais (ADRs)

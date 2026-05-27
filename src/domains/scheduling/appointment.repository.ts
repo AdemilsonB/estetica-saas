@@ -1,5 +1,6 @@
 import { AppointmentStatus, type Appointment, type Prisma } from "@prisma/client";
 
+import { startOfMonth, endOfDay } from "@/lib/dates";
 import { prisma } from "@/shared/database/prisma";
 
 export type AppointmentFilters = {
@@ -77,6 +78,15 @@ export class AppointmentRepository {
       data: {
         ...data,
         tenantId,
+      },
+    });
+  }
+
+  async countThisMonth(tenantId: string): Promise<number> {
+    return prisma.appointment.count({
+      where: {
+        tenantId,
+        startsAt: { gte: startOfMonth(new Date()), lte: endOfDay(new Date()) },
       },
     });
   }

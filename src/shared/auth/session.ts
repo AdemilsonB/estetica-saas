@@ -1,4 +1,6 @@
 import { UserRole } from "@prisma/client";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
 import { getSupabaseSessionFromToken } from "@/integrations/supabase/auth";
 import { env, isProduction } from "@/shared/config/env";
@@ -12,18 +14,48 @@ const devSessionHeaderName = "x-auth-mode";
 export async function getSessionContext(
   request: Request,
 ): Promise<SessionContext> {
+  // 1. Bearer token no header Authorization (clientes API, mobile, testes)
   const accessToken = extractAccessToken(request);
   if (accessToken) {
     return getSupabaseSessionFromToken(accessToken);
   }
 
+  // 2. Modo desenvolvimento com headers explícitos
   if (!isProduction && request.headers.get(devSessionHeaderName) === "headers") {
     return getDevelopmentHeaderSession(request);
   }
 
-  throw new UnauthorizedError(
-    "Sessao ausente. Envie Bearer token do Supabase ou use o modo de desenvolvimento explicitamente.",
-  );
+  // 3. Cookie do @supabase/ssr — usa getUser() sem argumento, idêntico ao middleware,
+  // para que o SDK leia o cookie sb-{ref}-auth-token e devolva app_metadata completo
+  const cookieStore = await cookies();
+  const supabase = createServerClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+    cookies: {
+      getAll() { return cookieStore.getAll(); },
+      setAll() {},
+    },
+  });
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new UnauthorizedError(
+      "Sessao ausente. Envie Bearer token do Supabase ou use o modo de desenvolvimento explicitamente.",
+    );
+  }
+
+  const tenantId = user.app_metadata?.tenantId ?? user.user_metadata?.tenantId;
+  const role = user.app_metadata?.role ?? user.user_metadata?.role;
+  const permissions: string[] =
+    user.app_metadata?.permissions ?? user.user_metadata?.permissions ?? [];
+
+  if (!tenantId) {
+    throw new UnauthorizedError("Tenant ausente na sessao autenticada.");
+  }
+  if (!role || !Object.values(UserRole).includes(role as UserRole)) {
+    throw new UnauthorizedError("Role ausente ou invalida na sessao autenticada.");
+  }
+
+  return { tenantId, userId: user.id, role: role as UserRole, permissions };
 }
 
 async function getDevelopmentHeaderSession(
