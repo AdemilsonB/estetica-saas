@@ -50,3 +50,9 @@ export function defaultFrom(): Date {
 export function defaultTo(): Date {
   return endOfDay(new Date())
 }
+
+export function addDays(d: Date, days: number): Date {
+  const r = new Date(d);
+  r.setDate(r.getDate() + days);
+  return r;
+}

@@ -57,4 +57,16 @@ export type DomainEvent =
   | {
       type: "notifications.notification.logged";
       payload: { tenantId: string; notification: NotificationLog };
+    }
+  | {
+      type: "billing.trial.expired";
+      payload: { tenantId: string };
+    }
+  | {
+      type: "billing.subscription.upgraded";
+      payload: {
+        tenantId: string;
+        fromPlan: import("@prisma/client").PlanName | undefined;
+        toPlan: import("@prisma/client").PlanName;
+      };
     };
