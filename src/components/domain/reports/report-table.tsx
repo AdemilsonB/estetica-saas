@@ -9,7 +9,7 @@ export type ReportColumn = {
 
 type Props = {
   columns: ReportColumn[]
-  rows: object[]
+  rows: Record<string, unknown>[]
   isLoading: boolean
   emptyMessage?: string
 }
@@ -51,23 +51,20 @@ export function ReportTable({ columns, rows, isLoading, emptyMessage = 'Nenhum d
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
-          {rows.map((row, i) => {
-            const r = row as Record<string, unknown>
-            return (
-              <tr key={i} className="bg-white hover:bg-slate-50 transition">
-                {columns.map((col) => (
-                  <td
-                    key={col.key}
-                    className={`px-4 py-3 text-slate-700 ${
-                      col.align === 'right' ? 'text-right tabular-nums' : ''
-                    }`}
-                  >
-                    {col.format ? col.format(r[col.key]) : String(r[col.key] ?? '—')}
-                  </td>
-                ))}
-              </tr>
-            )
-          })}
+          {rows.map((row, i) => (
+            <tr key={Object.values(row).join('-') + i} className="bg-white hover:bg-slate-50 transition">
+              {columns.map((col) => (
+                <td
+                  key={col.key}
+                  className={`px-4 py-3 text-slate-700 ${
+                    col.align === 'right' ? 'text-right tabular-nums' : ''
+                  }`}
+                >
+                  {col.format ? col.format(row[col.key]) : String(row[col.key] ?? '—')}
+                </td>
+              ))}
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

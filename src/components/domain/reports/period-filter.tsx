@@ -54,8 +54,8 @@ export function PeriodFilter({ onChange }: Props) {
   function handleCustomChange(from: string, to: string) {
     if (from && to) {
       onChange({
-        from: toISO(startOfDay(new Date(from))),
-        to: toISO(endOfDay(new Date(to))),
+        from: toISO(startOfDay(new Date(from + 'T00:00:00'))),
+        to: toISO(endOfDay(new Date(to + 'T00:00:00'))),
       })
     }
   }
@@ -65,6 +65,7 @@ export function PeriodFilter({ onChange }: Props) {
       <div className="flex flex-wrap gap-2">
         {PRESETS.map(({ key, label }) => (
           <button
+            type="button"
             key={key}
             onClick={() => handlePreset(key)}
             className={cn(

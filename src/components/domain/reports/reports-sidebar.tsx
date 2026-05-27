@@ -21,7 +21,7 @@ export function ReportsSidebar() {
         Tipo de relatório
       </p>
       {REPORT_ITEMS.map(({ label, href, icon: Icon }) => {
-        const isActive = pathname.startsWith(href)
+        const isActive = pathname === href || pathname.startsWith(href + '/')
         return (
           <Link
             key={href}
