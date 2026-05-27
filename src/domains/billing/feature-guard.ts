@@ -1,7 +1,7 @@
 import { PlanName, SubscriptionStatus } from "@prisma/client";
 
 import { prisma } from "@/shared/database/prisma";
-import { PlanFeatureError, PlanLimitError } from "@/shared/errors";
+import { PlanFeatureError, PlanLimitError, NotFoundError } from "@/shared/errors";
 
 export const FEATURES = {
   WHATSAPP_BASIC:   "whatsapp_basic",
@@ -57,21 +57,22 @@ export class FeatureGuard {
     currentCount: number,
   ): Promise<void> {
     const { plan, status } = await this.getSubscriptionState(tenantId);
-    if (!this.isActive(status)) return;
-    const limit = PLAN_LIMITS[plan][limitType];
+    const effectivePlan = this.isActive(status) ? plan : PlanName.FREE;
+    const limit = PLAN_LIMITS[effectivePlan][limitType];
     if (limit !== -1 && currentCount >= limit) {
       throw new PlanLimitError(limitType, limit, currentCount);
     }
   }
 
-  async getSubscriptionState(tenantId: string): Promise<{ plan: PlanName; status: string }> {
-    const tenant = await prisma.tenant.findUniqueOrThrow({
+  async getSubscriptionState(tenantId: string): Promise<{ plan: PlanName; status: SubscriptionStatus }> {
+    const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
       select: {
         plan: true,
         subscription: { select: { status: true, trialEndsAt: true } },
       },
     });
+    if (!tenant) throw new NotFoundError("Tenant");
 
     const status = tenant.subscription?.status ?? SubscriptionStatus.EXPIRED;
 
@@ -84,13 +85,13 @@ export class FeatureGuard {
     return { plan: tenant.plan, status };
   }
 
-  private isActive(status: string): boolean {
-    const activeStatuses = [
-      SubscriptionStatus.TRIALING as string,
-      SubscriptionStatus.ACTIVE as string,
-      SubscriptionStatus.PAST_DUE as string,
+  private isActive(status: SubscriptionStatus): boolean {
+    const active: SubscriptionStatus[] = [
+      SubscriptionStatus.TRIALING,
+      SubscriptionStatus.ACTIVE,
+      SubscriptionStatus.PAST_DUE,
     ];
-    return activeStatuses.includes(status);
+    return active.includes(status);
   }
 }
 
