@@ -42,11 +42,27 @@ enum InviteStatus {
   ACCEPTED
 }
 
+enum PlanName {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
 model Tenant {
   id           String           @id @default(cuid())
   name         String
   slug         String           @unique
-  plan           String            @default("free")
+  plan           PlanName          @default(FREE)
+  subscription   Subscription?
   brandingConfig    Json?
   phone             String?
   address           String?
@@ -80,6 +96,42 @@ model User {
 
   @@unique([tenantId, email])
   @@index([tenantId])
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  tenantId           String             @unique
+  plan               PlanName           @default(FREE)
+  status             SubscriptionStatus @default(TRIALING)
+  trialEndsAt        DateTime?
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelledAt        DateTime?
+  externalId         String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  history            SubscriptionHistory[]
+
+  @@index([tenantId])
+  @@index([status, currentPeriodEnd])
+}
+
+model SubscriptionHistory {
+  id             String              @id @default(cuid())
+  subscriptionId String
+  fromPlan       PlanName?
+  toPlan         PlanName
+  fromStatus     SubscriptionStatus?
+  toStatus       SubscriptionStatus
+  reason         String?
+  changedBy      String?
+  createdAt      DateTime            @default(now())
+
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
 }
 
 model TenantInvite {
