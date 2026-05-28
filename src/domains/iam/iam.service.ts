@@ -11,6 +11,11 @@ import { featureGuard } from "@/domains/billing/feature-guard";
 type RegisterInput = {
   businessName: string;
   userName: string;
+  branding?: {
+    logoUrl?: string | null;
+    primaryColor?: string;
+    backgroundColor?: string;
+  };
 };
 
 export class IamService {
@@ -54,6 +59,7 @@ export class IamService {
         email: authUser.user.email!,
         businessName: input.businessName,
         userName: input.userName,
+        branding: input.branding,
       });
     } catch (err) {
       if (

@@ -7,7 +7,6 @@ export function makeTenant(overrides: Partial<Tenant> = {}): Tenant {
     name: 'Salão Teste',
     slug: 'salao-teste',
     plan: PlanName.FREE,
-    brandingConfig: null,
     phone: null,
     address: null,
     zApiInstanceId: null,

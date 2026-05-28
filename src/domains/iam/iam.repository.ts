@@ -7,6 +7,11 @@ type CreateTenantWithOwnerInput = {
   email: string;
   businessName: string;
   userName: string;
+  branding?: {
+    logoUrl?: string | null;
+    primaryColor?: string;
+    backgroundColor?: string;
+  };
 };
 
 function generateSlug(name: string): string {
@@ -28,11 +33,13 @@ export class IamRepository {
         data: {
           name: input.businessName,
           slug,
-          brandingConfig: {
-            primaryColor: "#191919",
-            logoUrl: null,
-            displayName: input.businessName,
-          },
+        },
+      });
+
+      await tx.brandingConfig.create({
+        data: {
+          tenantId: tenant.id,
+          ...(input.branding ?? {}),
         },
       });
 
