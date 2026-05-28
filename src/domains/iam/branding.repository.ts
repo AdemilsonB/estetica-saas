@@ -1,18 +1,18 @@
 import { prisma } from '@/shared/database/prisma'
-import type { UpdateBrandingInput } from './branding.schemas'
+import type { BrandingUpdateData } from './branding.schemas'
 
 export class BrandingRepository {
   async findByTenant(tenantId: string) {
     return prisma.brandingConfig.findUnique({ where: { tenantId } })
   }
 
-  async create(tenantId: string, data?: Partial<UpdateBrandingInput>) {
+  async create(tenantId: string, data?: BrandingUpdateData) {
     return prisma.brandingConfig.create({
       data: { tenantId, ...data },
     })
   }
 
-  async update(tenantId: string, data: Partial<UpdateBrandingInput>) {
+  async update(tenantId: string, data: BrandingUpdateData) {
     return prisma.brandingConfig.upsert({
       where: { tenantId },
       update: data,
