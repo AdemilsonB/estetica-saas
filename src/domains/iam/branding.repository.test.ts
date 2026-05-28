@@ -63,14 +63,15 @@ describe('BrandingRepository', () => {
   })
 
   describe('update', () => {
-    it('atualiza campos parciais do BrandingConfig', async () => {
+    it('faz upsert de campos parciais do BrandingConfig', async () => {
       const updated = { ...defaultBranding, primaryColor: '#0000ff' }
-      prismaMock.brandingConfig.update.mockResolvedValue(updated)
+      prismaMock.brandingConfig.upsert.mockResolvedValue(updated)
       const result = await repo.update(TENANT_ID, { primaryColor: '#0000ff' })
       expect(result).toEqual(updated)
-      expect(prismaMock.brandingConfig.update).toHaveBeenCalledWith({
+      expect(prismaMock.brandingConfig.upsert).toHaveBeenCalledWith({
         where: { tenantId: TENANT_ID },
-        data: { primaryColor: '#0000ff' },
+        update: { primaryColor: '#0000ff' },
+        create: { tenantId: TENANT_ID, primaryColor: '#0000ff' },
       })
     })
   })
