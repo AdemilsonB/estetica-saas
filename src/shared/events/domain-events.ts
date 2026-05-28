@@ -1,5 +1,16 @@
 import type { Appointment, Customer, NotificationLog, Transaction } from "@prisma/client";
 
+type BrandingConfigUpdate = {
+  logoUrl: string | null
+  primaryColor: string
+  secondaryColor: string
+  accentColor: string
+  backgroundColor: string
+  fontFamily: string
+  borderRadius: string
+  colorScheme: string
+}
+
 type AppointmentEventPayload = {
   tenantId: string;
   appointment: Appointment;
@@ -69,4 +80,8 @@ export type DomainEvent =
         fromPlan: import("@prisma/client").PlanName | undefined;
         toPlan: import("@prisma/client").PlanName;
       };
+    }
+  | {
+      type: "tenant.branding.updated";
+      payload: { tenantId: string; changes: Partial<BrandingConfigUpdate> };
     };
