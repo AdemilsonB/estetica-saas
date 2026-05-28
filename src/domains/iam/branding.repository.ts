@@ -13,9 +13,10 @@ export class BrandingRepository {
   }
 
   async update(tenantId: string, data: Partial<UpdateBrandingInput>) {
-    return prisma.brandingConfig.update({
+    return prisma.brandingConfig.upsert({
       where: { tenantId },
-      data,
+      update: data,
+      create: { tenantId, ...data },
     })
   }
 }
