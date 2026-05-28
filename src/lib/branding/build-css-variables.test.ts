@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { hexToOklch, buildCssVariables, calcForeground, BORDER_RADIUS_MAP, FONT_VARIABLE_MAP } from './build-css-variables'
+import { hexToOklch, buildCssVariables, calcForeground, BORDER_RADIUS_MAP, FONT_VARIABLE_MAP, deriveSecondary, deriveAccent, hexToOklchStr } from './build-css-variables'
 
 describe('hexToOklch', () => {
   it('converte branco para oklch(1 0 0)', () => {
@@ -103,5 +103,63 @@ describe('buildCssVariables', () => {
       logoUrl: null,
     })
     expect(result.isDark).toBe(false)
+  })
+})
+
+describe('deriveSecondary', () => {
+  it('retorna string oklch válida para cor rose', () => {
+    const result = deriveSecondary('#e11d48')
+    expect(result).toMatch(/^oklch\(/)
+  })
+
+  it('tem luminosidade alta (>0.9) para qualquer cor primária', () => {
+    const result = deriveSecondary('#4f46e5')
+    const match = result.match(/oklch\(([\d.]+)/)
+    expect(match).not.toBeNull()
+    expect(parseFloat(match![1])).toBeGreaterThan(0.9)
+  })
+})
+
+describe('deriveAccent', () => {
+  it('retorna string oklch com luminosidade mais alta que deriveSecondary', () => {
+    const sec = deriveSecondary('#4f46e5')
+    const acc = deriveAccent('#4f46e5')
+    const lSec = parseFloat(sec.match(/oklch\(([\d.]+)/)![1])
+    const lAcc = parseFloat(acc.match(/oklch\(([\d.]+)/)![1])
+    expect(lAcc).toBeGreaterThanOrEqual(lSec)
+  })
+})
+
+describe('hexToOklchStr', () => {
+  it('converte hex para string oklch(L C H)', () => {
+    const result = hexToOklchStr('#ffffff')
+    expect(result).toMatch(/^oklch\(1(\.\d+)? 0(\.\d+)? 0(\.\d+)?/)
+  })
+})
+
+describe('calcForeground com input oklch', () => {
+  it('retorna escuro para string oklch de luminosidade alta', () => {
+    expect(calcForeground('oklch(0.93 0.04 264)')).toBe('oklch(0.145 0 0)')
+  })
+
+  it('retorna claro para string oklch de luminosidade baixa', () => {
+    expect(calcForeground('oklch(0.2 0.1 30)')).toBe('oklch(0.985 0 0)')
+  })
+})
+
+describe('buildCssVariables com secondary derivado (oklch string)', () => {
+  it('styleTag contém --sidebar-accent', () => {
+    const result = buildCssVariables({
+      primaryColor: '#e11d48',
+      secondaryColor: 'oklch(0.93 0.04 14.5)',
+      accentColor: 'oklch(0.95 0.03 14.5)',
+      backgroundColor: '#f8f8f7',
+      fontFamily: 'inter',
+      borderRadius: 'medium',
+      colorScheme: 'light',
+      logoUrl: null,
+    })
+    expect(result.styleTag).toContain('--sidebar-accent:')
+    expect(result.styleTag).toContain('--ring:')
   })
 })

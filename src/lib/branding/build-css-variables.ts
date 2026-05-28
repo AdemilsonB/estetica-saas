@@ -29,64 +29,75 @@ export const FONT_VARIABLE_MAP: Record<string, string> = {
   lato: 'var(--font-lato)',
 }
 
-// Converte canal sRGB [0,1] para linear
 function toLinear(c: number): number {
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
 }
 
-// Converte hex #rrggbb (ou #rgb) para sRGB [0,1]
 function parseHex(hex: string): [number, number, number] {
   let h = hex.replace('#', '')
-  if (h.length === 3) {
-    h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]
-  }
-  const r = parseInt(h.slice(0, 2), 16) / 255
-  const g = parseInt(h.slice(2, 4), 16) / 255
-  const b = parseInt(h.slice(4, 6), 16) / 255
-  return [r, g, b]
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]
+  return [
+    parseInt(h.slice(0, 2), 16) / 255,
+    parseInt(h.slice(2, 4), 16) / 255,
+    parseInt(h.slice(4, 6), 16) / 255,
+  ]
 }
 
-// sRGB → oklch (algoritmo direto: linear RGB → LMS → Oklab → oklch)
-// Referência: https://bottosson.github.io/posts/oklab/
 export function hexToOklch(hex: string): { l: number; c: number; h: number } {
   const [sr, sg, sb] = parseHex(hex)
-  const lr = toLinear(sr)
-  const lg = toLinear(sg)
-  const lb = toLinear(sb)
-
-  // M1: linear sRGB → LMS
+  const lr = toLinear(sr), lg = toLinear(sg), lb = toLinear(sb)
   const lms_l = 0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb
   const lms_m = 0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb
   const lms_s = 0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb
-
-  // Raiz cúbica não-linear
-  const lc = Math.cbrt(lms_l)
-  const mc = Math.cbrt(lms_m)
-  const sc = Math.cbrt(lms_s)
-
-  // M2: LMS' → Oklab
+  const lc = Math.cbrt(lms_l), mc = Math.cbrt(lms_m), sc = Math.cbrt(lms_s)
   const labL = 0.2104542553 * lc + 0.7936177850 * mc - 0.0040720468 * sc
   const labA = 1.9779984951 * lc - 2.4285922050 * mc + 0.4505937099 * sc
   const labB = 0.0259040371 * lc + 0.7827717662 * mc - 0.8086757660 * sc
-
   const c = Math.sqrt(labA * labA + labB * labB)
   const h = Math.atan2(labB, labA) * (180 / Math.PI)
-
   return { l: labL, c, h: h < 0 ? h + 360 : h }
 }
 
 function oklchStr(hex: string): string {
   const { l, c, h } = hexToOklch(hex)
-  const lRounded = Math.round(l * 1000) / 1000
   const cRounded = Math.round(c * 1000) / 1000
-  const hRounded = Math.round(h * 100) / 100
-  return `oklch(${lRounded} ${cRounded} ${hRounded})`
+  // Quando croma é praticamente zero (cor acromática), hue é indefinida — normaliza para 0
+  const hRounded = cRounded === 0 ? 0 : Math.round(h * 100) / 100
+  return `oklch(${Math.round(l * 1000) / 1000} ${cRounded} ${hRounded})`
 }
 
-// Calcula foreground (claro ou escuro) com base no L da cor
-export function calcForeground(hex: string): string {
-  const { l } = hexToOklch(hex)
-  return l > 0.5 ? 'oklch(0.145 0 0)' : 'oklch(0.985 0 0)'
+/** Converte hex para string oklch — exportado para uso em applyPreview no cliente */
+export function hexToOklchStr(hex: string): string {
+  return oklchStr(hex)
+}
+
+function toOklch(colorStr: string): string {
+  return colorStr.startsWith('oklch(') ? colorStr : oklchStr(colorStr)
+}
+
+function parseLuminance(colorStr: string): number {
+  if (colorStr.startsWith('oklch(')) {
+    const match = colorStr.match(/oklch\(([\d.]+)/)
+    return match ? parseFloat(match[1]) : 0.5
+  }
+  return hexToOklch(colorStr).l
+}
+
+export function calcForeground(colorStr: string): string {
+  return parseLuminance(colorStr) > 0.5 ? 'oklch(0.145 0 0)' : 'oklch(0.985 0 0)'
+}
+
+function deriveLight(primaryHex: string, lightness: number, chromaFactor: number): string {
+  const { c, h } = hexToOklch(primaryHex)
+  return `oklch(${lightness} ${Math.round(c * chromaFactor * 1000) / 1000} ${Math.round(h * 100) / 100})`
+}
+
+export function deriveSecondary(primaryHex: string): string {
+  return deriveLight(primaryHex, 0.93, 0.18)
+}
+
+export function deriveAccent(primaryHex: string): string {
+  return deriveLight(primaryHex, 0.95, 0.14)
 }
 
 export function buildCssVariables(config: BrandingInput): CssVariablesResult {
@@ -96,9 +107,9 @@ export function buildCssVariables(config: BrandingInput): CssVariablesResult {
 
   const primary = oklchStr(config.primaryColor)
   const primaryFg = calcForeground(config.primaryColor)
-  const secondary = oklchStr(config.secondaryColor)
+  const secondary = toOklch(config.secondaryColor)
   const secondaryFg = calcForeground(config.secondaryColor)
-  const accent = oklchStr(config.accentColor)
+  const accent = toOklch(config.accentColor)
   const accentFg = calcForeground(config.accentColor)
   const bg = oklchStr(config.backgroundColor)
   const fg = calcForeground(config.backgroundColor)
@@ -116,6 +127,9 @@ export function buildCssVariables(config: BrandingInput): CssVariablesResult {
     `--sidebar-foreground: ${fg};`,
     `--sidebar-primary: ${primary};`,
     `--sidebar-primary-foreground: ${primaryFg};`,
+    `--sidebar-accent: ${accent};`,
+    `--sidebar-accent-foreground: ${primary};`,
+    `--ring: ${primary};`,
     `--radius: ${radius};`,
     `--font-sans: ${fontVar};`,
   ].join('\n    ')
