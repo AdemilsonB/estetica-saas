@@ -5,7 +5,7 @@ let boss: PgBoss | null = null;
 export function getPgBoss(): PgBoss {
   if (!boss) {
     boss = new PgBoss({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
       schema: process.env.PG_BOSS_SCHEMA ?? "pgboss",
     });
   }
