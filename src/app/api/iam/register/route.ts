@@ -5,10 +5,12 @@ import { getVerifiedUserId } from "@/integrations/supabase/auth";
 import { handleApiError } from "@/shared/http/handle-api-error";
 import { validateInput } from "@/shared/http/validate-input";
 import { UnauthorizedError } from "@/shared/errors";
+import { OnboardingBrandingSchema } from "@/domains/iam/branding.schemas";
 
 const RegisterSchema = z.object({
   businessName: z.string().min(2, "Nome do negocio muito curto"),
   userName: z.string().min(2, "Nome muito curto"),
+  branding: OnboardingBrandingSchema.optional(),
 });
 
 export async function POST(req: Request) {
