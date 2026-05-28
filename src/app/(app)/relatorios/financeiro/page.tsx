@@ -29,13 +29,13 @@ export default function RelatorioFinanceiroPage() {
   const { can } = usePermissions()
   const [period, setPeriod] = useState<PeriodValue>(defaultPeriod)
   const [groupBy, setGroupBy] = useState<'profissional' | 'servico'>('servico')
-  const [type, setType] = useState<'INCOME' | 'EXPENSE' | ''>('')
+  const [type, setType] = useState<'INCOME' | 'EXPENSE' | 'all'>('all')
 
   const { data, isLoading, isError } = useFinancialReport({
     from: period.from,
     to: period.to,
     groupBy,
-    type: type || undefined,
+    type: type === 'all' ? undefined : type,
   })
 
   if (!can('financial:view')) {
@@ -79,7 +79,7 @@ export default function RelatorioFinanceiroPage() {
               <SelectValue placeholder="Tipo: Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="INCOME">Receita</SelectItem>
               <SelectItem value="EXPENSE">Despesa</SelectItem>
             </SelectContent>
