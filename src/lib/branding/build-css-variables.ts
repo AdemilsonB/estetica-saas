@@ -3,9 +3,9 @@ export type BrandingInput = {
   secondaryColor: string
   accentColor: string
   backgroundColor: string
-  fontFamily: string
-  borderRadius: string
-  colorScheme: string
+  fontFamily: 'inter' | 'manrope' | 'geist' | 'dm-sans' | 'plus-jakarta-sans' | 'lato'
+  borderRadius: 'none' | 'medium' | 'full'
+  colorScheme: 'light' | 'dark'
   logoUrl: string | null
 }
 
@@ -34,9 +34,12 @@ function toLinear(c: number): number {
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
 }
 
-// Converte hex #rrggbb para sRGB [0,1]
+// Converte hex #rrggbb (ou #rgb) para sRGB [0,1]
 function parseHex(hex: string): [number, number, number] {
-  const h = hex.replace('#', '')
+  let h = hex.replace('#', '')
+  if (h.length === 3) {
+    h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]
+  }
   const r = parseInt(h.slice(0, 2), 16) / 255
   const g = parseInt(h.slice(2, 4), 16) / 255
   const b = parseInt(h.slice(4, 6), 16) / 255

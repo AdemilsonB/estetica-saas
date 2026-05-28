@@ -23,6 +23,11 @@ describe('hexToOklch', () => {
     const { l } = hexToOklch('#f8f8f7')
     expect(l).toBeGreaterThan(0.95)
   })
+
+  it('expande hex curto #fff para branco', () => {
+    const { l } = hexToOklch('#fff')
+    expect(l).toBeCloseTo(1, 2)
+  })
 })
 
 describe('calcForeground', () => {
