@@ -1,23 +1,48 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BusinessInfoForm } from '@/components/domain/settings/business-info-form'
 import { BusinessHoursForm } from '@/components/domain/settings/business-hours-form'
 import { ServiceCatalog } from '@/components/domain/settings/service-catalog'
 import { WhatsAppSettingsForm } from '@/components/domain/settings/whatsapp-settings-form'
+import { BrandingForm } from '@/components/domain/settings/branding-form'
 import { usePermissions } from '@/hooks/use-permissions'
+import { Loader2 } from 'lucide-react'
+
+type BrandingConfig = {
+  logoUrl: string | null
+  primaryColor: string
+  secondaryColor: string
+  accentColor: string
+  backgroundColor: string
+  fontFamily: string
+  borderRadius: string
+  colorScheme: string
+}
 
 export default function ConfiguracoesPage() {
   const { can, isLoading } = usePermissions()
   const router = useRouter()
+  const [brandingConfig, setBrandingConfig] = useState<BrandingConfig | null>(null)
+  const [brandingLoading, setBrandingLoading] = useState(false)
 
   useEffect(() => {
     if (!isLoading && !can('settings:view')) {
       router.replace('/agenda')
     }
   }, [isLoading, can, router])
+
+  function handleTabChange(value: string) {
+    if (value === 'layout' && !brandingConfig && !brandingLoading) {
+      setBrandingLoading(true)
+      fetch('/api/iam/branding')
+        .then((r) => r.json())
+        .then((data) => setBrandingConfig(data as BrandingConfig))
+        .finally(() => setBrandingLoading(false))
+    }
+  }
 
   if (isLoading) {
     return (
@@ -40,12 +65,13 @@ export default function ConfiguracoesPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="negocio">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="negocio" onValueChange={handleTabChange}>
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="negocio">Negócio</TabsTrigger>
           <TabsTrigger value="horarios">Horários</TabsTrigger>
           <TabsTrigger value="servicos">Serviços</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+          <TabsTrigger value="layout">Layout</TabsTrigger>
         </TabsList>
 
         <TabsContent value="negocio" className="mt-6">
@@ -84,6 +110,22 @@ export default function ConfiguracoesPage() {
               Notificações WhatsApp
             </h2>
             <WhatsAppSettingsForm />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="layout" className="mt-6">
+          <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">
+            <h2 className="mb-4 text-base font-semibold text-slate-950">
+              Identidade visual e layout
+            </h2>
+            {brandingLoading && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="size-6 animate-spin text-slate-400" />
+              </div>
+            )}
+            {brandingConfig && !brandingLoading && (
+              <BrandingForm initial={brandingConfig} />
+            )}
           </div>
         </TabsContent>
       </Tabs>
