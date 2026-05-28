@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/integrations/supabase/admin'
 import { getSessionContext } from '@/shared/auth/session'
-import { ValidationError } from '@/shared/errors'
+import { DomainError, ValidationError } from '@/shared/errors'
 import { handleApiError } from '@/shared/http/handle-api-error'
 
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml']
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       upsert: true,
     })
 
-    if (error) throw new Error(`Upload falhou: ${error.message}`)
+    if (error) throw new DomainError(`Upload falhou: ${error.message}`, 'STORAGE_ERROR', 502)
 
     const { data } = supabaseAdmin.storage.from('logos').getPublicUrl(path)
 
