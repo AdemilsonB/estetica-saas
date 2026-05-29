@@ -52,7 +52,7 @@ agent-onboarding   ← explora intenção, propõe abordagens, estrutura brief
       ↓
 orchestrator       ← executa o brief com o pipeline correto de skills
       ↓
-[database] → [backend] → [frontend] → [testing + security] → [review]
+[database] → [backend] → [frontend] → [testing + security] → [review] → [documentation]
       ↓
 PR aberta para main
 ```
@@ -279,15 +279,17 @@ Use a skill `.claude/skills/orchestrator.md` — ela analisa a tarefa, monta o p
 | **Testing** | `.claude/skills/agent-testing.md` | Vitest setup, testes unit + integração |
 | **Security** | `.claude/skills/agent-security.md` | Auditoria OWASP, tenancy, rate limiting |
 | **Review** | `.claude/skills/agent-review.md` | Gate de build final, aprovação de PR |
+| **Documentation** | `.claude/skills/agent-documentation.md` | Atualiza docs após cada feature que muda domínios ou arquitetura |
 
 ### Fluxo padrão de desenvolvimento
 
 ```
-Onboarding → Orchestrator → Database? → Backend → Frontend → Testing + Security → Review → PR
+Onboarding → Orchestrator → Database? → Backend → Frontend → Testing + Security → Review → Documentation → PR
 ```
 
 Testing e Security podem rodar em paralelo após o código estar escrito.
-Review é sempre o último — só aprova com `tsc --noEmit` e `vitest run` verdes.
+Review (gate de build) vem antes de Documentation.
+Documentation é executada após o gate verde e antes de abrir o PR.
 
 ### Infraestrutura de testes
 

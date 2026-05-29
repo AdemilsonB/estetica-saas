@@ -56,11 +56,13 @@ Construa a sequência de skills necessárias:
 | Interface nova ou alterada | `agent-frontend` |
 | Qualquer entrega | `agent-testing` |
 | Qualquer entrega | `agent-security` |
-| Qualquer entrega | `agent-review` (SEMPRE último) |
+| Qualquer entrega | `agent-review` (penúltimo — gate de build) |
+| Feature altera domínio, arquitetura ou decisões | `agent-documentation` (SEMPRE após review) |
 
 **Paralelismo possível** (via ferramenta Agent):
 - `agent-frontend` e `agent-testing` podem rodar em paralelo
 - `agent-security` e `agent-testing` podem rodar em paralelo após código pronto
+- `agent-documentation` roda SEMPRE APÓS `agent-review` — nunca em paralelo com gate de build
 
 ### Passo 3 — Execução com validação entre etapas
 
@@ -74,6 +76,7 @@ Antes de ativar a próxima skill, valide o output da atual:
 | `agent-testing` | `npx vitest run` — todos passando, cobertura mínima atingida |
 | `agent-security` | Nenhum item 🔴 CRÍTICO em aberto |
 | `agent-review` | `npx tsc --noEmit` completo + `npx vitest run` — projeto inteiro verde |
+| `agent-documentation` | Checklist de saída completo — nenhum item `[⚠️ VERIFICAR]` não resolvido |
 
 Se validação falha → **não avança**. Reporta bloqueador e corrige antes de prosseguir.
 
@@ -167,3 +170,4 @@ Interrompe e aguarda confirmação APENAS em:
 | Testing | `.claude/skills/agent-testing.md` | Vitest setup, testes unit + integração |
 | Security | `.claude/skills/agent-security.md` | OWASP, tenancy, rate limiting, secrets |
 | Review | `.claude/skills/agent-review.md` | Qualidade, arquitetura, gate de build |
+| Documentation | `.claude/skills/agent-documentation.md` | Reconcilia docs com o estado real pós-entrega |
