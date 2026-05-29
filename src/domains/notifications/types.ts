@@ -15,4 +15,5 @@ export type NotificationDraft = {
 export type NotificationDeliveryResult = {
   status: NotificationStatus;
   errorMessage?: string;
+  externalId?: string;
 };
