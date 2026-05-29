@@ -1,7 +1,7 @@
 # WhatsApp via Twilio — Fase 1: Transacionais + Quota + Config
 
-**Data:** 2026-05-28 (revisado: 2026-05-29)
-**Status:** Aprovado — revisado por análise arquitetural
+**Data:** 2026-05-28 (revisado: 2026-05-29, verificado: 2026-05-29)
+**Status:** Aprovado — revisado por análise arquitetural + verificação de fluxo completo
 
 ---
 
@@ -218,7 +218,18 @@ Para ativar o sandbox: enviar "join [palavra-chave]" para o número `+1415523888
 
 ### `buildTemplateParams`
 
+**Estrutura real do payload** (flat — como efetivamente chega via `NotificationDraft.payload`):
+
 ```typescript
+type AppointmentNotificationPayload = {
+  appointmentId: string;
+  customerName: string;   // customer.name — campo plano, não aninhado
+  serviceName: string;    // service.name — campo plano, não aninhado
+  startsAt?: string;      // ISO string — presente em confirmacao/confirmado/lembrete
+                          // AUSENTE em cancelamento e nao_comparecimento
+  status?: string;        // presente em cancelamento/nao_comparecimento
+};
+
 type WhatsAppTemplateConfig = {
   mensagemPrincipal?: string;
   mensagemFinal?: string;
@@ -226,10 +237,12 @@ type WhatsAppTemplateConfig = {
 
 function buildTemplateParams(
   template: WhatsAppTemplate,
-  payload: AppointmentEventPayload,
+  payload: AppointmentNotificationPayload,
   tenant: { name: string; slug: string; timezone: string; whatsappTemplateConfig: unknown }
 ): { contentSid: string; contentVariables: Record<string, string> }
 ```
+
+> **Atenção:** O payload é flat (`customerName`, `serviceName`), não aninhado. Isso é diferente do formato do evento de domínio — o `logAndDispatch` recebe os campos já extraídos.
 
 **Formatação de datas com timezone do tenant:**
 ```typescript
@@ -241,19 +254,39 @@ const timeFormatter = new Intl.DateTimeFormat("pt-BR", {
   timeZone: tenant.timezone,
   hour: "2-digit", minute: "2-digit",
 });
+// startsAt é string ISO — converter com new Date(payload.startsAt)
+// Somente para templates: confirmacao, confirmado, lembrete
+// Nunca acessar startsAt para cancelamento/nao_comparecimento (campo ausente)
 ```
 
-**Mapeamento de payload de evento para variáveis:**
+**Mapeamento de payload para variáveis por template:**
 
-Os eventos existentes publicam `{ appointment: { startsAt }, customer: { name }, service: { name } }`. A função extrai:
-- `customer.name` → `{{1}}`
-- `templateConfig.mensagemPrincipal` (ou padrão) → `{{2}}`
-- `formatDate(appointment.startsAt, tenant.timezone)` → `{{3}}` (confirmacao/confirmado)
-- `formatTime(appointment.startsAt, tenant.timezone)` → `{{4}}` (confirmacao/confirmado)
-- `service.name` → `{{5}}` (confirmacao/confirmado)
-- `tenant.name` → `{{6}}` (confirmacao/confirmado)
-- `templateConfig.mensagemFinal` (ou padrão) → `{{7}}` (confirmacao/confirmado)
-- `` `${APP_URL}/agendar/${tenant.slug}` `` → `{{8}}` (confirmacao/confirmado)
+| Variável | confirmacao/confirmado | lembrete | cancelamento/nao_comparecimento |
+|---|---|---|---|
+| `{{1}}` | `payload.customerName` | `payload.customerName` | `payload.customerName` |
+| `{{2}}` | `templateConfig.mensagemPrincipal` | `templateConfig.mensagemPrincipal` | `templateConfig.mensagemPrincipal` |
+| `{{3}}` | `formatDate(startsAt, tz)` | `formatTime(startsAt, tz)` | `payload.serviceName` |
+| `{{4}}` | `formatTime(startsAt, tz)` | `payload.serviceName` | `tenant.name` |
+| `{{5}}` | `payload.serviceName` | `tenant.name` | `templateConfig.mensagemFinal` |
+| `{{6}}` | `tenant.name` | `templateConfig.mensagemFinal` | — |
+| `{{7}}` | `templateConfig.mensagemFinal` | — | — |
+| `{{8}}` | `` `${APP_URL}/agendar/${tenant.slug}` `` | — | — |
+
+**Validação de SIDs na inicialização:**
+```typescript
+// Chamado uma vez ao importar o provider — falha rápido se env vars faltam
+const REQUIRED_SIDS = [
+  "TWILIO_TPL_CONFIRMATION", "TWILIO_TPL_CONFIRMED",
+  "TWILIO_TPL_REMINDER", "TWILIO_TPL_CANCELLATION", "TWILIO_TPL_NO_SHOW",
+] as const;
+
+REQUIRED_SIDS.forEach((key) => {
+  if (!process.env[key]) {
+    throw new Error(`[WhatsAppProvider] Env var ${key} não configurada`);
+  }
+});
+```
+Isso previne que o sistema vá ao ar com template SIDs faltando — o erro aparece no startup, não silenciosamente no primeiro envio.
 
 ### Validação de telefone
 
@@ -465,12 +498,14 @@ Exibido abaixo do `WhatsAppUsageCard`, visível apenas se `whatsappEnabled = tru
 
 ## Mapa de arquivos
 
+> Arquivos marcados com ⚠️ são **existentes** que precisam ser modificados mas estavam ausentes em versões anteriores da spec.
+
 | Arquivo | Ação |
 |---|---|
 | `prisma/schema.prisma` | Modifica: remove Z-API fields do Tenant; adiciona `timezone`, `whatsappTemplateConfig`; adiciona `WhatsAppMonthlyUsage`; adiciona `externalId` no `NotificationLog`; adiciona `DELIVERED` ao enum `NotificationStatus`; adiciona campos consent no `Customer` |
 | `src/domains/billing/types.ts` | Modifica: renomeia `maxNotificationsPerMonth` → `maxWhatsAppPerMonth`; atualiza limites (STARTER=500, PRO=2000, ENTERPRISE=5000) |
 | `src/domains/billing/feature-guard.ts` | Modifica: lê `maxWhatsAppPerMonth` de `billing/types.ts` para quota |
-| `src/domains/notifications/providers/whatsapp.provider.ts` | Substitui completamente (Z-API → Twilio; adiciona `buildTemplateParams`, timezone handling, phone validation, quota rollback) |
+| `src/domains/notifications/providers/whatsapp.provider.ts` | Substitui completamente (Z-API → Twilio; `buildTemplateParams` com payload flat, timezone, phone validation, quota rollback, validação de SIDs na inicialização) |
 | `src/domains/notifications/providers/whatsapp.provider.test.ts` | Cria (mock Twilio SDK, featureGuard, quota) |
 | `src/domains/notifications/quota/whatsapp-quota.service.ts` | Cria (`checkAndIncrement`, `decrement`, `getUsage`) |
 | `src/domains/notifications/quota/whatsapp-quota.service.test.ts` | Cria |
@@ -489,6 +524,26 @@ Exibido abaixo do `WhatsAppUsageCard`, visível apenas se `whatsappEnabled = tru
 | `src/components/domain/settings/whatsapp-template-editor.tsx` | Cria (dropdown de templates + campos editáveis + preview em tempo real) |
 | `src/shared/test/factories/whatsapp-usage.factory.ts` | Cria |
 | `src/app/api/_lib/runtime.ts` | Modifica: registra job de limpeza de histórico |
+| ⚠️ `src/app/api/notifications/settings/route.ts` | Modifica (ARQUIVO EXISTENTE): reescreve schema Zod — remove `zApiInstanceId`/`zApiToken`, adiciona `timezone` ao GET e PATCH; valida que apenas tenants STARTER+ podem ativar `whatsappEnabled` |
+| ⚠️ `src/components/domain/settings/whatsapp-settings-form.tsx` | Modifica (ARQUIVO EXISTENTE): remove campos Instance ID e Token; adiciona seletor de `timezone`; adiciona guard de plano — exibe mensagem de upgrade para tenants FREE ao invés do toggle |
+
+---
+
+## Comportamentos conhecidos e documentados
+
+### Reminders de agendamentos existentes ao ativar WhatsApp
+
+Quando um tenant ativa `whatsappEnabled = true`, os agendamentos já criados **não recebem lembrete automático**. O `scheduleAppointmentReminder` é chamado apenas no momento da criação do agendamento e somente se `whatsappEnabled = true` naquele momento — tanto para agendamentos criados pelo profissional no sistema quanto para agendamentos criados pelo cliente via portal público (quando construído).
+
+**Impacto:** Agendamentos criados antes da ativação do WhatsApp não enviam lembrete 24h. Somente novos agendamentos criados após a ativação recebem o reminder.
+
+**Comportamento esperado e aceito para Fase 1.** Não há erro — apenas ausência de reminder para agendamentos pré-existentes.
+
+### Link de agendamento no template (`{{8}}`)
+
+O link `APP_URL/agendar/{slug}` aponta para o **portal de agendamento público** — feature da Fase 2. O template inclui a variável `{{8}}` já preparada. Enquanto o portal não existir, o link leva a uma página 404.
+
+**Dependência:** Antes do go-live em produção com templates aprovados pela Meta, o portal precisa existir ou a variável `{{8}}` deve ser omitida dos templates de confirmação. Em desenvolvimento (sandbox Twilio), o comportamento é aceitável.
 
 ---
 
@@ -505,28 +560,51 @@ Exibido abaixo do `WhatsAppUsageCard`, visível apenas se `whatsappEnabled = tru
 
 ## Checklist de conclusão
 
-- [ ] `npx tsc --noEmit` — zero erros
-- [ ] `npx vitest run` — todos os testes passando (provider + webhook + usage + quota)
+**Schema e migration:**
 - [ ] Migration aplicada sem erros
 - [ ] `zApiInstanceId` e `zApiToken` removidos do schema
 - [ ] `timezone` adicionado ao Tenant com default `"America/Sao_Paulo"`
 - [ ] `DELIVERED` adicionado ao enum `NotificationStatus`
 - [ ] `whatsappTemplateConfig` adicionado ao Tenant
 - [ ] `externalId` no `NotificationLog` populado após envio
-- [ ] Webhook valida `X-Twilio-Signature` antes de processar
-- [ ] Webhook atualiza `DELIVERED` corretamente
-- [ ] Webhook tem rate limiting (100 req/min por IP)
+
+**Provider e envio:**
+- [ ] `buildTemplateParams` usa payload flat (`customerName`, `serviceName`, `startsAt?`) — não aninhado
+- [ ] `buildTemplateParams` formata datas com `tenant.timezone` via `Intl.DateTimeFormat`
+- [ ] `buildTemplateParams` não acessa `startsAt` para templates `cancelamento`/`nao_comparecimento`
+- [ ] Provider valida SIDs na inicialização — erro explícito se env vars faltam
+- [ ] `toWhatsAppNumber` lança `InvalidPhoneError` para números inválidos
+- [ ] Valores padrão de templates aplicados quando tenant não customizou
+- [ ] Templates `confirmacao`/`confirmado` com variável `{{8}}` para link de agendamento
+
+**Quota e infra:**
 - [ ] Quota bloqueia envio quando limite atingido
 - [ ] Quota reverte (`decrement`) em caso de falha de rede do provider
 - [ ] Cron de limpeza registrado no runtime (histórico > 12 meses)
-- [ ] `buildTemplateParams` formata datas com `tenant.timezone` via `Intl.DateTimeFormat`
-- [ ] `toWhatsAppNumber` lança `InvalidPhoneError` para números inválidos
-- [ ] Templates `confirmacao`/`confirmado` com variável `{{8}}` para link de agendamento
-- [ ] Valores padrão de templates aplicados quando tenant não customizou
-- [ ] Template editor (`whatsapp-template-editor.tsx`) salva e carrega via `/api/whatsapp/templates`
+- [ ] `billing/types.ts` atualizado com `maxWhatsAppPerMonth` e limites corretos
+
+**Webhook:**
+- [ ] Webhook valida `X-Twilio-Signature` antes de processar
+- [ ] Webhook atualiza `DELIVERED` corretamente
+- [ ] Webhook tem rate limiting (100 req/min por IP)
+
+**APIs:**
 - [ ] `GET /api/whatsapp/usage` tem feature gate `WHATSAPP_BASIC`
-- [ ] `billing/types.ts` renomeado para `maxWhatsAppPerMonth` com limites corretos
+- [ ] `GET /api/whatsapp/templates` e `PUT /api/whatsapp/templates` implementados
+- [ ] `/api/notifications/settings` (EXISTENTE) reescrito — remove Z-API, adiciona `timezone`; bloqueia `whatsappEnabled = true` para plano FREE
+
+**Frontend:**
+- [ ] `whatsapp-settings-form.tsx` (EXISTENTE) reescrito — remove campos Z-API, adiciona seletor de timezone, guard de plano para FREE
+- [ ] `WhatsAppUsageCard` exibe uso correto
+- [ ] Template editor salva e carrega via `/api/whatsapp/templates`
+
+**Testes:**
+- [ ] `npx tsc --noEmit` — zero erros
+- [ ] `npx vitest run` — todos os testes passando (provider + webhook + usage + quota)
+
+**Entrega:**
 - [ ] Tenants existentes com `whatsappEnabled = true` comunicados sobre migração Z-API → Twilio
 - [ ] `.env.development` documentado com Twilio Sandbox (`whatsapp:+14155238886`)
+- [ ] Link `{{8}}` nos templates documentado como dependência do portal público (Fase 2)
 - [ ] Security Agent executado — nenhum item 🔴 CRÍTICO
 - [ ] Pull Request aberta para `main`
