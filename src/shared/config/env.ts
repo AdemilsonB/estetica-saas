@@ -18,7 +18,12 @@ const envSchema = z.object({
 
 const parsedEnv = envSchema.safeParse(process.env);
 
-if (!parsedEnv.success) {
+// NEXT_PHASE=phase-production-build durante `next build` — nesse momento
+// o bundler avalia módulos para análise estática sem as vars de runtime.
+// O throw só acontece fora da fase de build para não bloquear o deploy.
+const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+
+if (!parsedEnv.success && !isBuildPhase) {
   throw new Error(
     `Invalid environment configuration: ${JSON.stringify(
       parsedEnv.error.flatten().fieldErrors,
@@ -26,6 +31,8 @@ if (!parsedEnv.success) {
   );
 }
 
-export const env = parsedEnv.data;
+export const env = (parsedEnv.success
+  ? parsedEnv.data
+  : {}) as z.infer<typeof envSchema>;
 
 export const isProduction = env.NODE_ENV === "production";
