@@ -114,3 +114,14 @@ export class PlanLimitError extends DomainError {
     );
   }
 }
+
+export class InvalidPhoneError extends DomainError {
+  constructor(phone: string) {
+    super(
+      `Número de telefone inválido: "${phone}". Esperado formato brasileiro (10-13 dígitos).`,
+      "INVALID_PHONE",
+      422,
+      { phone },
+    );
+  }
+}
