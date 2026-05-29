@@ -35,6 +35,7 @@ enum NotificationChannel {
 enum NotificationStatus {
   PENDING
   SENT
+  DELIVERED
   FAILED
 }
 
@@ -67,9 +68,9 @@ model Tenant {
   brandingConfig    BrandingConfig?
   phone             String?
   address           String?
-  zApiInstanceId    String?
-  zApiToken         String?
-  whatsappEnabled   Boolean           @default(false)
+  whatsappEnabled       Boolean           @default(false)
+  timezone              String            @default("America/Sao_Paulo")
+  whatsappTemplateConfig Json?
   businessHours     Json?
   createdAt         DateTime          @default(now())
   updatedAt    DateTime         @updatedAt
@@ -178,6 +179,9 @@ model Customer {
   email        String?
   notes        String?
   tags         String[]
+  consentGiven  Boolean   @default(false)
+  consentDate   DateTime?
+  consentOrigin String?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -259,10 +263,23 @@ model NotificationLog {
   provider       String
   payload        Json
   errorMessage   String?
+  externalId     String?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, channel, status])
+}
+
+model WhatsAppMonthlyUsage {
+  id        String   @id @default(cuid())
+  tenantId  String
+  year      Int
+  month     Int
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, year, month])
+  @@index([tenantId])
 }
