@@ -3,8 +3,19 @@ import { getSessionContext } from '@/shared/auth/session'
 import { DomainError, ValidationError } from '@/shared/errors'
 import { handleApiError } from '@/shared/http/handle-api-error'
 
+const BUCKET = 'logos'
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml']
 const MAX_BYTES = 2 * 1024 * 1024 // 2MB
+
+async function ensureBucketExists() {
+  const { data: buckets } = await supabaseAdmin.storage.listBuckets()
+  if (buckets?.find((b) => b.id === BUCKET)) return
+  await supabaseAdmin.storage.createBucket(BUCKET, {
+    public: true,
+    fileSizeLimit: MAX_BYTES,
+    allowedMimeTypes: ALLOWED_TYPES,
+  })
+}
 
 export async function POST(req: Request) {
   try {
@@ -25,20 +36,22 @@ export async function POST(req: Request) {
       throw new ValidationError('Arquivo excede 2MB.')
     }
 
+    await ensureBucketExists()
+
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     const ext =
       file.type === 'image/svg+xml' ? 'svg' : file.type === 'image/png' ? 'png' : 'jpg'
     const path = `${session.tenantId}/logo.${ext}`
 
-    const { error } = await supabaseAdmin.storage.from('logos').upload(path, buffer, {
+    const { error } = await supabaseAdmin.storage.from(BUCKET).upload(path, buffer, {
       contentType: file.type,
       upsert: true,
     })
 
     if (error) throw new DomainError(`Upload falhou: ${error.message}`, 'STORAGE_ERROR', 502)
 
-    const { data } = supabaseAdmin.storage.from('logos').getPublicUrl(path)
+    const { data } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path)
 
     return Response.json({ logoUrl: data.publicUrl }, { status: 201 })
   } catch (error) {

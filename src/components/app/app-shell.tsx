@@ -45,7 +45,7 @@ const NAV_ITEMS = [
     description: 'Análises e exportações',
     icon: BarChart2,
     href: '/relatorios',
-    permission: 'financial:view', // MVP: cada página valida permissão específica internamente
+    permission: 'financial:view',
   },
   {
     label: 'Equipe',
@@ -59,7 +59,7 @@ const NAV_ITEMS = [
     description: 'Configurações',
     icon: Settings,
     href: '/configuracoes',
-    permission: null, // sempre visível
+    permission: null,
   },
 ] as const
 
@@ -79,30 +79,30 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(244,114,182,0.16),_transparent_28%),linear-gradient(180deg,_#fff8fb_0%,_#fffdfd_45%,_#fff5f8_100%)] text-slate-950">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-[1600px]">
         {/* Sidebar desktop */}
-        <aside className="hidden w-[290px] flex-col border-r border-white/70 bg-white/70 px-5 py-6 backdrop-blur xl:flex">
+        <aside className="hidden w-[290px] flex-col border-r border-border/40 bg-background/80 px-5 py-6 backdrop-blur xl:flex">
           <Link
             href="/dashboard"
             title="Ir para Dashboard"
-            className="flex items-center gap-3 rounded-2xl p-1 transition hover:bg-rose-50"
+            className="flex items-center gap-3 rounded-2xl p-1 transition hover:bg-primary/5"
           >
-            <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-700 shadow-sm">
+            <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-sm">
               <Sparkles className="size-5" />
             </div>
             <div>
-              <p className="text-xs font-semibold tracking-[0.24em] text-rose-500 uppercase">
+              <p className="text-xs font-semibold tracking-[0.24em] text-primary uppercase">
                 SaaS Estética
               </p>
-              <h1 className="text-lg font-semibold text-slate-950">
+              <h1 className="text-lg font-semibold text-foreground">
                 Operational Workspace
               </h1>
             </div>
           </Link>
 
           {/* Tenant info */}
-          <div className="mt-8 rounded-[1.75rem] border border-white/80 bg-white/90 p-4 shadow-[0_20px_50px_rgba(190,24,93,0.08)]">
+          <div className="mt-8 rounded-[1.75rem] border border-border/40 bg-background/90 p-4 shadow-sm">
             {isLoading ? (
               <>
                 <Skeleton className="h-3 w-20 mb-2" />
@@ -110,10 +110,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               </>
             ) : (
               <>
-                <p className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
+                <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                   Negócio ativo
                 </p>
-                <h2 className="mt-2 text-lg font-semibold text-slate-950">
+                <h2 className="mt-2 text-lg font-semibold text-foreground">
                   {user?.name ?? '—'}
                 </h2>
               </>
@@ -136,16 +136,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                       className={cn(
                         'flex items-center gap-3 rounded-2xl px-4 py-3 transition',
                         isActive
-                          ? 'bg-rose-50 text-rose-700'
-                          : 'text-slate-700 hover:bg-white hover:text-slate-950',
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:bg-primary/5 hover:text-foreground',
                       )}
                     >
                       <span
                         className={cn(
                           'inline-flex size-10 items-center justify-center rounded-2xl',
                           isActive
-                            ? 'bg-rose-100 text-rose-700'
-                            : 'bg-slate-100 text-slate-700',
+                            ? 'bg-primary/15 text-primary'
+                            : 'bg-muted text-muted-foreground',
                         )}
                       >
                         <Icon className="size-4" />
@@ -154,7 +154,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                         <span className="block text-sm font-semibold">
                           {item.label}
                         </span>
-                        <span className="block text-xs text-slate-500">
+                        <span className="block text-xs text-muted-foreground">
                           {item.description}
                         </span>
                       </span>
@@ -176,8 +176,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                   className={cn(
                     'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition',
                     isActive
-                      ? 'bg-rose-50 text-rose-700'
-                      : 'text-slate-600 hover:bg-white hover:text-slate-950',
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:bg-primary/5 hover:text-foreground',
                   )}
                 >
                   <Icon className="size-4" />
@@ -187,7 +187,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             })()}
             <button
               onClick={handleLogout}
-              className="flex w-full items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+              className="flex w-full items-center gap-3 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/15"
             >
               <LogOut className="size-4" />
               Sair da conta
@@ -197,32 +197,32 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Área principal */}
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 border-b border-white/70 bg-white/75 px-4 py-4 backdrop-blur sm:px-6 xl:px-8">
+          <header className="sticky top-0 z-20 border-b border-border/40 bg-background/75 px-4 py-4 backdrop-blur sm:px-6 xl:px-8">
             <div className="flex items-center gap-3">
               <div className="xl:hidden">
                 <Link
                   href="/dashboard"
                   title="Ir para Dashboard"
-                  className="inline-flex size-11 items-center justify-center rounded-2xl bg-rose-100 text-rose-700 transition hover:bg-rose-200"
+                  className="inline-flex size-11 items-center justify-center rounded-2xl bg-primary/15 text-primary transition hover:bg-primary/25"
                 >
                   <Sparkles className="size-5" />
                 </Link>
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold tracking-[0.18em] text-rose-500 uppercase">
+                <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">
                   Workspace operacional
                 </p>
                 {isLoading ? (
                   <Skeleton className="h-5 w-48 mt-1" />
                 ) : (
-                  <h2 className="truncate text-lg font-semibold text-slate-950">
+                  <h2 className="truncate text-lg font-semibold text-foreground">
                     Olá, {user?.name?.split(' ')[0] ?? '—'}
                   </h2>
                 )}
               </div>
               <button
                 onClick={handleLogout}
-                className="inline-flex size-10 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100 xl:hidden"
+                className="inline-flex size-10 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary transition hover:bg-primary/15 xl:hidden"
                 aria-label="Sair da conta"
               >
                 <LogOut className="size-4" />
@@ -235,7 +235,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           {/* Bottom nav mobile */}
-          <nav className="sticky bottom-0 z-20 border-t border-white/70 bg-white/90 px-2 py-2 backdrop-blur xl:hidden">
+          <nav className="sticky bottom-0 z-20 border-t border-border/40 bg-background/90 px-2 py-2 backdrop-blur xl:hidden">
             {isLoading ? (
               <div className="grid grid-cols-5 gap-1">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -257,8 +257,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                       className={cn(
                         'flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-center text-[11px] font-medium transition',
                         isActive
-                          ? 'bg-rose-50 text-rose-700'
-                          : 'text-slate-600 hover:bg-rose-50 hover:text-rose-700',
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:bg-primary/10 hover:text-primary',
                       )}
                     >
                       <Icon className="size-4" />

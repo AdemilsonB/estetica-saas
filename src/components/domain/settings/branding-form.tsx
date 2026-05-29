@@ -6,12 +6,11 @@ import { Loader2, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { hexToOklchStr } from '@/lib/branding/build-css-variables'
 
 type BrandingConfig = {
   logoUrl: string | null
   primaryColor: string
-  secondaryColor: string
-  accentColor: string
   backgroundColor: string
   fontFamily: string
   borderRadius: string
@@ -19,7 +18,15 @@ type BrandingConfig = {
 }
 
 type Props = {
-  initial: BrandingConfig
+  initial: {
+    logoUrl: string | null
+    primaryColor: string
+    backgroundColor: string
+    fontFamily: string
+    borderRadius: string
+    colorScheme: string
+    [key: string]: unknown
+  }
 }
 
 const FONTS = [
@@ -41,6 +48,65 @@ const RADIUS_MAP: Record<string, string> = {
   none: '0rem',
   medium: '0.625rem',
   full: '1.5rem',
+}
+
+function toRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
+function BrandingPreview({
+  primaryColor,
+  backgroundColor,
+}: {
+  primaryColor: string
+  backgroundColor: string
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 overflow-hidden select-none text-[11px]">
+      <div className="border-b border-white/70 bg-white/80 px-3 py-2 backdrop-blur">
+        <p className="font-bold uppercase tracking-widest" style={{ color: primaryColor, fontSize: '9px' }}>
+          Workspace operacional
+        </p>
+        <p className="text-xs font-semibold text-slate-900">Olá, João</p>
+      </div>
+      <div className="flex" style={{ backgroundColor, minHeight: '96px' }}>
+        <div className="w-24 flex-shrink-0 border-r border-white/70 bg-white/75 p-2 flex flex-col gap-1">
+          <div
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1"
+            style={{ backgroundColor: toRgba(primaryColor, 0.1) }}
+          >
+            <span
+              className="flex size-4 items-center justify-center rounded text-[9px]"
+              style={{ backgroundColor: toRgba(primaryColor, 0.18), color: primaryColor }}
+            >
+              📅
+            </span>
+            <span className="text-[9px] font-semibold" style={{ color: primaryColor }}>
+              Agenda
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-lg px-2 py-1">
+            <span className="flex size-4 items-center justify-center rounded bg-slate-100 text-[9px]">👥</span>
+            <span className="text-[9px] text-slate-500">Clientes</span>
+          </div>
+        </div>
+        <div className="flex-1 p-2">
+          <p className="mb-1.5 font-semibold text-slate-900" style={{ fontSize: '10px' }}>
+            Dashboard
+          </p>
+          <span
+            className="rounded-md px-2 py-0.5 text-[9px] font-semibold text-white"
+            style={{ backgroundColor: primaryColor }}
+          >
+            + Novo agendamento
+          </span>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function applyPreview(field: string, value: string) {
@@ -65,15 +131,19 @@ function applyPreview(field: string, value: string) {
     else document.documentElement.classList.remove('dark')
     return
   }
-  // Para cores, aplica o hex diretamente como preview imediato (conversão oklch ocorre no save via SSR)
-  document.documentElement.style.setProperty(
-    `--${field.replace(/Color$/, '').replace(/([A-Z])/g, '-$1').toLowerCase()}`,
-    value
-  )
+  const cssVar = `--${field.replace(/Color$/, '').replace(/([A-Z])/g, '-$1').toLowerCase()}`
+  document.documentElement.style.setProperty(cssVar, hexToOklchStr(value))
 }
 
 export function BrandingForm({ initial }: Props) {
-  const [config, setConfig] = useState<BrandingConfig>(initial)
+  const [config, setConfig] = useState<BrandingConfig>({
+    logoUrl: initial.logoUrl,
+    primaryColor: initial.primaryColor,
+    backgroundColor: initial.backgroundColor,
+    fontFamily: initial.fontFamily,
+    borderRadius: initial.borderRadius,
+    colorScheme: initial.colorScheme,
+  })
   const [logoPreview, setLogoPreview] = useState<string | null>(initial.logoUrl)
   const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -172,90 +242,129 @@ export function BrandingForm({ initial }: Props) {
         <p className="text-xs text-slate-500">PNG, JPG ou SVG · máx 2MB</p>
       </section>
 
-      {/* Cores */}
-      <section className="space-y-4">
-        <h3 className="text-sm font-semibold text-slate-900">Cores</h3>
-        {(
-          [
-            { field: 'primaryColor', label: 'Cor primária' },
-            { field: 'secondaryColor', label: 'Cor secundária' },
-            { field: 'accentColor', label: 'Cor accent' },
-            { field: 'backgroundColor', label: 'Cor de fundo' },
-          ] as const
-        ).map(({ field, label }) => (
-          <div key={field} className="flex items-center gap-3">
-            <input
-              type="color"
-              value={config[field]}
-              onChange={(e) => update(field, e.target.value)}
-              className="h-8 w-8 cursor-pointer rounded border border-slate-200"
-            />
-            <Label className="w-36 text-sm text-slate-700">{label}</Label>
-            <input
-              type="text"
-              value={config[field]}
-              onChange={(e) => {
-                if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) {
-                  if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) update(field, e.target.value)
-                  else setConfig((prev) => ({ ...prev, [field]: e.target.value }))
-                }
-              }}
-              className="w-28 rounded-md border border-slate-200 px-2 py-1 font-mono text-sm"
-            />
+      {/* Cores + Prévia lado a lado */}
+      <div className="grid gap-8 lg:grid-cols-2">
+        <section className="space-y-6">
+          {/* Cor da marca */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-slate-900">Cores</h3>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <input
+                  type="color"
+                  value={config.primaryColor}
+                  onChange={(e) => update('primaryColor', e.target.value)}
+                  className="mt-1 h-8 w-8 cursor-pointer rounded border border-slate-200"
+                />
+                <div className="flex-1 space-y-0.5">
+                  <Label className="text-sm font-medium text-slate-900">Cor da marca</Label>
+                  <p className="text-xs text-slate-500">Usada em botões, sidebar ativa e ícones de destaque</p>
+                  <input
+                    type="text"
+                    value={config.primaryColor}
+                    onChange={(e) => {
+                      if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) {
+                        if (/^#[0-9a-fA-F]{6}$/.test(e.target.value))
+                          update('primaryColor', e.target.value)
+                        else setConfig((prev) => ({ ...prev, primaryColor: e.target.value }))
+                      }
+                    }}
+                    className="w-28 rounded-md border border-slate-200 px-2 py-1 font-mono text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <input
+                  type="color"
+                  value={config.backgroundColor}
+                  onChange={(e) => update('backgroundColor', e.target.value)}
+                  className="mt-1 h-8 w-8 cursor-pointer rounded border border-slate-200"
+                />
+                <div className="flex-1 space-y-0.5">
+                  <Label className="text-sm font-medium text-slate-900">Cor de fundo da tela</Label>
+                  <p className="text-xs text-slate-500">Fundo das telas do sistema</p>
+                  <input
+                    type="text"
+                    value={config.backgroundColor}
+                    onChange={(e) => {
+                      if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) {
+                        if (/^#[0-9a-fA-F]{6}$/.test(e.target.value))
+                          update('backgroundColor', e.target.value)
+                        else setConfig((prev) => ({ ...prev, backgroundColor: e.target.value }))
+                      }
+                    }}
+                    className="w-28 rounded-md border border-slate-200 px-2 py-1 font-mono text-sm"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-        ))}
-      </section>
 
-      {/* Tipografia */}
-      <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-slate-900">Tipografia</h3>
-        <Select value={config.fontFamily} onValueChange={(v) => update('fontFamily', v)}>
-          <SelectTrigger className="w-56">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FONTS.map((f) => (
-              <SelectItem key={f.slug} value={f.slug}>
-                {f.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </section>
+          {/* Tipografia */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-slate-900">Tipografia</h3>
+            <Select value={config.fontFamily} onValueChange={(v) => update('fontFamily', v)}>
+              <SelectTrigger className="w-56">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FONTS.map((f) => (
+                  <SelectItem key={f.slug} value={f.slug}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* Border radius */}
-      <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-slate-900">Forma dos elementos</h3>
-        <div className="flex flex-wrap gap-2">
-          {RADIUS_OPTIONS.map((opt) => (
-            <Button
-              key={opt.value}
-              variant={config.borderRadius === opt.value ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => update('borderRadius', opt.value)}
-            >
-              {opt.label}
-            </Button>
-          ))}
-        </div>
-      </section>
+          {/* Border radius */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-slate-900">Forma dos elementos</h3>
+            <div className="flex flex-wrap gap-2">
+              {RADIUS_OPTIONS.map((opt) => (
+                <Button
+                  key={opt.value}
+                  variant={config.borderRadius === opt.value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => update('borderRadius', opt.value)}
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
+          </div>
 
-      {/* Modo de cor */}
-      <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-slate-900">Modo de cor</h3>
-        <div className="flex gap-2">
-          {(['light', 'dark'] as const).map((scheme) => (
-            <Button
-              key={scheme}
-              variant={config.colorScheme === scheme ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => update('colorScheme', scheme)}
-            >
-              {scheme === 'light' ? '☀ Claro' : '☾ Escuro'}
-            </Button>
-          ))}
-        </div>
-      </section>
+          {/* Modo de cor */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-slate-900">Modo de cor</h3>
+            <div className="flex gap-2">
+              {(['light', 'dark'] as const).map((scheme) => (
+                <Button
+                  key={scheme}
+                  variant={config.colorScheme === scheme ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => update('colorScheme', scheme)}
+                >
+                  {scheme === 'light' ? '☀ Claro' : '☾ Escuro'}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Prévia ao vivo */}
+        <section className="space-y-2">
+          <h3 className="text-sm font-semibold text-slate-900">Prévia ao vivo</h3>
+          <BrandingPreview
+            primaryColor={config.primaryColor}
+            backgroundColor={config.backgroundColor}
+          />
+          <p className="text-xs text-slate-400">
+            Atualiza em tempo real conforme você edita as cores.
+          </p>
+        </section>
+      </div>
 
       {/* Save */}
       <Button onClick={handleSave} disabled={isSaving} className="w-full sm:w-auto">
