@@ -1,13 +1,13 @@
 # WhatsApp via Twilio — Fase 1: Transacionais + Quota + Config
 
-**Data:** 2026-05-28  
-**Status:** Aprovado
+**Data:** 2026-05-28 (revisado: 2026-05-29)
+**Status:** Aprovado — revisado por análise arquitetural
 
 ---
 
 ## Objetivo
 
-Substituir a integração Z-API (não-oficial, free text) pelo WhatsApp Business API oficial via Twilio. Fase 1 cobre mensagens transacionais automáticas (confirmação, lembrete, cancelamento, no-show), rastreamento de quota mensal por plano e configuração mínima de tenant. Campanhas/disparos manuais ficam para Fase 2.
+Substituir a integração Z-API (não-oficial, free text) pelo WhatsApp Business API oficial via Twilio. Fase 1 cobre mensagens transacionais automáticas (confirmação, lembrete, cancelamento, no-show), templates com variáveis customizáveis por tenant, rastreamento de quota mensal por plano e configuração de tenant. Campanhas/disparos manuais ficam para Fase 2.
 
 ---
 
@@ -27,10 +27,13 @@ Substituir a integração Z-API (não-oficial, free text) pelo WhatsApp Business
 |---|---|---|
 | Provider | Twilio (oficial) | API oficial Meta, templates pré-aprovados, SLA garantido |
 | Conta Twilio | Plataforma (`.env`) | Uma conta SaaS, todos os tenants compartilham o número |
-| Templates | Fixos na plataforma, variáveis do salão | Aprovação única pela Meta, variáveis dinâmicas para personalização |
-| Config tenant | Toggle opt-in simples | Todos os dados necessários já existem no `Tenant`; sem credenciais por tenant |
+| Templates | Mais variáveis (Opção A) | Admin customiza partes do texto via tela; aprovação única pela Meta |
+| Config tenant | Toggle opt-in + editor de templates | `whatsappEnabled` + `whatsappTemplateConfig` JSON no Tenant |
 | Consentimento | Campo `consentGiven` no `Customer` | Para Fase 2 (campanhas MARKETING); transacionais não exigem opt-in explícito |
 | Abordagem | Evolução do domínio `notifications` | Infraestrutura de log/retry/subscriptions já funciona; menor escopo |
+| Timezone | Campo `timezone` no Tenant | Evita erro de fuso horário nas datas enviadas ao cliente |
+| Status entrega | Enum com `DELIVERED` | Distingue "enviado à operadora" de "confirmado no dispositivo" para suporte |
+| Quota | `maxWhatsAppPerMonth` em `billing/types.ts` | Fonte única de verdade; elimina duplicação com `maxNotificationsPerMonth` |
 
 ---
 
@@ -42,13 +45,35 @@ Substituir a integração Z-API (não-oficial, free text) pelo WhatsApp Business
 // REMOVER:
 zApiInstanceId    String?
 zApiToken         String?
+
+// MANTER (mesma semântica — tenant optou pelo WhatsApp da plataforma):
 whatsappEnabled   Boolean @default(false)
 
-// MANTER (mesmo campo, nova semântica — "tenant optou pelo WhatsApp da plataforma"):
-whatsappEnabled   Boolean @default(false)
+// ADICIONAR:
+timezone              String  @default("America/Sao_Paulo")
+whatsappTemplateConfig Json?
+// Estrutura de whatsappTemplateConfig:
+// {
+//   "confirmacao": { "mensagemPrincipal": "...", "mensagemFinal": "..." },
+//   "confirmado":  { "mensagemPrincipal": "...", "mensagemFinal": "..." },
+//   "lembrete":    { "mensagemPrincipal": "...", "mensagemFinal": "..." },
+//   "cancelamento":{ "mensagemPrincipal": "...", "mensagemFinal": "..." },
+//   "nao_comparecimento": { "mensagemPrincipal": "...", "mensagemFinal": "..." }
+// }
 ```
 
-A migration remove `zApiInstanceId` e `zApiToken`. O `whatsappEnabled` permanece com o mesmo nome mas sem dependência de credenciais por tenant.
+A migration remove `zApiInstanceId` e `zApiToken`. `whatsappEnabled`, `timezone` e `whatsappTemplateConfig` permanecem/são adicionados. Tenants existentes herdam `timezone = "America/Sao_Paulo"` como default.
+
+### Atualização no enum `NotificationStatus`
+
+```prisma
+enum NotificationStatus {
+  PENDING
+  SENT       // Aceito pela operadora
+  DELIVERED  // NOVO — confirmado no dispositivo do destinatário
+  FAILED
+}
+```
 
 ### Novo model: `WhatsAppMonthlyUsage`
 
@@ -66,7 +91,7 @@ model WhatsAppMonthlyUsage {
 }
 ```
 
-Rastreia envios por tenant/mês para enforçar limites do plano. Reseta via cron no dia 1 de cada mês.
+Rastreia envios por tenant/mês. O upsert por `(tenantId, year, month)` isola automaticamente cada mês — registros novos começam em 0 sem necessidade de reset. O cron faz apenas limpeza de histórico antigo.
 
 ### Alteração em `NotificationLog`
 
@@ -80,7 +105,7 @@ Necessário para o webhook de status localizar o log correto ao receber callback
 ### Alteração em `Customer`
 
 ```prisma
-// ADICIONAR campos para Phase 2 (campanhas):
+// ADICIONAR campos para Fase 2 (campanhas):
 consentGiven  Boolean   @default(false)
 consentDate   DateTime?
 consentOrigin String?   // "balcao" | "formulario" | "import" | "api"
@@ -88,62 +113,81 @@ consentOrigin String?   // "balcao" | "formulario" | "import" | "api"
 
 Adicionados agora para preparar o CRM para Fase 2. Não são usados na lógica da Fase 1.
 
----
+### Atualização em `billing/types.ts`
 
-## Limites por plano
+Renomear `maxNotificationsPerMonth` para `maxWhatsAppPerMonth` e atualizar os limites:
 
-Adicionar `whatsapp_monthly` ao `PLAN_LIMITS` em `feature-guard.ts`:
-
-| Plano | Limite mensal |
+| Plano | `maxWhatsAppPerMonth` |
 |---|---|
-| FREE | 0 (sem acesso via `WHATSAPP_BASIC`) |
+| FREE | 0 |
 | STARTER | 500 |
 | PRO | 2.000 |
-| ENTERPRISE | `-1` (ilimitado, consistente com `appointments_month`) |
+| ENTERPRISE | 5.000 |
+
+Fonte única de verdade para quota de WhatsApp. `feature-guard.ts` lê de `billing/types.ts`.
 
 ---
 
 ## Templates Twilio
 
-5 templates pré-registrados na conta Twilio da plataforma. Cada template tem um SID (`HXxxxxxxx`) armazenado em variável de ambiente.
+5 templates pré-registrados na conta Twilio da plataforma. Cada template tem um SID (`HXxxxxxxx`) armazenado em variável de ambiente. Templates usam mais variáveis para permitir customização por tenant via tela administrativa.
 
-### Textos dos templates
+### Textos dos templates (estrutura aprovada pela Meta)
 
 **`confirmacao_agendamento`** (UTILITY)
 ```
-Olá, {{1}}! Seu agendamento foi criado. 📅 {{2}} às {{3}} | Serviço: {{4}} | Local: {{5}}. Até lá!
+Olá, {{1}}! {{2}} 📅 {{3}} às {{4}} | {{5}} | {{6}}. {{7}} {{8}}
 ```
 
 **`agendamento_confirmado`** (UTILITY)
 ```
-✅ Confirmado, {{1}}! Seu agendamento está confirmado. 📅 {{2}} às {{3}} | Serviço: {{4}} | Local: {{5}}. Te esperamos!
+✅ {{1}}, {{2}}! 📅 {{3}} às {{4}} | {{5}} | {{6}}. {{7}} {{8}}
 ```
 
 **`lembrete_agendamento`** (UTILITY)
 ```
-Olá, {{1}}! 👋 Lembrete: amanhã você tem horário às {{2}} para {{3}} no {{4}}. Até lá!
+Olá, {{1}}! 👋 {{2}} Amanhã às {{3}} para {{4}} no {{5}}. {{6}}
 ```
 
 **`cancelamento_agendamento`** (UTILITY)
 ```
-Olá, {{1}}. Seu agendamento de {{2}} no {{3}} foi cancelado. Para reagendar, entre em contato conosco.
+Olá, {{1}}. {{2}} {{3}} | {{4}}. {{5}}
 ```
 
 **`nao_comparecimento`** (UTILITY)
 ```
-Olá, {{1}}! 😕 Notamos que você não compareceu ao seu horário de {{2}} no {{3}}. Quando quiser reagendar, estamos à disposição!
+Olá, {{1}}! 😕 {{2}} {{3}} | {{4}}. {{5}}
 ```
 
 ### Mapeamento de variáveis
 
-| Template | {{1}} | {{2}} | {{3}} | {{4}} | {{5}} |
-|---|---|---|---|---|---|
-| confirmacao / confirmado | nome cliente | data (DD/MM/AAAA) | hora (HH:mm) | serviço | nome salão |
-| lembrete | nome cliente | hora (HH:mm) | serviço | nome salão | — |
-| cancelamento | nome cliente | serviço | nome salão | — | — |
-| nao_comparecimento | nome cliente | serviço | nome salão | — | — |
+| Variável | confirmacao / confirmado | lembrete | cancelamento | nao_comparecimento |
+|---|---|---|---|---|
+| {{1}} | nome cliente | nome cliente | nome cliente | nome cliente |
+| {{2}} | mensagemPrincipal* | mensagemPrincipal* | mensagemPrincipal* | mensagemPrincipal* |
+| {{3}} | data DD/MM/AAAA | hora HH:mm | serviço | serviço |
+| {{4}} | hora HH:mm | serviço | nome salão | nome salão |
+| {{5}} | serviço | nome salão | mensagemFinal* | mensagemFinal* |
+| {{6}} | nome salão | mensagemFinal* | — | — |
+| {{7}} | mensagemFinal* | — | — | — |
+| {{8}} | link de agendamento | — | — | — |
 
-O **nome do salão** vem de `Tenant.name`. O link de agendamento fica embutido no texto fixo do template como `https://[dominio]/agendar/{slug}` — não precisa de variável porque o domínio é único da plataforma. Para Fase 2 (campanhas), o link entra como variável.
+`*` = variável customizável pelo admin tenant via `whatsappTemplateConfig`
+
+**Valores padrão** (usados quando o tenant não customizou):
+
+| Template | mensagemPrincipal padrão | mensagemFinal padrão |
+|---|---|---|
+| confirmacao | "Seu agendamento foi criado." | "Até lá!" |
+| confirmado | "Seu agendamento está confirmado." | "Te esperamos!" |
+| lembrete | "Lembrete:" | "Até lá!" |
+| cancelamento | "Seu agendamento foi cancelado." | "Para reagendar, entre em contato conosco." |
+| nao_comparecimento | "Notamos que você não compareceu ao seu horário." | "Quando quiser reagendar, estamos à disposição!" |
+
+**Link de agendamento** (`{{8}}` em confirmacao/confirmado):
+```typescript
+`${process.env.APP_URL}/agendar/${tenant.slug}`
+```
 
 ### Variáveis de ambiente
 
@@ -161,40 +205,95 @@ TWILIO_TPL_CANCELLATION=HXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_TPL_NO_SHOW=HXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
+**Ambiente de desenvolvimento — Twilio Sandbox:**
+```env
+# .env.development — sem necessidade de templates aprovados pela Meta
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+```
+Para ativar o sandbox: enviar "join [palavra-chave]" para o número `+14155238886` via WhatsApp antes de testar.
+
 ---
 
 ## Arquitetura — Provider Twilio
+
+### `buildTemplateParams`
+
+```typescript
+type WhatsAppTemplateConfig = {
+  mensagemPrincipal?: string;
+  mensagemFinal?: string;
+};
+
+function buildTemplateParams(
+  template: WhatsAppTemplate,
+  payload: AppointmentEventPayload,
+  tenant: { name: string; slug: string; timezone: string; whatsappTemplateConfig: unknown }
+): { contentSid: string; contentVariables: Record<string, string> }
+```
+
+**Formatação de datas com timezone do tenant:**
+```typescript
+const formatter = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: tenant.timezone,  // ex: "America/Sao_Paulo", "America/Manaus"
+  day: "2-digit", month: "2-digit", year: "numeric",
+});
+const timeFormatter = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: tenant.timezone,
+  hour: "2-digit", minute: "2-digit",
+});
+```
+
+**Mapeamento de payload de evento para variáveis:**
+
+Os eventos existentes publicam `{ appointment: { startsAt }, customer: { name }, service: { name } }`. A função extrai:
+- `customer.name` → `{{1}}`
+- `templateConfig.mensagemPrincipal` (ou padrão) → `{{2}}`
+- `formatDate(appointment.startsAt, tenant.timezone)` → `{{3}}` (confirmacao/confirmado)
+- `formatTime(appointment.startsAt, tenant.timezone)` → `{{4}}` (confirmacao/confirmado)
+- `service.name` → `{{5}}` (confirmacao/confirmado)
+- `tenant.name` → `{{6}}` (confirmacao/confirmado)
+- `templateConfig.mensagemFinal` (ou padrão) → `{{7}}` (confirmacao/confirmado)
+- `` `${APP_URL}/agendar/${tenant.slug}` `` → `{{8}}` (confirmacao/confirmado)
+
+### Validação de telefone
+
+```typescript
+function toWhatsAppNumber(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  // Brasil: DDI(2) + DDD(2) + número(8 ou 9) = 12 ou 13 dígitos
+  if (digits.length < 10 || digits.length > 13) {
+    throw new InvalidPhoneError(raw);
+  }
+  const e164 = digits.startsWith("55") ? `+${digits}` : `+55${digits}`;
+  return `whatsapp:${e164}`;
+}
+```
+
+`InvalidPhoneError` em `src/shared/errors/invalid-phone.error.ts` — erro tipado, não falha silenciosa.
 
 ### Fluxo de envio
 
 ```
 Evento de domínio (scheduling.appointment.created, etc.)
-  → notifications/subscriptions.ts  (já existe, troca provider "z-api" → "twilio")
-  → notificationService.logAndDispatch()  (já existe)
-  → WhatsAppProvider.send(draft)  (substituição completa)
+  → notifications/subscriptions.ts  (troca provider "z-api" → "twilio")
+  → notificationService.logAndDispatch()
+  → WhatsAppProvider.send(draft)
       1. featureGuard.assertAccess(tenantId, FEATURES.WHATSAPP_BASIC)
-      2. prisma.tenant (whatsappEnabled, name, slug)
+      2. prisma.tenant (whatsappEnabled, name, slug, timezone, whatsappTemplateConfig)
          └─ se !whatsappEnabled → retorna PENDING (sem erro)
-      3. whatsAppQuotaService.checkAndIncrement(tenantId)
+      3. toWhatsAppNumber(draft.recipient)
+         └─ lança InvalidPhoneError se número inválido → retorna FAILED
+      4. whatsAppQuotaService.checkAndIncrement(tenantId)
          └─ se quota excedida → retorna FAILED "Limite mensal atingido"
-      4. buildTemplateParams(template, payload, tenant)
-         └─ seleciona contentSid + monta variables Record<string, string>
-      5. twilio.messages.create({ from, to, contentSid, contentVariables, statusCallback })
+      5. buildTemplateParams(template, payload, tenant)
+         └─ seleciona contentSid + monta variables com timezone correto
+      6. twilio.messages.create({ from, to, contentSid, contentVariables, statusCallback })
          └─ retry automático max 2x com delay 1s em erro de rede
-      6. retorna { status: SENT, externalId: message.sid }
+         └─ se todos os retries falham: whatsAppQuotaService.decrement(tenantId)
+      7. retorna { status: SENT, externalId: message.sid }
 ```
 
-### Formato do `to`
-
-Telefones armazenados como `+5511999999999` (E.164) ou `11999999999` (local). O provider normaliza para E.164 e adiciona o prefixo `whatsapp:`:
-
-```typescript
-function toWhatsAppNumber(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  const e164 = digits.startsWith("55") ? `+${digits}` : `+55${digits}`;
-  return `whatsapp:${e164}`;
-}
-```
+**Rollback de quota:** `decrement(tenantId)` é chamado apenas em falha de rede (exceção ao criar mensagem no Twilio). Se o Twilio aceita a mensagem mas ela falha na entrega (webhook com `failed/undelivered`), a quota permanece consumida — falha da operadora, não da plataforma.
 
 ---
 
@@ -207,7 +306,11 @@ async checkAndIncrement(tenantId: string): Promise<boolean>
 // Retorna true se pode enviar, false se limite atingido.
 // Usa upsert atômico: cria ou incrementa o registro do mês corrente.
 // Verifica o limite APÓS o increment e reverte se ultrapassado.
-// ENTERPRISE retorna sempre true (limit = -1).
+// Lê maxWhatsAppPerMonth de billing/types.ts para o plano do tenant.
+
+async decrement(tenantId: string): Promise<void>
+// NOVO — rollback de quota em caso de falha de rede do provider.
+// Decrementa count do mês corrente (mínimo 0).
 
 async getUsage(tenantId: string): Promise<{ used: number; limit: number; resetDate: string }>
 // Retorna uso atual e data de reset (1º do próximo mês).
@@ -215,20 +318,36 @@ async getUsage(tenantId: string): Promise<{ used: number; limit: number; resetDa
 
 ---
 
-## Cron de reset mensal
+## Cron de limpeza de histórico
 
-Job pg-boss `"whatsapp-quota-reset"` em `src/shared/queue/jobs/whatsapp-quota-reset.ts`.
+Job pg-boss `"whatsapp-quota-cleanup"` em `src/shared/queue/jobs/whatsapp-quota-reset.ts`.
 
-- Schedule: `"1 0 1 * *"` (dia 1 de cada mês, 00:01 UTC)
-- Ação: `UPDATE "WhatsAppMonthlyUsage" SET count = 0 WHERE year = X AND month = Y`
+- Schedule: `"0 2 1 * *"` (dia 1 de cada mês, 02:00 UTC)
+- Ação: deletar registros com mais de 12 meses de histórico
+```sql
+DELETE FROM "WhatsAppMonthlyUsage"
+WHERE (year * 12 + month) < ((current_year * 12 + current_month) - 12)
+```
+- Justificativa: o upsert por `(tenantId, year, month)` já isola cada mês automaticamente — não é necessário zerar registros existentes. O cron serve apenas para controle de crescimento da tabela.
 - Registrado em `runtime.ts`
 
 ---
 
 ## Webhook de status Twilio
 
-**Endpoint:** `POST /api/webhooks/twilio/status`  
+**Endpoint:** `POST /api/webhooks/twilio/status`
 **Autenticação:** Validação de assinatura Twilio (`X-Twilio-Signature`) — sem JWT
+**Rate limiting:** 100 req/min por IP (middleware antes da validação de assinatura)
+
+### Mapeamento de status
+
+| Status Twilio | `NotificationStatus` |
+|---|---|
+| `queued` | `SENT` |
+| `sent` | `SENT` |
+| `delivered` | `DELIVERED` |
+| `failed` | `FAILED` |
+| `undelivered` | `FAILED` |
 
 ### Fluxo
 
@@ -237,17 +356,15 @@ Twilio → POST /api/webhooks/twilio/status
   Body (application/x-www-form-urlencoded):
     MessageSid, MessageStatus, To, From, ErrorCode (opcional)
 
-  1. Valida X-Twilio-Signature com twilio.validateRequest()
+  1. Rate limiting por IP → 429 se excedido
+  2. Valida X-Twilio-Signature com twilio.validateRequest()
      └─ falha → 403
-  2. Mapeia status:
-     "queued" | "sent"         → SENT
-     "delivered"               → SENT   (confirmação de entrega)
-     "failed" | "undelivered"  → FAILED
-  3. prisma.notificationLog.updateMany({
+  3. Mapeia status (tabela acima)
+  4. prisma.notificationLog.updateMany({
        where: { externalId: MessageSid },
-       data: { status, errorMessage: ErrorCode }
+       data: { status, errorMessage: ErrorCode ?? null }
      })
-  4. Retorna 204
+  5. Retorna 204
 ```
 
 A URL do webhook precisa ser registrada no Twilio Console: `https://[APP_URL]/api/webhooks/twilio/status`.
@@ -256,14 +373,15 @@ A URL do webhook precisa ser registrada no Twilio Console: `https://[APP_URL]/ap
 
 ## API de uso
 
-**Endpoint:** `GET /api/whatsapp/usage`  
+**Endpoint:** `GET /api/whatsapp/usage`
 **Auth:** JWT, roles OWNER e MANAGER
+**Feature gate:** `featureGuard.assertAccess(tenantId, FEATURES.WHATSAPP_BASIC)` antes de retornar dados
 
 ```typescript
 // Response:
 {
   used: number,        // mensagens enviadas no mês corrente
-  limit: number,       // limite do plano (-1 = ilimitado)
+  limit: number,       // limite do plano (maxWhatsAppPerMonth)
   resetDate: string,   // "AAAA-MM-DD" — primeiro dia do próximo mês
   plan: PlanName       // "STARTER" | "PRO" | "ENTERPRISE"
 }
@@ -271,11 +389,28 @@ A URL do webhook precisa ser registrada no Twilio Console: `https://[APP_URL]/ap
 
 ---
 
-## Frontend mínimo — Fase 1
+## API de templates
+
+**Endpoint:** `GET /api/whatsapp/templates` — retorna config atual + defaults
+**Endpoint:** `PUT /api/whatsapp/templates` — salva config no `Tenant.whatsappTemplateConfig`
+**Auth:** JWT, role OWNER
+
+```typescript
+// PUT body (Zod schema):
+{
+  template: "confirmacao" | "confirmado" | "lembrete" | "cancelamento" | "nao_comparecimento",
+  mensagemPrincipal: string,  // máx. 120 chars
+  mensagemFinal: string,      // máx. 80 chars
+}
+```
+
+---
+
+## Frontend — Fase 1
 
 ### Componente `WhatsAppUsageCard`
 
-Exibido na página **Configurações → Notificações** (já existe), abaixo do toggle `whatsappEnabled`:
+Exibido na página **Configurações → Notificações**, abaixo do toggle `whatsappEnabled`:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -292,47 +427,106 @@ Exibido na página **Configurações → Notificações** (já existe), abaixo d
 - Consome `GET /api/whatsapp/usage`
 - Barra de progresso muda para vermelho acima de 90% do limite
 
+### Componente `WhatsAppTemplateEditor`
+
+Exibido abaixo do `WhatsAppUsageCard`, visível apenas se `whatsappEnabled = true`:
+
+```
+┌─────────────────────────────────────────────────────┐
+│ ✏️ Personalizar mensagens WhatsApp                   │
+│                                                      │
+│ [Confirmação de agendamento ▾]                       │
+│                                                      │
+│ Mensagem principal:                                  │
+│ ┌──────────────────────────────────────────────────┐ │
+│ │ Seu agendamento foi criado com sucesso.          │ │
+│ └──────────────────────────────────────────────────┘ │
+│                                                      │
+│ Mensagem de encerramento:                            │
+│ ┌──────────────────────────────────────────────────┐ │
+│ │ Até lá!                                          │ │
+│ └──────────────────────────────────────────────────┘ │
+│                                                      │
+│ Prévia:                                              │
+│ "Olá, João! Seu agendamento foi criado com sucesso.  │
+│  📅 28/05/2026 às 14:00 | Corte | Barbearia Silva.   │
+│  Até lá! https://app.com/agendar/barbearia-silva"    │
+│                                                      │
+│              [Salvar personalização]                  │
+└─────────────────────────────────────────────────────┘
+```
+
+- Dropdown para selecionar qual template editar
+- Preview em tempo real com dados fictícios
+- Consome `GET /api/whatsapp/templates` e salva via `PUT /api/whatsapp/templates`
+- Campos com limite de caracteres (mensagemPrincipal: 120, mensagemFinal: 80)
+
 ---
 
 ## Mapa de arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `prisma/schema.prisma` | Modifica: remove Z-API fields do Tenant, adiciona `WhatsAppMonthlyUsage`, `externalId` no `NotificationLog`, campos consent no `Customer` |
-| `src/domains/notifications/providers/whatsapp.provider.ts` | Substitui completamente (Z-API → Twilio) |
-| `src/domains/notifications/quota/whatsapp-quota.service.ts` | Cria |
+| `prisma/schema.prisma` | Modifica: remove Z-API fields do Tenant; adiciona `timezone`, `whatsappTemplateConfig`; adiciona `WhatsAppMonthlyUsage`; adiciona `externalId` no `NotificationLog`; adiciona `DELIVERED` ao enum `NotificationStatus`; adiciona campos consent no `Customer` |
+| `src/domains/billing/types.ts` | Modifica: renomeia `maxNotificationsPerMonth` → `maxWhatsAppPerMonth`; atualiza limites (STARTER=500, PRO=2000, ENTERPRISE=5000) |
+| `src/domains/billing/feature-guard.ts` | Modifica: lê `maxWhatsAppPerMonth` de `billing/types.ts` para quota |
+| `src/domains/notifications/providers/whatsapp.provider.ts` | Substitui completamente (Z-API → Twilio; adiciona `buildTemplateParams`, timezone handling, phone validation, quota rollback) |
+| `src/domains/notifications/providers/whatsapp.provider.test.ts` | Cria (mock Twilio SDK, featureGuard, quota) |
+| `src/domains/notifications/quota/whatsapp-quota.service.ts` | Cria (`checkAndIncrement`, `decrement`, `getUsage`) |
 | `src/domains/notifications/quota/whatsapp-quota.service.test.ts` | Cria |
-| `src/shared/queue/jobs/whatsapp-quota-reset.ts` | Cria |
-| `src/app/api/webhooks/twilio/status/route.ts` | Cria |
-| `src/app/api/whatsapp/usage/route.ts` | Cria |
-| `src/domains/billing/feature-guard.ts` | Modifica: adiciona `whatsapp_monthly` ao `PLAN_LIMITS` |
-| `src/app/api/_lib/runtime.ts` | Modifica: registra job de reset |
+| `src/shared/queue/jobs/whatsapp-quota-reset.ts` | Cria (cron de limpeza de histórico > 12 meses, não reset de quota) |
+| `src/app/api/webhooks/twilio/status/route.ts` | Cria (rate limiting + validação assinatura + mapeamento DELIVERED) |
+| `src/app/api/webhooks/twilio/status/route.test.ts` | Cria |
+| `src/app/api/whatsapp/usage/route.ts` | Cria (com feature gate WHATSAPP_BASIC) |
+| `src/app/api/whatsapp/usage/route.test.ts` | Cria |
+| `src/app/api/whatsapp/templates/route.ts` | Cria (`GET` + `PUT` para config de templates) |
 | `src/domains/notifications/types.ts` | Modifica: adiciona `externalId?: string` a `NotificationDeliveryResult` |
 | `src/domains/notifications/notification.service.ts` | Modifica: passa `externalId` ao `createLog` após envio |
 | `src/domains/notifications/subscriptions.ts` | Modifica: troca `provider: "z-api"` → `provider: "twilio"` |
 | `src/shared/queue/jobs/appointment-reminder.ts` | Modifica: troca `provider: "z-api"` → `provider: "twilio"` |
+| `src/shared/errors/invalid-phone.error.ts` | Cria (`InvalidPhoneError` tipado) |
 | `src/components/domain/settings/whatsapp-usage-card.tsx` | Cria |
+| `src/components/domain/settings/whatsapp-template-editor.tsx` | Cria (dropdown de templates + campos editáveis + preview em tempo real) |
 | `src/shared/test/factories/whatsapp-usage.factory.ts` | Cria |
+| `src/app/api/_lib/runtime.ts` | Modifica: registra job de limpeza de histórico |
 
 ---
 
 ## Fora de escopo (Fase 2)
 
 - Disparos manuais de campanha/promoção
-- Tela de histórico de mensagens
+- Tela de histórico de mensagens por tenant
 - Templates MARKETING
 - Uso do campo `consentGiven` (adicionado ao modelo agora, lógica na Fase 2)
 - Tela de lista de clientes com opt-in
+- Per-tenant template registration (sub-accounts Twilio)
 
 ---
 
 ## Checklist de conclusão
 
 - [ ] `npx tsc --noEmit` — zero erros
-- [ ] `npx vitest run` — todos os testes passando
+- [ ] `npx vitest run` — todos os testes passando (provider + webhook + usage + quota)
 - [ ] Migration aplicada sem erros
 - [ ] `zApiInstanceId` e `zApiToken` removidos do schema
+- [ ] `timezone` adicionado ao Tenant com default `"America/Sao_Paulo"`
+- [ ] `DELIVERED` adicionado ao enum `NotificationStatus`
+- [ ] `whatsappTemplateConfig` adicionado ao Tenant
 - [ ] `externalId` no `NotificationLog` populado após envio
 - [ ] Webhook valida `X-Twilio-Signature` antes de processar
+- [ ] Webhook atualiza `DELIVERED` corretamente
+- [ ] Webhook tem rate limiting (100 req/min por IP)
 - [ ] Quota bloqueia envio quando limite atingido
-- [ ] Cron de reset registrado no runtime
+- [ ] Quota reverte (`decrement`) em caso de falha de rede do provider
+- [ ] Cron de limpeza registrado no runtime (histórico > 12 meses)
+- [ ] `buildTemplateParams` formata datas com `tenant.timezone` via `Intl.DateTimeFormat`
+- [ ] `toWhatsAppNumber` lança `InvalidPhoneError` para números inválidos
+- [ ] Templates `confirmacao`/`confirmado` com variável `{{8}}` para link de agendamento
+- [ ] Valores padrão de templates aplicados quando tenant não customizou
+- [ ] Template editor (`whatsapp-template-editor.tsx`) salva e carrega via `/api/whatsapp/templates`
+- [ ] `GET /api/whatsapp/usage` tem feature gate `WHATSAPP_BASIC`
+- [ ] `billing/types.ts` renomeado para `maxWhatsAppPerMonth` com limites corretos
+- [ ] Tenants existentes com `whatsappEnabled = true` comunicados sobre migração Z-API → Twilio
+- [ ] `.env.development` documentado com Twilio Sandbox (`whatsapp:+14155238886`)
+- [ ] Security Agent executado — nenhum item 🔴 CRÍTICO
+- [ ] Pull Request aberta para `main`
