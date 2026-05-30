@@ -45,3 +45,23 @@ export function useUpdateNotificationSettings() {
     },
   });
 }
+
+export type WhatsAppUsage = {
+  used: number;
+  limit: number;
+  resetDate: string;
+  plan: string;
+};
+
+async function fetchWhatsAppUsage(): Promise<WhatsAppUsage> {
+  const res = await fetch("/api/whatsapp/usage");
+  if (!res.ok) throw new Error("Erro ao buscar uso WhatsApp");
+  return res.json() as Promise<WhatsAppUsage>;
+}
+
+export function useWhatsAppUsage() {
+  return useQuery({
+    queryKey: ["whatsapp-usage"],
+    queryFn: fetchWhatsAppUsage,
+  });
+}

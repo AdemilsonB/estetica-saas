@@ -15,6 +15,7 @@ import {
   useNotificationSettings,
   useUpdateNotificationSettings,
 } from "@/hooks/settings/use-notification-settings";
+import { WhatsAppUsageCard } from "./whatsapp-usage-card";
 
 const TIMEZONES = [
   { value: "America/Sao_Paulo",   label: "Brasília (UTC-3)" },
@@ -97,6 +98,8 @@ export function WhatsAppSettingsForm() {
           </Button>
         </div>
       </div>
+
+      {isEnabled && <WhatsAppUsageCard />}
 
       <div className="space-y-2">
         <Label htmlFor="timezone">Fuso horário do negócio</Label>
