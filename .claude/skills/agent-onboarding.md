@@ -240,3 +240,22 @@ Onboarding: "Vejo duas formas de implementar:
 - `.claude/skills/orchestrator.md` — skill que executa após o brief aprovado
 - `src/domains/*/DOMAIN.md` — contexto específico do domínio em questão (se existir)
 - `docs/decisions.md` — decisões arquiteturais que podem restringir abordagens
+
+---
+
+## Quando acionar o Arquiteto
+
+Acione `.claude/skills/agent-architect.md` antes de propor abordagens se:
+
+- A ideia sugere criar um domínio novo (não estender um existente)
+- A ideia envolve integração com serviço externo de médio/alto impacto (pagamentos, comunicação, IA)
+- As abordagens que você está considerando têm implicações arquiteturais que excedem o escopo do Onboarding
+
+Use o formato:
+```
+⚙️ Acionando Arquiteto
+
+Contexto: [ideia sendo explorada]
+Domínios afetados: [lista]
+Decisão necessária: [dúvida arquitetural específica]
+```

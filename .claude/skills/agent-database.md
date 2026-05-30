@@ -465,3 +465,23 @@ Se qualquer comando falhar → corrigir e re-executar antes de reportar.
 - [ ] Relations com `onDelete` definido explicitamente
 - [ ] Migration gerada e testada localmente
 - [ ] Gate de verificação passou (validate + generate + tsc)
+
+---
+
+## Quando acionar o Arquiteto
+
+Acione `.claude/skills/agent-architect.md` antes de modelar se:
+
+- Um model novo não se encaixa claramente em nenhum domínio DDD existente
+- A estratégia de índice envolve queries com 3+ filtros além do `tenantId` e não há precedente
+- Há dúvida entre usar RLS no Supabase vs. filtro de `tenantId` no Prisma para o caso específico
+- Uma migration é destrutiva de forma não óbvia e não há ADR cobrindo este tipo de mudança
+
+Use o formato:
+```
+⚙️ Acionando Arquiteto
+
+Contexto: [model ou migration sendo definida]
+Domínios afetados: [lista]
+Decisão necessária: [dúvida de modelagem ou estratégia]
+```
