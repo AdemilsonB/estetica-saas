@@ -410,3 +410,22 @@ Reporta conclusão somente quando:
 - [ ] Testes de API Route: 401 sem token, 400 com input inválido
 - [ ] Cobertura mínima atingida (80% services, 60% repos, 70% routes)
 - [ ] Gate passou: `npx vitest run --coverage`
+
+---
+
+## Quando acionar o Arquiteto
+
+Acione `.claude/skills/agent-architect.md` se:
+
+- O caso a testar envolve comunicação entre domínios via eventos e não há padrão de teste definido para isso
+- A cobertura mínima exigida parece insuficiente para a criticidade do domínio (ex: billing, IAM)
+- Há dúvida sobre onde deve viver um mock complexo que vários domínios precisam reutilizar
+
+Use o formato:
+```
+⚙️ Acionando Arquiteto
+
+Contexto: [domínio sendo testado]
+Domínios afetados: [lista]
+Decisão necessária: [dúvida de estratégia de teste]
+```
