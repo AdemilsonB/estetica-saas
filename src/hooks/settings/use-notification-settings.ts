@@ -1,45 +1,47 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export type NotificationSettings = {
-  zApiInstanceId: string | null
-  zApiToken: string | null
-  whatsappEnabled: boolean
+  whatsappEnabled: boolean;
+  timezone: string;
+  plan: string;
+};
+
+type UpdateNotificationSettings = {
+  whatsappEnabled?: boolean;
+  timezone?: string;
+};
+
+async function fetchNotificationSettings(): Promise<NotificationSettings> {
+  const res = await fetch("/api/notifications/settings");
+  if (!res.ok) throw new Error("Erro ao buscar configurações");
+  return res.json() as Promise<NotificationSettings>;
 }
 
-export type UpdateNotificationSettingsInput = {
-  zApiInstanceId?: string | null
-  zApiToken?: string | null
-  whatsappEnabled?: boolean
-}
-
-async function fetchSettings(): Promise<NotificationSettings> {
-  const res = await fetch('/api/notifications/settings')
-  if (!res.ok) throw new Error('Falha ao carregar configuracoes de notificacao')
-  return res.json()
-}
-
-async function updateSettings(input: UpdateNotificationSettingsInput): Promise<NotificationSettings> {
-  const res = await fetch('/api/notifications/settings', {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+async function updateNotificationSettings(
+  input: UpdateNotificationSettings,
+): Promise<NotificationSettings> {
+  const res = await fetch("/api/notifications/settings", {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
-  })
-  if (!res.ok) throw new Error('Falha ao salvar configuracoes de notificacao')
-  return res.json()
+  });
+  if (!res.ok) throw new Error("Erro ao salvar configurações");
+  return res.json() as Promise<NotificationSettings>;
 }
 
 export function useNotificationSettings() {
   return useQuery({
-    queryKey: ['notification-settings'],
-    queryFn: fetchSettings,
-    staleTime: 60 * 1000,
-  })
+    queryKey: ["notification-settings"],
+    queryFn: fetchNotificationSettings,
+  });
 }
 
 export function useUpdateNotificationSettings() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: updateSettings,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notification-settings'] }),
-  })
+    mutationFn: updateNotificationSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notification-settings"] });
+    },
+  });
 }

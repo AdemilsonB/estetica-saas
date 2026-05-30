@@ -1,52 +1,67 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { MessageCircle } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { MessageCircle, Lock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   useNotificationSettings,
   useUpdateNotificationSettings,
-} from '@/hooks/settings/use-notification-settings'
+} from "@/hooks/settings/use-notification-settings";
+
+const TIMEZONES = [
+  { value: "America/Sao_Paulo",   label: "Brasília (UTC-3)" },
+  { value: "America/Manaus",      label: "Manaus (UTC-4)" },
+  { value: "America/Belem",       label: "Belém (UTC-3)" },
+  { value: "America/Fortaleza",   label: "Fortaleza (UTC-3)" },
+  { value: "America/Recife",      label: "Recife (UTC-3)" },
+  { value: "America/Maceio",      label: "Maceió (UTC-3)" },
+  { value: "America/Bahia",       label: "Salvador (UTC-3)" },
+  { value: "America/Porto_Velho", label: "Porto Velho (UTC-4)" },
+  { value: "America/Boa_Vista",   label: "Boa Vista (UTC-4)" },
+  { value: "America/Rio_Branco",  label: "Rio Branco (UTC-5)" },
+  { value: "America/Noronha",     label: "Fernando de Noronha (UTC-2)" },
+];
 
 export function WhatsAppSettingsForm() {
-  const { data, isLoading } = useNotificationSettings()
-  const { mutate, isPending } = useUpdateNotificationSettings()
+  const { data, isLoading } = useNotificationSettings();
+  const { mutate, isPending } = useUpdateNotificationSettings();
 
-  const [instanceId, setInstanceId] = useState('')
-  const [token, setToken] = useState('')
-  const [enabled, setEnabled] = useState(false)
+  if (isLoading) {
+    return <div className="h-48 animate-pulse rounded-2xl bg-slate-100" />;
+  }
 
-  useEffect(() => {
-    if (data) {
-      setInstanceId(data.zApiInstanceId ?? '')
-      setToken(data.zApiToken ?? '')
-      setEnabled(data.whatsappEnabled)
-    }
-  }, [data])
+  const isFree = data?.plan === "FREE";
+  const isEnabled = data?.whatsappEnabled ?? false;
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    mutate({
-      zApiInstanceId: instanceId.trim() || null,
-      zApiToken: token.trim() || null,
-      whatsappEnabled: enabled,
-    })
+  if (isFree) {
+    return (
+      <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <Lock className="mt-0.5 size-5 shrink-0 text-slate-400" />
+        <div>
+          <p className="font-medium text-slate-700">WhatsApp não disponível no plano Free</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Faça upgrade para o plano Starter ou superior para ativar notificações automáticas via WhatsApp.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   function handleToggle() {
-    const next = !enabled
-    setEnabled(next)
-    mutate({ whatsappEnabled: next })
+    mutate({ whatsappEnabled: !isEnabled });
   }
 
-  if (isLoading) {
-    return <div className="h-48 animate-pulse rounded-2xl bg-slate-100" />
+  function handleTimezoneChange(value: string) {
+    mutate({ timezone: value });
   }
-
-  const isConfigured = !!(data?.zApiInstanceId && data?.zApiToken)
 
   return (
     <div className="space-y-6">
@@ -58,64 +73,53 @@ export function WhatsAppSettingsForm() {
           <div>
             <p className="font-medium text-slate-950">Notificações WhatsApp</p>
             <p className="text-xs text-slate-500">
-              Confirmações automáticas via Z-API
+              Confirmações e lembretes automáticos via Twilio
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {isConfigured ? (
-            <Badge className={enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}>
-              {enabled ? 'Ativo' : 'Pausado'}
-            </Badge>
-          ) : (
-            <Badge variant="secondary">Não configurado</Badge>
-          )}
+          <Badge
+            className={
+              isEnabled
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-slate-100 text-slate-500"
+            }
+          >
+            {isEnabled ? "Ativo" : "Inativo"}
+          </Badge>
           <Button
-            variant={enabled ? 'destructive' : 'default'}
+            variant={isEnabled ? "destructive" : "default"}
             size="sm"
             onClick={handleToggle}
-            disabled={!isConfigured || isPending}
+            disabled={isPending}
           >
-            {enabled ? 'Desativar' : 'Ativar'}
+            {isEnabled ? "Desativar" : "Ativar"}
           </Button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <p className="text-sm font-medium text-slate-700">Credenciais Z-API</p>
-
-        <div className="space-y-2">
-          <Label htmlFor="zapi-instance">Instance ID</Label>
-          <Input
-            id="zapi-instance"
-            value={instanceId}
-            onChange={(e) => setInstanceId(e.target.value)}
-            placeholder="Ex: 3B1E9CE0F90A8D4C7F2"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="zapi-token">Token da instância</Label>
-          <Input
-            id="zapi-token"
-            type="password"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            placeholder="Token de segurança da instância"
-          />
-        </div>
-
+      <div className="space-y-2">
+        <Label htmlFor="timezone">Fuso horário do negócio</Label>
+        <Select
+          value={data?.timezone ?? "America/Sao_Paulo"}
+          onValueChange={handleTimezoneChange}
+          disabled={isPending}
+        >
+          <SelectTrigger id="timezone" className="w-full sm:w-72">
+            <SelectValue placeholder="Selecione o fuso horário" />
+          </SelectTrigger>
+          <SelectContent>
+            {TIMEZONES.map((tz) => (
+              <SelectItem key={tz.value} value={tz.value}>
+                {tz.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <p className="text-xs text-slate-400">
-          Obtenha o Instance ID e Token no painel da{' '}
-          <span className="font-medium">Z-API</span>. A variável de ambiente{' '}
-          <code className="rounded bg-slate-100 px-1 py-0.5">ZAPI_CLIENT_TOKEN</code>{' '}
-          deve estar configurada no servidor.
+          Usado para formatar datas e horários nas mensagens enviadas ao cliente.
         </p>
-
-        <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
-          {isPending ? 'Salvando...' : 'Salvar credenciais'}
-        </Button>
-      </form>
+      </div>
     </div>
-  )
+  );
 }
