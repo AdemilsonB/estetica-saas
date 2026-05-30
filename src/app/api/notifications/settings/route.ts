@@ -3,14 +3,29 @@ import { z } from "zod";
 import { prisma } from "@/shared/database/prisma";
 import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
 import { ensurePermission, PERMISSIONS } from "@/shared/auth/permissions";
+import { featureGuard, FEATURES } from "@/domains/billing/feature-guard";
 import { getSessionContext } from "@/shared/auth/session";
 import { handleApiError } from "@/shared/http/handle-api-error";
 import { validateInput } from "@/shared/http/validate-input";
+import { ForbiddenError } from "@/shared/errors";
+
+const SUPPORTED_TIMEZONES = [
+  "America/Sao_Paulo",
+  "America/Manaus",
+  "America/Belem",
+  "America/Fortaleza",
+  "America/Recife",
+  "America/Maceio",
+  "America/Bahia",
+  "America/Porto_Velho",
+  "America/Boa_Vista",
+  "America/Rio_Branco",
+  "America/Noronha",
+] as const;
 
 const updateNotificationSettingsSchema = z.object({
-  zApiInstanceId: z.string().trim().nullable().optional(),
-  zApiToken: z.string().trim().nullable().optional(),
   whatsappEnabled: z.boolean().optional(),
+  timezone: z.enum(SUPPORTED_TIMEZONES).optional(),
 });
 
 export async function GET(request: Request) {
@@ -18,11 +33,15 @@ export async function GET(request: Request) {
   try {
     const session = await getSessionContext(request);
     ensurePermission(session, PERMISSIONS.settings.view);
+
     const tenant = await prisma.tenant.findFirst({
       where: { id: session.tenantId },
-      select: { zApiInstanceId: true, zApiToken: true, whatsappEnabled: true },
+      select: { whatsappEnabled: true, timezone: true, plan: true },
     });
-    return Response.json(tenant ?? { zApiInstanceId: null, zApiToken: null, whatsappEnabled: false });
+
+    return Response.json(
+      tenant ?? { whatsappEnabled: false, timezone: "America/Sao_Paulo", plan: "FREE" },
+    );
   } catch (error) {
     return handleApiError(error);
   }
@@ -33,12 +52,27 @@ export async function PATCH(request: Request) {
   try {
     const session = await getSessionContext(request);
     ensurePermission(session, PERMISSIONS.settings.manage);
+
     const input = await validateInput(request, updateNotificationSettingsSchema);
+
+    if (input.whatsappEnabled === true) {
+      const hasAccess = await featureGuard.canAccess(
+        session.tenantId,
+        FEATURES.WHATSAPP_BASIC,
+      );
+      if (!hasAccess) {
+        throw new ForbiddenError(
+          "WhatsApp requer plano STARTER ou superior.",
+        );
+      }
+    }
+
     const tenant = await prisma.tenant.update({
       where: { id: session.tenantId },
       data: input,
-      select: { zApiInstanceId: true, zApiToken: true, whatsappEnabled: true },
+      select: { whatsappEnabled: true, timezone: true, plan: true },
     });
+
     return Response.json(tenant);
   } catch (error) {
     return handleApiError(error);
