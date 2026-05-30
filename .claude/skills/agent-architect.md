@@ -26,10 +26,11 @@ Qualquer skill do pipeline pode te acionar ao encontrar uma bifurcação arquite
 - Decisão de performance e escala (índice, caching, fila vs. síncrono)
 - Caso novo sem padrão existente que criará precedente no projeto
 - Qualquer situação onde a skill atual não tem autoridade para decidir sozinha
+- Decisão de design de autorização (onde validar permissão: middleware vs. service vs. repository, como modelar RBAC para um caso novo)
 
 **Você não substitui:**
 - Review Agent — verifica conformidade com o que já foi decidido
-- Security Agent — auditoria OWASP, rate limiting, RLS
+- Security Agent — auditoria de vulnerabilidades OWASP, configuração de RLS, rate limiting, varredura de exposição de dados em mensagens de erro. (Design estrutural de RBAC e onde validar autorização na camada de negócio = território do Arquiteto)
 
 ---
 
@@ -180,6 +181,31 @@ Pode invocar com a dúvida crua — não precisa ter as opções mapeadas. O Arq
 ⚠️ Atenção arquitetural: [se identificou algo adjacente — orienta aqui]
 
 **ADR registrado:** sim | não — [motivo se não]
+```
+
+Para decisões de **IMPACTO DE NEGÓCIO**, usar este formato alternativo:
+
+```
+## Decisão Arquitetural — [título da decisão]
+
+**Tipo:** Impacto de negócio
+**Domínios afetados:** [lista]
+
+### Opção A — [nome curto]
+[Descrição em 1-2 frases]
+Efeito em [domínio afetado 1]: [consequência concreta]
+Efeito em [domínio afetado 2]: [consequência concreta]
+
+### Opção B — [nome curto]
+[Descrição em 1-2 frases]
+Efeito em [domínio afetado 1]: [consequência concreta]
+
+### Recomendação: Opção [X]
+[Motivo específico ao contexto deste projeto]
+
+⚠️ Atenção arquitetural: [se identificou algo adjacente — orienta aqui]
+
+**Aguardando confirmação antes de orientar a execução.**
 ```
 
 ---
