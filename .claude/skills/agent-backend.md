@@ -325,3 +325,24 @@ Se qualquer comando falhar → corrigir e re-executar antes de reportar conclus�
 - [ ] Sem `any` no TypeScript
 - [ ] Sem lógica de negócio na API Route
 - [ ] Gate de verificação passou (tsc + vitest)
+
+---
+
+## Quando acionar o Arquiteto
+
+Acione `.claude/skills/agent-architect.md` antes de implementar se:
+
+- Um service precisa de dados de outro domínio e o padrão de eventos não cobre o caso
+- A regra de negócio poderia viver em mais de um domínio — há ambiguidade de ownership
+- Um novo tipo de evento não tem padrão de nomenclatura definido em `docs/decisions.md`
+- A feature exige comunicação síncrona entre domínios (sem evento) e não há ADR autorizando
+- Há dúvida sobre onde validar autorização (middleware vs. service vs. repository)
+
+Use o formato:
+```
+⚙️ Acionando Arquiteto
+
+Contexto: [service ou API sendo implementada]
+Domínios afetados: [lista]
+Decisão necessária: [dúvida de design da camada de negócio]
+```

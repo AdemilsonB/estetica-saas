@@ -280,6 +280,7 @@ Use a skill `.claude/skills/orchestrator.md` — ela analisa a tarefa, monta o p
 | **Security** | `.claude/skills/agent-security.md` | Auditoria OWASP, tenancy, rate limiting |
 | **Review** | `.claude/skills/agent-review.md` | Gate de build final, aprovação de PR |
 | **Documentation** | `.claude/skills/agent-documentation.md` | Atualiza docs após cada feature que muda domínios ou arquitetura |
+| **Arquiteto** | `.claude/skills/agent-architect.md` | Decisões arquiteturais novas — acionado por qualquer skill quando não há precedente definido |
 
 ### Fluxo padrão de desenvolvimento
 

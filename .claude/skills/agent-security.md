@@ -312,3 +312,23 @@ Se `rowsecurity = false` em tabelas com dados de negócio → 🟡 ALTO (ou 🔴
 - [ ] Items 🟠 MÉDIO registrados em docs/security-findings.md
 
 O Security Agent reporta conclusão somente quando nenhum item 🔴 CRÍTICO está em aberto.
+
+---
+
+## Quando acionar o Arquiteto
+
+Acione `.claude/skills/agent-architect.md` se:
+
+- Uma vulnerabilidade identificada exige mudança de design arquitetural (não apenas correção de código)
+- A autorização deveria acontecer em camada diferente da atual — mas mover implica redesign
+- Um padrão de autenticação/autorização novo é necessário e não há ADR definindo como deve funcionar
+- O isolamento de tenant no caso avaliado requer abordagem diferente do padrão `where: { tenantId }` do Prisma
+
+Use o formato:
+```
+⚙️ Acionando Arquiteto
+
+Contexto: [vulnerabilidade ou padrão de segurança]
+Domínios afetados: [lista]
+Decisão necessária: [dúvida de design de segurança estrutural]
+```
