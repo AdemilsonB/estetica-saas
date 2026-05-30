@@ -65,3 +65,46 @@ export function useWhatsAppUsage() {
     queryFn: fetchWhatsAppUsage,
   });
 }
+
+export type TemplateConfig = {
+  mensagemPrincipal: string;
+  mensagemFinal: string;
+};
+
+export type WhatsAppTemplates = Record<string, TemplateConfig>;
+
+async function fetchWhatsAppTemplates(): Promise<WhatsAppTemplates> {
+  const res = await fetch("/api/whatsapp/templates");
+  if (!res.ok) throw new Error("Erro ao buscar templates");
+  return res.json() as Promise<WhatsAppTemplates>;
+}
+
+async function updateWhatsAppTemplate(input: {
+  template: string;
+  mensagemPrincipal: string;
+  mensagemFinal: string;
+}): Promise<void> {
+  const res = await fetch("/api/whatsapp/templates", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error("Erro ao salvar template");
+}
+
+export function useWhatsAppTemplates() {
+  return useQuery({
+    queryKey: ["whatsapp-templates"],
+    queryFn: fetchWhatsAppTemplates,
+  });
+}
+
+export function useUpdateWhatsAppTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateWhatsAppTemplate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-templates"] });
+    },
+  });
+}
