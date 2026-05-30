@@ -6,6 +6,7 @@ import {
   APPOINTMENT_REMINDER_JOB,
   handleAppointmentReminder,
 } from "@/shared/queue/jobs/appointment-reminder";
+import { registerWhatsAppQuotaCleanup } from "@/shared/queue/jobs/whatsapp-quota-reset";
 
 let initialized = false;
 
@@ -17,9 +18,10 @@ export function initializeDomainRuntime() {
   registerFinancialSubscriptions();
   registerNotificationSubscriptions();
 
-  startPgBoss().then((boss) => {
+  startPgBoss().then(async (boss) => {
     boss.work(APPOINTMENT_REMINDER_JOB, handleAppointmentReminder);
     registerBillingJobs(boss);
+    await registerWhatsAppQuotaCleanup(boss);
   }).catch(console.error);
 
   initialized = true;
