@@ -64,6 +64,10 @@ Construa a sequência de skills necessárias:
 - `agent-security` e `agent-testing` podem rodar em paralelo após código pronto
 - `agent-documentation` roda SEMPRE APÓS `agent-review` — nunca em paralelo com gate de build
 
+**Arquiteto (transversal):**
+Não entra no pipeline sequencial. Qualquer skill pode acionar `.claude/skills/agent-architect.md`
+durante a execução quando encontrar uma decisão arquitetural sem precedente definido.
+
 ### Passo 3 — Execução com validação entre etapas
 
 Antes de ativar a próxima skill, valide o output da atual:
@@ -157,6 +161,7 @@ Interrompe e aguarda confirmação APENAS em:
 - `.context/CONVENTIONS.md` — naming conventions
 - `docs/decisions.md` — decisões arquiteturais (ADRs)
 - `.claude/skills/` — skills especializadas disponíveis
+- `.claude/skills/agent-architect.md` — acionar quando qualquer skill encontrar bifurcação arquitetural sem precedente definido
 
 ---
 
@@ -171,3 +176,4 @@ Interrompe e aguarda confirmação APENAS em:
 | Security | `.claude/skills/agent-security.md` | OWASP, tenancy, rate limiting, secrets |
 | Review | `.claude/skills/agent-review.md` | Qualidade, arquitetura, gate de build |
 | Documentation | `.claude/skills/agent-documentation.md` | Reconcilia docs com o estado real pós-entrega |
+| Arquiteto | `.claude/skills/agent-architect.md` | Consultor transversal — define precedentes arquiteturais novos |
