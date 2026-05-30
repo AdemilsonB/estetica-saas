@@ -419,3 +419,23 @@ Se falhar → corrigir e re-executar antes de reportar conclusão.
 - [ ] Sem `any` no TypeScript
 - [ ] Schemas Zod importados de `domains/[dominio]/schemas.ts` — nunca duplicados
 - [ ] Gate de verificação passou (tsc)
+
+---
+
+## Quando acionar o Arquiteto
+
+Acione `.claude/skills/agent-architect.md` antes de implementar se:
+
+- Um componente precisa consumir dados de múltiplos domínios e não há API unificada — criar agregação no backend ou no frontend?
+- Há dúvida entre server component vs. client component com implicação de segurança (dados sensíveis, autorização)
+- A estratégia de cache do TanStack Query para o caso de uso não está coberta por nenhum padrão existente
+- Uma tela exige acesso a dados que normalmente exigiriam permissão elevada
+
+Use o formato:
+```
+⚙️ Acionando Arquiteto
+
+Contexto: [tela ou componente sendo implementado]
+Domínios afetados: [lista]
+Decisão necessária: [dúvida de design de interface com backend]
+```
