@@ -21,7 +21,7 @@ export function registerNotificationSubscriptions() {
       channel: NotificationChannel.WHATSAPP,
       template: "appointment-cancelled",
       recipient: customer.phone,
-      provider: "z-api",
+      provider: "twilio",
       payload: {
         appointmentId: appointment.id,
         status: appointment.status,
@@ -39,7 +39,7 @@ export function registerNotificationSubscriptions() {
       channel: NotificationChannel.WHATSAPP,
       template: "appointment-created",
       recipient: customer.phone,
-      provider: "z-api",
+      provider: "twilio",
       payload: {
         appointmentId: appointment.id,
         startsAt: appointment.startsAt.toISOString(),
@@ -57,7 +57,7 @@ export function registerNotificationSubscriptions() {
       channel: NotificationChannel.WHATSAPP,
       template: "appointment-confirmed",
       recipient: customer.phone,
-      provider: "z-api",
+      provider: "twilio",
       payload: {
         appointmentId: appointment.id,
         startsAt: appointment.startsAt.toISOString(),
@@ -75,7 +75,7 @@ export function registerNotificationSubscriptions() {
       channel: NotificationChannel.WHATSAPP,
       template: "appointment-no-show",
       recipient: customer.phone,
-      provider: "z-api",
+      provider: "twilio",
       payload: {
         appointmentId: appointment.id,
         status: appointment.status,
