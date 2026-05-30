@@ -23,6 +23,7 @@ export class NotificationService {
       status: delivery.status,
       payload: draft.payload,
       errorMessage: delivery.errorMessage,
+      externalId: delivery.externalId,
     });
 
     eventBus.publish({
