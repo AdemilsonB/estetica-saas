@@ -95,10 +95,7 @@ export async function PUT(request: Request) {
       select: { whatsappTemplateConfig: true },
     });
 
-    const existing = (current?.whatsappTemplateConfig ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const existing = (current?.whatsappTemplateConfig ?? {}) as Record<string, object>;
 
     await prisma.tenant.update({
       where: { id: session.tenantId },
@@ -109,7 +106,7 @@ export async function PUT(request: Request) {
             mensagemPrincipal: input.mensagemPrincipal,
             mensagemFinal: input.mensagemFinal,
           },
-        },
+        } as import("@prisma/client").Prisma.InputJsonValue,
       },
     });
 
