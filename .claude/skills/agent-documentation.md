@@ -176,3 +176,21 @@ Antes de reportar conclusão ao Orchestrator:
 - `src/domains/*/DOMAIN.md` — contexto por domínio
 - `.context/CONVENTIONS.md` — convenções consolidadas
 - `docs/decisions.md` — nunca editar entradas existentes, apenas adicionar
+
+---
+
+## Quando acionar o Arquiteto
+
+Acione `.claude/skills/agent-architect.md` se:
+
+- Uma ADR existente em `docs/decisions.md` foi claramente superada pela implementação e há dúvida sobre qual é o novo precedente correto
+- A implementação criou um padrão novo recorrente que merece ser documentado como ADR mas não foi capturado pelo Arquiteto durante o pipeline
+
+Use o formato:
+```
+⚙️ Acionando Arquiteto
+
+Contexto: [documentação sendo atualizada]
+Domínios afetados: [lista]
+Decisão necessária: [qual é o novo precedente correto]
+```

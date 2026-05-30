@@ -279,3 +279,25 @@ O Review Agent aprova o PR apenas quando:
 - [ ] PR criada para `main` com descrição adequada
 
 Ao aprovar: reportar ao Orchestrator com resultado completo dos checklists.
+
+---
+
+## Quando acionar o Arquiteto
+
+Acione `.claude/skills/agent-architect.md` — **antes de bloquear o PR** — se:
+
+- Identificou acoplamento entre domínios que não pode ser resolvido com refactor simples dentro do escopo
+- Uma violação arquitetural indica que o **padrão atual** é insuficiente para o caso (não apenas que o código violou o padrão)
+- O gate falhou por motivo que exige decisão de design, não apenas correção de implementação
+
+Diferença importante: se o problema é "o código não seguiu o padrão existente" → corrija e siga.
+Se o problema é "o padrão existente não cobre este caso" → acione o Arquiteto antes de bloquear.
+
+Use o formato:
+```
+⚙️ Acionando Arquiteto
+
+Contexto: [o que está sendo revisado]
+Domínios afetados: [lista]
+Decisão necessária: [lacuna arquitetural identificada]
+```
