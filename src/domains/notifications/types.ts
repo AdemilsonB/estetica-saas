@@ -17,3 +17,12 @@ export type NotificationDeliveryResult = {
   errorMessage?: string;
   externalId?: string;
 };
+
+export type NotificationLogFilter = {
+  template?: string;
+  status?: NotificationStatus;
+  startDate?: Date;
+  endDate?: Date;
+  page?: number;
+  limit?: number;
+};
