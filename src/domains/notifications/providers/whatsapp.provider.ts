@@ -22,7 +22,6 @@ if (
     "TWILIO_TPL_REMINDER",
     "TWILIO_TPL_CANCELLATION",
     "TWILIO_TPL_NO_SHOW",
-    "TWILIO_TPL_BIRTHDAY",
   ] as const;
   for (const key of required) {
     if (!process.env[key]) {
