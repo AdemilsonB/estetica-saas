@@ -21,7 +21,8 @@ type TemplateName =
   | "confirmado"
   | "lembrete"
   | "cancelamento"
-  | "nao_comparecimento";
+  | "nao_comparecimento"
+  | "aniversario";
 
 const TEMPLATE_LABELS: Record<TemplateName, string> = {
   confirmacao:        "Confirmação de agendamento",
@@ -29,6 +30,7 @@ const TEMPLATE_LABELS: Record<TemplateName, string> = {
   lembrete:           "Lembrete 24h antes",
   cancelamento:       "Cancelamento",
   nao_comparecimento: "Não comparecimento",
+  aniversario:        "Mensagem de aniversário",
 };
 
 function buildPreview(
@@ -55,6 +57,8 @@ function buildPreview(
       return `Olá, ${c.nome}. ${principal} ${c.servico} | ${c.salao}. ${final}`;
     case "nao_comparecimento":
       return `Olá, ${c.nome}! 😕 ${principal} ${c.servico} | ${c.salao}. ${final}`;
+    case "aniversario":
+      return `🎂 Olá, ${c.nome}! ${principal} ${c.salao}. ${final}`;
   }
 }
 
