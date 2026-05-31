@@ -1,14 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { NotificationStatus } from "@prisma/client";
 
 export type NotificationSettings = {
   whatsappEnabled: boolean;
   timezone: string;
   plan: string;
+  reminderLeadHours: number;
+  reminderWindowStart: number;
+  reminderWindowEnd: number;
 };
 
 type UpdateNotificationSettings = {
   whatsappEnabled?: boolean;
   timezone?: string;
+  reminderLeadHours?: number;
+  reminderWindowStart?: number;
+  reminderWindowEnd?: number;
 };
 
 async function fetchNotificationSettings(): Promise<NotificationSettings> {
@@ -106,5 +113,58 @@ export function useUpdateWhatsAppTemplate() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-templates"] });
     },
+  });
+}
+
+// --- Bulk reminder ---
+
+async function sendBulkReminder(): Promise<{ sent: number }> {
+  const res = await fetch("/api/notifications/bulk-reminder", { method: "POST" });
+  if (!res.ok) throw new Error("Erro ao enviar lembretes em massa");
+  return res.json() as Promise<{ sent: number }>;
+}
+
+export function useBulkReminder() {
+  return useMutation({ mutationFn: sendBulkReminder });
+}
+
+// --- Notification history ---
+
+export type NotificationLogEntry = {
+  id: string;
+  template: string;
+  recipient: string;
+  status: NotificationStatus;
+  errorMessage: string | null;
+  createdAt: string;
+};
+
+export type NotificationLogPage = {
+  data: NotificationLogEntry[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+type NotificationLogFilter = {
+  page?: number;
+  template?: string;
+  status?: string;
+};
+
+async function fetchNotificationLog(filter: NotificationLogFilter): Promise<NotificationLogPage> {
+  const params = new URLSearchParams();
+  if (filter.page) params.set("page", String(filter.page));
+  if (filter.template) params.set("template", filter.template);
+  if (filter.status) params.set("status", filter.status);
+  const res = await fetch(`/api/notifications/log?${params.toString()}`);
+  if (!res.ok) throw new Error("Erro ao buscar histórico de notificações");
+  return res.json() as Promise<NotificationLogPage>;
+}
+
+export function useNotificationLog(filter: NotificationLogFilter = {}) {
+  return useQuery({
+    queryKey: ["notification-log", filter],
+    queryFn: () => fetchNotificationLog(filter),
   });
 }
