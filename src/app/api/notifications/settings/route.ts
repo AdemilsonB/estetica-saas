@@ -23,9 +23,14 @@ const SUPPORTED_TIMEZONES = [
   "America/Noronha",
 ] as const;
 
+const REMINDER_LEAD_HOURS = [2, 4, 8, 12, 24, 48] as const;
+
 const updateNotificationSettingsSchema = z.object({
   whatsappEnabled: z.boolean().optional(),
   timezone: z.enum(SUPPORTED_TIMEZONES).optional(),
+  reminderLeadHours: z.number().int().refine((v) => (REMINDER_LEAD_HOURS as readonly number[]).includes(v)).optional(),
+  reminderWindowStart: z.number().int().min(0).max(23).optional(),
+  reminderWindowEnd: z.number().int().min(0).max(23).optional(),
 });
 
 export async function GET(request: Request) {
@@ -36,12 +41,27 @@ export async function GET(request: Request) {
 
     const tenant = await prisma.tenant.findFirst({
       where: { id: session.tenantId },
-      select: { whatsappEnabled: true, timezone: true, plan: true },
     });
 
-    return Response.json(
-      tenant ?? { whatsappEnabled: false, timezone: "America/Sao_Paulo", plan: "FREE" },
-    );
+    if (!tenant) {
+      return Response.json({
+        whatsappEnabled: false,
+        timezone: "America/Sao_Paulo",
+        plan: "FREE",
+        reminderLeadHours: 24,
+        reminderWindowStart: 7,
+        reminderWindowEnd: 22,
+      });
+    }
+
+    return Response.json({
+      whatsappEnabled: tenant.whatsappEnabled,
+      timezone: tenant.timezone,
+      plan: tenant.plan,
+      reminderLeadHours: tenant.reminderLeadHours,
+      reminderWindowStart: tenant.reminderWindowStart,
+      reminderWindowEnd: tenant.reminderWindowEnd,
+    });
   } catch (error) {
     return handleApiError(error);
   }
@@ -56,24 +76,25 @@ export async function PATCH(request: Request) {
     const input = await validateInput(request, updateNotificationSettingsSchema);
 
     if (input.whatsappEnabled === true) {
-      const hasAccess = await featureGuard.canAccess(
-        session.tenantId,
-        FEATURES.WHATSAPP_BASIC,
-      );
+      const hasAccess = await featureGuard.canAccess(session.tenantId, FEATURES.WHATSAPP_BASIC);
       if (!hasAccess) {
-        throw new ForbiddenError(
-          "WhatsApp requer plano STARTER ou superior.",
-        );
+        throw new ForbiddenError("WhatsApp requer plano STARTER ou superior.");
       }
     }
 
     const tenant = await prisma.tenant.update({
       where: { id: session.tenantId },
       data: input,
-      select: { whatsappEnabled: true, timezone: true, plan: true },
     });
 
-    return Response.json(tenant);
+    return Response.json({
+      whatsappEnabled: tenant.whatsappEnabled,
+      timezone: tenant.timezone,
+      plan: tenant.plan,
+      reminderLeadHours: tenant.reminderLeadHours,
+      reminderWindowStart: tenant.reminderWindowStart,
+      reminderWindowEnd: tenant.reminderWindowEnd,
+    });
   } catch (error) {
     return handleApiError(error);
   }
