@@ -193,6 +193,7 @@ model Customer {
 
   @@index([tenantId])
   @@index([tenantId, phone])
+  @@index([tenantId, birthDate])
 }
 
 model Service {
