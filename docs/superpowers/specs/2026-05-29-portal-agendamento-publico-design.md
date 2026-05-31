@@ -41,10 +41,13 @@ Três endpoints sob `/api/public/[slug]/`:
 4. `prisma.appointment.create({ ..., createdByUserId: null })`
 5. `notificationService.sendConfirmation()` — fire-and-forget
 
-### Schema change obrigatória
+### Schema changes obrigatórias
 
-`Appointment.createdByUserId` muda de `String` para `String?` (nullable).  
-**Motivo:** agendamentos públicos têm `NULL` neste campo — semanticamente correto, sem dados fantasma.
+1. `Appointment.createdByUserId` muda de `String` para `String?` (nullable).  
+   **Motivo:** agendamentos públicos têm `NULL` neste campo — semanticamente correto, sem dados fantasma.
+
+2. `User.avatarUrl String?` — campo novo para URL da foto do profissional.  
+   **Motivo:** exibido no wizard público para aumentar confiança na escolha do profissional.
 
 ### Componentes reutilizados
 
@@ -187,6 +190,51 @@ type BookingState = {
 - **Profissional sem horário configurado:** slots vazios — mensagem orientativa
 - **WhatsApp desabilitado para o tenant:** notificação pulada silenciosamente — agendamento criado normalmente
 - **Tenant inativo/desativado:** `resolveTenant` pode verificar flag futura — por ora, tenant existe no banco = portal ativo
+
+---
+
+## Upload de Foto do Profissional (Admin)
+
+### Fluxo
+
+O gestor faz upload da foto no cadastro/edição do funcionário na área administrativa. A foto é armazenada no Supabase Storage e a URL pública gravada em `User.avatarUrl`.
+
+### Storage
+
+- Bucket: `professional-photos` (público — URLs acessíveis sem auth, necessário para o portal)
+- Path: `{tenantId}/{userId}.{ext}`
+- Tamanho máximo: 2MB
+- Formatos aceitos: `image/jpeg`, `image/png`, `image/webp`
+
+### Endpoints admin
+
+**`POST /api/professionals/[id]/avatar`** (multipart/form-data)
+- Requer autenticação + permissão `settings.manage`
+- Valida `tenantId` do `User[id]` == `session.tenantId` (isolamento multi-tenant)
+- Faz upload para Supabase Storage via service role
+- Atualiza `User.avatarUrl` com a URL pública
+- Retorna `{ avatarUrl: string }`
+
+**`DELETE /api/professionals/[id]/avatar`**
+- Remove arquivo do Storage
+- Seta `User.avatarUrl = null`
+- Retorna `204`
+
+### UI Admin
+
+Componente `ProfessionalAvatarUpload` no formulário de cadastro/edição de funcionário:
+- Preview circular da foto atual (ou placeholder com inicial do nome)
+- Botão "Alterar foto" → abre file picker
+- Preview imediato após seleção (FileReader API)
+- Submit junto com o formulário principal (multipart)
+- Botão "Remover foto" se `avatarUrl` já existe
+
+### Arquivos
+
+```
+src/app/api/professionals/[id]/avatar/route.ts
+src/components/domain/professionals/professional-avatar-upload.tsx
+```
 
 ---
 

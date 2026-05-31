@@ -71,6 +71,9 @@ model Tenant {
   whatsappEnabled       Boolean           @default(false)
   timezone              String            @default("America/Sao_Paulo")
   whatsappTemplateConfig Json?
+  reminderLeadHours    Int     @default(24)
+  reminderWindowStart  Int     @default(7)
+  reminderWindowEnd    Int     @default(22)
   businessHours     Json?
   createdAt         DateTime          @default(now())
   updatedAt    DateTime         @updatedAt
@@ -182,6 +185,7 @@ model Customer {
   consentGiven  Boolean   @default(false)
   consentDate   DateTime?
   consentOrigin String?
+  birthDate    DateTime?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -189,6 +193,7 @@ model Customer {
 
   @@index([tenantId])
   @@index([tenantId, phone])
+  @@index([tenantId, birthDate])
 }
 
 model Service {

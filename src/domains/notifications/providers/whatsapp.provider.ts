@@ -36,6 +36,7 @@ const TEMPLATE_SIDS: Record<string, string> = {
   "appointment-reminder":  process.env.TWILIO_TPL_REMINDER ?? "",
   "appointment-cancelled": process.env.TWILIO_TPL_CANCELLATION ?? "",
   "appointment-no-show":   process.env.TWILIO_TPL_NO_SHOW ?? "",
+  "birthday":              process.env.TWILIO_TPL_BIRTHDAY ?? "",
 };
 
 const TEMPLATE_TO_CONFIG_KEY: Record<string, string> = {
@@ -44,6 +45,7 @@ const TEMPLATE_TO_CONFIG_KEY: Record<string, string> = {
   "appointment-reminder":  "lembrete",
   "appointment-cancelled": "cancelamento",
   "appointment-no-show":   "nao_comparecimento",
+  "birthday":              "aniversario",
 };
 
 const TEMPLATE_DEFAULTS: Record<string, { mensagemPrincipal: string; mensagemFinal: string }> = {
@@ -52,6 +54,7 @@ const TEMPLATE_DEFAULTS: Record<string, { mensagemPrincipal: string; mensagemFin
   lembrete:           { mensagemPrincipal: "Lembrete:", mensagemFinal: "Até lá!" },
   cancelamento:       { mensagemPrincipal: "Seu agendamento foi cancelado.", mensagemFinal: "Para reagendar, entre em contato conosco." },
   nao_comparecimento: { mensagemPrincipal: "Notamos que você não compareceu ao seu horário.", mensagemFinal: "Quando quiser reagendar, estamos à disposição!" },
+  aniversario:        { mensagemPrincipal: "Feliz aniversário! Temos um presente especial para você.", mensagemFinal: "Venha nos visitar em breve!" },
 };
 
 type AppointmentNotificationPayload = {
@@ -60,6 +63,10 @@ type AppointmentNotificationPayload = {
   serviceName: string;
   startsAt?: string;
   status?: string;
+};
+
+type BirthdayNotificationPayload = {
+  customerName: string;
 };
 
 type TemplateConfig = { mensagemPrincipal?: string; mensagemFinal?: string };
@@ -117,6 +124,14 @@ function buildTemplateParams(
       "4": payload.serviceName,
       "5": tenant.name,
       "6": final,
+    };
+  } else if (template === "birthday") {
+    const bPayload = payload as unknown as BirthdayNotificationPayload;
+    contentVariables = {
+      "1": bPayload.customerName,
+      "2": principal,
+      "3": tenant.name,
+      "4": final,
     };
   } else {
     // cancelamento / nao_comparecimento — sem startsAt

@@ -12,6 +12,20 @@ export type AppointmentReminderPayload = {
   tenantId: string;
 };
 
+function adjustToWindow(sendAt: Date, windowStart: number, windowEnd: number, tz: string): Date {
+  const hour = parseInt(
+    new Intl.DateTimeFormat("pt-BR", { hour: "numeric", hourCycle: "h23", timeZone: tz }).format(sendAt),
+    10,
+  );
+  if (hour < windowStart) {
+    return new Date(sendAt.getTime() + (windowStart - hour) * 3600_000);
+  }
+  if (hour >= windowEnd) {
+    return new Date(sendAt.getTime() + (24 - hour + windowStart) * 3600_000);
+  }
+  return sendAt;
+}
+
 export async function handleAppointmentReminder(
   jobs: Job<AppointmentReminderPayload>[],
 ): Promise<void> {
@@ -20,16 +34,12 @@ export async function handleAppointmentReminder(
 
     const appointment = await prisma.appointment.findFirst({
       where: { id: appointmentId, tenantId },
-      include: {
-        customer: true,
-        service: true,
-      },
+      include: { customer: true, service: true },
     });
 
     if (!appointment || appointment.status === "CANCELLED") continue;
     if (!appointment.customer.phone) continue;
 
-    // Import dinâmico para evitar circular dependency
     const { notificationService } = await import("@/domains/notifications/notification.service");
 
     await notificationService.logAndDispatch({
@@ -55,7 +65,20 @@ export async function scheduleAppointmentReminder(
   appointmentId: string,
   startsAt: Date,
 ): Promise<void> {
-  const sendAt = new Date(startsAt.getTime() - 24 * 60 * 60 * 1000);
+  const tenantConfig = await prisma.tenant.findFirst({
+    where: { id: tenantId },
+    select: { reminderLeadHours: true, reminderWindowStart: true, reminderWindowEnd: true, timezone: true },
+  });
+
+  const leadHours = tenantConfig?.reminderLeadHours ?? 24;
+  const windowStart = tenantConfig?.reminderWindowStart ?? 7;
+  const windowEnd = tenantConfig?.reminderWindowEnd ?? 22;
+  const tz = tenantConfig?.timezone ?? "America/Sao_Paulo";
+
+  let sendAt = new Date(startsAt.getTime() - leadHours * 3600_000);
+  if (sendAt <= new Date()) return;
+
+  sendAt = adjustToWindow(sendAt, windowStart, windowEnd, tz);
   if (sendAt <= new Date()) return;
 
   const boss = getPgBoss();
@@ -71,9 +94,7 @@ export async function scheduleAppointmentReminder(
   );
 }
 
-export async function cancelAppointmentReminder(
-  appointmentId: string,
-): Promise<void> {
+export async function cancelAppointmentReminder(appointmentId: string): Promise<void> {
   try {
     const boss = getPgBoss();
     const jobs = await boss.findJobs(APPOINTMENT_REMINDER_JOB, { key: appointmentId });

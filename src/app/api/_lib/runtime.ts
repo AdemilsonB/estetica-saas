@@ -7,6 +7,7 @@ import {
   handleAppointmentReminder,
 } from "@/shared/queue/jobs/appointment-reminder";
 import { registerWhatsAppQuotaCleanup } from "@/shared/queue/jobs/whatsapp-quota-reset";
+import { registerBirthdayReminder } from "@/shared/queue/jobs/birthday-reminder";
 
 let initialized = false;
 
@@ -22,6 +23,7 @@ export function initializeDomainRuntime() {
     boss.work(APPOINTMENT_REMINDER_JOB, handleAppointmentReminder);
     registerBillingJobs(boss);
     await registerWhatsAppQuotaCleanup(boss);
+    await registerBirthdayReminder(boss);
   }).catch(console.error);
 
   initialized = true;

@@ -7,6 +7,7 @@ import { BusinessInfoForm } from '@/components/domain/settings/business-info-for
 import { BusinessHoursForm } from '@/components/domain/settings/business-hours-form'
 import { ServiceCatalog } from '@/components/domain/settings/service-catalog'
 import { WhatsAppSettingsForm } from '@/components/domain/settings/whatsapp-settings-form'
+import { NotificationHistory } from '@/components/domain/settings/notification-history'
 import { BrandingForm } from '@/components/domain/settings/branding-form'
 import { usePermissions } from '@/hooks/use-permissions'
 import { Loader2 } from 'lucide-react'
@@ -105,11 +106,14 @@ export default function ConfiguracoesPage() {
         </TabsContent>
 
         <TabsContent value="whatsapp" className="mt-6">
-          <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-slate-950">
-              Notificações WhatsApp
-            </h2>
-            <WhatsAppSettingsForm />
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">
+              <h2 className="mb-4 text-base font-semibold text-slate-950">
+                Notificações WhatsApp
+              </h2>
+              <WhatsAppSettingsForm />
+            </div>
+            <NotificationHistory />
           </div>
         </TabsContent>
 
