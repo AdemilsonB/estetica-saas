@@ -196,8 +196,8 @@ export class SchedulingService {
     }
 
     const updated = await appointmentRepository.update(tenantId, appointmentId, {
-      startsAt: input.startsAt ? new Date(input.startsAt) : undefined,
-      endsAt: input.endsAt ? new Date(input.endsAt) : undefined,
+      startsAt: input.startsAt !== undefined ? newStartsAt : undefined,
+      endsAt: input.endsAt !== undefined ? newEndsAt : undefined,
       professionalId: input.professionalId,
       serviceId: input.serviceId,
     });

@@ -90,6 +90,36 @@ describe("SchedulingService.updateAppointment", () => {
     ).rejects.toThrow(AppointmentAlreadyCancelledError);
   });
 
+  it("lança AppointmentAlreadyCancelledError quando status é COMPLETED", async () => {
+    vi.mocked(appointmentRepository.findById).mockResolvedValue({
+      ...mockAppointment,
+      status: AppointmentStatus.COMPLETED,
+    } as never);
+
+    await expect(
+      service.updateAppointment("tenant-1", "appt-1", {
+        startsAt: "2026-06-11T10:00:00Z",
+        endsAt: "2026-06-11T11:00:00Z",
+        notificationMessage: "Olá!",
+      }),
+    ).rejects.toThrow(AppointmentAlreadyCancelledError);
+  });
+
+  it("lança AppointmentAlreadyCancelledError quando status é NO_SHOW", async () => {
+    vi.mocked(appointmentRepository.findById).mockResolvedValue({
+      ...mockAppointment,
+      status: AppointmentStatus.NO_SHOW,
+    } as never);
+
+    await expect(
+      service.updateAppointment("tenant-1", "appt-1", {
+        startsAt: "2026-06-11T10:00:00Z",
+        endsAt: "2026-06-11T11:00:00Z",
+        notificationMessage: "Olá!",
+      }),
+    ).rejects.toThrow(AppointmentAlreadyCancelledError);
+  });
+
   it("lança SlotUnavailableError quando novo horário está ocupado", async () => {
     vi.mocked(appointmentRepository.findById).mockResolvedValue(mockAppointment as never);
     vi.mocked(availabilityService.ensureSlotAvailableExcluding).mockRejectedValue(
