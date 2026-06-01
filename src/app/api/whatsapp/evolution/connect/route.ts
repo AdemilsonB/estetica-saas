@@ -36,7 +36,10 @@ export async function POST(request: Request) {
 
     // Configura webhook para receber atualizações de conexão
     const webhookUrl = `${process.env.APP_URL}/api/webhooks/evolution/connection`;
-    await evolutionProvider.configureWebhook(instanceName, webhookUrl).catch(() => {});
+    await evolutionProvider.configureWebhook(instanceName, webhookUrl).catch((err: unknown) => {
+      // Webhook é best-effort — instância funcionará mas precisará de polling manual
+      console.warn("[Evolution] Falha ao configurar webhook:", err instanceof Error ? err.message : "erro desconhecido");
+    });
 
     await prisma.tenant.update({
       where: { id: session.tenantId },

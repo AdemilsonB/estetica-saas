@@ -58,14 +58,20 @@ export function buildEvolutionMessage(
   const tz = tenant.timezone;
 
   if (template === "appointment-created" || template === "appointment-confirmed") {
-    const date = fmt(payload.startsAt!, tz, { day: "2-digit", month: "2-digit", year: "numeric" });
-    const time = fmt(payload.startsAt!, tz, { hour: "2-digit", minute: "2-digit" });
+    if (!payload.startsAt) {
+      return `Olá, ${payload.customerName}! ${principal} | ${payload.serviceName} | ${tenant.name}. ${final}`;
+    }
+    const date = fmt(payload.startsAt, tz, { day: "2-digit", month: "2-digit", year: "numeric" });
+    const time = fmt(payload.startsAt, tz, { hour: "2-digit", minute: "2-digit" });
     const link = `${process.env.APP_URL ?? ""}/agendar/${tenant.slug}`;
     return `Olá, ${payload.customerName}! ${principal} 📅 ${date} às ${time} | ${payload.serviceName} | ${tenant.name}. ${final} 🔗 ${link}`;
   }
 
   if (template === "appointment-reminder") {
-    const time = fmt(payload.startsAt!, tz, { hour: "2-digit", minute: "2-digit" });
+    if (!payload.startsAt) {
+      return `Olá, ${payload.customerName}! ${principal} | ${payload.serviceName} | ${tenant.name}. ${final}`;
+    }
+    const time = fmt(payload.startsAt, tz, { hour: "2-digit", minute: "2-digit" });
     return `Olá, ${payload.customerName}! ${principal} Hoje às ${time} | ${payload.serviceName} | ${tenant.name}. ${final}`;
   }
 
