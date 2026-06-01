@@ -52,11 +52,13 @@ export class AppointmentRepository {
     professionalId: string,
     startsAt: Date,
     endsAt: Date,
+    excludeId?: string,
   ) {
     return prisma.appointment.findFirst({
       where: {
         tenantId,
         professionalId,
+        ...(excludeId && { id: { not: excludeId } }),
         status: {
           in: [AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED],
         },
@@ -103,6 +105,30 @@ export class AppointmentRepository {
 
     return prisma.appointment.findFirstOrThrow({
       where: { id: appointmentId, tenantId },
+    });
+  }
+
+  async update(
+    tenantId: string,
+    id: string,
+    data: {
+      startsAt?: Date;
+      endsAt?: Date;
+      professionalId?: string;
+      serviceId?: string;
+    },
+  ) {
+    await prisma.appointment.updateMany({
+      where: { id, tenantId },
+      data,
+    });
+    return prisma.appointment.findFirstOrThrow({
+      where: { id, tenantId },
+      include: {
+        customer: true,
+        professional: true,
+        service: true,
+      },
     });
   }
 }
