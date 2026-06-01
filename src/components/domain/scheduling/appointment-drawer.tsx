@@ -2,6 +2,7 @@
 'use client'
 
 import { toast } from 'sonner'
+import { StickyNote } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -128,11 +129,25 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                 {formatDateTime(appointment.startsAt)}
               </p>
             </div>
+            {appointment.customer.notes && (
+              <>
+                <Separator />
+                <div>
+                  <p className="text-xs font-medium text-slate-400 uppercase">
+                    Observações do cliente
+                  </p>
+                  <div className="mt-1.5 flex items-start gap-1.5">
+                    <StickyNote className="mt-0.5 size-3.5 shrink-0 text-slate-400" />
+                    <p className="text-sm text-slate-600">{appointment.customer.notes}</p>
+                  </div>
+                </div>
+              </>
+            )}
             {appointment.notes && (
               <>
                 <Separator />
                 <div>
-                  <p className="text-xs font-medium text-slate-400 uppercase">Observações</p>
+                  <p className="text-xs font-medium text-slate-400 uppercase">Observações do atendimento</p>
                   <p className="mt-0.5 text-sm text-slate-700">{appointment.notes}</p>
                 </div>
               </>
