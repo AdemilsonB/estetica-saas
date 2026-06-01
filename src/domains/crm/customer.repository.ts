@@ -61,6 +61,7 @@ export class CustomerRepository {
         FROM "Transaction" t
         JOIN "Appointment" a ON a.id = t."appointmentId"
         WHERE t."tenantId" = ${tenantId}
+        AND a."tenantId" = ${tenantId}
         AND t.type = 'INCOME'::"TransactionType"
         AND t."paidAt" >= NOW() - INTERVAL '365 days'
         AND a."customerId" IS NOT NULL
