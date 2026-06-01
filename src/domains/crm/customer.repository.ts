@@ -49,6 +49,13 @@ export class CustomerRepository {
     });
   }
 
+  async findByPhones(tenantId: string, phones: string[]): Promise<Customer[]> {
+    if (phones.length === 0) return [];
+    return prisma.customer.findMany({
+      where: { tenantId, phone: { in: phones } },
+    });
+  }
+
   async create(
     tenantId: string,
     data: Omit<Prisma.CustomerUncheckedCreateInput, "tenantId">,

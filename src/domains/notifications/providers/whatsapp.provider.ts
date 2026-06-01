@@ -1,11 +1,8 @@
 import twilio from "twilio";
-import { NotificationStatus } from "@prisma/client";
 
-import { prisma } from "@/shared/database/prisma";
-import { featureGuard, FEATURES } from "@/domains/billing/feature-guard";
 import { InvalidPhoneError } from "@/shared/errors";
-import { whatsAppQuotaService } from "../quota/whatsapp-quota.service";
-import type { NotificationDraft, NotificationDeliveryResult } from "../types";
+import type { NotificationDraft } from "../types";
+import type { IWhatsAppProvider, SendResult, TenantWhatsAppConfig } from "./whatsapp-provider.interface";
 
 // Fail-fast na inicialização — nunca em build do Next.js
 if (
@@ -25,7 +22,7 @@ if (
   ] as const;
   for (const key of required) {
     if (!process.env[key]) {
-      throw new Error(`[WhatsAppProvider] Env var ${key} não configurada`);
+      throw new Error(`[TwilioProvider] Env var ${key} não configurada`);
     }
   }
 }
@@ -65,10 +62,6 @@ type AppointmentNotificationPayload = {
   status?: string;
 };
 
-type BirthdayNotificationPayload = {
-  customerName: string;
-};
-
 type TemplateConfig = { mensagemPrincipal?: string; mensagemFinal?: string };
 
 function toWhatsAppNumber(raw: string): string {
@@ -86,10 +79,10 @@ function fmt(isoString: string, timezone: string, options: Intl.DateTimeFormatOp
   );
 }
 
-function buildTemplateParams(
+export function buildTwilioTemplateParams(
   template: string,
   payload: AppointmentNotificationPayload,
-  tenant: { name: string; slug: string; timezone: string; whatsappTemplateConfig: unknown },
+  tenant: Pick<TenantWhatsAppConfig, "name" | "slug" | "timezone" | "whatsappTemplateConfig">,
 ): { contentSid: string; contentVariables: Record<string, string> } {
   const configKey = TEMPLATE_TO_CONFIG_KEY[template];
   const rawConfigs = tenant.whatsappTemplateConfig as Record<string, TemplateConfig> | null;
@@ -126,15 +119,13 @@ function buildTemplateParams(
       "6": final,
     };
   } else if (template === "birthday") {
-    const bPayload = payload as unknown as BirthdayNotificationPayload;
     contentVariables = {
-      "1": bPayload.customerName,
+      "1": payload.customerName,
       "2": principal,
       "3": tenant.name,
       "4": final,
     };
   } else {
-    // cancelamento / nao_comparecimento — sem startsAt
     contentVariables = {
       "1": payload.customerName,
       "2": principal,
@@ -166,53 +157,21 @@ async function sendWithRetry(
   throw lastError;
 }
 
-export class WhatsAppProvider {
+export class TwilioProvider implements IWhatsAppProvider {
   private getClient() {
     return twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
   }
 
-  async send(draft: NotificationDraft): Promise<NotificationDeliveryResult> {
-    try {
-      await featureGuard.assertAccess(draft.tenantId, FEATURES.WHATSAPP_BASIC);
-    } catch {
-      return { status: NotificationStatus.FAILED, errorMessage: "Plano não suporta WhatsApp." };
-    }
-
-    const tenant = await prisma.tenant.findFirst({
-      where: { id: draft.tenantId },
-      select: {
-        whatsappEnabled: true,
-        name: true,
-        slug: true,
-        timezone: true,
-        whatsappTemplateConfig: true,
-      },
-    });
-
-    if (!tenant?.whatsappEnabled) {
-      return { status: NotificationStatus.PENDING };
-    }
-
+  async send(draft: NotificationDraft, tenant: TenantWhatsAppConfig): Promise<SendResult> {
     let to: string;
     try {
       to = toWhatsAppNumber(draft.recipient);
     } catch {
-      return {
-        status: NotificationStatus.FAILED,
-        errorMessage: `Telefone inválido: ${draft.recipient}`,
-      };
-    }
-
-    const canSend = await whatsAppQuotaService.checkAndIncrement(draft.tenantId);
-    if (!canSend) {
-      return {
-        status: NotificationStatus.FAILED,
-        errorMessage: "Limite mensal de WhatsApp atingido.",
-      };
+      return { success: false, errorMessage: `Telefone inválido: ${draft.recipient}`, provider: "twilio" };
     }
 
     const payload = draft.payload as AppointmentNotificationPayload;
-    const { contentSid, contentVariables } = buildTemplateParams(draft.template, payload, tenant);
+    const { contentSid, contentVariables } = buildTwilioTemplateParams(draft.template, payload, tenant);
 
     try {
       const client = this.getClient();
@@ -223,15 +182,17 @@ export class WhatsAppProvider {
         contentVariables: JSON.stringify(contentVariables),
         statusCallback: `${process.env.APP_URL}/api/webhooks/twilio/status`,
       });
-      return { status: NotificationStatus.SENT, externalId: message.sid };
+      return { success: true, externalId: message.sid, provider: "twilio" };
     } catch (err) {
-      await whatsAppQuotaService.decrement(draft.tenantId);
       return {
-        status: NotificationStatus.FAILED,
+        success: false,
         errorMessage: err instanceof Error ? err.message : "Erro ao enviar via Twilio.",
+        provider: "twilio",
       };
     }
   }
 }
 
-export const whatsAppProvider = new WhatsAppProvider();
+export const twilioProvider = new TwilioProvider();
+// alias retrocompatível com código existente que já importa whatsAppProvider
+export const whatsAppProvider = twilioProvider;

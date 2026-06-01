@@ -75,6 +75,12 @@ model Tenant {
   reminderWindowStart  Int     @default(7)
   reminderWindowEnd    Int     @default(22)
   businessHours     Json?
+  // Evolution API
+  evolutionInstanceId  String?
+  evolutionConnected   Boolean   @default(false)
+  evolutionStatus      String    @default("DISCONNECTED")
+  evolutionConnectedAt DateTime?
+  evolutionPhone       String?
   createdAt         DateTime          @default(now())
   updatedAt    DateTime         @updatedAt
   users        User[]

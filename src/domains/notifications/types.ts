@@ -16,6 +16,7 @@ export type NotificationDeliveryResult = {
   status: NotificationStatus;
   errorMessage?: string;
   externalId?: string;
+  provider?: string;
 };
 
 export type NotificationLogFilter = {
