@@ -95,6 +95,7 @@ export function registerNotificationSubscriptions() {
       recipient: payload.customerPhone,
       provider: "whatsapp",
       payload: {
+        message: payload.notificationMessage,
         appointmentId: payload.appointmentId,
         customerName: payload.customerName,
         serviceName: payload.serviceName,
