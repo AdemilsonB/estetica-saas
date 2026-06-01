@@ -9,6 +9,9 @@ import { ServiceCatalog } from '@/components/domain/settings/service-catalog'
 import { WhatsAppSettingsForm } from '@/components/domain/settings/whatsapp-settings-form'
 import { NotificationHistory } from '@/components/domain/settings/notification-history'
 import { BrandingForm } from '@/components/domain/settings/branding-form'
+import { DiscountTypesManager } from '@/components/domain/settings/discount-types-manager'
+import { CommissionsGrid } from '@/components/domain/settings/commissions-grid'
+import { CardFeesForm } from '@/components/domain/settings/card-fees-form'
 import { usePermissions } from '@/hooks/use-permissions'
 import { Loader2 } from 'lucide-react'
 
@@ -67,12 +70,13 @@ export default function ConfiguracoesPage() {
       </div>
 
       <Tabs defaultValue="negocio" onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="negocio">Negócio</TabsTrigger>
           <TabsTrigger value="horarios">Horários</TabsTrigger>
           <TabsTrigger value="servicos">Serviços</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="layout">Layout</TabsTrigger>
+          <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
         </TabsList>
 
         <TabsContent value="negocio" className="mt-6">
@@ -130,6 +134,19 @@ export default function ConfiguracoesPage() {
             {brandingConfig && !brandingLoading && (
               <BrandingForm initial={brandingConfig} />
             )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="financeiro" className="mt-6">
+          <div className="space-y-8 rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">
+            <h2 className="text-base font-semibold text-slate-950">Configurações financeiras</h2>
+            <DiscountTypesManager />
+            <div className="border-t border-slate-100 pt-6">
+              <CommissionsGrid />
+            </div>
+            <div className="border-t border-slate-100 pt-6">
+              <CardFeesForm />
+            </div>
           </div>
         </TabsContent>
       </Tabs>
