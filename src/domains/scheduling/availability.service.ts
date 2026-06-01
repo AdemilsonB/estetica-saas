@@ -36,6 +36,25 @@ export class AvailabilityService {
     }
   }
 
+  async ensureSlotAvailableExcluding(
+    tenantId: string,
+    professionalId: string,
+    startsAt: Date,
+    endsAt: Date,
+    excludeAppointmentId: string,
+  ) {
+    const overlapping = await appointmentRepository.findOverlappingForProfessional(
+      tenantId,
+      professionalId,
+      startsAt,
+      endsAt,
+      excludeAppointmentId,
+    );
+    if (overlapping) {
+      throw new SlotUnavailableError();
+    }
+  }
+
   async getAvailableSlots(
     tenantId: string,
     professionalId: string,
