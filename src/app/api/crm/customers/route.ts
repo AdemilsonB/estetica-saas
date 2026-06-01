@@ -19,6 +19,11 @@ export async function GET(request: Request) {
       search: searchParams.get("search") ?? undefined,
       page: searchParams.get("page") ?? undefined,
       pageSize: searchParams.get("pageSize") ?? undefined,
+      onlyVip: searchParams.get("onlyVip") ?? undefined,
+      birthdayMonth: searchParams.get("birthdayMonth") ?? undefined,
+      noAppointmentDays: searchParams.get("noAppointmentDays") ?? undefined,
+      minAvgTicket: searchParams.get("minAvgTicket") ?? undefined,
+      hasPendingDebt: searchParams.get("hasPendingDebt") ?? undefined,
     });
 
     const result = await customerService.list(session.tenantId, filters);

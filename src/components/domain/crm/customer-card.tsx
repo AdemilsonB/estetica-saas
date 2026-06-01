@@ -1,8 +1,7 @@
-// src/components/domain/crm/customer-card.tsx
 'use client'
 
 import Link from 'next/link'
-import { Phone, Mail, Tag } from 'lucide-react'
+import { Phone, Mail, Tag, Crown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { Customer } from '@/hooks/crm/use-customers'
 
@@ -22,9 +21,17 @@ export function CustomerCard({ customer }: Props) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-slate-950">
-            {customer.name}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-semibold text-slate-950">
+              {customer.name}
+            </p>
+            {customer.isVip && (
+              <Badge className="shrink-0 gap-1 rounded-full bg-amber-100 px-1.5 py-0 text-[10px] text-amber-700 border border-amber-200">
+                <Crown className="size-2.5" />
+                VIP
+              </Badge>
+            )}
+          </div>
 
           <div className="mt-1 flex flex-col gap-0.5">
             {customer.phone && (

@@ -1,4 +1,3 @@
-// src/components/domain/crm/customer-list.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -8,7 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CustomerCard } from './customer-card'
 import { CreateCustomerModal } from './create-customer-modal'
-import { useCustomers } from '@/hooks/crm/use-customers'
+import { FilterBar } from './filter-bar'
+import { useCustomers, type CustomerListParams } from '@/hooks/crm/use-customers'
 import { usePermissions } from '@/hooks/use-permissions'
 
 function useDebounce(value: string, delay: number) {
@@ -24,16 +24,29 @@ export function CustomerList() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [createOpen, setCreateOpen] = useState(false)
+  const [advancedFilters, setAdvancedFilters] = useState<CustomerListParams>({})
   const { can } = usePermissions()
 
   const debouncedSearch = useDebounce(search, 300)
-  const { data, isLoading, isError, refetch } = useCustomers({
+
+  const params: CustomerListParams = {
     search: debouncedSearch || undefined,
     page,
     pageSize: 20,
-  })
+    ...advancedFilters,
+  }
 
+  const { data, isLoading, isError, refetch } = useCustomers(params)
   const totalPages = data ? Math.ceil(data.total / data.pageSize) : 1
+
+  const activeFilterCount = Object.values(advancedFilters).filter(
+    (v) => v != null && v !== false,
+  ).length
+
+  function handleFilterChange(filters: CustomerListParams) {
+    setAdvancedFilters(filters)
+    setPage(1)
+  }
 
   return (
     <div className="space-y-4">
@@ -62,6 +75,9 @@ export function CustomerList() {
         )}
       </div>
 
+      {/* FilterBar */}
+      <FilterBar filters={advancedFilters} onChange={handleFilterChange} />
+
       {/* Lista */}
       {isLoading ? (
         <div className="space-y-3">
@@ -80,11 +96,11 @@ export function CustomerList() {
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/60 py-16 text-center">
           <Users className="size-10 text-slate-300" />
           <p className="mt-4 text-sm font-medium text-slate-500">
-            {debouncedSearch
+            {debouncedSearch || activeFilterCount > 0
               ? 'Nenhum cliente encontrado para esta busca'
               : 'Nenhum cliente cadastrado ainda'}
           </p>
-          {!debouncedSearch && can('customers:create') && (
+          {!debouncedSearch && activeFilterCount === 0 && can('customers:create') && (
             <Button
               variant="outline"
               size="sm"
@@ -104,7 +120,6 @@ export function CustomerList() {
             ))}
           </div>
 
-          {/* Paginação */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-2">
               <Button
