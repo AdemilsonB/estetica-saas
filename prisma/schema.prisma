@@ -118,6 +118,7 @@ model Tenant {
   invites             TenantInvite[]
   discountTypes       DiscountType[]
   recurringExpenses   RecurringExpense[]
+  serviceCommissions  ServiceCommission[]
 }
 
 model BrandingConfig {
@@ -269,6 +270,7 @@ model Appointment {
   professional    User              @relation("ProfessionalAppointments", fields: [professionalId], references: [id], onDelete: Restrict)
   service         Service           @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   createdByUser   User              @relation("AppointmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  discountType    DiscountType?     @relation(fields: [discountTypeId], references: [id], onDelete: SetNull)
   transactions    Transaction[]
 
   @@index([tenantId])
@@ -345,6 +347,7 @@ model DiscountType {
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
   tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
 
   @@index([tenantId])
 }
@@ -357,6 +360,8 @@ model ServiceCommission {
   rate           Decimal  @db.Decimal(5,2)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, serviceId, professionalId])
   @@index([tenantId])
