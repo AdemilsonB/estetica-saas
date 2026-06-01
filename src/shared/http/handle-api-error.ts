@@ -32,6 +32,7 @@ export function handleApiError(error: unknown) {
     );
   }
 
+  console.error("[api] Erro interno não tratado:", error);
   return Response.json(
     {
       error: {
