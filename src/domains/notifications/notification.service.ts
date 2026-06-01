@@ -3,14 +3,14 @@ import { NotificationChannel, NotificationStatus } from "@prisma/client";
 import { eventBus } from "@/shared/events/event-bus";
 
 import { notificationRepository } from "./notification.repository";
-import { whatsAppProvider } from "./providers/whatsapp.provider";
-import type { NotificationDraft } from "./types";
+import { whatsAppGateway } from "./providers/whatsapp.gateway";
+import type { NotificationDraft, NotificationDeliveryResult } from "./types";
 
 export class NotificationService {
   async logAndDispatch(draft: NotificationDraft) {
-    const delivery =
+    const delivery: NotificationDeliveryResult =
       draft.channel === NotificationChannel.WHATSAPP
-        ? await whatsAppProvider.send(draft)
+        ? await whatsAppGateway.send(draft)
         : { status: NotificationStatus.PENDING, errorMessage: "Canal nao suportado." };
 
     const notification = await notificationRepository.createLog(draft.tenantId, {
@@ -19,7 +19,7 @@ export class NotificationService {
       channel: draft.channel,
       template: draft.template,
       recipient: draft.recipient,
-      provider: draft.provider,
+      provider: delivery.provider ?? draft.provider,
       status: delivery.status,
       payload: draft.payload,
       errorMessage: delivery.errorMessage,
