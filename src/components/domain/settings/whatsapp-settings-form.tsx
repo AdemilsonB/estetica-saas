@@ -19,6 +19,8 @@ import {
 } from "@/hooks/settings/use-notification-settings";
 import { WhatsAppUsageCard } from "./whatsapp-usage-card";
 import { WhatsAppTemplateEditor } from "./whatsapp-template-editor";
+import { EvolutionConnection } from "./evolution-connection";
+import { EvolutionContactsImport } from "./evolution-contacts-import";
 
 const TIMEZONES = [
   { value: "America/Sao_Paulo",   label: "Brasília (UTC-3)" },
@@ -53,6 +55,7 @@ export function WhatsAppSettingsForm() {
   const { mutate, isPending } = useUpdateNotificationSettings();
   const { mutate: sendBulk, isPending: isSending, data: bulkResult } = useBulkReminder();
   const [bulkSent, setBulkSent] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   if (isLoading) {
     return <div className="h-48 animate-pulse rounded-2xl bg-slate-100" />;
@@ -112,6 +115,9 @@ export function WhatsAppSettingsForm() {
       {isEnabled && (
         <>
           <WhatsAppUsageCard />
+
+          {/* Conexão WhatsApp próprio via Evolution API */}
+          <EvolutionConnection onImportContacts={() => setImportModalOpen(true)} />
 
           {/* Lembrete bulk */}
           <div className="flex items-center justify-between rounded-2xl border border-white/80 bg-white/85 px-5 py-4 shadow-sm">
@@ -228,6 +234,10 @@ export function WhatsAppSettingsForm() {
           Usado para formatar datas e horários nas mensagens enviadas ao cliente.
         </p>
       </div>
+      <EvolutionContactsImport
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+      />
     </div>
   );
 }
