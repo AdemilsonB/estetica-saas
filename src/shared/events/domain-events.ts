@@ -102,4 +102,30 @@ export type DomainEvent =
   | {
       type: "tenant.branding.updated";
       payload: { tenantId: string; changes: Partial<BrandingConfigUpdate> };
+    }
+  | {
+      type: "scheduling.appointment.paid";
+      payload: {
+        tenantId: string;
+        appointmentId: string;
+        serviceId: string;
+        professionalId: string;
+        paymentMethod: import("@prisma/client").PaymentMethod;
+        grossAmount: number;
+        discountAmount: number;
+        discountTypeId: string | null;
+        tipAmount: number;
+        cardFeeAmount: number;
+        netAmount: number;
+        commissionAmount: number;
+      };
+    }
+  | {
+      type: "scheduling.appointment.courtesy";
+      payload: {
+        tenantId: string;
+        appointmentId: string;
+        serviceId: string;
+        grossAmount: number;
+      };
     };
