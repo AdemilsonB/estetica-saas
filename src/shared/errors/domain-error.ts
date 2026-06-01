@@ -56,6 +56,16 @@ export class AppointmentNotFoundError extends DomainError {
   }
 }
 
+export class AppointmentAlreadyCancelledError extends DomainError {
+  constructor() {
+    super(
+      "Agendamento não pode ser remarcado com o status atual.",
+      "APPOINTMENT_NOT_RESCHEDULABLE",
+      422,
+    );
+  }
+}
+
 export class ServiceNotFoundError extends DomainError {
   constructor() {
     super("Servico nao encontrado.", "SERVICE_NOT_FOUND", 404);

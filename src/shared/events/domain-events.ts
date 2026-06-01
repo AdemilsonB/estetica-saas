@@ -32,6 +32,20 @@ type AppointmentEventPayload = {
   };
 };
 
+type RescheduledEventPayload = {
+  tenantId: string;
+  appointmentId: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string | null;
+  serviceName: string;
+  professionalName: string;
+  oldStartsAt: Date;
+  newStartsAt: Date;
+  newEndsAt: Date;
+  notificationMessage: string;
+};
+
 export type DomainEvent =
   | {
       type: "crm.customer.created";
@@ -60,6 +74,10 @@ export type DomainEvent =
   | {
       type: "scheduling.appointment.no_show";
       payload: AppointmentEventPayload;
+    }
+  | {
+      type: "scheduling.appointment.rescheduled";
+      payload: RescheduledEventPayload;
     }
   | {
       type: "financial.transaction.created";
