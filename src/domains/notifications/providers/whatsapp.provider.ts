@@ -62,10 +62,6 @@ type AppointmentNotificationPayload = {
   status?: string;
 };
 
-type BirthdayNotificationPayload = {
-  customerName: string;
-};
-
 type TemplateConfig = { mensagemPrincipal?: string; mensagemFinal?: string };
 
 function toWhatsAppNumber(raw: string): string {
@@ -123,9 +119,8 @@ export function buildTwilioTemplateParams(
       "6": final,
     };
   } else if (template === "birthday") {
-    const bPayload = payload as unknown as BirthdayNotificationPayload;
     contentVariables = {
-      "1": bPayload.customerName,
+      "1": payload.customerName,
       "2": principal,
       "3": tenant.name,
       "4": final,

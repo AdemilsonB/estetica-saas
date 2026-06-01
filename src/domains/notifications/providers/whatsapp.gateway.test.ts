@@ -23,11 +23,13 @@ vi.mock("./evolution.provider", () => ({
   evolutionProvider: { send: vi.fn() },
 }));
 
+const mockEnv = {
+  WHATSAPP_PROVIDER: "twilio" as "evolution" | "twilio",
+  EVOLUTION_API_URL: undefined as string | undefined,
+};
+
 vi.mock("@/shared/config/env", () => ({
-  env: {
-    WHATSAPP_PROVIDER: "twilio",
-    EVOLUTION_API_URL: undefined,
-  },
+  get env() { return mockEnv; },
 }));
 
 import { featureGuard } from "@/domains/billing/feature-guard";
@@ -114,5 +116,32 @@ describe("WhatsAppGateway", () => {
 
     expect(result.status).toBe(NotificationStatus.FAILED);
     expect(whatsAppQuotaService.decrement).toHaveBeenCalledWith("tenant-1");
+  });
+
+  it("usa fallback Twilio quando Evolution falha e registra provider evolution→twilio", async () => {
+    mockEnv.WHATSAPP_PROVIDER = "evolution";
+    mockEnv.EVOLUTION_API_URL = "https://evolution.example.com";
+
+    const tenant = {
+      ...mockTenant,
+      evolutionConnected: true,
+      evolutionStatus: "CONNECTED",
+      evolutionInstanceId: "tenant-1",
+    };
+    prismaMock.tenant.findFirst.mockResolvedValue(tenant as never);
+
+    const { evolutionProvider } = await import("./evolution.provider");
+    vi.mocked(evolutionProvider.send).mockResolvedValue({ success: false, errorMessage: "Timeout", provider: "evolution" });
+    vi.mocked(twilioProvider.send).mockResolvedValue({ success: true, externalId: "SM-fallback", provider: "twilio" });
+
+    const result = await gateway.send(mockDraft);
+
+    expect(result.status).toBe(NotificationStatus.SENT);
+    expect(result.provider).toBe("evolution→twilio");
+    expect(result.externalId).toBe("SM-fallback");
+
+    // Restaurar
+    mockEnv.WHATSAPP_PROVIDER = "twilio";
+    mockEnv.EVOLUTION_API_URL = undefined;
   });
 });

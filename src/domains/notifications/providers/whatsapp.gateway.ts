@@ -5,13 +5,9 @@ import { featureGuard, FEATURES } from "@/domains/billing/feature-guard";
 import { env } from "@/shared/config/env";
 import { whatsAppQuotaService } from "../quota/whatsapp-quota.service";
 import { twilioProvider } from "./whatsapp.provider";
+import { evolutionProvider } from "./evolution.provider";
 import type { NotificationDraft, NotificationDeliveryResult } from "../types";
 import type { TenantWhatsAppConfig } from "./whatsapp-provider.interface";
-
-async function getEvolutionProvider() {
-  const mod = await import("./evolution.provider");
-  return mod.evolutionProvider;
-}
 
 export class WhatsAppGateway {
   async send(draft: NotificationDraft): Promise<NotificationDeliveryResult> {
@@ -55,12 +51,10 @@ export class WhatsAppGateway {
       tenantConfig.evolutionStatus === "CONNECTED";
 
     if (useEvolution) {
-      const evolution = await getEvolutionProvider();
-      const result = await evolution.send(draft, tenantConfig);
+      const result = await evolutionProvider.send(draft, tenantConfig);
       if (result.success) {
         return { status: NotificationStatus.SENT, externalId: result.externalId, provider: "evolution" };
       }
-      console.warn(`[WhatsAppGateway] Evolution falhou para tenant ${draft.tenantId}, usando Twilio como fallback`);
     }
 
     const twilioResult = await twilioProvider.send(draft, tenantConfig);
