@@ -221,6 +221,8 @@ model Customer {
   consentDate   DateTime?
   consentOrigin String?
   birthDate    DateTime?
+  isVip        Boolean   @default(false)
+  vipUpdatedAt DateTime?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
