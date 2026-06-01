@@ -8,6 +8,8 @@ export type AppointmentStatus =
   | 'CANCELLED'
   | 'NO_SHOW'
 
+export type AppointmentPaymentStatus = 'PENDING' | 'PAID' | 'COURTESY' | 'DEBT'
+
 export type Appointment = {
   id: string
   customerId: string
@@ -16,6 +18,7 @@ export type Appointment = {
   startsAt: string
   endsAt: string
   status: AppointmentStatus
+  paymentStatus: AppointmentPaymentStatus
   notes: string | null
   price: string
   customer: { id: string; name: string; phone: string | null; notes: string | null }
