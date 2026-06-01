@@ -18,7 +18,7 @@ export type Appointment = {
   status: AppointmentStatus
   notes: string | null
   price: string
-  customer: { id: string; name: string; phone: string | null }
+  customer: { id: string; name: string; phone: string | null; notes: string | null }
   professional: { id: string; name: string }
   service: { id: string; name: string; duration: number }
 }
@@ -30,6 +30,14 @@ export type CreateAppointmentInput = {
   startsAt: string
   notes?: string
   allowOverlap?: boolean
+}
+
+export type UpdateAppointmentInput = {
+  startsAt?: string
+  endsAt?: string
+  professionalId?: string
+  serviceId?: string
+  notificationMessage?: string
 }
 
 type ListParams = {
@@ -58,6 +66,22 @@ async function createAppointment(input: CreateAppointmentInput): Promise<Appoint
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err.message ?? 'Falha ao criar agendamento')
+  }
+  return res.json()
+}
+
+async function rescheduleAppointment(
+  id: string,
+  data: UpdateAppointmentInput,
+): Promise<Appointment> {
+  const res = await fetch(`/api/scheduling/appointments/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.message ?? 'Falha ao remarcar agendamento')
   }
   return res.json()
 }
@@ -101,6 +125,17 @@ export function useUpdateAppointmentStatus() {
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: AppointmentStatus }) =>
       updateAppointmentStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] })
+    },
+  })
+}
+
+export function useRescheduleAppointment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string } & UpdateAppointmentInput) =>
+      rescheduleAppointment(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] })
     },
