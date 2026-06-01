@@ -26,7 +26,9 @@ type AppointmentPayload = {
   customerName: string;
   serviceName: string;
   startsAt?: string;
+  newStartsAt?: string;
   status?: string;
+  message?: string;
 };
 
 type TemplateConfig = { mensagemPrincipal?: string; mensagemFinal?: string };
@@ -77,6 +79,16 @@ export function buildEvolutionMessage(
 
   if (template === "birthday") {
     return `Olá, ${payload.customerName}! ${principal} De ${tenant.name}. ${final}`;
+  }
+
+  if (template === "appointment-rescheduled") {
+    if (payload.message) return payload.message;
+    if (payload.newStartsAt) {
+      const date = fmt(payload.newStartsAt, tz, { day: "2-digit", month: "2-digit", year: "numeric" });
+      const time = fmt(payload.newStartsAt, tz, { hour: "2-digit", minute: "2-digit" });
+      return `Olá, ${payload.customerName}! Seu agendamento foi remarcado para ${date} às ${time} | ${payload.serviceName} | ${tenant.name}.`;
+    }
+    return `Olá, ${payload.customerName}! Seu agendamento foi remarcado. | ${payload.serviceName} | ${tenant.name}.`;
   }
 
   // cancelamento / nao_comparecimento
