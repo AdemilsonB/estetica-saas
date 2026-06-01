@@ -16,8 +16,12 @@ export function initializeDomainRuntime() {
     return;
   }
 
-  registerFinancialSubscriptions();
-  registerNotificationSubscriptions();
+  try {
+    registerFinancialSubscriptions();
+    registerNotificationSubscriptions();
+  } catch (err) {
+    console.error("[runtime] Falha ao registrar subscriptions:", err);
+  }
 
   startPgBoss().then(async (boss) => {
     boss.work(APPOINTMENT_REMINDER_JOB, handleAppointmentReminder);
