@@ -7,6 +7,7 @@ import { prisma } from "@/shared/database/prisma";
 import { eventBus } from "@/shared/events/event-bus";
 import {
   AppointmentNotFoundError,
+  AppointmentAlreadyCancelledError,
   CustomerNotFoundError,
   ProfessionalNotFoundError,
   ServiceNotFoundError,
@@ -24,6 +25,7 @@ import { catalogServiceRepository } from "./service.repository";
 import type {
   CreateAppointmentInput,
   CreateServiceInput,
+  UpdateAppointmentInput,
   UpdateAppointmentStatusInput,
   UpdateServiceInput,
 } from "./types";
@@ -155,6 +157,69 @@ export class SchedulingService {
     }
 
     return appointment;
+  }
+
+  async updateAppointment(
+    tenantId: string,
+    appointmentId: string,
+    input: UpdateAppointmentInput,
+  ) {
+    const current = await appointmentRepository.findById(tenantId, appointmentId);
+    if (!current) throw new AppointmentNotFoundError();
+
+    const nonReschedulable: AppointmentStatus[] = [
+      AppointmentStatus.CANCELLED,
+      AppointmentStatus.COMPLETED,
+      AppointmentStatus.NO_SHOW,
+    ];
+    if (nonReschedulable.includes(current.status)) {
+      throw new AppointmentAlreadyCancelledError();
+    }
+
+    const newStartsAt = input.startsAt ? new Date(input.startsAt) : current.startsAt;
+    const newEndsAt = input.endsAt ? new Date(input.endsAt) : current.endsAt;
+    const newProfessionalId = input.professionalId ?? current.professionalId;
+
+    const timeOrProfessionalChanged =
+      input.startsAt !== undefined ||
+      input.endsAt !== undefined ||
+      input.professionalId !== undefined;
+
+    if (timeOrProfessionalChanged) {
+      await availabilityService.ensureSlotAvailableExcluding(
+        tenantId,
+        newProfessionalId,
+        newStartsAt,
+        newEndsAt,
+        appointmentId,
+      );
+    }
+
+    const updated = await appointmentRepository.update(tenantId, appointmentId, {
+      startsAt: input.startsAt ? new Date(input.startsAt) : undefined,
+      endsAt: input.endsAt ? new Date(input.endsAt) : undefined,
+      professionalId: input.professionalId,
+      serviceId: input.serviceId,
+    });
+
+    eventBus.publish({
+      type: "scheduling.appointment.rescheduled",
+      payload: {
+        tenantId,
+        appointmentId: updated.id,
+        customerId: updated.customerId,
+        customerName: current.customer.name,
+        customerPhone: current.customer.phone,
+        serviceName: current.service.name,
+        professionalName: updated.professional.name,
+        oldStartsAt: current.startsAt,
+        newStartsAt: updated.startsAt,
+        newEndsAt: updated.endsAt,
+        notificationMessage: input.notificationMessage ?? "",
+      },
+    });
+
+    return updated;
   }
 
   async updateService(tenantId: string, serviceId: string, input: UpdateServiceInput) {
