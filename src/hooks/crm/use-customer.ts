@@ -14,6 +14,7 @@ export type CustomerAppointment = {
 
 export type CustomerProfile = Customer & {
   appointments: CustomerAppointment[]
+  noShowCount: number
 }
 
 async function fetchCustomerProfile(id: string): Promise<CustomerProfile> {

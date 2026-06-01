@@ -1,12 +1,15 @@
 // src/app/(app)/clientes/[id]/page.tsx
 'use client'
 
-import { use } from 'react'
+import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import { CustomerProfileHeader } from '@/components/domain/crm/customer-profile-header'
 import { AppointmentHistory } from '@/components/domain/crm/appointment-history'
 import { useCustomer } from '@/hooks/crm/use-customer'
@@ -19,6 +22,28 @@ export default function CustomerProfilePage({
   const { id } = use(params)
   const router = useRouter()
   const { data: customer, isLoading, isError, refetch } = useCustomer(id)
+  const [notes, setNotes] = useState('')
+  const [savingNotes, setSavingNotes] = useState(false)
+
+  useEffect(() => {
+    if (customer) setNotes(customer.notes ?? '')
+  }, [customer])
+
+  async function handleSaveNotes() {
+    setSavingNotes(true)
+    try {
+      await fetch(`/api/crm/customers/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes }),
+      })
+      toast.success('Observações salvas')
+    } catch {
+      toast.error('Erro ao salvar observações')
+    } finally {
+      setSavingNotes(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -62,9 +87,37 @@ export default function CustomerProfilePage({
           <TabsTrigger value="historico" className="flex-1">
             Histórico ({customer.appointments.length})
           </TabsTrigger>
+          <TabsTrigger value="observacoes" className="flex-1">
+            Observações
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="historico" className="mt-4">
           <AppointmentHistory appointments={customer.appointments} />
+        </TabsContent>
+        <TabsContent value="observacoes" className="mt-4">
+          <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+            <Label htmlFor="customer-notes" className="text-sm font-medium text-slate-700">
+              Observações do cliente
+            </Label>
+            <Textarea
+              id="customer-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Alergias, preferências, histórico relevante..."
+              className="min-h-[120px] resize-none"
+            />
+            <p className="text-xs text-slate-400">
+              Visível no card de agendamento ao atender este cliente.
+            </p>
+            <Button
+              onClick={handleSaveNotes}
+              disabled={savingNotes}
+              className="bg-slate-950 text-white hover:bg-slate-800"
+              size="sm"
+            >
+              {savingNotes ? 'Salvando...' : 'Salvar observações'}
+            </Button>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

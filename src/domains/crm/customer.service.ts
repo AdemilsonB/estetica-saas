@@ -67,9 +67,14 @@ export class CustomerService {
   }
 
   async getProfile(tenantId: string, customerId: string) {
-    const profile = await customerRepository.findWithAppointments(tenantId, customerId);
+    const profile = await customerRepository.findByIdWithStats(tenantId, customerId);
     if (!profile) throw new CustomerNotFoundError();
-    return profile;
+
+    const { _count, ...rest } = profile;
+    return {
+      ...rest,
+      noShowCount: _count.appointments,
+    };
   }
 }
 

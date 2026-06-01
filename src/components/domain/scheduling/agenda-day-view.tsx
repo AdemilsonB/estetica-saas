@@ -9,6 +9,7 @@ import { AppointmentCard } from './appointment-card'
 import { AppointmentDrawer } from './appointment-drawer'
 import { CreateAppointmentModal } from './create-appointment-modal'
 import { RegisterPaymentModal } from '@/components/domain/financial/register-payment-modal'
+import { RescheduleModal } from './reschedule-modal'
 import { AgendaWeekStrip } from './agenda-week-strip'
 import { useAppointments } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
@@ -88,6 +89,9 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [paymentAppointment, setPaymentAppointment] = useState<Appointment | null>(null)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [reschedulingAppointment, setReschedulingAppointment] =
+    useState<Appointment | null>(null)
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false)
   const { can } = usePermissions()
   const { data: currentUser } = useCurrentUser()
 
@@ -135,6 +139,11 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
   function handleCardClick(appt: Appointment) {
     setSelectedAppointment(appt)
     setDrawerOpen(true)
+  }
+
+  function handleReschedule(appt: Appointment) {
+    setReschedulingAppointment(appt)
+    setRescheduleModalOpen(true)
   }
 
   return (
@@ -243,6 +252,7 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
                     key={appt.id}
                     appointment={appt}
                     onClick={handleCardClick}
+                    onReschedule={handleReschedule}
                   />
                 ))}
               </div>
@@ -266,6 +276,7 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
                     key={appt.id}
                     appointment={appt}
                     onClick={handleCardClick}
+                    onReschedule={handleReschedule}
                   />
                 ))}
               </div>
@@ -298,6 +309,15 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
         onClose={() => {
           setPaymentModalOpen(false)
           setPaymentAppointment(null)
+        }}
+      />
+
+      <RescheduleModal
+        appointment={reschedulingAppointment}
+        open={rescheduleModalOpen}
+        onClose={() => {
+          setRescheduleModalOpen(false)
+          setReschedulingAppointment(null)
         }}
       />
     </div>

@@ -59,7 +59,9 @@ type AppointmentNotificationPayload = {
   customerName: string;
   serviceName: string;
   startsAt?: string;
+  newStartsAt?: string;
   status?: string;
+  message?: string;
 };
 
 type TemplateConfig = { mensagemPrincipal?: string; mensagemFinal?: string };
@@ -79,11 +81,30 @@ function fmt(isoString: string, timezone: string, options: Intl.DateTimeFormatOp
   );
 }
 
+type TwilioParams =
+  | { contentSid: string; contentVariables: Record<string, string>; body?: never }
+  | { body: string; contentSid?: never; contentVariables?: never };
+
 export function buildTwilioTemplateParams(
   template: string,
   payload: AppointmentNotificationPayload,
   tenant: Pick<TenantWhatsAppConfig, "name" | "slug" | "timezone" | "whatsappTemplateConfig">,
-): { contentSid: string; contentVariables: Record<string, string> } {
+): TwilioParams {
+  if (template === "appointment-rescheduled") {
+    const tz = tenant.timezone;
+    if (payload.message) return { body: payload.message };
+    if (payload.newStartsAt) {
+      const date = fmt(payload.newStartsAt, tz, { day: "2-digit", month: "2-digit", year: "numeric" });
+      const time = fmt(payload.newStartsAt, tz, { hour: "2-digit", minute: "2-digit" });
+      return {
+        body: `Olá, ${payload.customerName}! Seu agendamento foi remarcado para ${date} às ${time} | ${payload.serviceName} | ${tenant.name}.`,
+      };
+    }
+    return {
+      body: `Olá, ${payload.customerName}! Seu agendamento foi remarcado. | ${payload.serviceName} | ${tenant.name}.`,
+    };
+  }
+
   const configKey = TEMPLATE_TO_CONFIG_KEY[template];
   const rawConfigs = tenant.whatsappTemplateConfig as Record<string, TemplateConfig> | null;
   const tenantConfig = rawConfigs?.[configKey] ?? {};
@@ -171,17 +192,25 @@ export class TwilioProvider implements IWhatsAppProvider {
     }
 
     const payload = draft.payload as AppointmentNotificationPayload;
-    const { contentSid, contentVariables } = buildTwilioTemplateParams(draft.template, payload, tenant);
+    const params = buildTwilioTemplateParams(draft.template, payload, tenant);
 
     try {
       const client = this.getClient();
-      const message = await sendWithRetry(client, {
-        from: process.env.TWILIO_WHATSAPP_FROM,
-        to,
-        contentSid,
-        contentVariables: JSON.stringify(contentVariables),
-        statusCallback: `${process.env.APP_URL}/api/webhooks/twilio/status`,
-      });
+      const messageParams = params.body
+        ? {
+            from: process.env.TWILIO_WHATSAPP_FROM,
+            to,
+            body: params.body,
+            statusCallback: `${process.env.APP_URL}/api/webhooks/twilio/status`,
+          }
+        : {
+            from: process.env.TWILIO_WHATSAPP_FROM,
+            to,
+            contentSid: params.contentSid,
+            contentVariables: JSON.stringify(params.contentVariables),
+            statusCallback: `${process.env.APP_URL}/api/webhooks/twilio/status`,
+          };
+      const message = await sendWithRetry(client, messageParams);
       return { success: true, externalId: message.sid, provider: "twilio" };
     } catch (err) {
       return {

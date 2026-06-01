@@ -84,4 +84,23 @@ export function registerNotificationSubscriptions() {
       },
     });
   });
+
+  eventBus.subscribe("scheduling.appointment.rescheduled", async (payload) => {
+    if (!payload.customerPhone) return;
+    await notificationService.logAndDispatch({
+      tenantId: payload.tenantId,
+      appointmentId: payload.appointmentId,
+      channel: NotificationChannel.WHATSAPP,
+      template: "appointment-rescheduled",
+      recipient: payload.customerPhone,
+      provider: "whatsapp",
+      payload: {
+        message: payload.notificationMessage,
+        appointmentId: payload.appointmentId,
+        customerName: payload.customerName,
+        serviceName: payload.serviceName,
+        newStartsAt: payload.newStartsAt.toISOString(),
+      },
+    });
+  });
 }

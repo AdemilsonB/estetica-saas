@@ -1,7 +1,7 @@
 // src/components/domain/crm/customer-profile-header.tsx
 'use client'
 
-import { Phone, Mail, Tag, Calendar } from 'lucide-react'
+import { Phone, Mail, Tag, Calendar, AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { CustomerProfile } from '@/hooks/crm/use-customer'
 
@@ -20,7 +20,18 @@ export function CustomerProfileHeader({ customer }: Props) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <h2 className="text-xl font-semibold text-slate-950">{customer.name}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-xl font-semibold text-slate-950">{customer.name}</h2>
+            {customer.noShowCount > 0 && (
+              <div
+                className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 border border-amber-200"
+                title={`Este cliente não compareceu ${customer.noShowCount} ${customer.noShowCount === 1 ? 'vez' : 'vezes'}`}
+              >
+                <AlertTriangle className="size-3.5" />
+                {customer.noShowCount} não comparecimento{customer.noShowCount > 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
 
           <div className="mt-2 space-y-1">
             {customer.phone && (

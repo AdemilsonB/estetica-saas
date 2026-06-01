@@ -43,3 +43,15 @@ export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;
 export type UpdateAppointmentStatusInput = z.infer<
   typeof updateAppointmentStatusSchema
 >;
+
+export const updateAppointmentSchema = z
+  .object({
+    startsAt: z.string().datetime().optional(),
+    endsAt: z.string().datetime().optional(),
+    professionalId: z.string().uuid().optional(),
+    serviceId: z.string().cuid().optional(),
+    notificationMessage: z.string().min(1).max(1000).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, "Informe ao menos um campo para atualizar.");
+
+export type UpdateAppointmentInput = z.infer<typeof updateAppointmentSchema>;
