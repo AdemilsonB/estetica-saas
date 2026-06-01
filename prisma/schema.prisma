@@ -44,6 +44,31 @@ enum InviteStatus {
   ACCEPTED
 }
 
+enum AppointmentPaymentStatus {
+  PENDING
+  PAID
+  COURTESY
+  DEBT
+}
+
+enum PaymentMethod {
+  CASH
+  PIX
+  DEBIT_CARD
+  CREDIT_CARD
+  TRANSFER
+}
+
+enum DiscountApplyType {
+  PERCENTAGE
+  FIXED_VALUE
+}
+
+enum RecurrenceType {
+  MONTHLY
+  WEEKLY
+}
+
 enum PlanName {
   FREE
   STARTER
@@ -71,6 +96,7 @@ model Tenant {
   whatsappEnabled       Boolean           @default(false)
   timezone              String            @default("America/Sao_Paulo")
   whatsappTemplateConfig Json?
+  cardFeeConfig          Json?
   reminderLeadHours    Int     @default(24)
   reminderWindowStart  Int     @default(7)
   reminderWindowEnd    Int     @default(22)
@@ -88,8 +114,11 @@ model Tenant {
   services     Service[]
   appointments Appointment[]
   transactions Transaction[]
-  notifications NotificationLog[]
-  invites      TenantInvite[]
+  notifications       NotificationLog[]
+  invites             TenantInvite[]
+  discountTypes       DiscountType[]
+  recurringExpenses   RecurringExpense[]
+  serviceCommissions  ServiceCommission[]
 }
 
 model BrandingConfig {
@@ -228,6 +257,10 @@ model Appointment {
   status          AppointmentStatus @default(SCHEDULED)
   notes           String?
   allowOverlap    Boolean           @default(false)
+  paymentStatus   AppointmentPaymentStatus @default(PENDING)
+  paymentMethod   PaymentMethod?
+  discountTypeId  String?
+  discountValue   Decimal?          @db.Decimal(10,2)
   price           Decimal           @db.Decimal(10, 2)
   createdByUserId String
   createdAt       DateTime          @default(now())
@@ -237,6 +270,7 @@ model Appointment {
   professional    User              @relation("ProfessionalAppointments", fields: [professionalId], references: [id], onDelete: Restrict)
   service         Service           @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   createdByUser   User              @relation("AppointmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  discountType    DiscountType?     @relation(fields: [discountTypeId], references: [id], onDelete: SetNull)
   transactions    Transaction[]
 
   @@index([tenantId])
@@ -252,11 +286,19 @@ model Transaction {
   category      String
   description   String
   amount        Decimal         @db.Decimal(10, 2)
-  paidAt        DateTime?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  appointment   Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  paidAt           DateTime?
+  paymentMethod    PaymentMethod?
+  grossAmount      Decimal?        @db.Decimal(10,2)
+  discountAmount   Decimal?        @db.Decimal(10,2)
+  tipAmount        Decimal?        @db.Decimal(10,2)
+  cardFeeAmount    Decimal?        @db.Decimal(10,2)
+  netAmount        Decimal?        @db.Decimal(10,2)
+  commissionAmount Decimal?        @db.Decimal(10,2)
+  professionalId   String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointment      Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([tenantId, paidAt])
@@ -293,4 +335,51 @@ model WhatsAppMonthlyUsage {
 
   @@unique([tenantId, year, month])
   @@index([tenantId])
+}
+
+model DiscountType {
+  id           String            @id @default(cuid())
+  tenantId     String
+  name         String
+  type         DiscountApplyType
+  defaultValue Decimal?          @db.Decimal(10,2)
+  active       Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([tenantId])
+}
+
+model ServiceCommission {
+  id             String   @id @default(cuid())
+  tenantId       String
+  serviceId      String
+  professionalId String
+  rate           Decimal  @db.Decimal(5,2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, serviceId, professionalId])
+  @@index([tenantId])
+}
+
+model RecurringExpense {
+  id             String         @id @default(cuid())
+  tenantId       String
+  category       String
+  description    String
+  amount         Decimal        @db.Decimal(10,2)
+  recurrenceType RecurrenceType
+  nextDueDate    DateTime
+  active         Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, nextDueDate])
 }

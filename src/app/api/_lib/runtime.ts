@@ -8,6 +8,7 @@ import {
 } from "@/shared/queue/jobs/appointment-reminder";
 import { registerWhatsAppQuotaCleanup } from "@/shared/queue/jobs/whatsapp-quota-reset";
 import { registerBirthdayReminder } from "@/shared/queue/jobs/birthday-reminder";
+import { registerRecurringExpenseJob } from "@/shared/queue/jobs/recurring-expense";
 
 let initialized = false;
 
@@ -28,6 +29,7 @@ export function initializeDomainRuntime() {
     registerBillingJobs(boss);
     await registerWhatsAppQuotaCleanup(boss);
     await registerBirthdayReminder(boss);
+    await registerRecurringExpenseJob(boss);
   }).catch(console.error);
 
   initialized = true;

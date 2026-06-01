@@ -1,5 +1,7 @@
 import {
   AppointmentStatus,
+  AppointmentPaymentStatus,
+  PaymentMethod,
   Prisma,
 } from "@prisma/client";
 
@@ -18,6 +20,8 @@ import {
 } from "@/shared/queue/jobs/appointment-reminder";
 
 import { featureGuard } from "@/domains/billing/feature-guard";
+import { commissionRepository } from "@/domains/financial/commission.repository";
+import { discountTypeRepository } from "@/domains/financial/discount-type.repository";
 
 import { appointmentRepository, type AppointmentFilters } from "./appointment.repository";
 import { availabilityService } from "./availability.service";
@@ -29,6 +33,13 @@ import type {
   UpdateAppointmentStatusInput,
   UpdateServiceInput,
 } from "./types";
+
+export type CheckoutInput = {
+  paymentMethod: PaymentMethod;
+  discountTypeId?: string;
+  discountValue?: number;
+  tipAmount?: number;
+};
 
 export class SchedulingService {
   async listServices(tenantId: string) {
@@ -234,6 +245,111 @@ export class SchedulingService {
     return catalogServiceRepository.deactivate(tenantId, serviceId);
   }
 
+  async markPayment(tenantId: string, appointmentId: string, input: CheckoutInput) {
+    const appointment = await appointmentRepository.findById(tenantId, appointmentId);
+    if (!appointment) throw new AppointmentNotFoundError();
+
+    const grossAmount = Number(appointment.price);
+
+    // Calcular desconto
+    let discountAmount = 0;
+    if (input.discountTypeId && input.discountValue !== undefined) {
+      const discountType = await discountTypeRepository.list(tenantId).then(
+        (list) => list.find((d) => d.id === input.discountTypeId),
+      );
+      if (discountType) {
+        discountAmount = discountType.type === "PERCENTAGE"
+          ? grossAmount * input.discountValue / 100
+          : input.discountValue;
+      }
+    }
+
+    const subtotal = grossAmount - discountAmount;
+    const tipAmount = input.tipAmount ?? 0;
+
+    // Calcular taxa de cartão
+    const tenant = await prisma.tenant.findFirst({
+      where: { id: tenantId },
+      select: { cardFeeConfig: true },
+    });
+    const cardFeeConfig = tenant?.cardFeeConfig as Record<string, number> | null;
+    const cardFeeRate = (input.paymentMethod === "DEBIT_CARD" || input.paymentMethod === "CREDIT_CARD")
+      ? (cardFeeConfig?.[input.paymentMethod] ?? 0)
+      : 0;
+    const cardFeeAmount = subtotal * cardFeeRate / 100;
+    const netAmount = subtotal + tipAmount - cardFeeAmount;
+
+    // Calcular comissão
+    const commission = await commissionRepository.findRate(
+      tenantId, appointment.serviceId, appointment.professionalId,
+    );
+    const commissionAmount = commission
+      ? netAmount * Number(commission.rate) / 100 + tipAmount
+      : 0;
+
+    await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: {
+        paymentStatus: AppointmentPaymentStatus.PAID,
+        paymentMethod: input.paymentMethod,
+        discountTypeId: input.discountTypeId ?? null,
+        discountValue: input.discountValue !== undefined
+          ? new Prisma.Decimal(input.discountValue)
+          : null,
+      },
+    });
+
+    eventBus.publish({
+      type: "scheduling.appointment.paid",
+      payload: {
+        tenantId,
+        appointmentId,
+        serviceId: appointment.serviceId,
+        professionalId: appointment.professionalId,
+        paymentMethod: input.paymentMethod,
+        grossAmount,
+        discountAmount,
+        discountTypeId: input.discountTypeId ?? null,
+        tipAmount,
+        cardFeeAmount,
+        netAmount,
+        commissionAmount,
+      },
+    });
+
+    return { grossAmount, discountAmount, tipAmount, cardFeeAmount, netAmount, commissionAmount };
+  }
+
+  async markCourtesy(tenantId: string, appointmentId: string) {
+    const appointment = await appointmentRepository.findById(tenantId, appointmentId);
+    if (!appointment) throw new AppointmentNotFoundError();
+
+    await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: { paymentStatus: AppointmentPaymentStatus.COURTESY },
+    });
+
+    eventBus.publish({
+      type: "scheduling.appointment.courtesy",
+      payload: {
+        tenantId,
+        appointmentId,
+        serviceId: appointment.serviceId,
+        grossAmount: Number(appointment.price),
+      },
+    });
+  }
+
+  async markDebt(tenantId: string, appointmentId: string) {
+    const appointment = await appointmentRepository.findById(tenantId, appointmentId);
+    if (!appointment) throw new AppointmentNotFoundError();
+
+    await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: { paymentStatus: AppointmentPaymentStatus.DEBT },
+    });
+  }
+
   private resolveStatusEvent(status: AppointmentStatus) {
     switch (status) {
       case AppointmentStatus.CONFIRMED:
@@ -264,6 +380,10 @@ export class SchedulingService {
         startsAt: appointment.startsAt,
         endsAt: appointment.endsAt,
         status: appointment.status,
+        paymentStatus: appointment.paymentStatus,
+        paymentMethod: appointment.paymentMethod,
+        discountTypeId: appointment.discountTypeId,
+        discountValue: appointment.discountValue,
         notes: appointment.notes,
         allowOverlap: appointment.allowOverlap,
         price: appointment.price,
