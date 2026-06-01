@@ -4,23 +4,20 @@ import { InvalidPhoneError } from "@/shared/errors";
 import type { NotificationDraft } from "../types";
 import type { IWhatsAppProvider, SendResult, TenantWhatsAppConfig } from "./whatsapp-provider.interface";
 
-// Fail-fast na inicialização — nunca em build do Next.js
-if (
-  process.env.NODE_ENV !== "test" &&
-  process.env.NEXT_PHASE !== "phase-production-build"
-) {
-  const required = [
-    "TWILIO_ACCOUNT_SID",
-    "TWILIO_AUTH_TOKEN",
-    "TWILIO_WHATSAPP_FROM",
-    "APP_URL",
-    "TWILIO_TPL_CONFIRMATION",
-    "TWILIO_TPL_CONFIRMED",
-    "TWILIO_TPL_REMINDER",
-    "TWILIO_TPL_CANCELLATION",
-    "TWILIO_TPL_NO_SHOW",
-  ] as const;
-  for (const key of required) {
+const REQUIRED_TWILIO_VARS = [
+  "TWILIO_ACCOUNT_SID",
+  "TWILIO_AUTH_TOKEN",
+  "TWILIO_WHATSAPP_FROM",
+  "APP_URL",
+  "TWILIO_TPL_CONFIRMATION",
+  "TWILIO_TPL_CONFIRMED",
+  "TWILIO_TPL_REMINDER",
+  "TWILIO_TPL_CANCELLATION",
+  "TWILIO_TPL_NO_SHOW",
+] as const;
+
+function assertTwilioConfigured(): void {
+  for (const key of REQUIRED_TWILIO_VARS) {
     if (!process.env[key]) {
       throw new Error(`[TwilioProvider] Env var ${key} não configurada`);
     }
@@ -184,6 +181,12 @@ export class TwilioProvider implements IWhatsAppProvider {
   }
 
   async send(draft: NotificationDraft, tenant: TenantWhatsAppConfig): Promise<SendResult> {
+    try {
+      assertTwilioConfigured();
+    } catch (err) {
+      return { success: false, errorMessage: err instanceof Error ? err.message : "Twilio não configurado.", provider: "twilio" };
+    }
+
     let to: string;
     try {
       to = toWhatsAppNumber(draft.recipient);
