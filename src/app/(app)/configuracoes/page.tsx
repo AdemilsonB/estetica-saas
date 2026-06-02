@@ -12,6 +12,7 @@ import { BrandingForm } from '@/components/domain/settings/branding-form'
 import { DiscountTypesManager } from '@/components/domain/settings/discount-types-manager'
 import { CommissionsGrid } from '@/components/domain/settings/commissions-grid'
 import { CardFeesForm } from '@/components/domain/settings/card-fees-form'
+import { SettingsAnamneseTab } from '@/components/domain/crm/settings-anamnese-tab'
 import { usePermissions } from '@/hooks/use-permissions'
 import { Loader2 } from 'lucide-react'
 
@@ -70,13 +71,14 @@ export default function ConfiguracoesPage() {
       </div>
 
       <Tabs defaultValue="negocio" onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="negocio">Negócio</TabsTrigger>
           <TabsTrigger value="horarios">Horários</TabsTrigger>
           <TabsTrigger value="servicos">Serviços</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="layout">Layout</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+          <TabsTrigger value="crm">CRM</TabsTrigger>
         </TabsList>
 
         <TabsContent value="negocio" className="mt-6">
@@ -147,6 +149,14 @@ export default function ConfiguracoesPage() {
             <div className="border-t border-slate-100 pt-6">
               <CardFeesForm />
             </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="crm" className="mt-6">
+          <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">
+            <h2 className="mb-4 text-base font-semibold text-slate-950">
+              Configurações de anamnese
+            </h2>
+            <SettingsAnamneseTab />
           </div>
         </TabsContent>
       </Tabs>

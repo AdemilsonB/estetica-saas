@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { CustomerProfileHeader } from '@/components/domain/crm/customer-profile-header'
 import { AppointmentHistory } from '@/components/domain/crm/appointment-history'
+import { AnamneseSheet } from '@/components/domain/crm/anamnese-sheet'
 import { useCustomer } from '@/hooks/crm/use-customer'
 
 export default function CustomerProfilePage({
@@ -24,6 +25,7 @@ export default function CustomerProfilePage({
   const { data: customer, isLoading, isError, refetch } = useCustomer(id)
   const [notes, setNotes] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
+  const [anamneseOpen, setAnamneseOpen] = useState(false)
 
   useEffect(() => {
     if (customer) setNotes(customer.notes ?? '')
@@ -90,6 +92,9 @@ export default function CustomerProfilePage({
           <TabsTrigger value="observacoes" className="flex-1">
             Observações
           </TabsTrigger>
+          <TabsTrigger value="anamnese" className="flex-1">
+            Anamnese
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="historico" className="mt-4">
           <AppointmentHistory appointments={customer.appointments} />
@@ -119,7 +124,28 @@ export default function CustomerProfilePage({
             </Button>
           </div>
         </TabsContent>
+        <TabsContent value="anamnese" className="mt-4">
+          <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">
+              Ficha de anamnese do cliente. Editada pelo profissional ou enviada via link para o cliente preencher.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAnamneseOpen(true)}
+            >
+              Abrir ficha de anamnese
+            </Button>
+          </div>
+        </TabsContent>
       </Tabs>
+
+      <AnamneseSheet
+        open={anamneseOpen}
+        onClose={() => setAnamneseOpen(false)}
+        customerId={id}
+        customerName={customer.name}
+      />
     </div>
   )
 }

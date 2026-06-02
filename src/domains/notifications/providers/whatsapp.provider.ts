@@ -102,6 +102,11 @@ export function buildTwilioTemplateParams(
     };
   }
 
+  if (template === "anamnese-link") {
+    const msg = (payload as { message?: string }).message;
+    if (msg) return { body: msg };
+  }
+
   const configKey = TEMPLATE_TO_CONFIG_KEY[template];
   const rawConfigs = tenant.whatsappTemplateConfig as Record<string, TemplateConfig> | null;
   const tenantConfig = rawConfigs?.[configKey] ?? {};
