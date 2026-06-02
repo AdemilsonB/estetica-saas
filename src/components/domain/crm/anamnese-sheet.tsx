@@ -56,6 +56,12 @@ export function AnamneseSheet({ open, onClose, customerId, customerName }: Props
     }
   }, [anamnese])
 
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
+
   const doSave = useCallback(
     async (data: Record<string, string | string[] | boolean | null>) => {
       setSaveState('saving')
