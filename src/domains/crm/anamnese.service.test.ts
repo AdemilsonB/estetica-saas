@@ -89,7 +89,7 @@ describe('AnamneseService', () => {
     vi.mocked(customerRepo.findById).mockResolvedValue(null)
 
     const svc = new AnamneseService(templateRepo, anamneseRepo, customerRepo, notifyFn, APP_URL)
-    await expect(svc.sendLink(TENANT_ID, CUSTOMER_ID, 'msg msg msg msg')).rejects.toThrow('CUSTOMER_NOT_FOUND')
+    await expect(svc.sendLink(TENANT_ID, CUSTOMER_ID, 'msg msg msg msg')).rejects.toThrow('Cliente nao encontrado.')
   })
 
   it('submitPublic: encontra pelo token e salva com filledBy = client', async () => {

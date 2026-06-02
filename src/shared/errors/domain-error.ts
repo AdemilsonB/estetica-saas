@@ -76,7 +76,7 @@ export class ServiceNotFoundError extends DomainError {
 
 export class CustomerNotFoundError extends DomainError {
   constructor() {
-    super("CUSTOMER_NOT_FOUND: Cliente nao encontrado.", "CUSTOMER_NOT_FOUND", 404);
+    super("Cliente nao encontrado.", "CUSTOMER_NOT_FOUND", 404);
   }
 }
 
