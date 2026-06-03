@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BusinessInfoForm } from '@/components/domain/settings/business-info-form'
 import { BusinessHoursForm } from '@/components/domain/settings/business-hours-form'
-import { ServiceCatalog } from '@/components/domain/services/service-catalog'
 import { WhatsAppSettingsForm } from '@/components/domain/settings/whatsapp-settings-form'
 import { NotificationHistory } from '@/components/domain/settings/notification-history'
 import { BrandingForm } from '@/components/domain/settings/branding-form'
@@ -68,16 +67,15 @@ export default function ConfiguracoesPage() {
           Configurações
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Gerencie os dados do seu negócio, serviços e integrações
+          Gerencie os dados do seu negócio e integrações
         </p>
       </div>
 
       <Tabs defaultValue="negocio" onValueChange={handleTabChange}>
         <div className="overflow-x-auto scrollbar-hide">
-          <TabsList className="grid w-full grid-cols-7 min-w-140">
+          <TabsList className="grid w-full grid-cols-6 min-w-120">
             <TabsTrigger value="negocio">Negócio</TabsTrigger>
             <TabsTrigger value="horarios">Horários</TabsTrigger>
-            <TabsTrigger value="servicos">Serviços</TabsTrigger>
             <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
             <TabsTrigger value="layout">Layout</TabsTrigger>
             <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
@@ -103,15 +101,6 @@ export default function ConfiguracoesPage() {
               Configure os dias e horários em que seu negócio está aberto. Esses horários definem os slots disponíveis para agendamento.
             </p>
             <BusinessHoursForm />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="servicos" className="mt-6">
-          <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-slate-950">
-              Catálogo de serviços
-            </h2>
-            <ServiceCatalog />
           </div>
         </TabsContent>
 
