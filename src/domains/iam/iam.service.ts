@@ -113,14 +113,14 @@ export class IamService {
     return iamRepository.updateUserRole(tenantId, targetUserId, role);
   }
 
-  async createInvite(tenantId: string, email: string, role: UserRole) {
+  async createInvite(tenantId: string, email: string, role: UserRole, origin?: string) {
     const userCount = await iamRepository.countActiveUsers(tenantId);
     await featureGuard.assertWithinLimit(tenantId, "users", userCount);
 
     const invite = await iamRepository.createInvite(tenantId, email, role);
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const baseUrl = (origin ?? 'https://estetica-saas-product.vercel.app').replace(/\/$/, '');
     await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${appUrl}/callback`,
+      redirectTo: `${baseUrl}/callback`,
       data: { pendingTenantId: tenantId, pendingRole: role },
     });
     return invite;

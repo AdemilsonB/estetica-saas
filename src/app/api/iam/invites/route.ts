@@ -31,7 +31,10 @@ export async function POST(request: Request) {
     const session = await getSessionContext(request);
     ensurePermission(session, PERMISSIONS.users.invite);
     const { email, role } = await validateInput(request, createInviteSchema);
-    const invite = await iamService.createInvite(session.tenantId, email, role);
+    const origin = request.headers.get('origin') ?? request.headers.get('x-forwarded-host')
+      ? `https://${request.headers.get('x-forwarded-host')}`
+      : 'https://estetica-saas-product.vercel.app';
+    const invite = await iamService.createInvite(session.tenantId, email, role, origin);
     return Response.json(invite, { status: 201 });
   } catch (error) {
     return handleApiError(error);
