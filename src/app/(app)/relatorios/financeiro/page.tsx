@@ -75,7 +75,7 @@ export default function RelatorioFinanceiroPage() {
         <PeriodFilter onChange={setPeriod} />
         <div className="flex flex-wrap gap-3">
           <Select value={type} onValueChange={(v) => setType(v as typeof type)}>
-            <SelectTrigger className="w-44">
+            <SelectTrigger className="w-full sm:w-44">
               <SelectValue placeholder="Tipo: Todos" />
             </SelectTrigger>
             <SelectContent>
