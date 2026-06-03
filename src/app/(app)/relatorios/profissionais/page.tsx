@@ -81,7 +81,7 @@ export default function RelatorioProfissionaisPage() {
         <PeriodFilter onChange={setPeriod} />
         <div className="flex flex-wrap gap-3">
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="w-52">
+            <SelectTrigger className="w-full sm:w-52">
               <SelectValue placeholder="Status: Todos" />
             </SelectTrigger>
             <SelectContent>

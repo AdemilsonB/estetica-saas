@@ -85,7 +85,7 @@ export default function RelatorioFinanceiroPage() {
             </SelectContent>
           </Select>
           <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Agrupar por" />
             </SelectTrigger>
             <SelectContent>
