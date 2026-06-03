@@ -58,18 +58,22 @@ describe('FONT_VARIABLE_MAP', () => {
   })
 })
 
+const warmInput = {
+  primaryColor: '#c8916a',
+  accentColor: '#fdf0e8',
+  backgroundColor: '#faf7f4',
+  borderColor: '#e8ddd3',
+  foregroundColor: '#3d2b1f',
+  mutedColor: '#8a7060',
+  fontFamily: 'inter' as const,
+  borderRadius: 'medium' as const,
+  colorScheme: 'light' as const,
+  logoUrl: null,
+}
+
 describe('buildCssVariables', () => {
   it('gera string CSS com variáveis oklch válidas', () => {
-    const result = buildCssVariables({
-      primaryColor: '#191919',
-      secondaryColor: '#6366f1',
-      accentColor: '#f59e0b',
-      backgroundColor: '#f8f8f7',
-      fontFamily: 'inter',
-      borderRadius: 'medium',
-      colorScheme: 'light',
-      logoUrl: null,
-    })
+    const result = buildCssVariables(warmInput)
     expect(result.styleTag).toContain('--primary:')
     expect(result.styleTag).toContain('--background:')
     expect(result.styleTag).toContain('--radius:')
@@ -77,31 +81,24 @@ describe('buildCssVariables', () => {
     expect(result.styleTag).toContain('oklch(')
   })
 
+  it('emite --border, --foreground e --muted-foreground explicitamente', () => {
+    const result = buildCssVariables(warmInput)
+    expect(result.styleTag).toContain('--border:')
+    expect(result.styleTag).toContain('--foreground:')
+    expect(result.styleTag).toContain('--muted-foreground:')
+  })
+
   it('isDark é true quando colorScheme é dark', () => {
     const result = buildCssVariables({
-      primaryColor: '#191919',
-      secondaryColor: '#6366f1',
-      accentColor: '#f59e0b',
+      ...warmInput,
       backgroundColor: '#1a1a1a',
-      fontFamily: 'inter',
-      borderRadius: 'medium',
       colorScheme: 'dark',
-      logoUrl: null,
     })
     expect(result.isDark).toBe(true)
   })
 
   it('isDark é false quando colorScheme é light', () => {
-    const result = buildCssVariables({
-      primaryColor: '#191919',
-      secondaryColor: '#6366f1',
-      accentColor: '#f59e0b',
-      backgroundColor: '#f8f8f7',
-      fontFamily: 'inter',
-      borderRadius: 'medium',
-      colorScheme: 'light',
-      logoUrl: null,
-    })
+    const result = buildCssVariables(warmInput)
     expect(result.isDark).toBe(false)
   })
 })
@@ -147,18 +144,9 @@ describe('calcForeground com input oklch', () => {
   })
 })
 
-describe('buildCssVariables com secondary derivado (oklch string)', () => {
-  it('styleTag contém --sidebar-accent', () => {
-    const result = buildCssVariables({
-      primaryColor: '#e11d48',
-      secondaryColor: 'oklch(0.93 0.04 14.5)',
-      accentColor: 'oklch(0.95 0.03 14.5)',
-      backgroundColor: '#f8f8f7',
-      fontFamily: 'inter',
-      borderRadius: 'medium',
-      colorScheme: 'light',
-      logoUrl: null,
-    })
+describe('buildCssVariables — sidebar-accent e ring emitidos', () => {
+  it('styleTag contém --sidebar-accent e --ring', () => {
+    const result = buildCssVariables(warmInput)
     expect(result.styleTag).toContain('--sidebar-accent:')
     expect(result.styleTag).toContain('--ring:')
   })
