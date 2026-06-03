@@ -1,26 +1,11 @@
-import { AppointmentStatus } from "@prisma/client";
+import { AppointmentStatus, TransactionType } from "@prisma/client";
 
 import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
 import { ensurePermission, PERMISSIONS } from "@/shared/auth/permissions";
 import { getSessionContext } from "@/shared/auth/session";
 import { handleApiError } from "@/shared/http/handle-api-error";
 import { prisma } from "@/shared/database/prisma";
-
-function startOfDay(d: Date): Date {
-  const r = new Date(d);
-  r.setHours(0, 0, 0, 0);
-  return r;
-}
-
-function endOfDay(d: Date): Date {
-  const r = new Date(d);
-  r.setHours(23, 59, 59, 999);
-  return r;
-}
-
-function startOfMonth(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
-}
+import { dayBoundsInTz, monthBoundsInTz } from "@/lib/dates";
 
 export async function GET(request: Request) {
   initializeDomainRuntime();
@@ -28,39 +13,54 @@ export async function GET(request: Request) {
     const session = await getSessionContext(request);
     ensurePermission(session, PERMISSIONS.appointments.view);
 
-    const today = new Date();
-    const dayStart = startOfDay(today);
-    const dayEnd = endOfDay(today);
-    const monthStart = startOfMonth(today);
+    const tenant = await prisma.tenant.findFirstOrThrow({
+      where: { id: session.tenantId },
+      select: { timezone: true },
+    });
+
+    const tz = tenant.timezone ?? "America/Sao_Paulo";
+    const { start: dayStart, end: dayEnd } = dayBoundsInTz(tz);
+    const { start: monthStart } = monthBoundsInTz(tz);
 
     const [statusGroups, profGroups, revenueToday, revenueMonth] =
       await Promise.all([
+        // Agendamentos do dia por status (usa startsAt — slot de tempo do atendimento)
         prisma.appointment.groupBy({
           by: ["status"],
-          where: { tenantId: session.tenantId, startsAt: { gte: dayStart, lte: dayEnd } },
+          where: {
+            tenantId: session.tenantId,
+            startsAt: { gte: dayStart, lte: dayEnd },
+          },
           _count: { status: true },
         }),
+        // Ocupação por profissional (usa startsAt)
         prisma.appointment.groupBy({
           by: ["professionalId"],
-          where: { tenantId: session.tenantId, startsAt: { gte: dayStart, lte: dayEnd } },
+          where: {
+            tenantId: session.tenantId,
+            startsAt: { gte: dayStart, lte: dayEnd },
+          },
           _count: { professionalId: true },
           orderBy: { _count: { professionalId: "desc" } },
         }),
-        prisma.appointment.aggregate({
+        // Receita do dia: Transaction.netAmount onde type=INCOME e paidAt no range
+        // netAmount = grossAmount - desconto + gorjeta - taxa cartão (valor real recebido)
+        prisma.transaction.aggregate({
           where: {
             tenantId: session.tenantId,
-            status: AppointmentStatus.COMPLETED,
-            startsAt: { gte: dayStart, lte: dayEnd },
+            type: TransactionType.INCOME,
+            paidAt: { gte: dayStart, lte: dayEnd },
           },
-          _sum: { price: true },
+          _sum: { netAmount: true },
         }),
-        prisma.appointment.aggregate({
+        // Receita do mês: mesmo critério, range do mês
+        prisma.transaction.aggregate({
           where: {
             tenantId: session.tenantId,
-            status: AppointmentStatus.COMPLETED,
-            startsAt: { gte: monthStart, lte: dayEnd },
+            type: TransactionType.INCOME,
+            paidAt: { gte: monthStart, lte: dayEnd },
           },
-          _sum: { price: true },
+          _sum: { netAmount: true },
         }),
       ]);
 
@@ -95,8 +95,8 @@ export async function GET(request: Request) {
     }));
 
     const revenue = {
-      today: Number(revenueToday._sum.price ?? 0),
-      month: Number(revenueMonth._sum.price ?? 0),
+      today: Number(revenueToday._sum.netAmount ?? 0),
+      month: Number(revenueMonth._sum.netAmount ?? 0),
     };
 
     return Response.json({ byStatus, byProfessional, revenue });
