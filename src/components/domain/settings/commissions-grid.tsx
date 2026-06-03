@@ -47,7 +47,13 @@ export function CommissionsGrid() {
   return (
     <div className="space-y-3">
       <p className="text-sm font-semibold text-slate-700">Comissões por profissional × serviço (%)</p>
-      <div className="overflow-x-auto rounded-xl border border-white/80 bg-white/85">
+      <div
+        className="overflow-x-auto rounded-xl border border-white/80 bg-white/85"
+        style={{
+          maskImage: 'linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent)',
+        }}
+      >
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100">

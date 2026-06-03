@@ -32,6 +32,7 @@ export class IamService {
         name: true,
         role: true,
         permissions: true,
+        tenant: { select: { name: true } },
       },
     });
 
@@ -39,7 +40,15 @@ export class IamService {
       throw new NotFoundError("Usuario");
     }
 
-    return user;
+    return {
+      id: user.id,
+      tenantId: user.tenantId,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      permissions: user.permissions,
+      businessName: user.tenant.name,
+    };
   }
 
   async register(userId: string, input: RegisterInput) {

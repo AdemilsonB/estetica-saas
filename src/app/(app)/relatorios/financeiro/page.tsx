@@ -75,7 +75,7 @@ export default function RelatorioFinanceiroPage() {
         <PeriodFilter onChange={setPeriod} />
         <div className="flex flex-wrap gap-3">
           <Select value={type} onValueChange={(v) => setType(v as typeof type)}>
-            <SelectTrigger className="w-44">
+            <SelectTrigger className="w-full sm:w-44">
               <SelectValue placeholder="Tipo: Todos" />
             </SelectTrigger>
             <SelectContent>
@@ -85,7 +85,7 @@ export default function RelatorioFinanceiroPage() {
             </SelectContent>
           </Select>
           <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Agrupar por" />
             </SelectTrigger>
             <SelectContent>

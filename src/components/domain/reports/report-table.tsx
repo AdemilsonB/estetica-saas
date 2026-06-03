@@ -34,7 +34,13 @@ export function ReportTable({ columns, rows, isLoading, emptyMessage = 'Nenhum d
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-100">
+    <div
+      className="overflow-x-auto rounded-2xl border border-border"
+      style={{
+        maskImage: 'linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent)',
+        WebkitMaskImage: 'linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent)',
+      }}
+    >
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-100 bg-slate-50">

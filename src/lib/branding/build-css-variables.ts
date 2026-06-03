@@ -1,12 +1,15 @@
 export type BrandingInput = {
   primaryColor: string
-  secondaryColor: string
   accentColor: string
   backgroundColor: string
+  borderColor: string
+  foregroundColor: string
+  mutedColor: string
   fontFamily: 'inter' | 'manrope' | 'geist' | 'dm-sans' | 'plus-jakarta-sans' | 'lato'
   borderRadius: 'none' | 'medium' | 'full'
   colorScheme: 'light' | 'dark'
   logoUrl: string | null
+  secondaryColor?: string
 }
 
 export type CssVariablesResult = {
@@ -107,22 +110,22 @@ export function buildCssVariables(config: BrandingInput): CssVariablesResult {
 
   const primary = oklchStr(config.primaryColor)
   const primaryFg = calcForeground(config.primaryColor)
-  const secondary = toOklch(config.secondaryColor)
-  const secondaryFg = calcForeground(config.secondaryColor)
   const accent = toOklch(config.accentColor)
   const accentFg = calcForeground(config.accentColor)
   const bg = oklchStr(config.backgroundColor)
-  const fg = calcForeground(config.backgroundColor)
+  const border = oklchStr(config.borderColor)
+  const fg = oklchStr(config.foregroundColor)
+  const muted = oklchStr(config.mutedColor)
 
   const styleTag = [
     `--primary: ${primary};`,
     `--primary-foreground: ${primaryFg};`,
-    `--secondary: ${secondary};`,
-    `--secondary-foreground: ${secondaryFg};`,
     `--accent: ${accent};`,
     `--accent-foreground: ${accentFg};`,
     `--background: ${bg};`,
     `--foreground: ${fg};`,
+    `--border: ${border};`,
+    `--muted-foreground: ${muted};`,
     `--sidebar: ${bg};`,
     `--sidebar-foreground: ${fg};`,
     `--sidebar-primary: ${primary};`,

@@ -67,7 +67,13 @@ export function BillingPlansContent() {
         </CardContent>
       </Card>
 
-      <div className="overflow-x-auto rounded-lg border">
+      <div
+        className="overflow-x-auto rounded-lg border"
+        style={{
+          maskImage: 'linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent)',
+        }}
+      >
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/50">

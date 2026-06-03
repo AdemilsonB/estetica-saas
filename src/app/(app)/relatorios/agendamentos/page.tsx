@@ -83,7 +83,7 @@ export default function RelatorioAgendamentosPage() {
         <PeriodFilter onChange={setPeriod} />
         <div className="flex flex-wrap gap-3">
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="w-52">
+            <SelectTrigger className="w-full sm:w-52">
               <SelectValue placeholder="Status: Todos" />
             </SelectTrigger>
             <SelectContent>
@@ -94,7 +94,7 @@ export default function RelatorioAgendamentosPage() {
             </SelectContent>
           </Select>
           <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Agrupar por" />
             </SelectTrigger>
             <SelectContent>
