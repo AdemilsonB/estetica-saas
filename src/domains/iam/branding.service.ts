@@ -5,10 +5,12 @@ import type { BrandingUpdateData } from './branding.schemas'
 
 const BRANDING_DEFAULTS = {
   logoUrl: null,
-  primaryColor: '#e11d48',
-  secondaryColor: '#6366f1',
-  accentColor: '#f59e0b',
-  backgroundColor: '#f8f8f7',
+  primaryColor: '#c8916a',
+  accentColor: '#fdf0e8',
+  backgroundColor: '#faf7f4',
+  borderColor: '#e8ddd3',
+  foregroundColor: '#3d2b1f',
+  mutedColor: '#8a7060',
   fontFamily: 'inter',
   borderRadius: 'medium',
   colorScheme: 'light',

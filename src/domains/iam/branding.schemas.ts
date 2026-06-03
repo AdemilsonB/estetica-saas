@@ -7,7 +7,11 @@ const hexColor = z
 export const UpdateBrandingSchema = z.object({
   logoUrl: z.string().url().nullable().optional(),
   primaryColor: hexColor.optional(),
+  accentColor: hexColor.optional(),
   backgroundColor: hexColor.optional(),
+  borderColor: hexColor.optional(),
+  foregroundColor: hexColor.optional(),
+  mutedColor: hexColor.optional(),
   fontFamily: z
     .enum(['inter', 'manrope', 'geist', 'dm-sans', 'plus-jakarta-sans', 'lato'])
     .optional(),
@@ -17,11 +21,7 @@ export const UpdateBrandingSchema = z.object({
 
 export type UpdateBrandingInput = z.infer<typeof UpdateBrandingSchema>
 
-/** Tipo interno para service/repository — inclui secondary/accent derivados pelo servidor */
-export type BrandingUpdateData = UpdateBrandingInput & {
-  secondaryColor?: string
-  accentColor?: string
-}
+export type BrandingUpdateData = UpdateBrandingInput
 
 export const OnboardingBrandingSchema = z.object({
   logoUrl: z.string().url().nullable().optional(),

@@ -13,10 +13,13 @@ const defaultBranding = {
   id: 'branding-1',
   tenantId: TENANT_ID,
   logoUrl: null,
-  primaryColor: '#e11d48',
-  secondaryColor: 'oklch(0.93 0.056 14.5)',
-  accentColor: 'oklch(0.95 0.044 14.5)',
-  backgroundColor: '#f8f8f7',
+  primaryColor: '#c8916a',
+  secondaryColor: null,
+  accentColor: '#fdf0e8',
+  backgroundColor: '#faf7f4',
+  borderColor: '#e8ddd3',
+  foregroundColor: '#3d2b1f',
+  mutedColor: '#8a7060',
   fontFamily: 'inter',
   borderRadius: 'medium',
   colorScheme: 'light',
@@ -49,10 +52,10 @@ describe('BrandingService', () => {
       expect(result).toEqual(defaultBranding)
     })
 
-    it('retorna defaults quando não encontrado — primaryColor é #e11d48', async () => {
+    it('retorna defaults quando não encontrado — primaryColor é #c8916a', async () => {
       vi.mocked(repo.findByTenant).mockResolvedValue(null)
       const result = await service.get(TENANT_ID)
-      expect(result.primaryColor).toBe('#e11d48')
+      expect(result.primaryColor).toBe('#c8916a')
       expect(result.tenantId).toBe(TENANT_ID)
     })
   })
