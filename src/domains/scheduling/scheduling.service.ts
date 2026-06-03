@@ -25,12 +25,18 @@ import { discountTypeRepository } from "@/domains/financial/discount-type.reposi
 
 import { appointmentRepository, type AppointmentFilters } from "./appointment.repository";
 import { availabilityService } from "./availability.service";
+import { packageRepository } from "./package.repository";
+import { promotionRepository } from "./promotion.repository";
 import { catalogServiceRepository } from "./service.repository";
 import type {
   CreateAppointmentInput,
+  CreatePackageInput,
+  CreatePromotionInput,
   CreateServiceInput,
   UpdateAppointmentInput,
   UpdateAppointmentStatusInput,
+  UpdatePackageInput,
+  UpdatePromotionInput,
   UpdateServiceInput,
 } from "./types";
 
@@ -348,6 +354,56 @@ export class SchedulingService {
       where: { id: appointmentId },
       data: { paymentStatus: AppointmentPaymentStatus.DEBT },
     });
+  }
+
+  async listPackages(tenantId: string) {
+    return packageRepository.list(tenantId)
+  }
+
+  async createPackage(tenantId: string, input: CreatePackageInput) {
+    return packageRepository.create(tenantId, {
+      name: input.name,
+      description: input.description,
+      price: input.price,
+      serviceIds: input.serviceIds,
+      imageUrl: input.imageUrl,
+    })
+  }
+
+  async updatePackage(tenantId: string, packageId: string, input: UpdatePackageInput) {
+    return packageRepository.update(tenantId, packageId, input)
+  }
+
+  async deactivatePackage(tenantId: string, packageId: string) {
+    return packageRepository.deactivate(tenantId, packageId)
+  }
+
+  async listPromotions(tenantId: string) {
+    return promotionRepository.list(tenantId)
+  }
+
+  async createPromotion(tenantId: string, input: CreatePromotionInput) {
+    return promotionRepository.create(tenantId, {
+      name: input.name,
+      description: input.description,
+      discountType: input.discountType as 'PERCENTAGE' | 'FIXED',
+      discountValue: input.discountValue,
+      startsAt: input.startsAt,
+      endsAt: input.endsAt,
+      imageUrl: input.imageUrl,
+      items: input.items,
+    })
+  }
+
+  async updatePromotion(tenantId: string, promotionId: string, input: UpdatePromotionInput) {
+    return promotionRepository.update(tenantId, promotionId, {
+      ...input,
+      discountType: input.discountType as 'PERCENTAGE' | 'FIXED' | undefined,
+    })
+  }
+
+  async deactivatePromotion(tenantId: string, promotionId: string) {
+    return promotionRepository.deactivate(tenantId, promotionId)
   }
 
   private resolveStatusEvent(status: AppointmentStatus) {
