@@ -31,7 +31,7 @@ export class CatalogServiceRepository {
   async update(
     tenantId: string,
     serviceId: string,
-    data: { name?: string; duration?: number; price?: number },
+    data: { name?: string; duration?: number; price?: number; imageUrl?: string | null },
   ) {
     return prisma.service.update({
       where: { id: serviceId, tenantId },

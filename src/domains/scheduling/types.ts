@@ -21,6 +21,7 @@ export const updateServiceSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   duration: z.number().int().min(5).max(480).optional(),
   price: z.number().positive().optional(),
+  imageUrl: z.string().url().optional().nullable(),
 });
 
 export type UpdateServiceInput = z.infer<typeof updateServiceSchema>;
@@ -55,3 +56,64 @@ export const updateAppointmentSchema = z
   .refine((v) => Object.keys(v).length > 0, "Informe ao menos um campo para atualizar.");
 
 export type UpdateAppointmentInput = z.infer<typeof updateAppointmentSchema>;
+
+export const createPackageSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  description: z.string().trim().max(500).optional(),
+  price: z.number().positive(),
+  serviceIds: z.array(z.string().cuid()).min(1, 'Pacote deve ter ao menos 1 serviço'),
+  imageUrl: z.string().url().optional(),
+})
+
+export const updatePackageSchema = z
+  .object({
+    name: z.string().trim().min(2).max(100).optional(),
+    description: z.string().trim().max(500).optional(),
+    price: z.number().positive().optional(),
+    serviceIds: z.array(z.string().cuid()).min(1).optional(),
+    imageUrl: z.string().url().optional().nullable(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'Informe ao menos um campo para atualizar.')
+
+export type CreatePackageInput = z.infer<typeof createPackageSchema>
+export type UpdatePackageInput = z.infer<typeof updatePackageSchema>
+
+const promoItemSchema = z
+  .object({
+    serviceId: z.string().cuid().optional(),
+    packageId: z.string().cuid().optional(),
+  })
+  .refine((i) => i.serviceId || i.packageId, 'Item deve ter serviceId ou packageId')
+
+export const createPromotionSchema = z
+  .object({
+    name: z.string().trim().min(2).max(100),
+    description: z.string().trim().max(500).optional(),
+    discountType: z.enum(['PERCENTAGE', 'FIXED']),
+    discountValue: z.number().positive(),
+    startsAt: z.string().datetime().optional(),
+    endsAt: z.string().datetime().optional(),
+    imageUrl: z.string().url().optional(),
+    items: z.array(promoItemSchema).min(1, 'Promoção deve ter ao menos 1 item'),
+  })
+  .refine(
+    (data) => data.discountType !== 'PERCENTAGE' || data.discountValue <= 100,
+    { message: 'Desconto percentual não pode ultrapassar 100%', path: ['discountValue'] },
+  )
+
+export const updatePromotionSchema = z
+  .object({
+    name: z.string().trim().min(2).max(100).optional(),
+    description: z.string().trim().max(500).optional(),
+    discountType: z.enum(['PERCENTAGE', 'FIXED']).optional(),
+    discountValue: z.number().positive().optional(),
+    startsAt: z.string().datetime().optional().nullable(),
+    endsAt: z.string().datetime().optional().nullable(),
+    active: z.boolean().optional(),
+    imageUrl: z.string().url().optional().nullable(),
+    items: z.array(promoItemSchema).min(1).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'Informe ao menos um campo para atualizar.')
+
+export type CreatePromotionInput = z.infer<typeof createPromotionSchema>
+export type UpdatePromotionInput = z.infer<typeof updatePromotionSchema>
