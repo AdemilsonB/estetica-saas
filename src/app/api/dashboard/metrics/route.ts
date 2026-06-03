@@ -82,7 +82,7 @@ export async function GET(request: Request) {
     const profUsers =
       profIds.length > 0
         ? await prisma.user.findMany({
-            where: { id: { in: profIds } },
+            where: { id: { in: profIds }, tenantId: session.tenantId },
             select: { id: true, name: true },
           })
         : [];
