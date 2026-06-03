@@ -18,6 +18,9 @@ export default function OnboardingPage() {
   const [pendingTenantId, setPendingTenantId] = useState('')
   const [businessName, setBusinessName] = useState('')
   const [userName, setUserName] = useState('')
+  const [joinPassword, setJoinPassword] = useState('')
+  const [joinConfirmPassword, setJoinConfirmPassword] = useState('')
+  const [joinPasswordError, setJoinPasswordError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [primaryColor, setPrimaryColor] = useState('#191919')
   const [backgroundColor, setBackgroundColor] = useState('#f8f8f7')
@@ -96,11 +99,28 @@ export default function OnboardingPage() {
 
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault()
+    setJoinPasswordError('')
+
+    if (joinPassword.length < 8) {
+      setJoinPasswordError('Senha deve ter no mínimo 8 caracteres.')
+      return
+    }
+    if (joinPassword !== joinConfirmPassword) {
+      setJoinPasswordError('As senhas não conferem.')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const supabase = createSupabaseBrowserClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { toast.error('Sessão expirada.'); router.push('/login'); return }
+
+      const { error: passwordError } = await supabase.auth.updateUser({ password: joinPassword })
+      if (passwordError) {
+        toast.error('Erro ao definir senha. Tente novamente.')
+        return
+      }
 
       const res = await fetch('/api/iam/join', {
         method: 'POST',
@@ -116,7 +136,6 @@ export default function OnboardingPage() {
         return
       }
 
-      // Atualiza o JWT para incluir tenantId e role em app_metadata
       await supabase.auth.refreshSession()
 
       toast.success('Bem-vindo à equipe!')
@@ -256,7 +275,7 @@ export default function OnboardingPage() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-[#191919]">Você foi convidado!</h1>
               <p className="mt-2 text-sm text-[#787774]">
-                Como você quer ser chamado pela equipe?
+                Configure seu acesso para entrar na equipe.
               </p>
             </div>
             <form onSubmit={handleJoin} className="space-y-4">
@@ -270,6 +289,29 @@ export default function OnboardingPage() {
                   minLength={2}
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label>Criar senha</Label>
+                <Input
+                  type="password"
+                  placeholder="Mínimo 8 caracteres"
+                  value={joinPassword}
+                  onChange={(e) => setJoinPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Confirmar senha</Label>
+                <Input
+                  type="password"
+                  placeholder="Repita a senha"
+                  value={joinConfirmPassword}
+                  onChange={(e) => setJoinConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+              {joinPasswordError && (
+                <p className="text-xs text-red-500">{joinPasswordError}</p>
+              )}
               <Button
                 type="submit"
                 className="w-full bg-[#191919] text-white hover:bg-[#2d2d2d]"
