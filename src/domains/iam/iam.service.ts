@@ -118,7 +118,9 @@ export class IamService {
     await featureGuard.assertWithinLimit(tenantId, "users", userCount);
 
     const invite = await iamRepository.createInvite(tenantId, email, role);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
     await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      redirectTo: `${appUrl}/callback`,
       data: { pendingTenantId: tenantId, pendingRole: role },
     });
     return invite;
