@@ -73,7 +73,7 @@ function LeftPanel({ branding }: { branding: Branding }) {
   ];
 
   return (
-    <div className="hidden lg:flex lg:w-[45%] flex-col border-r border-[#e5e5e5] bg-[#f7f6f3] p-12">
+    <div className="hidden md:flex md:w-[45%] flex-col border-r border-border bg-background p-12">
       <div className="flex items-center gap-3">
         {branding.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -83,23 +83,23 @@ function LeftPanel({ branding }: { branding: Branding }) {
             className="h-8 w-auto"
           />
         ) : (
-          <div className="flex size-8 items-center justify-center rounded-lg bg-[#191919]">
-            <Sparkles className="size-4 text-white" />
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
+            <Sparkles className="size-4 text-primary-foreground" />
           </div>
         )}
-        <span className="text-sm font-semibold tracking-tight text-[#191919]">
+        <span className="text-sm font-semibold tracking-tight text-foreground">
           {branding.displayName}
         </span>
       </div>
 
       <div className="my-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold leading-tight tracking-tight text-[#191919]">
+          <h1 className="text-2xl font-bold leading-tight tracking-tight text-foreground">
             O workspace dos
             <br />
             profissionais de estetica.
           </h1>
-          <p className="mt-3 text-sm leading-relaxed text-[#787774]">
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             Agenda, CRM, financeiro e IA em uma plataforma so.
           </p>
         </div>
@@ -108,10 +108,10 @@ function LeftPanel({ branding }: { branding: Branding }) {
           {benefits.map((b) => (
             <div
               key={b}
-              className="flex items-center gap-3 rounded-md border border-[#e5e5e5] bg-white px-4 py-3"
+              className="flex items-center gap-3 rounded-md border border-border bg-white px-4 py-3"
             >
-              <div className="size-4 rounded-sm bg-[#e3e2df]" />
-              <span className="text-sm text-[#37352f]">{b}</span>
+              <div className="size-4 rounded-sm bg-border" />
+              <span className="text-sm text-foreground">{b}</span>
             </div>
           ))}
         </div>
@@ -126,26 +126,26 @@ function RightPanel({ router }: { router: ReturnType<typeof useRouter> }) {
   return (
     <div className="flex w-full flex-col items-center justify-center bg-white p-8 lg:w-[55%]">
       <div className="w-full max-w-sm space-y-6">
-        <div className="lg:hidden flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#191919]">
-            <Sparkles className="size-3.5 text-white" />
+        <div className="md:hidden flex items-center gap-2">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-primary">
+            <Sparkles className="size-3.5 text-primary-foreground" />
           </div>
-          <span className="text-sm font-semibold text-[#191919]">
+          <span className="text-sm font-semibold text-foreground">
             SaaS Estetica
           </span>
         </div>
 
         <Tabs defaultValue="login" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-[#f7f6f3]">
+          <TabsList className="grid w-full grid-cols-2 bg-background">
             <TabsTrigger
               value="login"
-              className="data-[state=active]:bg-[#191919] data-[state=active]:text-white"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               Entrar
             </TabsTrigger>
             <TabsTrigger
               value="signup"
-              className="data-[state=active]:bg-[#191919] data-[state=active]:text-white"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               Criar conta
             </TabsTrigger>
@@ -200,7 +200,7 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="login-email" className="text-[#37352f]">
+        <Label htmlFor="login-email" className="text-foreground">
           Email
         </Label>
         <Input
@@ -208,7 +208,7 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
           type="email"
           autoComplete="email"
           placeholder="voce@exemplo.com"
-          className="border-[#e5e5e5] bg-[#f7f6f3] focus-visible:ring-[#191919]"
+          className="border-border bg-background focus-visible:ring-primary"
           {...register("email")}
         />
         {errors.email && (
@@ -218,12 +218,12 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <Label htmlFor="login-password" className="text-[#37352f]">
+          <Label htmlFor="login-password" className="text-foreground">
             Senha
           </Label>
           <a
             href="/forgot-password"
-            className="text-xs text-[#787774] hover:text-[#191919]"
+            className="text-xs text-muted-foreground hover:text-foreground"
           >
             Esqueceu sua senha?
           </a>
@@ -234,12 +234,12 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             placeholder="••••••••"
-            className="border-[#e5e5e5] bg-[#f7f6f3] pr-10 focus-visible:ring-[#191919]"
+            className="border-border bg-background pr-10 focus-visible:ring-primary"
             {...register("password")}
           />
           <button
             type="button"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#787774] hover:text-[#191919]"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             onClick={() => setShowPassword((p) => !p)}
             aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
           >
@@ -257,7 +257,7 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
 
       <Button
         type="submit"
-        className="w-full bg-[#191919] text-white hover:bg-[#2d2d2d]"
+        className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
         disabled={isSubmitting}
       >
         {isSubmitting ? (
@@ -271,8 +271,8 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
       </Button>
 
       <div className="relative">
-        <Separator className="bg-[#e5e5e5]" />
-        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-[#b7b6b2]">
+        <Separator className="bg-border" />
+        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-muted-foreground">
           ou
         </span>
       </div>
@@ -352,11 +352,11 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-1.5">
-        <Label className="text-[#37352f]">Email</Label>
+        <Label className="text-foreground">Email</Label>
         <Input
           type="email"
           placeholder="voce@exemplo.com"
-          className="border-[#e5e5e5] bg-[#f7f6f3] focus-visible:ring-[#191919]"
+          className="border-border bg-background focus-visible:ring-primary"
           {...register("email")}
         />
         {errors.email && (
@@ -365,17 +365,17 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-[#37352f]">Senha</Label>
+        <Label className="text-foreground">Senha</Label>
         <div className="relative">
           <Input
             type={showPassword ? "text" : "password"}
             placeholder="Minimo 8 caracteres"
-            className="border-[#e5e5e5] bg-[#f7f6f3] pr-10 focus-visible:ring-[#191919]"
+            className="border-border bg-background pr-10 focus-visible:ring-primary"
             {...register("password")}
           />
           <button
             type="button"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#787774] hover:text-[#191919]"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             onClick={() => setShowPassword((p) => !p)}
             aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
           >
@@ -393,11 +393,11 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-[#37352f]">Confirmar senha</Label>
+        <Label className="text-foreground">Confirmar senha</Label>
         <Input
           type="password"
           placeholder="Repita a senha"
-          className="border-[#e5e5e5] bg-[#f7f6f3] focus-visible:ring-[#191919]"
+          className="border-border bg-background focus-visible:ring-primary"
           {...register("confirmPassword")}
         />
         {errors.confirmPassword && (
@@ -409,7 +409,7 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
 
       <Button
         type="submit"
-        className="w-full bg-[#191919] text-white hover:bg-[#2d2d2d]"
+        className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
         disabled={isSubmitting}
       >
         {isSubmitting ? (
@@ -423,21 +423,21 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
       </Button>
 
       <div className="relative">
-        <Separator className="bg-[#e5e5e5]" />
-        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-[#b7b6b2]">
+        <Separator className="bg-border" />
+        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-muted-foreground">
           ou
         </span>
       </div>
 
       <GoogleButton />
 
-      <p className="text-center text-xs text-[#787774]">
+      <p className="text-center text-xs text-muted-foreground">
         Ao criar uma conta, voce concorda com nossos{" "}
-        <a href="#" className="underline hover:text-[#191919]">
+        <a href="#" className="underline hover:text-foreground">
           Termos de Uso
         </a>{" "}
         e{" "}
-        <a href="#" className="underline hover:text-[#191919]">
+        <a href="#" className="underline hover:text-foreground">
           Politica de Privacidade
         </a>
         .

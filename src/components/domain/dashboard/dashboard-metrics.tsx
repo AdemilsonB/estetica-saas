@@ -56,7 +56,7 @@ export function DashboardMetrics() {
   return (
     <div className="space-y-4">
       {/* Linha 1 — 4 cards de resumo */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <div className="inline-flex rounded-xl bg-blue-50 p-2 text-blue-600">
             <CalendarCheck className="size-4" />
