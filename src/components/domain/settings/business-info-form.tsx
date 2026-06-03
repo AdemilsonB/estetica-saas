@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useTenantSettings, useUpdateTenantSettings } from '@/hooks/settings/use-tenant-settings'
 
 export function BusinessInfoForm() {
+  const router = useRouter()
   const { data, isLoading } = useTenantSettings()
   const { mutate, isPending } = useUpdateTenantSettings()
 
@@ -24,11 +26,10 @@ export function BusinessInfoForm() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    mutate({
-      name: name.trim() || undefined,
-      phone: phone.trim() || null,
-      address: address.trim() || null,
-    })
+    mutate(
+      { name: name.trim() || undefined, phone: phone.trim() || null, address: address.trim() || null },
+      { onSuccess: () => router.refresh() },
+    )
   }
 
   if (isLoading) {

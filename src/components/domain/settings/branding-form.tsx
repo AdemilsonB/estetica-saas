@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Loader2, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -148,11 +149,17 @@ function applyPreview(field: string, value: string) {
     else document.documentElement.classList.remove('dark')
     return
   }
+  // mutedColor → --muted-foreground (exceção: não segue o padrão automático)
+  if (field === 'mutedColor') {
+    document.documentElement.style.setProperty('--muted-foreground', hexToOklchStr(value))
+    return
+  }
   const cssVar = `--${field.replace(/Color$/, '').replace(/([A-Z])/g, '-$1').toLowerCase()}`
   document.documentElement.style.setProperty(cssVar, hexToOklchStr(value))
 }
 
 export function BrandingForm({ initial }: Props) {
+  const router = useRouter()
   const [config, setConfig] = useState<BrandingConfig>({
     logoUrl: initial.logoUrl,
     primaryColor: initial.primaryColor,
@@ -218,6 +225,7 @@ export function BrandingForm({ initial }: Props) {
       setConfig((prev) => ({ ...prev, logoUrl }))
       setPendingLogoFile(null)
       toast.success('Configurações salvas com sucesso.')
+      router.refresh()
     } catch {
       toast.error('Erro ao salvar. Tente novamente.')
     } finally {

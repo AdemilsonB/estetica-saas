@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { revalidateTag } from "next/cache";
 
 import { iamService } from "@/domains/iam/iam.service";
 import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
@@ -32,6 +33,7 @@ export async function PATCH(request: Request) {
     ensurePermission(session, PERMISSIONS.settings.manage);
     const input = await validateInput(request, updateTenantSchema);
     const tenant = await iamService.updateTenant(session.tenantId, input);
+    revalidateTag(`tenant-${session.tenantId}`, 'default');
     return Response.json(tenant);
   } catch (error) {
     return handleApiError(error);
