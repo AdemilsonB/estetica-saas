@@ -121,6 +121,8 @@ model Tenant {
   serviceCommissions  ServiceCommission[]
   anamneseTemplate    AnamneseTemplate?
   customerAnamneses   CustomerAnamnese[]
+  servicePackages     ServicePackage[]
+  tenantPromotions    Promotion[]
 }
 
 model BrandingConfig {
@@ -240,16 +242,19 @@ model Customer {
 }
 
 model Service {
-  id           String         @id @default(cuid())
+  id           String              @id @default(cuid())
   tenantId     String
   name         String
   duration     Int
-  price        Decimal        @db.Decimal(10, 2)
-  active       Boolean        @default(true)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  price        Decimal             @db.Decimal(10, 2)
+  active       Boolean             @default(true)
+  imageUrl     String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   appointments Appointment[]
+  packages     ServicePackageItem[]
+  promotions   PromotionItem[]
 
   @@index([tenantId])
 }
@@ -417,4 +422,65 @@ model CustomerAnamnese {
 
   @@index([tenantId])
   @@index([publicToken])
+}
+
+enum PromoDiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model ServicePackage {
+  id          String               @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  price       Decimal              @db.Decimal(10, 2)
+  imageUrl    String?
+  active      Boolean              @default(true)
+  items       ServicePackageItem[]
+  promotions  PromotionItem[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  tenant      Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model ServicePackageItem {
+  id        String         @id @default(cuid())
+  package   ServicePackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  packageId String
+  service   Service        @relation(fields: [serviceId], references: [id])
+  serviceId String
+
+  @@unique([packageId, serviceId])
+}
+
+model Promotion {
+  id            String            @id @default(cuid())
+  tenantId      String
+  name          String
+  description   String?
+  discountType  PromoDiscountType
+  discountValue Decimal           @db.Decimal(10, 2)
+  startsAt      DateTime?
+  endsAt        DateTime?
+  active        Boolean           @default(true)
+  imageUrl      String?
+  items         PromotionItem[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model PromotionItem {
+  id          String          @id @default(cuid())
+  promotion   Promotion       @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  promotionId String
+  service     Service?        @relation(fields: [serviceId], references: [id])
+  serviceId   String?
+  package     ServicePackage? @relation(fields: [packageId], references: [id])
+  packageId   String?
 }

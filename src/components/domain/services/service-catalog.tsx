@@ -9,9 +9,8 @@ import { useDeactivateService, useServices, type Service } from '@/hooks/schedul
 import { ServiceFormModal } from './service-form-modal'
 
 export function ServiceCatalog() {
-  const { data: services, isLoading, isError } = useServices()
+  const { data: services, isLoading, isError, refetch } = useServices()
   const { mutate: deactivate } = useDeactivateService()
-
   const [modalOpen, setModalOpen] = useState(false)
   const [editingService, setEditingService] = useState<Service | undefined>()
 
@@ -30,10 +29,31 @@ export function ServiceCatalog() {
     deactivate(service.id)
   }
 
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-20 w-full rounded-2xl" />
+        ))}
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="rounded-2xl border border-dashed border-destructive/30 px-6 py-10 text-center">
+        <p className="text-sm text-destructive">Erro ao carregar serviços.</p>
+        <Button onClick={() => refetch()} variant="outline" size="sm" className="mt-3">
+          Tentar novamente
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted-foreground">
           {services?.length ?? 0} serviço(s) cadastrado(s)
         </p>
         <Button onClick={handleCreate} size="sm" className="gap-2">
@@ -42,44 +62,43 @@ export function ServiceCatalog() {
         </Button>
       </div>
 
-      {isLoading && (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-2xl" />
-          ))}
-        </div>
-      )}
-
-      {isError && (
-        <p className="text-sm text-rose-500">Erro ao carregar serviços.</p>
-      )}
-
-      {!isLoading && !isError && services?.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-slate-200 px-6 py-10 text-center">
-          <p className="text-sm text-slate-500">Nenhum serviço cadastrado ainda.</p>
+      {services?.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-border px-6 py-10 text-center">
+          <p className="text-sm text-muted-foreground">Nenhum serviço cadastrado ainda.</p>
           <Button onClick={handleCreate} variant="outline" size="sm" className="mt-3">
             Criar primeiro serviço
           </Button>
         </div>
       )}
 
-      {!isLoading && services && services.length > 0 && (
+      {services && services.length > 0 && (
         <div className="space-y-2">
           {services.map((service) => (
             <div
               key={service.id}
-              className="flex items-center gap-4 rounded-2xl border border-white/80 bg-white/85 px-4 py-3 shadow-sm"
+              className="flex items-center gap-4 rounded-2xl border border-border/50 bg-card px-4 py-3 shadow-sm"
             >
+              {service.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={service.imageUrl}
+                  alt={service.name}
+                  className="size-12 shrink-0 rounded-xl object-cover"
+                />
+              )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-slate-950">{service.name}</span>
+                  <span className="font-medium text-foreground">{service.name}</span>
                   {!service.active && (
                     <Badge variant="secondary" className="text-xs">Inativo</Badge>
                   )}
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {service.duration} min ·{' '}
-                  R${Number(service.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {Number(service.price).toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  })}
                 </p>
               </div>
               <div className="flex gap-1">
@@ -97,7 +116,7 @@ export function ServiceCatalog() {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleDeactivate(service)}
-                    className="size-8 text-slate-400 hover:text-rose-600"
+                    className="size-8 text-muted-foreground hover:text-destructive"
                     title="Desativar"
                   >
                     <Power className="size-3.5" />
