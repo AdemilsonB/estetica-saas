@@ -30,10 +30,14 @@ export async function GET(request: NextRequest) {
     },
   );
 
+  // Encerra sessão existente antes de trocar o código — garante que o
+  // convidado receba sua própria sessão mesmo que outra conta esteja logada.
+  await supabase.auth.signOut();
+
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login?error=link_invalido", request.url));
   }
 
   const {
@@ -41,7 +45,7 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (user?.app_metadata?.tenantId) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/agenda", request.url));
   }
 
   return NextResponse.redirect(new URL("/onboarding", request.url));
