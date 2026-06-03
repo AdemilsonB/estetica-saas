@@ -1,4 +1,3 @@
-// src/hooks/use-current-user.ts
 import { useQuery } from '@tanstack/react-query'
 import type { UserRole } from '@prisma/client'
 
@@ -9,6 +8,7 @@ export type CurrentUser = {
   name: string
   role: UserRole
   permissions: string[]
+  businessName: string
 }
 
 async function fetchCurrentUser(): Promise<CurrentUser> {
