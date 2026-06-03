@@ -5,6 +5,7 @@ import { unstable_cache } from 'next/cache'
 import { AppShell } from '@/components/app/app-shell'
 import { brandingRepository } from '@/domains/iam/branding.repository'
 import { buildCssVariables } from '@/lib/branding/build-css-variables'
+import { iamRepository } from '@/domains/iam/iam.repository'
 import { env } from '@/shared/config/env'
 
 async function getTenantIdFromSession(): Promise<string | null> {
@@ -32,19 +33,39 @@ async function getBrandingCached(tenantId: string) {
   return cached()
 }
 
+async function getTenantCached(tenantId: string) {
+  const cached = unstable_cache(
+    () => iamRepository.findTenant(tenantId),
+    [`tenant-${tenantId}`],
+    { tags: [`tenant-${tenantId}`], revalidate: 3600 },
+  )
+  return cached()
+}
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const tenantId = await getTenantIdFromSession()
 
   let brandingCss = ''
+  let logoUrl: string | null = null
+  let businessName = ''
 
   if (tenantId) {
-    const config = await getBrandingCached(tenantId)
+    const [config, tenant] = await Promise.all([
+      getBrandingCached(tenantId),
+      getTenantCached(tenantId),
+    ])
+
+    logoUrl = config?.logoUrl ?? null
+    businessName = tenant?.name ?? ''
+
     if (config) {
       const { styleTag } = buildCssVariables({
         primaryColor: config.primaryColor,
-        secondaryColor: config.secondaryColor,
         accentColor: config.accentColor,
         backgroundColor: config.backgroundColor,
+        borderColor: config.borderColor ?? '#e8ddd3',
+        foregroundColor: config.foregroundColor ?? '#3d2b1f',
+        mutedColor: config.mutedColor ?? '#8a7060',
         fontFamily: config.fontFamily as 'inter' | 'manrope' | 'geist' | 'dm-sans' | 'plus-jakarta-sans' | 'lato',
         borderRadius: config.borderRadius as 'none' | 'medium' | 'full',
         colorScheme: config.colorScheme as 'light' | 'dark',
@@ -59,7 +80,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       {brandingCss && (
         <style dangerouslySetInnerHTML={{ __html: `:root { ${brandingCss} }` }} />
       )}
-      <AppShell>{children}</AppShell>
+      <AppShell logoUrl={logoUrl} businessName={businessName}>
+        {children}
+      </AppShell>
     </>
   )
 }
