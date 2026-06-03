@@ -24,6 +24,14 @@ describe('dayBoundsInTz', () => {
     expect(start.toISOString()).toBe('2026-06-15T03:00:00.000Z') // ainda dia 15 BRT
     expect(end.toISOString()).toBe('2026-06-16T02:59:59.999Z')
   }, 10000)
+
+  it('funciona com timezone de meia hora (Asia/Kolkata = UTC+5:30)', () => {
+    const ref = new Date('2026-06-15T10:00:00Z') // 15:30 IST
+    const { start, end } = dayBoundsInTz('Asia/Kolkata', ref)
+    // Meia-noite IST = UTC - 5:30 = UTC 18:30 do dia anterior
+    expect(start.toISOString()).toBe('2026-06-14T18:30:00.000Z')
+    expect(end.toISOString()).toBe('2026-06-15T18:29:59.999Z')
+  })
 })
 
 describe('monthBoundsInTz', () => {
@@ -40,4 +48,11 @@ describe('monthBoundsInTz', () => {
     expect(start.toISOString()).toBe('2026-06-01T03:00:00.000Z') // ainda junho
     expect(end.toISOString()).toBe('2026-07-01T02:59:59.999Z')
   }, 10000)
+
+  it('monthBoundsInTz funciona em fevereiro de ano bissexto', () => {
+    const ref = new Date('2028-02-15T12:00:00Z') // fevereiro 2028 (bissexto)
+    const { start, end } = monthBoundsInTz('UTC', ref)
+    expect(start.toISOString()).toBe('2028-02-01T00:00:00.000Z')
+    expect(end.toISOString()).toBe('2028-02-29T23:59:59.999Z') // 29 dias em 2028
+  })
 })

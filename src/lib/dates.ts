@@ -69,7 +69,7 @@ function tzOffsetMs(tz: string, at: Date): number {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: false,
+    hourCycle: 'h23',
   }).formatToParts(at);
   const p = (type: string) =>
     Number(parts.find((x) => x.type === type)!.value);
@@ -97,6 +97,9 @@ export function dayBoundsInTz(tz: string, date: Date = new Date()): { start: Dat
 /**
  * Retorna {start, end} do mês de `date` no timezone informado.
  * Ex: monthBoundsInTz('America/Sao_Paulo') em junho → start=jun-01T03Z, end=jul-01T02:59Z
+ * @note Usa o offset de `date` para todo o mês. Para timezones com DST que
+ * cruzam o mês (ex: America/New_York em março), calcule os limites separadamente.
+ * Para America/Sao_Paulo (sem DST desde 2019) não há problema.
  */
 export function monthBoundsInTz(tz: string, date: Date = new Date()): { start: Date; end: Date } {
   const offsetMs = tzOffsetMs(tz, date);
