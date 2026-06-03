@@ -9,6 +9,7 @@ import {
   CreditCard,
   LogOut,
   Menu,
+  Scissors,
   Settings,
   Users,
   UserCog,
@@ -28,6 +29,13 @@ const NAV_ITEMS = [
     icon: CalendarDays,
     href: '/agenda',
     permission: 'appointments:view',
+  },
+  {
+    label: 'Serviços',
+    description: 'Serviços, Pacotes e Promoções',
+    icon: Scissors,
+    href: '/servicos',
+    permission: 'services:view',
   },
   {
     label: 'Clientes',
