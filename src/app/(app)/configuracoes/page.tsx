@@ -19,9 +19,11 @@ import { Loader2 } from 'lucide-react'
 type BrandingConfig = {
   logoUrl: string | null
   primaryColor: string
-  secondaryColor: string
   accentColor: string
   backgroundColor: string
+  borderColor: string
+  foregroundColor: string
+  mutedColor: string
   fontFamily: string
   borderRadius: string
   colorScheme: string
@@ -71,15 +73,17 @@ export default function ConfiguracoesPage() {
       </div>
 
       <Tabs defaultValue="negocio" onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="negocio">Negócio</TabsTrigger>
-          <TabsTrigger value="horarios">Horários</TabsTrigger>
-          <TabsTrigger value="servicos">Serviços</TabsTrigger>
-          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-          <TabsTrigger value="layout">Layout</TabsTrigger>
-          <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
-          <TabsTrigger value="crm">CRM</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto scrollbar-hide">
+          <TabsList className="grid w-full grid-cols-7 min-w-140">
+            <TabsTrigger value="negocio">Negócio</TabsTrigger>
+            <TabsTrigger value="horarios">Horários</TabsTrigger>
+            <TabsTrigger value="servicos">Serviços</TabsTrigger>
+            <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+            <TabsTrigger value="layout">Layout</TabsTrigger>
+            <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+            <TabsTrigger value="crm">CRM</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="negocio" className="mt-6">
           <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">

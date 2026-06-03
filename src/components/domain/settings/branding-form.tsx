@@ -11,7 +11,11 @@ import { hexToOklchStr } from '@/lib/branding/build-css-variables'
 type BrandingConfig = {
   logoUrl: string | null
   primaryColor: string
+  accentColor: string
   backgroundColor: string
+  borderColor: string
+  foregroundColor: string
+  mutedColor: string
   fontFamily: string
   borderRadius: string
   colorScheme: string
@@ -21,7 +25,11 @@ type Props = {
   initial: {
     logoUrl: string | null
     primaryColor: string
+    accentColor: string
     backgroundColor: string
+    borderColor: string
+    foregroundColor: string
+    mutedColor: string
     fontFamily: string
     borderRadius: string
     colorScheme: string
@@ -43,6 +51,15 @@ const RADIUS_OPTIONS = [
   { value: 'medium', label: 'Médio' },
   { value: 'full', label: 'Totalmente arredondado' },
 ]
+
+const WARM_DEFAULTS = {
+  primaryColor: '#c8916a',
+  accentColor: '#fdf0e8',
+  backgroundColor: '#faf7f4',
+  borderColor: '#e8ddd3',
+  foregroundColor: '#3d2b1f',
+  mutedColor: '#8a7060',
+}
 
 const RADIUS_MAP: Record<string, string> = {
   none: '0rem',
@@ -139,7 +156,11 @@ export function BrandingForm({ initial }: Props) {
   const [config, setConfig] = useState<BrandingConfig>({
     logoUrl: initial.logoUrl,
     primaryColor: initial.primaryColor,
+    accentColor: initial.accentColor,
     backgroundColor: initial.backgroundColor,
+    borderColor: initial.borderColor,
+    foregroundColor: initial.foregroundColor,
+    mutedColor: initial.mutedColor,
     fontFamily: initial.fontFamily,
     borderRadius: initial.borderRadius,
     colorScheme: initial.colorScheme,
@@ -244,62 +265,55 @@ export function BrandingForm({ initial }: Props) {
 
       {/* Cores + Prévia lado a lado */}
       <div className="grid gap-8 lg:grid-cols-2">
-        <section className="space-y-6">
-          {/* Cor da marca */}
-          <div className="space-y-2">
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-900">Cores</h3>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <input
-                  type="color"
-                  value={config.primaryColor}
-                  onChange={(e) => update('primaryColor', e.target.value)}
-                  className="mt-1 h-8 w-8 cursor-pointer rounded border border-slate-200"
-                />
-                <div className="flex-1 space-y-0.5">
-                  <Label className="text-sm font-medium text-slate-900">Cor da marca</Label>
-                  <p className="text-xs text-slate-500">Usada em botões, sidebar ativa e ícones de destaque</p>
-                  <input
-                    type="text"
-                    value={config.primaryColor}
-                    onChange={(e) => {
-                      if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) {
-                        if (/^#[0-9a-fA-F]{6}$/.test(e.target.value))
-                          update('primaryColor', e.target.value)
-                        else setConfig((prev) => ({ ...prev, primaryColor: e.target.value }))
-                      }
-                    }}
-                    className="w-28 rounded-md border border-slate-200 px-2 py-1 font-mono text-sm"
-                  />
-                </div>
-              </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                Object.entries(WARM_DEFAULTS).forEach(([field, value]) => {
+                  update(field as keyof BrandingConfig, value)
+                })
+              }}
+            >
+              Restaurar padrão warm
+            </Button>
+          </div>
 
-              <div className="flex items-start gap-3">
+          {[
+            { field: 'primaryColor' as const, label: 'Cor da marca', desc: 'Botões, ícones ativos, links' },
+            { field: 'backgroundColor' as const, label: 'Fundo da tela', desc: 'Background geral das páginas' },
+            { field: 'accentColor' as const, label: 'Fundo de seleção', desc: 'Item ativo na sidebar, hover states' },
+            { field: 'borderColor' as const, label: 'Bordas e separadores', desc: 'Cards, dividers, inputs' },
+            { field: 'foregroundColor' as const, label: 'Texto principal', desc: 'Títulos e texto de destaque' },
+            { field: 'mutedColor' as const, label: 'Texto secundário', desc: 'Descrições, hints, labels' },
+          ].map(({ field, label, desc }) => (
+            <div key={field} className="flex items-start gap-3">
+              <input
+                type="color"
+                value={config[field]}
+                onChange={(e) => update(field, e.target.value)}
+                className="mt-1 h-8 w-8 cursor-pointer rounded border border-slate-200"
+              />
+              <div className="flex-1 space-y-0.5">
+                <Label className="text-sm font-medium text-slate-900">{label}</Label>
+                <p className="text-xs text-slate-500">{desc}</p>
                 <input
-                  type="color"
-                  value={config.backgroundColor}
-                  onChange={(e) => update('backgroundColor', e.target.value)}
-                  className="mt-1 h-8 w-8 cursor-pointer rounded border border-slate-200"
+                  type="text"
+                  value={config[field]}
+                  onChange={(e) => {
+                    if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) {
+                      if (/^#[0-9a-fA-F]{6}$/.test(e.target.value))
+                        update(field, e.target.value)
+                      else setConfig((prev) => ({ ...prev, [field]: e.target.value }))
+                    }
+                  }}
+                  className="w-28 rounded-md border border-slate-200 px-2 py-1 font-mono text-sm"
                 />
-                <div className="flex-1 space-y-0.5">
-                  <Label className="text-sm font-medium text-slate-900">Cor de fundo da tela</Label>
-                  <p className="text-xs text-slate-500">Fundo das telas do sistema</p>
-                  <input
-                    type="text"
-                    value={config.backgroundColor}
-                    onChange={(e) => {
-                      if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) {
-                        if (/^#[0-9a-fA-F]{6}$/.test(e.target.value))
-                          update('backgroundColor', e.target.value)
-                        else setConfig((prev) => ({ ...prev, backgroundColor: e.target.value }))
-                      }
-                    }}
-                    className="w-28 rounded-md border border-slate-200 px-2 py-1 font-mono text-sm"
-                  />
-                </div>
               </div>
             </div>
-          </div>
+          ))}
 
           {/* Tipografia */}
           <div className="space-y-2">
