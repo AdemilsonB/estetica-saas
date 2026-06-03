@@ -6,6 +6,7 @@ export type Service = {
   duration: number
   price: string
   active: boolean
+  imageUrl: string | null
 }
 
 export type CreateServiceInput = {

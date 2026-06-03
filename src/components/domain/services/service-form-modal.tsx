@@ -2,14 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import { useCreateService, useUpdateService, type Service } from '@/hooks/scheduling/use-services'
 
 type Props = {
@@ -31,7 +27,7 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
     if (open && service) {
       setName(service.name)
       setDuration(String(service.duration))
-      setPrice(String(Number(service.price)))
+      setPrice(Number(service.price).toFixed(2))
     } else if (!open) {
       setName('')
       setDuration('60')
@@ -43,7 +39,7 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
     e.preventDefault()
     const durationNum = parseInt(duration, 10)
     const priceNum = parseFloat(price)
-    if (isNaN(durationNum) || isNaN(priceNum)) return
+    if (isNaN(durationNum) || isNaN(priceNum) || priceNum <= 0) return
 
     if (isEditing) {
       update(
@@ -94,15 +90,12 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="service-price">Preço (R$)</Label>
-              <Input
+              <Label htmlFor="service-price">Preço</Label>
+              <CurrencyInput
                 id="service-price"
-                type="number"
-                min={0.01}
-                step={0.01}
                 value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="0,00"
+                onChange={setPrice}
+                placeholder="R$ 0,00"
                 required
               />
             </div>
