@@ -3,6 +3,8 @@ import { prisma } from '@/shared/database/prisma'
 import { PlanName } from '@prisma/client'
 import { ChevronRight } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 const PLAN_COLORS: Record<PlanName, string> = {
   FREE: 'border-slate-200 bg-slate-50',
   STARTER: 'border-blue-200 bg-blue-50',

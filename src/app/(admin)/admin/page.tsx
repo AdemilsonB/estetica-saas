@@ -1,6 +1,8 @@
 import { prisma } from '@/shared/database/prisma'
 import { PlanName } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 const PLAN_LABELS: Record<PlanName, string> = {
   FREE: 'Free', STARTER: 'Starter', PRO: 'Pro', ENTERPRISE: 'Enterprise',
 }
