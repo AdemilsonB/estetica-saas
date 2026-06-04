@@ -35,7 +35,7 @@ export default function ConfiguracoesPage() {
   const [brandingLoading, setBrandingLoading] = useState(false)
 
   useEffect(() => {
-    if (!isLoading && !can('settings:view')) {
+    if (!isLoading && !can('configuracoes', 'view')) {
       router.replace('/agenda')
     }
   }, [isLoading, can, router])
@@ -58,7 +58,7 @@ export default function ConfiguracoesPage() {
     )
   }
 
-  if (!can('settings:view')) return null
+  if (!can('configuracoes', 'view')) return null
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">

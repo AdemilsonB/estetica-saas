@@ -28,49 +28,49 @@ const NAV_ITEMS = [
     description: 'Atendimentos e encaixes',
     icon: CalendarDays,
     href: '/agenda',
-    permission: 'appointments:view',
+    sectionKey: 'agenda',
   },
   {
     label: 'Serviços',
     description: 'Serviços, Pacotes e Promoções',
     icon: Scissors,
     href: '/servicos',
-    permission: 'services:view',
+    sectionKey: 'servicos',
   },
   {
     label: 'Clientes',
     description: 'CRM e recorrência',
     icon: Users,
     href: '/clientes',
-    permission: 'customers:view',
+    sectionKey: 'clientes',
   },
   {
     label: 'Financeiro',
     description: 'Receitas e caixa',
     icon: CreditCard,
     href: '/financeiro',
-    permission: 'financial:view',
+    sectionKey: 'financeiro',
   },
   {
     label: 'Relatórios',
     description: 'Análises e exportações',
     icon: BarChart2,
     href: '/relatorios',
-    permission: 'financial:view',
+    sectionKey: 'relatorios',
   },
   {
     label: 'Equipe',
     description: 'Usuários e permissões',
     icon: UserCog,
     href: '/equipe',
-    permission: 'users:view',
+    sectionKey: 'equipe',
   },
   {
     label: 'Config.',
     description: 'Configurações',
     icon: Settings,
     href: '/configuracoes',
-    permission: null,
+    sectionKey: null,
   },
 ] as const
 
@@ -91,7 +91,7 @@ interface AppShellProps {
 export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { can, user, isLoading } = usePermissions()
+  const { canAccess, user, isLoading } = usePermissions()
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     return localStorage.getItem('sidebar-collapsed') === 'true'
@@ -115,7 +115,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
   }
 
   const visibleItems = NAV_ITEMS.filter(
-    (item) => item.permission === null || can(item.permission),
+    (item) => item.sectionKey === null || canAccess(item.sectionKey),
   )
 
   const mainItems = visibleItems.slice(0, -1)

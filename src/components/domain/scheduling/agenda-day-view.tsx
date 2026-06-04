@@ -170,7 +170,7 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
           </Button>
         </div>
 
-        {can('appointments:create') && (
+        {can('agenda', 'create') && (
           <Button
             onClick={() => setCreateModalOpen(true)}
             className="rounded-full bg-slate-950 text-white hover:bg-slate-800"
@@ -226,7 +226,7 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
               ? 'Nenhum agendamento para esta semana'
               : 'Nenhum agendamento para este dia'}
           </p>
-          {can('appointments:create') && (
+          {can('agenda', 'create') && (
             <Button
               onClick={() => setCreateModalOpen(true)}
               variant="outline"

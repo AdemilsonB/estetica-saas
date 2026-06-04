@@ -16,7 +16,7 @@ export default function TransacoesPage() {
   const [to, setTo] = useState('')
   const [page, setPage] = useState(1)
 
-  if (!can('financial:view')) {
+  if (!can('financeiro', 'view')) {
     return (
       <div className="mx-auto max-w-2xl">
         <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
