@@ -116,6 +116,7 @@ model Tenant {
   transactions Transaction[]
   notifications       NotificationLog[]
   invites             TenantInvite[]
+  roles               Role[]
   discountTypes       DiscountType[]
   recurringExpenses   RecurringExpense[]
   serviceCommissions  ServiceCommission[]
@@ -148,6 +149,33 @@ model BrandingConfig {
   @@index([tenantId])
 }
 
+model Role {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  isDefault   Boolean  @default(false)
+  permissions Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users  User[] @relation("UserCustomRole")
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model PlanFeatureConfig {
+  id         String   @id @default(cuid())
+  plan       PlanName
+  sectionKey String
+  enabled    Boolean  @default(true)
+  updatedAt  DateTime @updatedAt
+
+  @@unique([plan, sectionKey])
+  @@index([plan])
+}
+
 model User {
   id                      String         @id @default(cuid())
   tenantId                String
@@ -155,6 +183,8 @@ model User {
   name                    String
   role                    UserRole       @default(PROFESSIONAL)
   permissions             String[]
+  roleId                  String?
+  customRole              Role?          @relation("UserCustomRole", fields: [roleId], references: [id])
   createdAt               DateTime       @default(now())
   updatedAt               DateTime       @updatedAt
   tenant                  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -206,6 +236,7 @@ model TenantInvite {
   tenantId  String
   email     String
   role      UserRole
+  roleId    String?
   status    InviteStatus @default(PENDING)
   expiresAt DateTime
   createdAt DateTime     @default(now())
