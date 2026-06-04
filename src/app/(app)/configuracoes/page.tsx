@@ -13,6 +13,7 @@ import { CommissionsGrid } from '@/components/domain/settings/commissions-grid'
 import { CardFeesForm } from '@/components/domain/settings/card-fees-form'
 import { SettingsAnamneseTab } from '@/components/domain/crm/settings-anamnese-tab'
 import { usePermissions } from '@/hooks/use-permissions'
+import { RolesManager } from '@/components/domain/iam/roles-manager'
 import { Loader2 } from 'lucide-react'
 
 type BrandingConfig = {
@@ -29,7 +30,7 @@ type BrandingConfig = {
 }
 
 export default function ConfiguracoesPage() {
-  const { can, isLoading } = usePermissions()
+  const { can, user, isLoading } = usePermissions()
   const router = useRouter()
   const [brandingConfig, setBrandingConfig] = useState<BrandingConfig | null>(null)
   const [brandingLoading, setBrandingLoading] = useState(false)
@@ -73,13 +74,14 @@ export default function ConfiguracoesPage() {
 
       <Tabs defaultValue="negocio" onValueChange={handleTabChange}>
         <div className="overflow-x-auto scrollbar-hide">
-          <TabsList className="grid w-full grid-cols-6 min-w-120">
+          <TabsList className={`grid w-full min-w-120 ${user?.isOwner ? 'grid-cols-7' : 'grid-cols-6'}`}>
             <TabsTrigger value="negocio">Negócio</TabsTrigger>
             <TabsTrigger value="horarios">Horários</TabsTrigger>
             <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
             <TabsTrigger value="layout">Layout</TabsTrigger>
             <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
             <TabsTrigger value="crm">CRM</TabsTrigger>
+            {user?.isOwner && <TabsTrigger value="cargos">Cargos</TabsTrigger>}
           </TabsList>
         </div>
 
@@ -152,6 +154,19 @@ export default function ConfiguracoesPage() {
             <SettingsAnamneseTab />
           </div>
         </TabsContent>
+        {user?.isOwner && (
+          <TabsContent value="cargos" className="mt-6">
+            <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">
+              <h2 className="mb-1 text-base font-semibold text-slate-950">
+                Cargos e Permissões
+              </h2>
+              <p className="mb-6 text-sm text-slate-500">
+                Defina o que cada cargo pode ver e fazer no sistema.
+              </p>
+              <RolesManager />
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )

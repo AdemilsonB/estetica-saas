@@ -1,4 +1,3 @@
-// src/components/domain/iam/invite-member-modal.tsx
 'use client'
 
 import { useState } from 'react'
@@ -19,7 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useInviteMember, type UserRole } from '@/hooks/iam/use-team'
+import { useInviteMember } from '@/hooks/iam/use-team'
+import { useRoles } from '@/hooks/iam/use-roles'
 
 type Props = {
   open: boolean
@@ -28,21 +28,21 @@ type Props = {
 
 export function InviteMemberModal({ open, onClose }: Props) {
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<Exclude<UserRole, 'OWNER'> | ''>('')
+  const [roleId, setRoleId] = useState('')
   const invite = useInviteMember()
+  const { data: roles = [], isLoading: loadingRoles } = useRoles()
 
   function handleClose() {
     setEmail('')
-    setRole('')
+    setRoleId('')
     onClose()
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email || !role) return
-
+    if (!email || !roleId) return
     invite.mutate(
-      { email: email.trim(), role: role as Exclude<UserRole, 'OWNER'> },
+      { email: email.trim(), roleId },
       {
         onSuccess: () => {
           toast.success(`Convite enviado para ${email}`)
@@ -76,18 +76,17 @@ export function InviteMemberModal({ open, onClose }: Props) {
           </div>
 
           <div className="space-y-1.5">
-            <Label>Papel *</Label>
-            <Select
-              value={role}
-              onValueChange={(v) => setRole(v as Exclude<UserRole, 'OWNER'>)}
-            >
+            <Label>Cargo *</Label>
+            <Select value={roleId} onValueChange={setRoleId} disabled={loadingRoles}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione o papel..." />
+                <SelectValue placeholder="Selecione o cargo..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="MANAGER">Gerente</SelectItem>
-                <SelectItem value="PROFESSIONAL">Profissional</SelectItem>
-                <SelectItem value="RECEPTIONIST">Recepcionista</SelectItem>
+                {roles.map((role) => (
+                  <SelectItem key={role.id} value={role.id}>
+                    {role.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -109,7 +108,7 @@ export function InviteMemberModal({ open, onClose }: Props) {
             <Button
               type="submit"
               className="flex-1 bg-slate-950 text-white hover:bg-slate-800"
-              disabled={!email || !role || invite.isPending}
+              disabled={!email || !roleId || invite.isPending}
             >
               {invite.isPending ? 'Enviando...' : 'Enviar convite'}
             </Button>
