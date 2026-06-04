@@ -47,7 +47,9 @@ export async function POST(request: Request) {
     ensurePermission(session, PERMISSIONS.appointments.create);
     const input = await validateInput(request, createAppointmentSchema);
 
-    if (input.allowOverlap && session.role !== 'OWNER' && session.role !== 'MANAGER') {
+    const canOverlap =
+      session.isOwner || session.permissions['agenda']?.includes('delete')
+    if (input.allowOverlap && !canOverlap) {
       throw new ForbiddenError("Apenas OWNER e MANAGER podem autorizar conflito de horario.");
     }
 
