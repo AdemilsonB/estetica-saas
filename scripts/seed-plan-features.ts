@@ -1,7 +1,13 @@
+import { config } from 'dotenv'
+import { resolve } from 'path'
+config({ path: resolve(process.cwd(), '.env.local') })
+
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient, PlanName } from '@prisma/client'
 import { NAV_REGISTRY } from '../src/shared/permissions/nav-registry'
 
-const prisma = new PrismaClient()
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
+const prisma = new PrismaClient({ adapter } as any)
 
 async function main() {
   const plans = [PlanName.FREE, PlanName.STARTER, PlanName.PRO, PlanName.ENTERPRISE]
