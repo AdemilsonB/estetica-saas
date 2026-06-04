@@ -61,6 +61,16 @@ async function updateMemberRole(input: { userId: string; roleId: string }): Prom
   return res.json()
 }
 
+async function cancelInvite(inviteId: string): Promise<void> {
+  const res = await fetch(`/api/iam/invites/${inviteId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message ?? 'Falha ao cancelar convite')
+  }
+}
+
 export function useTeamMembers() {
   return useQuery({
     queryKey: ['team-members'],
@@ -81,6 +91,16 @@ export function useInviteMember() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createInvite,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team-invites'] })
+    },
+  })
+}
+
+export function useCancelInvite() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: cancelInvite,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-invites'] })
     },
