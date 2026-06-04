@@ -10,6 +10,7 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = AUTH_ROUTES.includes(pathname);
   const isTokenRoute = TOKEN_ROUTES.includes(pathname);
   const isOnboarding = pathname === "/onboarding";
+  const isAdminRoute = pathname.startsWith("/admin");
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -46,6 +47,17 @@ export async function middleware(request: NextRequest) {
     // Falha ao contactar Supabase — redireciona para login como fallback seguro
     if (!isAuthRoute && !isTokenRoute) {
       return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return supabaseResponse;
+  }
+
+  // Proteção de rotas admin
+  if (isAdminRoute) {
+    if (!user) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    if (!user.app_metadata?.isSystemAdmin) {
+      return NextResponse.redirect(new URL("/agenda", request.url));
     }
     return supabaseResponse;
   }
