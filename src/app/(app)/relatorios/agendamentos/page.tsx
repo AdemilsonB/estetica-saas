@@ -34,13 +34,13 @@ const COLUMNS: ReportColumn[] = [
 export default function RelatorioAgendamentosPage() {
   const { can } = usePermissions()
   const [period, setPeriod] = useState<PeriodValue>(defaultPeriod)
-  const [status, setStatus] = useState<string>('')
+  const [status, setStatus] = useState<string>('all')
   const [groupBy, setGroupBy] = useState<'profissional' | 'servico'>('profissional')
 
   const { data, isLoading, isError } = useAppointmentsReport({
     from: period.from,
     to: period.to,
-    status: status ? [status] : undefined,
+    status: status !== 'all' ? [status] : undefined,
     groupBy,
   })
 
@@ -87,7 +87,7 @@ export default function RelatorioAgendamentosPage() {
               <SelectValue placeholder="Status: Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               {Object.entries(STATUS_LABELS).map(([k, v]) => (
                 <SelectItem key={k} value={k}>{v}</SelectItem>
               ))}

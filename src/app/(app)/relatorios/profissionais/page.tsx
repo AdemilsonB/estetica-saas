@@ -37,12 +37,12 @@ const COLUMNS: ReportColumn[] = [
 export default function RelatorioProfissionaisPage() {
   const { can } = usePermissions()
   const [period, setPeriod] = useState<PeriodValue>(defaultPeriod)
-  const [status, setStatus] = useState<string>('')
+  const [status, setStatus] = useState<string>('all')
 
   const { data, isLoading, isError } = useProfessionalsReport({
     from: period.from,
     to: period.to,
-    status: status ? [status] : undefined,
+    status: status !== 'all' ? [status] : undefined,
   })
 
   if (!can('relatorios', 'view')) {
@@ -85,7 +85,7 @@ export default function RelatorioProfissionaisPage() {
               <SelectValue placeholder="Status: Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               {Object.entries(STATUS_LABELS).map(([k, v]) => (
                 <SelectItem key={k} value={k}>{v}</SelectItem>
               ))}
