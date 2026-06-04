@@ -8,7 +8,6 @@ import { env, isProduction } from '@/shared/config/env'
 import { prisma } from '@/shared/database/prisma'
 import { UnauthorizedError } from '@/shared/errors'
 import { buildOwnerPermissions } from '@/shared/permissions/nav-registry'
-import { legacyRoleToPermissions } from '@/shared/auth/permissions-legacy'
 import type { SessionContext } from '@/shared/types/auth'
 
 const permissionsHeaderName = 'x-user-permissions'
@@ -31,15 +30,9 @@ async function buildSessionFromUserId(userId: string, tenantId: string): Promise
 
   const isOwner = dbUser.role === UserRole.OWNER
 
-  let permissions: Record<string, string[]>
-  if (isOwner) {
-    permissions = buildOwnerPermissions()
-  } else if (dbUser.customRole?.permissions) {
-    permissions = dbUser.customRole.permissions as Record<string, string[]>
-  } else {
-    // fallback: usuário sem roleId (período de migração)
-    permissions = legacyRoleToPermissions(dbUser.role)
-  }
+  const permissions: Record<string, string[]> = isOwner
+    ? buildOwnerPermissions()
+    : (dbUser.customRole?.permissions as Record<string, string[]> ?? {})
 
   return { tenantId, userId, isOwner, permissions }
 }
@@ -103,14 +96,13 @@ async function getDevelopmentHeaderSession(request: Request): Promise<SessionCon
   if (isOwner) {
     permissions = buildOwnerPermissions()
   } else if (permissionsValue) {
-    // Dev: aceita JSON de permissões ou string legacy separada por vírgula
     try {
       permissions = JSON.parse(permissionsValue) as Record<string, string[]>
     } catch {
-      permissions = legacyRoleToPermissions(roleValue)
+      permissions = {}
     }
   } else {
-    permissions = legacyRoleToPermissions(roleValue)
+    permissions = {}
   }
 
   return { tenantId, userId, isOwner, permissions }

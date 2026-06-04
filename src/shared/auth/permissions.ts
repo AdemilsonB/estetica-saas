@@ -2,7 +2,6 @@ import { UserRole } from '@prisma/client'
 import { ForbiddenError } from '@/shared/errors'
 import type { SessionContext } from '@/shared/types/auth'
 import type { NavAction } from '@/shared/permissions/nav-registry'
-import { LEGACY_PERMISSION_MAP } from './permissions-legacy'
 
 export const PERMISSIONS = {
   appointments: {
@@ -35,7 +34,6 @@ export const PERMISSIONS = {
   },
 } as const
 
-// Mantido para compatibilidade com iam.repository.ts e outros
 export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   [UserRole.OWNER]: Object.values(PERMISSIONS).flatMap((g) => Object.values(g)),
   [UserRole.MANAGER]: [
@@ -55,6 +53,25 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   ],
 }
 
+const LEGACY_PERMISSION_MAP: Record<string, { key: string; action: string }[]> = {
+  'appointments:view':   [{ key: 'agenda',        action: 'view'   }],
+  'appointments:create': [{ key: 'agenda',        action: 'create' }],
+  'appointments:edit':   [{ key: 'agenda',        action: 'edit'   }],
+  'appointments:delete': [{ key: 'agenda',        action: 'delete' }],
+  'customers:view':      [{ key: 'clientes',      action: 'view'   }],
+  'customers:create':    [{ key: 'clientes',      action: 'create' }],
+  'customers:edit':      [{ key: 'clientes',      action: 'edit'   }],
+  'financial:view':      [{ key: 'financeiro',    action: 'view'   }],
+  'financial:manage':    [{ key: 'financeiro',    action: 'edit'   }],
+  'services:view':       [{ key: 'servicos',      action: 'view'   }],
+  'services:manage':     [{ key: 'servicos',      action: 'edit'   }],
+  'users:view':          [{ key: 'equipe',        action: 'view'   }],
+  'users:invite':        [{ key: 'equipe',        action: 'create' }],
+  'users:manage':        [{ key: 'equipe',        action: 'edit'   }],
+  'settings:view':       [{ key: 'configuracoes', action: 'view'   }],
+  'settings:manage':     [{ key: 'configuracoes', action: 'edit'   }],
+}
+
 /**
  * Suporta duas assinaturas:
  * Nova:    ensurePermission(session, 'agenda', 'view')
@@ -68,13 +85,11 @@ export function ensurePermission(
   if (session.isOwner) return
 
   if (action !== undefined) {
-    // Nova assinatura: verifica sectionKey + action
     const allowed = session.permissions[sectionKeyOrLegacy] ?? []
     if (!allowed.includes(action)) {
       throw new ForbiddenError('Permissao insuficiente para esta operacao.')
     }
   } else {
-    // Legacy: mapeia 'domain:action' para novo formato
     const mappings = LEGACY_PERMISSION_MAP[sectionKeyOrLegacy]
     if (!mappings || mappings.length === 0) {
       throw new ForbiddenError('Permissao insuficiente para esta operacao.')
