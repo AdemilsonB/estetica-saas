@@ -114,6 +114,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
         {showLabel && (
           <span className="min-w-0">
             <span className="block text-sm font-medium">{item.label}</span>
+            <span className="block text-xs text-muted-foreground">{item.description}</span>
           </span>
         )}
       </Link>

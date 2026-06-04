@@ -79,7 +79,7 @@ export class IamRepository {
   }
 
   async findAllUsers(tenantId: string) {
-    return prisma.user.findMany({
+    const users = await prisma.user.findMany({
       where: { tenantId },
       orderBy: { createdAt: "asc" },
       select: {
@@ -87,9 +87,21 @@ export class IamRepository {
         name: true,
         email: true,
         role: true,
+        roleId: true,
+        customRole: { select: { name: true } },
         createdAt: true,
       },
-    });
+    })
+    return users.map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      isOwner: u.role === "OWNER",
+      roleId: u.roleId,
+      roleName: u.role === "OWNER" ? "Dono" : (u.customRole?.name ?? "Sem cargo"),
+      createdAt: u.createdAt,
+    }))
   }
 
   async countActiveUsers(tenantId: string): Promise<number> {

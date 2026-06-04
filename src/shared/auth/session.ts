@@ -14,6 +14,16 @@ const permissionsHeaderName = 'x-user-permissions'
 const authorizationHeaderName = 'authorization'
 const devSessionHeaderName = 'x-auth-mode'
 
+const LEGACY_ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
+  MANAGER:      { agenda: ['view','create','edit','delete'], servicos: ['view','create','edit','delete'], clientes: ['view','create','edit'], financeiro: ['view','create','edit'], relatorios: ['view'], equipe: ['view'], configuracoes: ['view','edit'] },
+  PROFESSIONAL: { agenda: ['view','create'], servicos: ['view'], clientes: ['view'] },
+  RECEPTIONIST: { agenda: ['view','create','edit'], servicos: ['view'], clientes: ['view','create','edit'] },
+}
+
+function buildLegacyPermissions(role: string): Record<string, string[]> {
+  return LEGACY_ROLE_PERMISSIONS[role] ?? {}
+}
+
 async function buildSessionFromUserId(userId: string, tenantId: string): Promise<SessionContext> {
   const dbUser = await prisma.user.findFirst({
     where: { id: userId, tenantId },
@@ -30,9 +40,15 @@ async function buildSessionFromUserId(userId: string, tenantId: string): Promise
 
   const isOwner = dbUser.role === UserRole.OWNER
 
-  const permissions: Record<string, string[]> = isOwner
-    ? buildOwnerPermissions()
-    : (dbUser.customRole?.permissions as Record<string, string[]> ?? {})
+  let permissions: Record<string, string[]>
+  if (isOwner) {
+    permissions = buildOwnerPermissions()
+  } else if (dbUser.customRole?.permissions) {
+    permissions = dbUser.customRole.permissions as Record<string, string[]>
+  } else {
+    // Fallback para usuários sem roleId (período de migração ou tenant sem cargos semeados)
+    permissions = buildLegacyPermissions(dbUser.role)
+  }
 
   return { tenantId, userId, isOwner, permissions }
 }

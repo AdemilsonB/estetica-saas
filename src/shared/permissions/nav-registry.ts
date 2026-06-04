@@ -3,6 +3,7 @@ export type NavAction = 'view' | 'create' | 'edit' | 'delete'
 export type NavSection = {
   key: string
   label: string
+  description: string
   icon: string
   href: string
   actions: NavAction[]
@@ -17,6 +18,7 @@ export const NAV_REGISTRY: NavSection[] = [
   {
     key: 'agenda',
     label: 'Agenda',
+    description: 'Atendimentos e encaixes',
     icon: 'CalendarDays',
     href: '/agenda',
     actions: ['view', 'create', 'edit', 'delete'],
@@ -29,6 +31,7 @@ export const NAV_REGISTRY: NavSection[] = [
   {
     key: 'servicos',
     label: 'Serviços',
+    description: 'Serviços, Pacotes e Promoções',
     icon: 'Scissors',
     href: '/servicos',
     actions: ['view', 'create', 'edit', 'delete'],
@@ -41,6 +44,7 @@ export const NAV_REGISTRY: NavSection[] = [
   {
     key: 'clientes',
     label: 'Clientes',
+    description: 'CRM e recorrência',
     icon: 'Users',
     href: '/clientes',
     actions: ['view', 'create', 'edit', 'delete'],
@@ -53,6 +57,7 @@ export const NAV_REGISTRY: NavSection[] = [
   {
     key: 'financeiro',
     label: 'Financeiro',
+    description: 'Receitas e caixa',
     icon: 'CreditCard',
     href: '/financeiro',
     actions: ['view', 'create', 'edit', 'delete'],
@@ -65,6 +70,7 @@ export const NAV_REGISTRY: NavSection[] = [
   {
     key: 'relatorios',
     label: 'Relatórios',
+    description: 'Análises e exportações',
     icon: 'BarChart2',
     href: '/relatorios',
     actions: ['view'],
@@ -77,6 +83,7 @@ export const NAV_REGISTRY: NavSection[] = [
   {
     key: 'equipe',
     label: 'Equipe',
+    description: 'Usuários e permissões',
     icon: 'UserCog',
     href: '/equipe',
     actions: ['view', 'create', 'edit', 'delete'],
@@ -89,6 +96,7 @@ export const NAV_REGISTRY: NavSection[] = [
   {
     key: 'configuracoes',
     label: 'Config.',
+    description: 'Configurações',
     icon: 'Settings',
     href: '/configuracoes',
     actions: ['view', 'edit'],
