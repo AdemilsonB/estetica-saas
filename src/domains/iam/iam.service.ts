@@ -136,6 +136,11 @@ export class IamService {
     return iamRepository.findInvites(tenantId);
   }
 
+  async cancelInvite(tenantId: string, inviteId: string): Promise<void> {
+    const { count } = await iamRepository.deleteInvite(tenantId, inviteId)
+    if (count === 0) throw new NotFoundError('Convite')
+  }
+
   async updateUserRoleById(
     tenantId: string,
     requesterId: string,

@@ -308,40 +308,21 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
   async function onSubmit(data: SignupForm) {
     const supabase = createSupabaseBrowserClient();
 
-    if (process.env.NODE_ENV === "development") {
-      const devRes = await fetch("/api/dev/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: data.email, password: data.password }),
-      });
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: data.email, password: data.password }),
+    });
 
-      if (!devRes.ok) {
-        const body = await devRes.json();
-        const msg = body.error ?? "";
-        if (msg.includes("already been registered") || msg.includes("already exists")) {
-          toast.error("Este email ja possui uma conta. Faca login.");
-        } else {
-          toast.error(msg || "Erro ao criar conta.");
-        }
-        return;
+    if (!res.ok) {
+      const body = await res.json();
+      const msg = body.error ?? "";
+      if (msg.includes("already been registered") || msg.includes("already exists")) {
+        toast.error("Este email ja possui uma conta. Faca login.");
+      } else {
+        toast.error(msg || "Erro ao criar conta.");
       }
-    } else {
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (signUpError) {
-        if (signUpError.message.includes("already registered")) {
-          toast.error("Este email ja possui uma conta. Faca login.");
-        } else {
-          toast.error(signUpError.message);
-        }
-        return;
-      }
+      return;
     }
 
     const { data: signed, error: signInError } = await supabase.auth.signInWithPassword({

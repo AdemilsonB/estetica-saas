@@ -1,89 +1,65 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { prismaMock } from "@/shared/test/prisma-mock";
-import { PlanName, SubscriptionStatus } from "@prisma/client";
-import { makeWhatsAppUsage } from "@/shared/test/factories/whatsapp-usage.factory";
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { prismaMock } from '@/shared/test/prisma-mock'
+import { makeWhatsAppUsage } from '@/shared/test/factories/whatsapp-usage.factory'
 
-vi.mock("@/domains/billing/feature-guard", () => ({
-  featureGuard: {
-    getSubscriptionState: vi.fn(),
-  },
-}));
+vi.mock('@/domains/billing/plan-limits.service', () => ({
+  planLimitsService: { get: vi.fn() },
+}))
 
-import { featureGuard } from "@/domains/billing/feature-guard";
-import { WhatsAppQuotaService } from "./whatsapp-quota.service";
+import { planLimitsService } from '@/domains/billing/plan-limits.service'
+import { WhatsAppQuotaService } from './whatsapp-quota.service'
 
-const service = new WhatsAppQuotaService();
+const service = new WhatsAppQuotaService()
 
-describe("WhatsAppQuotaService", () => {
+describe('WhatsAppQuotaService', () => {
   beforeEach(() => {
-    vi.mocked(featureGuard.getSubscriptionState).mockResolvedValue({
-      plan: PlanName.STARTER,
-      status: SubscriptionStatus.ACTIVE,
-    });
-  });
+    vi.mocked(planLimitsService.get).mockResolvedValue(500)
+  })
 
-  describe("checkAndIncrement", () => {
-    it("retorna true e incrementa quando abaixo do limite", async () => {
-      prismaMock.whatsAppMonthlyUsage.upsert.mockResolvedValue(
-        makeWhatsAppUsage({ count: 100 }),
-      );
+  describe('checkAndIncrement', () => {
+    it('retorna true e incrementa quando abaixo do limite', async () => {
+      prismaMock.whatsAppMonthlyUsage.upsert.mockResolvedValue(makeWhatsAppUsage({ count: 100 }))
 
-      const result = await service.checkAndIncrement("tenant-1");
+      const result = await service.checkAndIncrement('tenant-1')
 
-      expect(result).toBe(true);
-      expect(prismaMock.whatsAppMonthlyUsage.upsert).toHaveBeenCalledOnce();
-      expect(prismaMock.whatsAppMonthlyUsage.update).not.toHaveBeenCalled();
-    });
+      expect(result).toBe(true)
+      expect(prismaMock.whatsAppMonthlyUsage.upsert).toHaveBeenCalledOnce()
+      expect(prismaMock.whatsAppMonthlyUsage.update).not.toHaveBeenCalled()
+    })
 
-    it("retorna false e reverte o increment quando ultrapassa o limite do STARTER (500)", async () => {
-      prismaMock.whatsAppMonthlyUsage.upsert.mockResolvedValue(
-        makeWhatsAppUsage({ count: 501 }),
-      );
-      prismaMock.whatsAppMonthlyUsage.update.mockResolvedValue(
-        makeWhatsAppUsage({ count: 500 }),
-      );
+    it('retorna false e reverte o increment quando ultrapassa o limite (500)', async () => {
+      prismaMock.whatsAppMonthlyUsage.upsert.mockResolvedValue(makeWhatsAppUsage({ count: 501 }))
+      prismaMock.whatsAppMonthlyUsage.update.mockResolvedValue(makeWhatsAppUsage({ count: 500 }))
 
-      const result = await service.checkAndIncrement("tenant-1");
+      const result = await service.checkAndIncrement('tenant-1')
 
-      expect(result).toBe(false);
+      expect(result).toBe(false)
       expect(prismaMock.whatsAppMonthlyUsage.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: { count: { decrement: 1 } },
-        }),
-      );
-    });
+        })
+      )
+    })
 
-    it("retorna true para ENTERPRISE até 5000", async () => {
-      vi.mocked(featureGuard.getSubscriptionState).mockResolvedValue({
-        plan: PlanName.ENTERPRISE,
-        status: SubscriptionStatus.ACTIVE,
-      });
-      prismaMock.whatsAppMonthlyUsage.upsert.mockResolvedValue(
-        makeWhatsAppUsage({ count: 4999 }),
-      );
+    it('retorna true para limite ilimitado (999999)', async () => {
+      vi.mocked(planLimitsService.get).mockResolvedValue(999999)
+      prismaMock.whatsAppMonthlyUsage.upsert.mockResolvedValue(makeWhatsAppUsage({ count: 10000 }))
 
-      const result = await service.checkAndIncrement("tenant-1");
+      const result = await service.checkAndIncrement('tenant-1')
 
-      expect(result).toBe(true);
-    });
+      expect(result).toBe(true)
+    })
 
-    it("retorna false para FREE (limite 0)", async () => {
-      vi.mocked(featureGuard.getSubscriptionState).mockResolvedValue({
-        plan: PlanName.FREE,
-        status: SubscriptionStatus.ACTIVE,
-      });
-      prismaMock.whatsAppMonthlyUsage.upsert.mockResolvedValue(
-        makeWhatsAppUsage({ count: 1 }),
-      );
-      prismaMock.whatsAppMonthlyUsage.update.mockResolvedValue(
-        makeWhatsAppUsage({ count: 0 }),
-      );
+    it('retorna false para FREE (limite 0)', async () => {
+      vi.mocked(planLimitsService.get).mockResolvedValue(0)
+      prismaMock.whatsAppMonthlyUsage.upsert.mockResolvedValue(makeWhatsAppUsage({ count: 1 }))
+      prismaMock.whatsAppMonthlyUsage.update.mockResolvedValue(makeWhatsAppUsage({ count: 0 }))
 
-      const result = await service.checkAndIncrement("tenant-1");
+      const result = await service.checkAndIncrement('tenant-1')
 
-      expect(result).toBe(false);
-    });
-  });
+      expect(result).toBe(false)
+    })
+  })
 
   describe("decrement", () => {
     it("decrementa o count do mês corrente (apenas se count > 0)", async () => {

@@ -2,13 +2,24 @@
 'use client'
 
 import { useState } from 'react'
-import { UserPlus, Users, Mail } from 'lucide-react'
+import { UserPlus, Users, Mail, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { toast } from 'sonner'
 import { TeamMemberCard } from '@/components/domain/iam/team-member-card'
 import { InviteMemberModal } from '@/components/domain/iam/invite-member-modal'
-import { useTeamMembers, useTeamInvites, type UserRole } from '@/hooks/iam/use-team'
+import { useTeamMembers, useTeamInvites, useCancelInvite, type UserRole } from '@/hooks/iam/use-team'
 import { usePermissions } from '@/hooks/use-permissions'
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -20,7 +31,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 
 export default function EquipePage() {
   const [inviteOpen, setInviteOpen] = useState(false)
-  const { can } = usePermissions()
+  const { can, user } = usePermissions()
   const {
     data: members,
     isLoading: loadingMembers,
@@ -31,6 +42,25 @@ export default function EquipePage() {
 
   const canManage = can('equipe', 'edit')
   const canInvite = can('equipe', 'create')
+
+  const [cancelingInviteId, setCancelingInviteId] = useState<string | null>(null)
+  const cancelMutation = useCancelInvite()
+
+  function handleConfirmCancel() {
+    if (!cancelingInviteId) return
+    cancelMutation.mutate(cancelingInviteId, {
+      onSuccess: () => {
+        toast.success('Convite cancelado')
+        setCancelingInviteId(null)
+      },
+      onError: (err) => {
+        toast.error(err.message)
+        setCancelingInviteId(null)
+      },
+    })
+  }
+
+  const cancelingInvite = invites?.find((i) => i.id === cancelingInviteId)
 
   if (!can('equipe', 'view')) {
     return (
@@ -130,11 +160,53 @@ export default function EquipePage() {
                 <Badge className="shrink-0 bg-amber-100 text-amber-700 text-xs">
                   {ROLE_LABELS[invite.role]}
                 </Badge>
+                {user?.isOwner && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 size-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                    disabled={cancelMutation.isPending && cancelingInviteId === invite.id}
+                    onClick={() => setCancelingInviteId(invite.id)}
+                    aria-label="Cancelar convite"
+                  >
+                    {cancelMutation.isPending && cancelingInviteId === invite.id ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <X className="size-4" />
+                    )}
+                  </Button>
+                )}
               </div>
             ))}
           </div>
         </div>
       )}
+
+      {/* AlertDialog de confirmação */}
+      <AlertDialog
+        open={cancelingInviteId !== null && !cancelMutation.isPending}
+        onOpenChange={(open) => { if (!open) setCancelingInviteId(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar convite</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja cancelar o convite enviado para{' '}
+              <span className="font-medium text-slate-900">{cancelingInvite?.email}</span>?
+              {' '}O link do email deixará de funcionar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Manter convite</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleConfirmCancel}
+            >
+              Cancelar convite
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <InviteMemberModal open={inviteOpen} onClose={() => setInviteOpen(false)} />
     </div>
