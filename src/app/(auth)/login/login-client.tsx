@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -54,6 +54,22 @@ type Props = {
 
 export function LoginClient({ branding }: Props) {
   const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const meta = session.user.app_metadata;
+        const userMeta = session.user.user_metadata;
+        if (meta?.tenantId) {
+          router.replace('/agenda');
+        } else if (userMeta?.pendingTenantId) {
+          router.replace('/onboarding');
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [router]);
 
   return (
     <div className="flex min-h-screen">
