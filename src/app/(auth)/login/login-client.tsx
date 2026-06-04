@@ -317,11 +317,18 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
     if (!res.ok) {
       const body = await res.json();
       const msg = body.error ?? "";
-      if (msg.includes("already been registered") || msg.includes("already exists")) {
+      if (msg === "email_taken") {
         toast.error("Este email ja possui uma conta. Faca login.");
       } else {
         toast.error(msg || "Erro ao criar conta.");
       }
+      return;
+    }
+
+    const body = await res.json();
+
+    if (body.requiresConfirmation) {
+      toast.success("Verifique seu email para ativar sua conta.", { duration: 8000 });
       return;
     }
 

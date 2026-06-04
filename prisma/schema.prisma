@@ -537,3 +537,9 @@ model PromotionItem {
   package     ServicePackage? @relation(fields: [packageId], references: [id])
   packageId   String?
 }
+
+model PlatformSettings {
+  id                       String   @id @default("singleton")
+  requireEmailVerification Boolean  @default(false)
+  updatedAt                DateTime @updatedAt
+}
