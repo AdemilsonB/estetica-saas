@@ -1,6 +1,12 @@
+import { config } from 'dotenv'
+import { resolve } from 'path'
+config({ path: resolve(process.cwd(), '.env.local') })
+
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient, UserRole } from '@prisma/client'
 
-const prisma = new PrismaClient()
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
+const prisma = new PrismaClient({ adapter } as any)
 
 const ROLE_NAME_MAP: Record<string, string> = {
   [UserRole.MANAGER]:      'Gerente',

@@ -99,7 +99,8 @@ export class RoleService {
         throw new ValidationError(`Seção "${sectionKey}" não existe no sistema.`)
       }
 
-      if (!enabledKeys.has(sectionKey)) {
+      // Se PlanFeatureConfig não foi semeado ainda, aceita todas as seções do registry
+      if (enabledKeys.size > 0 && !enabledKeys.has(sectionKey)) {
         throw new ValidationError(
           `Seção "${sectionKey}" não está disponível no plano atual.`
         )
