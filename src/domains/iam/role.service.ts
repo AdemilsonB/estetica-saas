@@ -1,15 +1,8 @@
-import { PlanName } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { ForbiddenError, ValidationError, NotFoundError } from '@/shared/errors'
 import { NAV_REGISTRY, buildDefaultRolePermissions } from '@/shared/permissions/nav-registry'
+import { planLimitsService } from '@/domains/billing/plan-limits.service'
 import type { RoleRepository } from './role.repository'
-
-const ROLE_LIMITS: Record<PlanName, number> = {
-  FREE:       3,
-  STARTER:    3,
-  PRO:        5,
-  ENTERPRISE: Infinity,
-}
 
 type RoleInput = {
   name: string
@@ -43,16 +36,8 @@ export class RoleService {
   }
 
   async createRole(tenantId: string, input: RoleInput) {
-    const tenant = await prisma.tenant.findFirst({ where: { id: tenantId }, select: { plan: true } })
-    if (!tenant) throw new NotFoundError('Tenant')
-
     const count = await this.repo.countByTenant(tenantId)
-    const limit = ROLE_LIMITS[tenant.plan]
-    if (count >= limit) {
-      throw new ForbiddenError(
-        `Limite de roles atingido para o plano ${tenant.plan} (máximo ${limit === Infinity ? '∞' : limit}).`
-      )
-    }
+    await planLimitsService.assertWithinLimit(tenantId, 'max_roles', count)
 
     await this.validatePermissions(tenantId, input.permissions)
 

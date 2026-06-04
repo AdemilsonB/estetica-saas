@@ -1,21 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { PlanName } from '@prisma/client'
 import { RoleService } from './role.service'
 import type { RoleRepository } from './role.repository'
 import { ForbiddenError, ValidationError } from '@/shared/errors'
 
 vi.mock('@/shared/database/prisma', () => ({
   prisma: {
-    tenant: {
-      findFirst: vi.fn(),
-    },
     planFeatureConfig: {
       findMany: vi.fn(),
     },
   },
 }))
 
+vi.mock('@/domains/billing/plan-limits.service', () => ({
+  planLimitsService: { assertWithinLimit: vi.fn() },
+}))
+
 import { prisma } from '@/shared/database/prisma'
+import { planLimitsService } from '@/domains/billing/plan-limits.service'
 
 const TENANT_ID = 'tenant-abc'
 const ROLE_ID   = 'role-xyz'
@@ -55,18 +56,19 @@ describe('RoleService', () => {
 
   describe('createRole', () => {
     beforeEach(() => {
-      vi.mocked(prisma.tenant.findFirst).mockResolvedValue({ plan: PlanName.FREE } as any)
+      vi.mocked(planLimitsService.assertWithinLimit).mockResolvedValue(undefined)
       vi.mocked(prisma.planFeatureConfig.findMany).mockResolvedValue([
         { sectionKey: 'agenda', enabled: true } as any,
         { sectionKey: 'clientes', enabled: true } as any,
       ])
     })
 
-    it('lança ForbiddenError quando FREE já tem 3 cargos', async () => {
+    it('lança erro quando planLimitsService rejeita por limite', async () => {
       vi.mocked(repo.countByTenant).mockResolvedValue(3)
+      vi.mocked(planLimitsService.assertWithinLimit).mockRejectedValue(new Error('Limite atingido'))
       await expect(
         service.createRole(TENANT_ID, { name: 'Novo', permissions: {} })
-      ).rejects.toThrow(ForbiddenError)
+      ).rejects.toThrow()
     })
 
     it('lança ValidationError quando sectionKey não existe no NAV_REGISTRY', async () => {

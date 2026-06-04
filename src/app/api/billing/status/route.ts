@@ -3,7 +3,7 @@ import { getSessionContext } from "@/shared/auth/session";
 import { handleApiError } from "@/shared/http/handle-api-error";
 import { featureGuard, FEATURES } from "@/domains/billing/feature-guard";
 import { billingRepository } from "@/domains/billing/billing.repository";
-import { PLAN_LIMITS } from "@/domains/billing/types";
+import { planLimitsService } from "@/domains/billing/plan-limits.service";
 import { prisma } from "@/shared/database/prisma";
 import { startOfMonth, endOfDay } from "@/lib/dates";
 
@@ -15,9 +15,7 @@ export async function GET(request: Request) {
     const { plan, status } = await featureGuard.getSubscriptionState(session.tenantId);
     const sub = await billingRepository.getSubscription(session.tenantId);
 
-    const limits = PLAN_LIMITS[plan];
-
-    const [userCount, appointmentCount] = await Promise.all([
+    const [userCount, appointmentCount, maxUsers, maxAppointments] = await Promise.all([
       prisma.user.count({ where: { tenantId: session.tenantId } }),
       prisma.appointment.count({
         where: {
@@ -25,6 +23,8 @@ export async function GET(request: Request) {
           startsAt: { gte: startOfMonth(new Date()), lte: endOfDay(new Date()) },
         },
       }),
+      planLimitsService.get(session.tenantId, 'max_users'),
+      planLimitsService.get(session.tenantId, 'max_appointments_month'),
     ]);
 
     const activeFeatures: Record<string, boolean> = {};
@@ -38,8 +38,8 @@ export async function GET(request: Request) {
       trialEndsAt: sub?.trialEndsAt ?? null,
       features: activeFeatures,
       limits: {
-        users:              { current: userCount,        max: limits.maxUsers },
-        appointments_month: { current: appointmentCount, max: limits.maxAppointmentsPerMonth },
+        users:              { current: userCount,        max: maxUsers },
+        appointments_month: { current: appointmentCount, max: maxAppointments },
       },
     });
   } catch (error) {
