@@ -1,7 +1,7 @@
 import { PlanName } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { ForbiddenError, ValidationError, NotFoundError } from '@/shared/errors'
-import { NAV_REGISTRY } from '@/shared/permissions/nav-registry'
+import { NAV_REGISTRY, buildDefaultRolePermissions } from '@/shared/permissions/nav-registry'
 import type { RoleRepository } from './role.repository'
 
 const ROLE_LIMITS: Record<PlanName, number> = {
@@ -20,6 +20,25 @@ export class RoleService {
   constructor(private readonly repo: RoleRepository) {}
 
   async listRoles(tenantId: string) {
+    const existing = await this.repo.findAll(tenantId)
+    if (existing.length > 0) return existing
+
+    // Tenant sem cargos: semeia os 3 padrão automaticamente
+    await prisma.role.createMany({
+      data: (
+        [
+          { preset: 'MANAGER' as const,      name: 'Gerente' },
+          { preset: 'PROFESSIONAL' as const, name: 'Profissional' },
+          { preset: 'RECEPTIONIST' as const, name: 'Recepcionista' },
+        ] as const
+      ).map(({ preset, name }) => ({
+        tenantId,
+        name,
+        isDefault: true,
+        permissions: buildDefaultRolePermissions(preset),
+      })),
+      skipDuplicates: true,
+    })
     return this.repo.findAll(tenantId)
   }
 

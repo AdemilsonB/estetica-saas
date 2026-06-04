@@ -1,11 +1,10 @@
 import { z } from 'zod'
 import { NAV_REGISTRY } from '@/shared/permissions/nav-registry'
 
-const validSectionKeys = NAV_REGISTRY.map((s) => s.key) as [string, ...string[]]
 const validActions = ['view', 'create', 'edit', 'delete'] as const
 
 export const permissionsSchema = z.record(
-  z.enum(validSectionKeys),
+  z.string(),
   z.array(z.enum(validActions))
 )
 
