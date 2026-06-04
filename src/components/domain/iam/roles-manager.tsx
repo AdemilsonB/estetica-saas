@@ -113,6 +113,7 @@ export function RolesManager() {
       <div className="flex-1">
         {editingRole ? (
           <RoleEditor
+            key={editingRole.id}
             role={editingRole}
             sections={sections as NavSection[]}
             onCancel={() => setEditingId(null)}
