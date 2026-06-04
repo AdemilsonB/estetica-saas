@@ -123,6 +123,16 @@ export class IamRepository {
     });
   }
 
+  async createInviteByRoleId(tenantId: string, email: string, roleId: string) {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    return prisma.tenantInvite.upsert({
+      where: { tenantId_email: { tenantId, email } },
+      update: { roleId, status: "PENDING", expiresAt },
+      create: { tenantId, email, role: "PROFESSIONAL" as any, roleId, expiresAt },
+    });
+  }
+
   async findInvites(tenantId: string) {
     return prisma.tenantInvite.findMany({
       where: { tenantId, status: "PENDING" },
@@ -149,6 +159,7 @@ export class IamRepository {
     email: string;
     name: string;
     role: UserRole;
+    roleId?: string;
   }) {
     return prisma.user.create({
       data: {
@@ -157,8 +168,20 @@ export class IamRepository {
         email: input.email,
         name: input.name,
         role: input.role,
+        roleId: input.roleId ?? null,
         permissions: ROLE_PERMISSIONS[input.role],
       },
+    });
+  }
+
+  async updateUserRoleById(tenantId: string, userId: string, roleId: string) {
+    await prisma.user.updateMany({
+      where: { id: userId, tenantId },
+      data: { roleId },
+    });
+    return prisma.user.findFirstOrThrow({
+      where: { id: userId, tenantId },
+      select: { id: true, name: true, email: true, role: true, roleId: true, createdAt: true },
     });
   }
 
