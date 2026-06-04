@@ -1,6 +1,7 @@
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/shared/database/prisma";
 import { ROLE_PERMISSIONS } from "@/shared/auth/permissions";
+import { buildDefaultRolePermissions } from "@/shared/permissions/nav-registry";
 
 type CreateTenantWithOwnerInput = {
   userId: string;
@@ -52,6 +53,21 @@ export class IamRepository {
           role: UserRole.OWNER,
           permissions: ROLE_PERMISSIONS[UserRole.OWNER],
         },
+      });
+
+      await tx.role.createMany({
+        data: (
+          [
+            { preset: "MANAGER" as const, name: "Gerente" },
+            { preset: "PROFESSIONAL" as const, name: "Profissional" },
+            { preset: "RECEPTIONIST" as const, name: "Recepcionista" },
+          ] as const
+        ).map(({ preset, name }) => ({
+          tenantId: tenant.id,
+          name,
+          isDefault: true,
+          permissions: buildDefaultRolePermissions(preset),
+        })),
       });
 
       return { tenant, user };
