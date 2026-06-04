@@ -57,17 +57,27 @@ export function LoginClient({ branding }: Props) {
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
+
+    function handleSession(session: import('@supabase/supabase-js').Session | null) {
+      if (!session?.user) return;
+      const meta = session.user.app_metadata;
+      const userMeta = session.user.user_metadata;
+      if (meta?.tenantId) {
+        router.replace('/agenda');
+      } else if (userMeta?.pendingTenantId) {
+        router.replace('/onboarding');
+      }
+    }
+
+    // Verifica sessão já existente (hash processado antes do mount)
+    supabase.auth.getSession().then(({ data }) => handleSession(data.session));
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        const meta = session.user.app_metadata;
-        const userMeta = session.user.user_metadata;
-        if (meta?.tenantId) {
-          router.replace('/agenda');
-        } else if (userMeta?.pendingTenantId) {
-          router.replace('/onboarding');
-        }
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        handleSession(session);
       }
     });
+
     return () => subscription.unsubscribe();
   }, [router]);
 
