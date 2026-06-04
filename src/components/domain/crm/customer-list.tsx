@@ -64,7 +64,7 @@ export function CustomerList() {
             }}
           />
         </div>
-        {can('customers:create') && (
+        {can('clientes', 'create') && (
           <Button
             onClick={() => setCreateOpen(true)}
             className="shrink-0 rounded-full bg-slate-950 text-white hover:bg-slate-800"
@@ -100,7 +100,7 @@ export function CustomerList() {
               ? 'Nenhum cliente encontrado para esta busca'
               : 'Nenhum cliente cadastrado ainda'}
           </p>
-          {!debouncedSearch && activeFilterCount === 0 && can('customers:create') && (
+          {!debouncedSearch && activeFilterCount === 0 && can('clientes', 'create') && (
             <Button
               variant="outline"
               size="sm"

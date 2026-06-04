@@ -1,118 +1,137 @@
-import { UserRole } from "@prisma/client";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { UserRole } from '@prisma/client'
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
+import { cache } from 'react'
 
-import { getSupabaseSessionFromToken } from "@/integrations/supabase/auth";
-import { env, isProduction } from "@/shared/config/env";
-import { UnauthorizedError } from "@/shared/errors";
-import type { SessionContext } from "@/shared/types/auth";
+import { getSupabaseSessionFromToken } from '@/integrations/supabase/auth'
+import { env, isProduction } from '@/shared/config/env'
+import { prisma } from '@/shared/database/prisma'
+import { UnauthorizedError } from '@/shared/errors'
+import { buildOwnerPermissions } from '@/shared/permissions/nav-registry'
+import type { SessionContext } from '@/shared/types/auth'
 
-const permissionsHeaderName = "x-user-permissions";
-const authorizationHeaderName = "authorization";
-const devSessionHeaderName = "x-auth-mode";
+const permissionsHeaderName = 'x-user-permissions'
+const authorizationHeaderName = 'authorization'
+const devSessionHeaderName = 'x-auth-mode'
 
-export async function getSessionContext(
-  request: Request,
-): Promise<SessionContext> {
-  // 1. Bearer token no header Authorization (clientes API, mobile, testes)
-  const accessToken = extractAccessToken(request);
+async function buildSessionFromUserId(userId: string, tenantId: string): Promise<SessionContext> {
+  const dbUser = await prisma.user.findFirst({
+    where: { id: userId, tenantId },
+    select: {
+      role: true,
+      roleId: true,
+      customRole: { select: { permissions: true } },
+    },
+  })
+
+  if (!dbUser) {
+    throw new UnauthorizedError('Usuario nao encontrado no tenant.')
+  }
+
+  const isOwner = dbUser.role === UserRole.OWNER
+
+  const permissions: Record<string, string[]> = isOwner
+    ? buildOwnerPermissions()
+    : (dbUser.customRole?.permissions as Record<string, string[]> ?? {})
+
+  return { tenantId, userId, isOwner, permissions }
+}
+
+export const getSessionContext = cache(async (request: Request): Promise<SessionContext> => {
+  // 1. Bearer token
+  const accessToken = extractAccessToken(request)
   if (accessToken) {
-    return getSupabaseSessionFromToken(accessToken);
+    const partial = await getSupabaseSessionFromToken(accessToken)
+    return buildSessionFromUserId(partial.userId, partial.tenantId)
   }
 
-  // 2. Modo desenvolvimento com headers explícitos
-  if (!isProduction && request.headers.get(devSessionHeaderName) === "headers") {
-    return getDevelopmentHeaderSession(request);
+  // 2. Modo desenvolvimento
+  if (!isProduction && request.headers.get(devSessionHeaderName) === 'headers') {
+    return getDevelopmentHeaderSession(request)
   }
 
-  // 3. Cookie do @supabase/ssr — usa getUser() sem argumento, idêntico ao middleware,
-  // para que o SDK leia o cookie sb-{ref}-auth-token e devolva app_metadata completo
-  const cookieStore = await cookies();
+  // 3. Cookie do @supabase/ssr
+  const cookieStore = await cookies()
   const supabase = createServerClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
     cookies: {
-      getAll() { return cookieStore.getAll(); },
+      getAll() { return cookieStore.getAll() },
       setAll() {},
     },
-  });
+  })
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     throw new UnauthorizedError(
-      "Sessao ausente. Envie Bearer token do Supabase ou use o modo de desenvolvimento explicitamente.",
-    );
+      'Sessao ausente. Envie Bearer token do Supabase ou use o modo de desenvolvimento explicitamente.',
+    )
   }
 
-  const tenantId = user.app_metadata?.tenantId ?? user.user_metadata?.tenantId;
-  const role = user.app_metadata?.role ?? user.user_metadata?.role;
-  const permissions: string[] =
-    user.app_metadata?.permissions ?? user.user_metadata?.permissions ?? [];
+  const tenantId = user.app_metadata?.tenantId ?? user.user_metadata?.tenantId
 
   if (!tenantId) {
-    throw new UnauthorizedError("Tenant ausente na sessao autenticada.");
-  }
-  if (!role || !Object.values(UserRole).includes(role as UserRole)) {
-    throw new UnauthorizedError("Role ausente ou invalida na sessao autenticada.");
+    throw new UnauthorizedError('Tenant ausente na sessao autenticada.')
   }
 
-  return { tenantId, userId: user.id, role: role as UserRole, permissions };
-}
+  return buildSessionFromUserId(user.id, tenantId)
+})
 
-async function getDevelopmentHeaderSession(
-  request: Request,
-): Promise<SessionContext> {
-  const tenantId = request.headers.get("x-tenant-id");
-  const userId = request.headers.get("x-user-id");
-  const roleValue = request.headers.get("x-user-role");
-  const permissionsValue = request.headers.get(permissionsHeaderName);
+async function getDevelopmentHeaderSession(request: Request): Promise<SessionContext> {
+  const tenantId = request.headers.get('x-tenant-id')
+  const userId = request.headers.get('x-user-id')
+  const roleValue = request.headers.get('x-user-role')
+  const permissionsValue = request.headers.get(permissionsHeaderName)
 
   if (!tenantId || !userId || !roleValue) {
-    throw new UnauthorizedError("Cabecalhos de autenticacao ausentes.");
+    throw new UnauthorizedError('Cabecalhos de autenticacao ausentes.')
   }
 
   if (!Object.values(UserRole).includes(roleValue as UserRole)) {
-    throw new UnauthorizedError("Role invalida.");
+    throw new UnauthorizedError('Role invalida.')
   }
 
-  return {
-    tenantId,
-    userId,
-    role: roleValue as UserRole,
-    permissions: permissionsValue
-      ? permissionsValue
-          .split(",")
-          .map((permission) => permission.trim())
-          .filter(Boolean)
-      : [],
-  };
+  const isOwner = roleValue === UserRole.OWNER
+
+  let permissions: Record<string, string[]>
+  if (isOwner) {
+    permissions = buildOwnerPermissions()
+  } else if (permissionsValue) {
+    try {
+      permissions = JSON.parse(permissionsValue) as Record<string, string[]>
+    } catch {
+      permissions = {}
+    }
+  } else {
+    permissions = {}
+  }
+
+  return { tenantId, userId, isOwner, permissions }
 }
 
 export async function withTenant(request: Request) {
-  const session = await getSessionContext(request);
-  return session.tenantId;
+  const session = await getSessionContext(request)
+  return session.tenantId
 }
 
 function extractAccessToken(request: Request) {
-  const authorizationHeader = request.headers.get(authorizationHeaderName);
-  if (authorizationHeader?.startsWith("Bearer ")) {
-    return authorizationHeader.slice("Bearer ".length).trim();
+  const authorizationHeader = request.headers.get(authorizationHeaderName)
+  if (authorizationHeader?.startsWith('Bearer ')) {
+    return authorizationHeader.slice('Bearer '.length).trim()
   }
 
-  const cookieHeader = request.headers.get("cookie");
-  if (!cookieHeader) {
-    return null;
-  }
+  const cookieHeader = request.headers.get('cookie')
+  if (!cookieHeader) return null
 
   const cookieMap = new Map(
-    cookieHeader.split(";").map((cookie) => {
-      const [name, ...rest] = cookie.trim().split("=");
-      return [name, rest.join("=")];
+    cookieHeader.split(';').map((cookie) => {
+      const [name, ...rest] = cookie.trim().split('=')
+      return [name, rest.join('=')]
     }),
-  );
+  )
 
   const cookieToken =
-    cookieMap.get("sb-access-token") ??
-    cookieMap.get(`${new URL(env.SUPABASE_URL).hostname}-access-token`);
+    cookieMap.get('sb-access-token') ??
+    cookieMap.get(`${new URL(env.SUPABASE_URL).hostname}-access-token`)
 
-  return cookieToken ? decodeURIComponent(cookieToken) : null;
+  return cookieToken ? decodeURIComponent(cookieToken) : null
 }

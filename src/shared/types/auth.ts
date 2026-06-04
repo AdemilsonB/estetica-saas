@@ -1,8 +1,6 @@
-import { UserRole } from "@prisma/client";
-
 export type SessionContext = {
-  tenantId: string;
-  userId: string;
-  role: UserRole;
-  permissions: string[];
-};
+  tenantId: string
+  userId: string
+  isOwner: boolean
+  permissions: Record<string, string[]>
+}

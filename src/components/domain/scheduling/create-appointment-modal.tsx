@@ -46,7 +46,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
   const { data: teamMembers = [] } = useTeamMembers()
   const createAppointment = useCreateAppointment()
 
-  const canManage = can('appointments:edit')
+  const canManage = can('agenda', 'edit')
 
   const [professionalId, setProfessionalId] = useState('')
   const [serviceId, setServiceId] = useState('')

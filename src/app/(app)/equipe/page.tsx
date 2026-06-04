@@ -29,10 +29,10 @@ export default function EquipePage() {
   } = useTeamMembers()
   const { data: invites, isLoading: loadingInvites } = useTeamInvites()
 
-  const canManage = can('users:manage')
-  const canInvite = can('users:invite')
+  const canManage = can('equipe', 'edit')
+  const canInvite = can('equipe', 'create')
 
-  if (!can('users:view')) {
+  if (!can('equipe', 'view')) {
     return (
       <div className="mx-auto max-w-2xl">
         <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">

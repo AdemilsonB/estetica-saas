@@ -44,7 +44,7 @@ export default function RelatorioAgendamentosPage() {
     groupBy,
   })
 
-  if (!can('appointments:view')) {
+  if (!can('relatorios', 'view')) {
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
         <p className="text-sm font-medium text-red-700">Sem permissão para visualizar agendamentos.</p>

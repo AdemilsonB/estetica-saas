@@ -2,18 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState, type ReactNode } from 'react'
-import {
-  BarChart2,
-  CalendarDays,
-  CreditCard,
-  LogOut,
-  Menu,
-  Scissors,
-  Settings,
-  Users,
-  UserCog,
-} from 'lucide-react'
+import React, { useEffect, useState, type ReactNode } from 'react'
+import * as Icons from 'lucide-react'
+import { LogOut, Menu } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -21,58 +12,7 @@ import { Button } from '@/components/ui/button'
 import { usePermissions } from '@/hooks/use-permissions'
 import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
 import { cn } from '@/lib/utils'
-
-const NAV_ITEMS = [
-  {
-    label: 'Agenda',
-    description: 'Atendimentos e encaixes',
-    icon: CalendarDays,
-    href: '/agenda',
-    permission: 'appointments:view',
-  },
-  {
-    label: 'Serviços',
-    description: 'Serviços, Pacotes e Promoções',
-    icon: Scissors,
-    href: '/servicos',
-    permission: 'services:view',
-  },
-  {
-    label: 'Clientes',
-    description: 'CRM e recorrência',
-    icon: Users,
-    href: '/clientes',
-    permission: 'customers:view',
-  },
-  {
-    label: 'Financeiro',
-    description: 'Receitas e caixa',
-    icon: CreditCard,
-    href: '/financeiro',
-    permission: 'financial:view',
-  },
-  {
-    label: 'Relatórios',
-    description: 'Análises e exportações',
-    icon: BarChart2,
-    href: '/relatorios',
-    permission: 'financial:view',
-  },
-  {
-    label: 'Equipe',
-    description: 'Usuários e permissões',
-    icon: UserCog,
-    href: '/equipe',
-    permission: 'users:view',
-  },
-  {
-    label: 'Config.',
-    description: 'Configurações',
-    icon: Settings,
-    href: '/configuracoes',
-    permission: null,
-  },
-] as const
+import { NAV_REGISTRY, type NavSection } from '@/shared/permissions/nav-registry'
 
 function getInitials(name: string): string {
   return name
@@ -91,7 +31,7 @@ interface AppShellProps {
 export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { can, user, isLoading } = usePermissions()
+  const { canAccess, user, isLoading } = usePermissions()
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     return localStorage.getItem('sidebar-collapsed') === 'true'
@@ -114,12 +54,9 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
     router.push('/login')
   }
 
-  const visibleItems = NAV_ITEMS.filter(
-    (item) => item.permission === null || can(item.permission),
-  )
-
-  const mainItems = visibleItems.slice(0, -1)
-  const configItem = visibleItems.at(-1)
+  const visibleItems = NAV_REGISTRY.filter((section) => canAccess(section.key))
+  const mainItems = visibleItems.filter((s) => s.key !== 'configuracoes')
+  const configItem = visibleItems.find((s) => s.key === 'configuracoes')
 
   function LogoBrand({ size = 'normal' }: { size?: 'normal' | 'small' }) {
     const isSmall = size === 'small'
@@ -151,8 +88,8 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
     )
   }
 
-  function NavLink({ item, showLabel }: { item: typeof NAV_ITEMS[number]; showLabel: boolean }) {
-    const Icon = item.icon
+  function NavLink({ item, showLabel }: { item: NavSection; showLabel: boolean }) {
+    const Icon = (Icons as unknown as Record<string, React.ElementType>)[item.icon] ?? Icons.Circle
     const isActive = pathname.startsWith(item.href)
     return (
       <Link
@@ -177,7 +114,6 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
         {showLabel && (
           <span className="min-w-0">
             <span className="block text-sm font-medium">{item.label}</span>
-            <span className="block text-xs text-muted-foreground">{item.description}</span>
           </span>
         )}
       </Link>

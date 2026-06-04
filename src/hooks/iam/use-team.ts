@@ -1,4 +1,3 @@
-// src/hooks/iam/use-team.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 export type UserRole = 'OWNER' | 'MANAGER' | 'PROFESSIONAL' | 'RECEPTIONIST'
@@ -8,6 +7,9 @@ export type TeamMember = {
   name: string
   email: string
   role: UserRole
+  isOwner: boolean
+  roleId: string | null
+  roleName: string
   createdAt: string
 }
 
@@ -15,6 +17,7 @@ export type TeamInvite = {
   id: string
   email: string
   role: UserRole
+  roleId: string | null
   status: 'PENDING' | 'ACCEPTED'
   expiresAt: string
   createdAt: string
@@ -32,10 +35,7 @@ async function fetchInvites(): Promise<TeamInvite[]> {
   return res.json()
 }
 
-async function createInvite(input: {
-  email: string
-  role: Exclude<UserRole, 'OWNER'>
-}): Promise<TeamInvite> {
+async function createInvite(input: { email: string; roleId: string }): Promise<TeamInvite> {
   const res = await fetch('/api/iam/invites', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -48,18 +48,15 @@ async function createInvite(input: {
   return res.json()
 }
 
-async function updateMemberRole(input: {
-  userId: string
-  role: Exclude<UserRole, 'OWNER'>
-}): Promise<TeamMember> {
+async function updateMemberRole(input: { userId: string; roleId: string }): Promise<TeamMember> {
   const res = await fetch(`/api/iam/users/${input.userId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ role: input.role }),
+    body: JSON.stringify({ roleId: input.roleId }),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.error?.message ?? 'Falha ao atualizar papel')
+    throw new Error(err.error?.message ?? 'Falha ao atualizar cargo')
   }
   return res.json()
 }
