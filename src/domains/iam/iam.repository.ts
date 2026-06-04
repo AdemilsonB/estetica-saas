@@ -165,6 +165,12 @@ export class IamRepository {
     });
   }
 
+  async deleteInvite(tenantId: string, inviteId: string) {
+    return prisma.tenantInvite.deleteMany({
+      where: { id: inviteId, tenantId, status: 'PENDING' },
+    })
+  }
+
   async createUserInTenant(input: {
     userId: string;
     tenantId: string;
