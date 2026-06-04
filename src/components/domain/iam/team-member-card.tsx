@@ -1,4 +1,3 @@
-// src/components/domain/iam/team-member-card.tsx
 'use client'
 
 import { toast } from 'sonner'
@@ -10,23 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useUpdateMemberRole, type TeamMember, type UserRole } from '@/hooks/iam/use-team'
+import { useUpdateMemberRole, type TeamMember } from '@/hooks/iam/use-team'
 import { useCurrentUser } from '@/hooks/use-current-user'
-import { cn } from '@/lib/utils'
-
-const ROLE_LABELS: Record<UserRole, string> = {
-  OWNER:         'Dono',
-  MANAGER:       'Gerente',
-  PROFESSIONAL:  'Profissional',
-  RECEPTIONIST:  'Recepcionista',
-}
-
-const ROLE_COLORS: Record<UserRole, string> = {
-  OWNER:         'bg-slate-950 text-white',
-  MANAGER:       'bg-blue-100 text-blue-700',
-  PROFESSIONAL:  'bg-emerald-100 text-emerald-700',
-  RECEPTIONIST:  'bg-purple-100 text-purple-700',
-}
+import { useRoles } from '@/hooks/iam/use-roles'
 
 type Props = {
   member: TeamMember
@@ -35,16 +20,16 @@ type Props = {
 
 export function TeamMemberCard({ member, canManage }: Props) {
   const { data: currentUser } = useCurrentUser()
+  const { data: roles = [] } = useRoles()
   const updateRole = useUpdateMemberRole()
   const isCurrentUser = currentUser?.id === member.id
-  const isOwner = member.role === 'OWNER'
-  const canEditRole = canManage && !isCurrentUser && !isOwner
+  const canEditRole = canManage && !isCurrentUser && !member.isOwner
 
-  function handleRoleChange(newRole: string) {
+  function handleRoleChange(newRoleId: string) {
     updateRole.mutate(
-      { userId: member.id, role: newRole as Exclude<UserRole, 'OWNER'> },
+      { userId: member.id, roleId: newRoleId },
       {
-        onSuccess: () => toast.success('Papel atualizado'),
+        onSuccess: () => toast.success('Cargo atualizado'),
         onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao atualizar'),
       },
     )
@@ -66,25 +51,27 @@ export function TeamMemberCard({ member, canManage }: Props) {
         <p className="text-xs text-slate-500">{member.email}</p>
       </div>
 
-      {canEditRole ? (
+      {member.isOwner ? (
+        <Badge className="text-xs bg-slate-950 text-white">Dono</Badge>
+      ) : canEditRole ? (
         <Select
-          value={member.role}
+          value={member.roleId ?? ''}
           onValueChange={handleRoleChange}
           disabled={updateRole.isPending}
         >
-          <SelectTrigger className="w-36 text-xs">
-            <SelectValue />
+          <SelectTrigger className="w-40 text-xs">
+            <SelectValue>{member.roleName}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="MANAGER">Gerente</SelectItem>
-            <SelectItem value="PROFESSIONAL">Profissional</SelectItem>
-            <SelectItem value="RECEPTIONIST">Recepcionista</SelectItem>
+            {roles.map((role) => (
+              <SelectItem key={role.id} value={role.id}>
+                {role.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       ) : (
-        <Badge className={cn('text-xs', ROLE_COLORS[member.role])}>
-          {ROLE_LABELS[member.role]}
-        </Badge>
+        <Badge className="text-xs bg-slate-100 text-slate-700">{member.roleName}</Badge>
       )}
     </div>
   )

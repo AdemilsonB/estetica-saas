@@ -30,7 +30,7 @@ export default function FinanceiroPage() {
   const to = endOfDay(today).toISOString();
   const { data: summary } = useFinancialSummary(from, to);
 
-  if (!can("financial:view")) {
+  if (!can('financeiro', 'view')) {
     return (
       <div className="mx-auto max-w-2xl">
         <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">

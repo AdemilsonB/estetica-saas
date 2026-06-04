@@ -31,7 +31,8 @@ export class IamService {
         email: true,
         name: true,
         role: true,
-        permissions: true,
+        roleId: true,
+        customRole: { select: { id: true, name: true } },
         tenant: { select: { name: true } },
       },
     });
@@ -45,8 +46,10 @@ export class IamService {
       tenantId: user.tenantId,
       email: user.email,
       name: user.name,
-      role: user.role,
-      permissions: user.permissions,
+      isOwner: session.isOwner,
+      roleId: user.roleId,
+      roleName: session.isOwner ? "Dono" : (user.customRole?.name ?? "Sem cargo"),
+      permissions: session.permissions,
       businessName: user.tenant.name,
     };
   }
@@ -113,15 +116,18 @@ export class IamService {
     return iamRepository.updateUserRole(tenantId, targetUserId, role);
   }
 
-  async createInvite(tenantId: string, email: string, role: UserRole, origin?: string) {
+  async createInvite(tenantId: string, email: string, roleId: string, origin?: string) {
     const userCount = await iamRepository.countActiveUsers(tenantId);
     await featureGuard.assertWithinLimit(tenantId, "users", userCount);
 
-    const invite = await iamRepository.createInvite(tenantId, email, role);
+    const role = await prisma.role.findFirst({ where: { id: roleId, tenantId } });
+    if (!role) throw new NotFoundError("Cargo");
+
+    const invite = await iamRepository.createInviteByRoleId(tenantId, email, roleId);
     const baseUrl = (origin ?? 'https://estetica-saas-product.vercel.app').replace(/\/$/, '');
     await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       redirectTo: `${baseUrl}/callback`,
-      data: { pendingTenantId: tenantId, pendingRole: role },
+      data: { pendingTenantId: tenantId, pendingRoleId: roleId },
     });
     return invite;
   }
@@ -130,26 +136,47 @@ export class IamService {
     return iamRepository.findInvites(tenantId);
   }
 
+  async updateUserRoleById(
+    tenantId: string,
+    requesterId: string,
+    targetUserId: string,
+    roleId: string,
+  ) {
+    if (requesterId === targetUserId) {
+      throw new ForbiddenError("Voce nao pode alterar seu proprio papel.");
+    }
+    const target = await iamRepository.findUserById(tenantId, targetUserId);
+    if (!target) throw new UserNotFoundError();
+    if (target.role === UserRole.OWNER) {
+      throw new ForbiddenError("O papel de OWNER nao pode ser alterado.");
+    }
+    return iamRepository.updateUserRoleById(tenantId, targetUserId, roleId);
+  }
+
   async joinTenant(
     userId: string,
     email: string,
     pendingTenantId: string,
-    pendingRole: UserRole,
+    pendingRoleId: string,
     userName: string,
   ) {
     const invite = await iamRepository.findInviteByEmailAndTenant(email, pendingTenantId);
     if (!invite) throw new ForbiddenError("Convite nao encontrado ou expirado.");
+
+    // roleId do convite tem prioridade; fallback para o roleId passado
+    const effectiveRoleId = invite.roleId ?? pendingRoleId;
 
     const user = await iamRepository.createUserInTenant({
       userId,
       tenantId: pendingTenantId,
       email,
       name: userName,
-      role: pendingRole,
+      role: UserRole.PROFESSIONAL, // enum mantido por compatibilidade
+      roleId: effectiveRoleId,
     });
 
     await supabaseAdmin.auth.admin.updateUserById(userId, {
-      app_metadata: { tenantId: pendingTenantId, role: pendingRole },
+      app_metadata: { tenantId: pendingTenantId },
     });
 
     await iamRepository.acceptInvite(invite.id);
