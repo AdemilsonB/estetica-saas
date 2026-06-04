@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
-import type { UserRole } from '@prisma/client'
 
 export type CurrentUser = {
   id: string
   tenantId: string
   email: string
   name: string
-  role: UserRole
-  permissions: string[]
+  isOwner: boolean
+  roleId: string | null
+  roleName: string
+  permissions: Record<string, string[]>
   businessName: string
 }
 

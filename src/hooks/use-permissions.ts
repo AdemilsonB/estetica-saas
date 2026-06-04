@@ -33,8 +33,9 @@ export function usePermissions() {
 
   function can(permission: string): boolean {
     if (!user) return false
-    const rolePerms = ROLE_PERMISSIONS[user.role] ?? []
-    const allPerms = new Set([...rolePerms, ...user.permissions])
+    // permissions é um Record<string, string[]>, extrair todos os values
+    const permissionsArray = Object.values(user.permissions).flat()
+    const allPerms = new Set(permissionsArray)
     return allPerms.has(permission)
   }
 

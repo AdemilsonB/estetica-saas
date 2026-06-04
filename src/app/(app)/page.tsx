@@ -14,7 +14,7 @@ export default function AppHome() {
       return
     }
     if (!user) return
-    if (user.role === 'OWNER' || user.role === 'MANAGER') {
+    if (user.isOwner) {
       router.replace('/dashboard')
     } else {
       router.replace('/agenda')

@@ -95,9 +95,8 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
   const { can } = usePermissions()
   const { data: currentUser } = useCurrentUser()
 
-  // PROFESSIONAL só vê seus próprios agendamentos
-  const professionalId =
-    currentUser?.role === 'PROFESSIONAL' ? currentUser.id : undefined
+  // Apenas profissionais com roleId específico veem seus próprios agendamentos
+  const professionalId = currentUser?.roleId ? currentUser.id : undefined
 
   const weekStart = startOfWeek(selectedDate)
   const weekEnd = new Date(weekStart)

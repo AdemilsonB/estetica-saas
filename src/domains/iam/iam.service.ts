@@ -31,7 +31,8 @@ export class IamService {
         email: true,
         name: true,
         role: true,
-        permissions: true,
+        roleId: true,
+        customRole: { select: { id: true, name: true } },
         tenant: { select: { name: true } },
       },
     });
@@ -45,8 +46,10 @@ export class IamService {
       tenantId: user.tenantId,
       email: user.email,
       name: user.name,
-      role: user.role,
-      permissions: user.permissions,
+      isOwner: session.isOwner,
+      roleId: user.roleId,
+      roleName: session.isOwner ? "Dono" : (user.customRole?.name ?? "Sem cargo"),
+      permissions: session.permissions,
       businessName: user.tenant.name,
     };
   }
