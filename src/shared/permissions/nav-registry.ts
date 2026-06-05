@@ -7,6 +7,7 @@ export type NavSection = {
   icon: string
   href: string
   actions: NavAction[]
+  filterLabel?: string
   defaultPermissions: {
     MANAGER: NavAction[]
     PROFESSIONAL: NavAction[]
@@ -22,6 +23,7 @@ export const NAV_REGISTRY: NavSection[] = [
     icon: 'CalendarDays',
     href: '/agenda',
     actions: ['view', 'create', 'edit', 'delete', 'view_all'],
+    filterLabel: 'Ver atendimentos de outros profissionais',
     defaultPermissions: {
       MANAGER:      ['view', 'create', 'edit', 'delete', 'view_all'],
       PROFESSIONAL: ['view', 'create'],

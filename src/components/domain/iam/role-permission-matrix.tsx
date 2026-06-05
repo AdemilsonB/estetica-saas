@@ -18,7 +18,7 @@ const ACTION_LABELS: Record<NavAction, string> = {
   view_all: 'Ver todos',
 }
 
-const ALL_ACTIONS: NavAction[] = ['view', 'create', 'edit', 'delete', 'view_all']
+const ALL_ACTIONS: NavAction[] = ['view', 'create', 'edit', 'delete']
 
 export function RolePermissionMatrix({ sections, permissions, onChange, disabled }: Props) {
   function toggle(sectionKey: string, action: NavAction, checked: boolean) {

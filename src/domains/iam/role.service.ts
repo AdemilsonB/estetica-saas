@@ -69,11 +69,16 @@ export class RoleService {
     tenantId: string,
     permissions: Record<string, string[]>
   ) {
-    const enabledSections = await prisma.planFeatureConfig.findMany({
-      where: { enabled: true },
+    const tenant = await prisma.tenant.findFirst({
+      where: { id: tenantId },
+      select: { plan: true },
+    })
+
+    const disabledSections = await prisma.planFeatureConfig.findMany({
+      where: { plan: tenant?.plan, enabled: false },
       select: { sectionKey: true },
     })
-    const enabledKeys = new Set(enabledSections.map((s) => s.sectionKey))
+    const disabledKeys = new Set(disabledSections.map((s) => s.sectionKey))
 
     const registryMap = new Map(NAV_REGISTRY.map((s) => [s.key, s.actions]))
 
@@ -84,8 +89,8 @@ export class RoleService {
         throw new ValidationError(`Seção "${sectionKey}" não existe no sistema.`)
       }
 
-      // Se PlanFeatureConfig não foi semeado ainda, aceita todas as seções do registry
-      if (enabledKeys.size > 0 && !enabledKeys.has(sectionKey)) {
+      // Opt-out: seções sem entrada em PlanFeatureConfig são habilitadas por padrão.
+      if (disabledKeys.has(sectionKey)) {
         throw new ValidationError(
           `Seção "${sectionKey}" não está disponível no plano atual.`
         )

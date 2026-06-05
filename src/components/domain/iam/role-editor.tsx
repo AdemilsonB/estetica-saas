@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RolePermissionMatrix } from './role-permission-matrix'
+import { RoleFilterPermissions } from './role-filter-permissions'
 import { useUpdateRole, type Role } from '@/hooks/iam/use-roles'
 import type { NavSection } from '@/shared/permissions/nav-registry'
 
@@ -54,6 +55,18 @@ export function RoleEditor({ role, sections, onCancel }: Props) {
           disabled={updateRole.isPending}
         />
       </div>
+
+      {sections.some((s) => s.filterLabel) && (
+        <div>
+          <p className="mb-3 text-sm font-medium text-slate-700">Permissões de filtro</p>
+          <RoleFilterPermissions
+            sections={sections}
+            permissions={permissions}
+            onChange={setPermissions}
+            disabled={updateRole.isPending}
+          />
+        </div>
+      )}
 
       <div className="flex gap-2 justify-end pt-2">
         <Button variant="outline" onClick={onCancel} disabled={updateRole.isPending}>
