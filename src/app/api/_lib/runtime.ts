@@ -1,6 +1,7 @@
 import { registerFinancialSubscriptions } from "@/domains/financial/subscriptions";
 import { registerNotificationSubscriptions } from "@/domains/notifications/subscriptions";
 import { registerBillingJobs } from "@/domains/billing/subscriptions";
+import { registerInventorySubscriptions } from "@/domains/inventory/subscriptions";
 import { startPgBoss } from "@/shared/queue/pg-boss";
 import {
   APPOINTMENT_REMINDER_JOB,
@@ -21,6 +22,7 @@ export function initializeDomainRuntime() {
   try {
     registerFinancialSubscriptions();
     registerNotificationSubscriptions();
+    registerInventorySubscriptions();
   } catch (err) {
     console.error("[runtime] Falha ao registrar subscriptions:", err);
   }

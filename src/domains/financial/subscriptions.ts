@@ -44,4 +44,24 @@ export function registerFinancialSubscriptions() {
       paidAt: new Date(),
     });
   });
+
+  eventBus.subscribe("product.sold", async (payload) => {
+    await transactionRepository.create(payload.tenantId, {
+      type: TransactionType.INCOME,
+      category: "Venda de Produto",
+      description: `Venda de produto (qtd: ${payload.quantity})`,
+      amount: new Prisma.Decimal(payload.totalAmount),
+      paidAt: new Date(),
+    });
+  });
+
+  eventBus.subscribe("stock.purchased", async (payload) => {
+    await transactionRepository.create(payload.tenantId, {
+      type: TransactionType.EXPENSE,
+      category: "Compra de Estoque",
+      description: `Compra de estoque (qtd: ${payload.quantity})`,
+      amount: new Prisma.Decimal(payload.totalAmount),
+      paidAt: new Date(),
+    });
+  });
 }
