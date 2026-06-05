@@ -254,6 +254,14 @@ export class IamRepository {
       ?? IamRepository.defaultBusinessHours();
   }
 
+  async getTenantTimezone(tenantId: string): Promise<string | null> {
+    const tenant = await prisma.tenant.findFirst({
+      where: { id: tenantId },
+      select: { timezone: true },
+    });
+    return tenant?.timezone ?? null;
+  }
+
   async updateBusinessHours(
     tenantId: string,
     hours: Record<string, { open: string; close: string; active: boolean }>,
