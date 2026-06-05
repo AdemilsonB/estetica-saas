@@ -85,12 +85,12 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
   return (
     <>
       <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-        <SheetContent className="w-full sm:max-w-md">
+        <SheetContent className="w-full sm:max-w-md flex flex-col">
           <SheetHeader>
             <SheetTitle>Detalhes do agendamento</SheetTitle>
           </SheetHeader>
 
-          <div className="mt-6 space-y-6">
+          <div className="mt-6 space-y-6 overflow-y-auto flex-1 pb-6 pr-1">
             <div className="flex items-center gap-3">
               <Badge className={cn('text-sm', STATUS_BADGE[appointment.status])}>
                 {STATUS_LABELS[appointment.status]}
@@ -160,6 +160,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
             <AppointmentProductsSection
               appointmentId={appointment.id}
               serviceId={appointment.serviceId}
+              defaultExpanded={isActive}
             />
 
             {isActive && (
