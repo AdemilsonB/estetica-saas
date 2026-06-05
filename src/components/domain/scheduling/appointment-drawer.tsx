@@ -17,6 +17,7 @@ import { useUpdateAppointmentStatus } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import { cn } from '@/lib/utils'
 import { CancelAppointmentModal } from './cancel-appointment-modal'
+import { AppointmentProductsSection } from '@/components/domain/inventory/AppointmentProductsSection'
 
 const STATUS_LABELS: Record<string, string> = {
   SCHEDULED: 'Agendado',
@@ -154,6 +155,12 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                 </>
               )}
             </div>
+
+            {/* Produtos utilizados no atendimento — opcional */}
+            <AppointmentProductsSection
+              appointmentId={appointment.id}
+              serviceId={appointment.serviceId}
+            />
 
             {isActive && (
               <div className="space-y-2">

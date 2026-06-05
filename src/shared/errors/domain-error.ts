@@ -135,3 +135,38 @@ export class InvalidPhoneError extends DomainError {
     );
   }
 }
+
+// --- Inventory ---
+
+export class ProductNotFoundError extends DomainError {
+  constructor() {
+    super('Produto não encontrado.', 'PRODUCT_NOT_FOUND', 404)
+  }
+}
+
+export class InsufficientStockError extends DomainError {
+  constructor(available: number, requested: number) {
+    super(
+      `Estoque insuficiente. Disponível: ${available}, solicitado: ${requested}.`,
+      'INSUFFICIENT_STOCK',
+      422,
+      { available, requested },
+    )
+  }
+}
+
+export class CategoryHasProductsError extends DomainError {
+  constructor() {
+    super(
+      'Não é possível remover categoria com produtos vinculados.',
+      'CATEGORY_HAS_PRODUCTS',
+      409,
+    )
+  }
+}
+
+export class CategoryNameConflictError extends DomainError {
+  constructor(name: string) {
+    super(`Categoria "${name}" já existe.`, 'CATEGORY_NAME_CONFLICT', 409, { name })
+  }
+}

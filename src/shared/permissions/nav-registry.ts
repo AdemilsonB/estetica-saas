@@ -42,6 +42,19 @@ export const NAV_REGISTRY: NavSection[] = [
     },
   },
   {
+    key: 'produtos',
+    label: 'Produtos',
+    description: 'Catálogo e estoque',
+    icon: 'ShoppingBag',
+    href: '/produtos',
+    actions: ['view', 'create', 'edit', 'delete'],
+    defaultPermissions: {
+      MANAGER:      ['view', 'create', 'edit', 'delete'],
+      PROFESSIONAL: ['view'],
+      RECEPTIONIST: [],
+    },
+  },
+  {
     key: 'clientes',
     label: 'Clientes',
     description: 'CRM e recorrência',

@@ -129,4 +129,23 @@ export type DomainEvent =
         serviceId: string;
         grossAmount: number;
       };
+    }
+  | {
+      type: "product.sold"
+      payload: {
+        tenantId: string
+        productId: string
+        quantity: number
+        totalAmount: number
+        customerId?: string
+      }
+    }
+  | {
+      type: "stock.purchased"
+      payload: {
+        tenantId: string
+        productId: string
+        quantity: number
+        totalAmount: number
+      }
     };
