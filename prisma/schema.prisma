@@ -124,6 +124,11 @@ model Tenant {
   customerAnamneses   CustomerAnamnese[]
   servicePackages     ServicePackage[]
   tenantPromotions    Promotion[]
+  products            Product[]
+  productCategories   ProductCategory[]
+  stockMovements      StockMovement[]
+  appointmentProducts AppointmentProduct[]
+  serviceProducts     ServiceProduct[]
 }
 
 model BrandingConfig {
@@ -308,6 +313,7 @@ model Service {
   appointments Appointment[]
   packages     ServicePackageItem[]
   promotions   PromotionItem[]
+  serviceProducts ServiceProduct[]
 
   @@index([tenantId])
 }
@@ -338,6 +344,7 @@ model Appointment {
   createdByUser   User              @relation("AppointmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
   discountType    DiscountType?     @relation(fields: [discountTypeId], references: [id], onDelete: SetNull)
   transactions    Transaction[]
+  appointmentProducts AppointmentProduct[]
 
   @@index([tenantId])
   @@index([tenantId, startsAt])
@@ -542,4 +549,101 @@ model PlatformSettings {
   id                       String   @id @default("singleton")
   requireEmailVerification Boolean  @default(false)
   updatedAt                DateTime @updatedAt
+}
+
+enum StockMovementType {
+  PURCHASE
+  SALE
+  APPOINTMENT_USE
+  ADJUSTMENT
+}
+
+model ProductCategory {
+  id        String    @id @default(cuid())
+  tenantId  String
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  tenantId      String
+  name          String
+  categoryId    String?
+  costPrice     Decimal  @db.Decimal(10, 2)
+  salePrice     Decimal  @db.Decimal(10, 2)
+  stockQuantity Int      @default(0)
+  lowStockAlert Int      @default(5)
+  active        Boolean  @default(true)
+  imageUrl      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category            ProductCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  stockMovements      StockMovement[]
+  appointmentProducts AppointmentProduct[]
+  serviceProducts     ServiceProduct[]
+
+  @@index([tenantId])
+  @@index([tenantId, categoryId])
+}
+
+model StockMovement {
+  id              String            @id @default(cuid())
+  tenantId        String
+  productId       String
+  type            StockMovementType
+  quantity        Int
+  unitPrice       Decimal?          @db.Decimal(10, 2)
+  totalAmount     Decimal?          @db.Decimal(10, 2)
+  notes           String?
+  appointmentId   String?
+  createdByUserId String
+  createdAt       DateTime          @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([tenantId, productId])
+  @@index([tenantId, type, createdAt])
+}
+
+model AppointmentProduct {
+  id            String @id @default(cuid())
+  tenantId      String
+  appointmentId String
+  productId     String
+  quantity      Int    @default(1)
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([appointmentId, productId])
+  @@index([tenantId])
+  @@index([appointmentId])
+}
+
+model ServiceProduct {
+  id        String @id @default(cuid())
+  tenantId  String
+  serviceId String
+  productId String
+  quantity  Int    @default(1)
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([serviceId, productId])
+  @@index([tenantId])
 }
