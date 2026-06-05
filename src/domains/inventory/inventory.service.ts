@@ -5,6 +5,7 @@ import {
   ProductNotFoundError,
   InsufficientStockError,
   CategoryHasProductsError,
+  NotFoundError,
 } from '@/shared/errors'
 import { productRepository } from './product.repository'
 import { stockRepository } from './stock.repository'
@@ -49,6 +50,8 @@ export class InventoryService {
   }
 
   async deleteCategory(tenantId: string, id: string) {
+    const category = await productRepository.findCategoryById(tenantId, id)
+    if (!category) throw new NotFoundError('Categoria')
     const count = await productRepository.countProductsByCategory(tenantId, id)
     if (count > 0) throw new CategoryHasProductsError()
     return productRepository.deleteCategory(tenantId, id)
@@ -62,8 +65,10 @@ export class InventoryService {
     const product = await productRepository.findById(tenantId, input.productId)
     if (!product) throw new ProductNotFoundError()
 
-    const totalAmount = input.quantity * input.unitPrice
+    const totalAmount = new Prisma.Decimal(input.unitPrice).mul(input.quantity).toNumber()
 
+    // MVP: incrementStock e create StockMovement são operações separadas sem transação.
+    // Em caso de falha no create, o estoque permanece incrementado. Aceito para esta fase.
     await productRepository.incrementStock(tenantId, product.id, input.quantity)
 
     const movement = await stockRepository.create(tenantId, {
@@ -97,8 +102,10 @@ export class InventoryService {
     }
 
     const unitPrice = input.unitPrice ?? Number(product.salePrice)
-    const totalAmount = input.quantity * unitPrice
+    const totalAmount = new Prisma.Decimal(unitPrice).mul(input.quantity).toNumber()
 
+    // MVP: decrementStock e create StockMovement são operações separadas sem transação.
+    // Em caso de falha no create, o estoque permanece decrementado. Aceito para esta fase.
     await productRepository.decrementStock(tenantId, product.id, input.quantity)
 
     const movement = await stockRepository.create(tenantId, {
@@ -138,8 +145,15 @@ export class InventoryService {
     input: AppointmentProductsInput,
     createdByUserId: string,
   ) {
-    for (const item of input.products) {
-      const product = await productRepository.findById(tenantId, item.productId)
+    // Busca todos os produtos em paralelo em vez de sequencialmente
+    const products = await Promise.all(
+      input.products.map(item => productRepository.findById(tenantId, item.productId))
+    )
+
+    // Valida todos antes de fazer qualquer escrita
+    for (let i = 0; i < input.products.length; i++) {
+      const product = products[i]
+      const item = input.products[i]
       if (!product) throw new ProductNotFoundError()
       if (product.stockQuantity < item.quantity) {
         throw new InsufficientStockError(product.stockQuantity, item.quantity)

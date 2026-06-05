@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { InventoryService } from '../inventory.service'
-import { InsufficientStockError, ProductNotFoundError, CategoryHasProductsError } from '@/shared/errors'
+import { InsufficientStockError, ProductNotFoundError, CategoryHasProductsError, NotFoundError } from '@/shared/errors'
 import { makeProduct } from '@/shared/test/factories/product.factory'
 
 vi.mock('../product.repository', () => ({
@@ -107,12 +107,19 @@ describe('recordPurchase', () => {
 })
 
 describe('deleteCategory', () => {
+  it('lança NotFoundError quando categoria não existe', async () => {
+    vi.mocked(productRepository.findCategoryById).mockResolvedValue(null)
+    await expect(service.deleteCategory('t1', 'cat-inexistente')).rejects.toBeInstanceOf(NotFoundError)
+  })
+
   it('lança CategoryHasProductsError quando há produtos vinculados', async () => {
+    vi.mocked(productRepository.findCategoryById).mockResolvedValue({ id: 'cat1', name: 'Cat', tenantId: 't1' } as any)
     vi.mocked(productRepository.countProductsByCategory).mockResolvedValue(3)
     await expect(service.deleteCategory('t1', 'cat1')).rejects.toBeInstanceOf(CategoryHasProductsError)
   })
 
   it('deleta categoria quando não há produtos', async () => {
+    vi.mocked(productRepository.findCategoryById).mockResolvedValue({ id: 'cat1', name: 'Cat', tenantId: 't1' } as any)
     vi.mocked(productRepository.countProductsByCategory).mockResolvedValue(0)
     vi.mocked(productRepository.deleteCategory).mockResolvedValue({} as any)
     await service.deleteCategory('t1', 'cat1')
