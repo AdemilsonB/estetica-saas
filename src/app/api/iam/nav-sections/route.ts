@@ -14,16 +14,16 @@ export async function GET(request: Request) {
       select: { plan: true },
     })
 
-    const enabledConfigs = await prisma.planFeatureConfig.findMany({
-      where: { plan: tenant?.plan, enabled: true },
-      select: { sectionKey: true },
+    const configs = await prisma.planFeatureConfig.findMany({
+      where: { plan: tenant?.plan },
+      select: { sectionKey: true, enabled: true },
     })
 
-    const enabledKeys = new Set(enabledConfigs.map((c) => c.sectionKey))
+    const configMap = new Map(configs.map((c) => [c.sectionKey, c.enabled]))
 
-    const sections = enabledKeys.size === 0
-      ? NAV_REGISTRY
-      : NAV_REGISTRY.filter((s) => enabledKeys.has(s.key))
+    // Opt-out: seções sem entrada em PlanFeatureConfig são habilitadas por padrão.
+    // Apenas enabled: false bloqueia explicitamente.
+    const sections = NAV_REGISTRY.filter((s) => configMap.get(s.key) !== false)
 
     return Response.json(sections)
   } catch (error) {

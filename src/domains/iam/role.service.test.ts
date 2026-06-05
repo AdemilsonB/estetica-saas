@@ -5,6 +5,9 @@ import { ForbiddenError, ValidationError } from '@/shared/errors'
 
 vi.mock('@/shared/database/prisma', () => ({
   prisma: {
+    tenant: {
+      findFirst: vi.fn(),
+    },
     planFeatureConfig: {
       findMany: vi.fn(),
     },
@@ -57,10 +60,9 @@ describe('RoleService', () => {
   describe('createRole', () => {
     beforeEach(() => {
       vi.mocked(planLimitsService.assertWithinLimit).mockResolvedValue(undefined)
-      vi.mocked(prisma.planFeatureConfig.findMany).mockResolvedValue([
-        { sectionKey: 'agenda', enabled: true } as any,
-        { sectionKey: 'clientes', enabled: true } as any,
-      ])
+      vi.mocked(prisma.tenant.findFirst).mockResolvedValue({ plan: 'PRO' } as any)
+      // Opt-out: por padrão nenhuma seção está desabilitada
+      vi.mocked(prisma.planFeatureConfig.findMany).mockResolvedValue([])
     })
 
     it('lança erro quando planLimitsService rejeita por limite', async () => {
@@ -91,8 +93,11 @@ describe('RoleService', () => {
       ).rejects.toThrow(ValidationError)
     })
 
-    it('lança ValidationError quando seção não está habilitada no plano', async () => {
+    it('lança ValidationError quando seção está explicitamente desabilitada no plano', async () => {
       vi.mocked(repo.countByTenant).mockResolvedValue(1)
+      vi.mocked(prisma.planFeatureConfig.findMany).mockResolvedValue([
+        { sectionKey: 'financeiro', enabled: false } as any,
+      ])
       await expect(
         service.createRole(TENANT_ID, {
           name: 'Novo',
