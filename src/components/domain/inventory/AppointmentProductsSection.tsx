@@ -23,10 +23,11 @@ type ProductItem = { productId: string; quantity: number; name: string }
 type Props = {
   appointmentId: string
   serviceId: string
+  defaultExpanded?: boolean
 }
 
-export function AppointmentProductsSection({ appointmentId, serviceId }: Props) {
-  const [expanded, setExpanded] = useState(false)
+export function AppointmentProductsSection({ appointmentId, serviceId, defaultExpanded = false }: Props) {
+  const [expanded, setExpanded] = useState(defaultExpanded)
   const [items, setItems] = useState<ProductItem[]>([])
   const [initialized, setInitialized] = useState(false)
 
