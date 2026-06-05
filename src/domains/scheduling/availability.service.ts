@@ -1,12 +1,14 @@
 import { prisma } from "@/shared/database/prisma";
 import { SlotUnavailableError } from "@/shared/errors";
 import { IamRepository } from "@/domains/iam/iam.repository";
+import { dayBoundsInTz, localDateTimeToUtc } from "@/lib/dates";
 
 import { appointmentRepository } from "./appointment.repository";
 
 export type TimeSlot = {
   time: string;
   available: boolean;
+  bookedBy?: string;
 };
 
 function timeToMinutes(t: string): number {
@@ -62,8 +64,14 @@ export class AvailabilityService {
     serviceDuration: number,
   ): Promise<TimeSlot[]> {
     const iamRepo = new IamRepository();
-    const businessHours = await iamRepo.getBusinessHours(tenantId);
-    const dayOfWeek = new Date(date + "T12:00:00").getDay();
+    const [businessHours, tz] = await Promise.all([
+      iamRepo.getBusinessHours(tenantId),
+      iamRepo.getTenantTimezone(tenantId),
+    ]);
+    const timezone = tz ?? "America/Sao_Paulo";
+
+    // Usar T12:00:00Z como referência para obter o dia correto no timezone do tenant
+    const dayOfWeek = new Date(date + "T12:00:00Z").getUTCDay();
     const dayConfig = businessHours[String(dayOfWeek)];
 
     if (!dayConfig || !dayConfig.active) {
@@ -74,8 +82,8 @@ export class AvailabilityService {
     const openMin = timeToMinutes(dayConfig.open);
     const closeMin = timeToMinutes(dayConfig.close);
 
-    const dayStart = new Date(date + "T00:00:00");
-    const dayEnd = new Date(date + "T23:59:59");
+    // Limites do dia no timezone do tenant (corrige o bug de UTC)
+    const { start: dayStart, end: dayEnd } = dayBoundsInTz(timezone, new Date(`${date}T12:00:00Z`));
 
     const existingAppointments = await prisma.appointment.findMany({
       where: {
@@ -84,19 +92,27 @@ export class AvailabilityService {
         status: { in: ["SCHEDULED", "CONFIRMED"] },
         startsAt: { gte: dayStart, lte: dayEnd },
       },
-      select: { startsAt: true, endsAt: true },
+      select: {
+        startsAt: true,
+        endsAt: true,
+        customer: { select: { name: true } },
+      },
     });
 
     const slots: TimeSlot[] = [];
     for (let min = openMin; min + step <= closeMin; min += step) {
-      const slotStart = new Date(`${date}T${minutesToTime(min)}:00`);
-      const slotEnd = new Date(slotStart.getTime() + step * 60 * 1000);
+      const slotStart = localDateTimeToUtc(date, minutesToTime(min), timezone);
+      const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60 * 1000);
 
-      const conflicting = existingAppointments.some(
+      const conflictingAppt = existingAppointments.find(
         (a) => a.startsAt < slotEnd && a.endsAt > slotStart,
       );
 
-      slots.push({ time: minutesToTime(min), available: !conflicting });
+      slots.push({
+        time: minutesToTime(min),
+        available: !conflictingAppt,
+        bookedBy: conflictingAppt?.customer.name.split(" ")[0],
+      });
     }
 
     return slots;
