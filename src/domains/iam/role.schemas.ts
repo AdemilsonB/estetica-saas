@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { NAV_REGISTRY } from '@/shared/permissions/nav-registry'
 
-const validActions = ['view', 'create', 'edit', 'delete'] as const
+const validActions = ['view', 'create', 'edit', 'delete', 'view_all'] as const
 
 export const permissionsSchema = z.record(
   z.string(),
