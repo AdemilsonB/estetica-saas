@@ -33,6 +33,7 @@ export type CreateAppointmentInput = {
   startsAt: string
   notes?: string
   allowOverlap?: boolean
+  notificationMessage?: string
 }
 
 export type UpdateAppointmentInput = {
@@ -92,11 +93,12 @@ async function rescheduleAppointment(
 async function updateAppointmentStatus(
   id: string,
   status: AppointmentStatus,
+  notificationMessage?: string,
 ): Promise<Appointment> {
   const res = await fetch(`/api/scheduling/appointments/${id}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, notificationMessage }),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -126,8 +128,8 @@ export function useCreateAppointment() {
 export function useUpdateAppointmentStatus() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: AppointmentStatus }) =>
-      updateAppointmentStatus(id, status),
+    mutationFn: ({ id, status, notificationMessage }: { id: string; status: AppointmentStatus; notificationMessage?: string }) =>
+      updateAppointmentStatus(id, status, notificationMessage),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] })
     },
