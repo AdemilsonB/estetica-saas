@@ -197,6 +197,11 @@ export class InventoryService {
         const oldQty = oldMap.get(pid) ?? 0
         const diff = newQty - oldQty
         if (diff > 0) {
+          const product = await productRepository.findById(tenantId, pid)
+          if (!product) throw new ProductNotFoundError()
+          if (product.stockQuantity < diff) {
+            throw new InsufficientStockError(product.stockQuantity, diff)
+          }
           await productRepository.decrementStock(tenantId, pid, diff)
           await stockRepository.create(tenantId, {
             productId: pid,

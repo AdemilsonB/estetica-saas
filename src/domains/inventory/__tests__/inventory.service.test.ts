@@ -167,6 +167,9 @@ describe('updateCompletedAppointmentProducts', () => {
     vi.mocked(productRepository.getAppointmentProducts)
       .mockResolvedValueOnce([makeApptProduct('p1', 2)] as any)
       .mockResolvedValueOnce([] as any)
+    vi.mocked(productRepository.findById)
+      .mockResolvedValueOnce(makeProduct({ id: 'p1', stockQuantity: 10 }))
+      .mockResolvedValueOnce(makeProduct({ id: 'p2', stockQuantity: 10 }))
     vi.mocked(productRepository.decrementStock).mockResolvedValue({} as any)
     vi.mocked(stockRepository.create).mockResolvedValue({} as any)
     vi.mocked(productRepository.saveAppointmentProducts).mockResolvedValue(undefined as any)
@@ -180,6 +183,26 @@ describe('updateCompletedAppointmentProducts', () => {
     expect(productRepository.decrementStock).toHaveBeenCalledWith('t1', 'p1', 1)
     expect(productRepository.decrementStock).toHaveBeenCalledWith('t1', 'p2', 1)
     expect(productRepository.incrementStock).not.toHaveBeenCalled()
+    expect(stockRepository.create).toHaveBeenCalledWith('t1', expect.objectContaining({
+      productId: 'p1', type: 'ADJUSTMENT', quantity: -1, appointmentId: 'appt1',
+    }))
+    expect(stockRepository.create).toHaveBeenCalledWith('t1', expect.objectContaining({
+      productId: 'p2', type: 'ADJUSTMENT', quantity: -1, appointmentId: 'appt1',
+    }))
+  })
+
+  it('deduct: lança InsufficientStockError quando estoque insuficiente para o diff', async () => {
+    vi.mocked(productRepository.getAppointmentProducts)
+      .mockResolvedValueOnce([makeApptProduct('p1', 1)] as any)
+    vi.mocked(productRepository.findById).mockResolvedValue(makeProduct({ id: 'p1', stockQuantity: 0 }))
+
+    await expect(
+      service.updateCompletedAppointmentProducts(
+        't1', 'appt1',
+        [{ productId: 'p1', quantity: 5 }],
+        'deduct', 'u1',
+      )
+    ).rejects.toBeInstanceOf(InsufficientStockError)
   })
 
   it('deduct: não toca em produtos com quantidade igual ou menor', async () => {
@@ -214,6 +237,12 @@ describe('updateCompletedAppointmentProducts', () => {
     expect(productRepository.incrementStock).toHaveBeenCalledWith('t1', 'p1', 1)
     expect(productRepository.incrementStock).toHaveBeenCalledWith('t1', 'p2', 1)
     expect(productRepository.decrementStock).not.toHaveBeenCalled()
+    expect(stockRepository.create).toHaveBeenCalledWith('t1', expect.objectContaining({
+      productId: 'p1', type: 'ADJUSTMENT', quantity: 1, appointmentId: 'appt1',
+    }))
+    expect(stockRepository.create).toHaveBeenCalledWith('t1', expect.objectContaining({
+      productId: 'p2', type: 'ADJUSTMENT', quantity: 1, appointmentId: 'appt1',
+    }))
   })
 
   it('restore: não toca em produtos com quantidade igual ou maior', async () => {
