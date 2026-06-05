@@ -13,7 +13,7 @@ export function registerNotificationSubscriptions() {
 
   notificationsRegistered = true;
 
-  eventBus.subscribe("scheduling.appointment.cancelled", async ({ tenantId, appointment, customer, service }) => {
+  eventBus.subscribe("scheduling.appointment.cancelled", async ({ tenantId, appointment, customer, service, notificationMessage }) => {
     if (!customer.phone) return;
     await notificationService.logAndDispatch({
       tenantId,
@@ -27,11 +27,12 @@ export function registerNotificationSubscriptions() {
         status: appointment.status,
         customerName: customer.name,
         serviceName: service.name,
+        ...(notificationMessage ? { message: notificationMessage } : {}),
       },
     });
   });
 
-  eventBus.subscribe("scheduling.appointment.created", async ({ tenantId, appointment, customer, service }) => {
+  eventBus.subscribe("scheduling.appointment.created", async ({ tenantId, appointment, customer, service, notificationMessage }) => {
     if (!customer.phone) return;
     await notificationService.logAndDispatch({
       tenantId,
@@ -45,6 +46,7 @@ export function registerNotificationSubscriptions() {
         startsAt: appointment.startsAt.toISOString(),
         customerName: customer.name,
         serviceName: service.name,
+        ...(notificationMessage ? { message: notificationMessage } : {}),
       },
     });
   });
