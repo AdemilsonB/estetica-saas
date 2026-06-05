@@ -149,3 +149,102 @@ describe('deleteProduct', () => {
     await expect(service.deleteProduct('t1', 'p1')).rejects.toBeInstanceOf(ProductNotFoundError)
   })
 })
+
+// Helper local para o describe abaixo
+function makeApptProduct(productId: string, quantity: number) {
+  return {
+    id: `appt-${productId}`,
+    tenantId: 't1',
+    appointmentId: 'appt1',
+    productId,
+    quantity,
+    product: makeProduct({ id: productId }),
+  }
+}
+
+describe('updateCompletedAppointmentProducts', () => {
+  it('deduct: decrementa a diferença para produtos adicionados ou com mais quantidade', async () => {
+    vi.mocked(productRepository.getAppointmentProducts)
+      .mockResolvedValueOnce([makeApptProduct('p1', 2)] as any)
+      .mockResolvedValueOnce([] as any)
+    vi.mocked(productRepository.decrementStock).mockResolvedValue({} as any)
+    vi.mocked(stockRepository.create).mockResolvedValue({} as any)
+    vi.mocked(productRepository.saveAppointmentProducts).mockResolvedValue(undefined as any)
+
+    await service.updateCompletedAppointmentProducts(
+      't1', 'appt1',
+      [{ productId: 'p1', quantity: 3 }, { productId: 'p2', quantity: 1 }],
+      'deduct', 'u1',
+    )
+
+    expect(productRepository.decrementStock).toHaveBeenCalledWith('t1', 'p1', 1)
+    expect(productRepository.decrementStock).toHaveBeenCalledWith('t1', 'p2', 1)
+    expect(productRepository.incrementStock).not.toHaveBeenCalled()
+  })
+
+  it('deduct: não toca em produtos com quantidade igual ou menor', async () => {
+    vi.mocked(productRepository.getAppointmentProducts)
+      .mockResolvedValueOnce([makeApptProduct('p1', 5)] as any)
+      .mockResolvedValueOnce([] as any)
+    vi.mocked(productRepository.saveAppointmentProducts).mockResolvedValue(undefined as any)
+
+    await service.updateCompletedAppointmentProducts(
+      't1', 'appt1',
+      [{ productId: 'p1', quantity: 3 }],
+      'deduct', 'u1',
+    )
+
+    expect(productRepository.decrementStock).not.toHaveBeenCalled()
+  })
+
+  it('restore: incrementa a diferença para produtos removidos ou com menos quantidade', async () => {
+    vi.mocked(productRepository.getAppointmentProducts)
+      .mockResolvedValueOnce([makeApptProduct('p1', 3), makeApptProduct('p2', 1)] as any)
+      .mockResolvedValueOnce([] as any)
+    vi.mocked(productRepository.incrementStock).mockResolvedValue({} as any)
+    vi.mocked(stockRepository.create).mockResolvedValue({} as any)
+    vi.mocked(productRepository.saveAppointmentProducts).mockResolvedValue(undefined as any)
+
+    await service.updateCompletedAppointmentProducts(
+      't1', 'appt1',
+      [{ productId: 'p1', quantity: 2 }],
+      'restore', 'u1',
+    )
+
+    expect(productRepository.incrementStock).toHaveBeenCalledWith('t1', 'p1', 1)
+    expect(productRepository.incrementStock).toHaveBeenCalledWith('t1', 'p2', 1)
+    expect(productRepository.decrementStock).not.toHaveBeenCalled()
+  })
+
+  it('restore: não toca em produtos com quantidade igual ou maior', async () => {
+    vi.mocked(productRepository.getAppointmentProducts)
+      .mockResolvedValueOnce([makeApptProduct('p1', 2)] as any)
+      .mockResolvedValueOnce([] as any)
+    vi.mocked(productRepository.saveAppointmentProducts).mockResolvedValue(undefined as any)
+
+    await service.updateCompletedAppointmentProducts(
+      't1', 'appt1',
+      [{ productId: 'p1', quantity: 5 }],
+      'restore', 'u1',
+    )
+
+    expect(productRepository.incrementStock).not.toHaveBeenCalled()
+  })
+
+  it('none: salva lista sem tocar estoque', async () => {
+    vi.mocked(productRepository.getAppointmentProducts)
+      .mockResolvedValueOnce([makeApptProduct('p1', 2)] as any)
+      .mockResolvedValueOnce([] as any)
+    vi.mocked(productRepository.saveAppointmentProducts).mockResolvedValue(undefined as any)
+
+    await service.updateCompletedAppointmentProducts(
+      't1', 'appt1',
+      [{ productId: 'p1', quantity: 99 }],
+      'none', 'u1',
+    )
+
+    expect(productRepository.decrementStock).not.toHaveBeenCalled()
+    expect(productRepository.incrementStock).not.toHaveBeenCalled()
+    expect(productRepository.saveAppointmentProducts).toHaveBeenCalled()
+  })
+})

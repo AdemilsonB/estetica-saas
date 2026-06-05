@@ -180,6 +180,56 @@ export class InventoryService {
     return productRepository.getAppointmentProducts(tenantId, appointmentId)
   }
 
+  async updateCompletedAppointmentProducts(
+    tenantId: string,
+    appointmentId: string,
+    newProducts: Array<{ productId: string; quantity: number }>,
+    stockAction: 'deduct' | 'restore' | 'none',
+    createdByUserId: string,
+  ) {
+    const oldProducts = await productRepository.getAppointmentProducts(tenantId, appointmentId)
+
+    const oldMap = new Map(oldProducts.map((p) => [p.productId, p.quantity]))
+    const newMap = new Map(newProducts.map((p) => [p.productId, p.quantity]))
+
+    if (stockAction === 'deduct') {
+      for (const [pid, newQty] of newMap) {
+        const oldQty = oldMap.get(pid) ?? 0
+        const diff = newQty - oldQty
+        if (diff > 0) {
+          await productRepository.decrementStock(tenantId, pid, diff)
+          await stockRepository.create(tenantId, {
+            productId: pid,
+            type: 'ADJUSTMENT',
+            quantity: -diff,
+            appointmentId,
+            createdByUserId,
+          })
+        }
+      }
+    }
+
+    if (stockAction === 'restore') {
+      for (const [pid, oldQty] of oldMap) {
+        const newQty = newMap.get(pid) ?? 0
+        const diff = oldQty - newQty
+        if (diff > 0) {
+          await productRepository.incrementStock(tenantId, pid, diff)
+          await stockRepository.create(tenantId, {
+            productId: pid,
+            type: 'ADJUSTMENT',
+            quantity: diff,
+            appointmentId,
+            createdByUserId,
+          })
+        }
+      }
+    }
+
+    await productRepository.saveAppointmentProducts(tenantId, appointmentId, newProducts)
+    return productRepository.getAppointmentProducts(tenantId, appointmentId)
+  }
+
   async listMovements(tenantId: string, filters: ListMovementsQuery) {
     return stockRepository.list(tenantId, filters)
   }
