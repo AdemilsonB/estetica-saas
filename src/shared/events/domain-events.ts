@@ -131,7 +131,7 @@ export type DomainEvent =
       };
     }
   | {
-      type: 'product.sold'
+      type: "product.sold"
       payload: {
         tenantId: string
         productId: string
@@ -141,7 +141,7 @@ export type DomainEvent =
       }
     }
   | {
-      type: 'stock.purchased'
+      type: "stock.purchased"
       payload: {
         tenantId: string
         productId: string
