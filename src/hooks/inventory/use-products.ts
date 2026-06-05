@@ -28,6 +28,7 @@ export type CreateProductInput = {
   categoryId?: string
   costPrice: number
   salePrice: number
+  stockQuantity?: number
   lowStockAlert?: number
   imageUrl?: string
 }

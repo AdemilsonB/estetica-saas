@@ -40,6 +40,7 @@ export class ProductRepository {
         categoryId: input.categoryId,
         costPrice: new Prisma.Decimal(input.costPrice),
         salePrice: new Prisma.Decimal(input.salePrice),
+        stockQuantity: input.stockQuantity ?? 0,
         lowStockAlert: input.lowStockAlert ?? 5,
         imageUrl: input.imageUrl,
       },

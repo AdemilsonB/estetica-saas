@@ -29,7 +29,7 @@ type Props = {
 
 export function StockPurchaseModal({ open, onClose }: Props) {
   const queryClient = useQueryClient()
-  const { data: productsResponse } = useProducts({ pageSize: 200 })
+  const { data: productsResponse } = useProducts({ pageSize: 100 })
   const products = productsResponse?.data ?? []
 
   const [productId, setProductId] = useState('')
