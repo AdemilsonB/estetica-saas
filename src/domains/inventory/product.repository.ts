@@ -48,34 +48,34 @@ export class ProductRepository {
   }
 
   async update(tenantId: string, id: string, input: UpdateProductInput) {
-    return prisma.product.update({
-      where: { id },
+    await prisma.product.updateMany({
+      where: { id, tenantId },
       data: {
-        ...(input.name && { name: input.name }),
+        ...(input.name !== undefined && { name: input.name }),
         ...(input.categoryId !== undefined && { categoryId: input.categoryId }),
         ...(input.costPrice !== undefined && { costPrice: new Prisma.Decimal(input.costPrice) }),
         ...(input.salePrice !== undefined && { salePrice: new Prisma.Decimal(input.salePrice) }),
         ...(input.lowStockAlert !== undefined && { lowStockAlert: input.lowStockAlert }),
         ...(input.imageUrl !== undefined && { imageUrl: input.imageUrl }),
       },
-      include: { category: true },
     })
+    return prisma.product.findFirst({ where: { id, tenantId }, include: { category: true } })
   }
 
   async softDelete(tenantId: string, id: string) {
-    return prisma.product.update({ where: { id }, data: { active: false } })
+    return prisma.product.updateMany({ where: { id, tenantId }, data: { active: false } })
   }
 
   async incrementStock(tenantId: string, id: string, quantity: number) {
-    return prisma.product.update({
-      where: { id },
+    return prisma.product.updateMany({
+      where: { id, tenantId },
       data: { stockQuantity: { increment: quantity } },
     })
   }
 
   async decrementStock(tenantId: string, id: string, quantity: number) {
-    return prisma.product.update({
-      where: { id },
+    return prisma.product.updateMany({
+      where: { id, tenantId },
       data: { stockQuantity: { decrement: quantity } },
     })
   }
@@ -97,7 +97,7 @@ export class ProductRepository {
   }
 
   async deleteCategory(tenantId: string, id: string) {
-    return prisma.productCategory.delete({ where: { id } })
+    return prisma.productCategory.deleteMany({ where: { id, tenantId } })
   }
 
   async countProductsByCategory(tenantId: string, categoryId: string) {
@@ -113,12 +113,17 @@ export class ProductRepository {
   }
 
   async saveServiceTemplate(tenantId: string, serviceId: string, products: Array<{ productId: string; quantity: number }>) {
-    await prisma.serviceProduct.deleteMany({ where: { tenantId, serviceId } })
-    if (products.length === 0) return []
-    await prisma.serviceProduct.createMany({
-      data: products.map(p => ({ tenantId, serviceId, productId: p.productId, quantity: p.quantity })),
+    return prisma.$transaction(async (tx) => {
+      await tx.serviceProduct.deleteMany({ where: { tenantId, serviceId } })
+      if (products.length === 0) return []
+      await tx.serviceProduct.createMany({
+        data: products.map(p => ({ tenantId, serviceId, productId: p.productId, quantity: p.quantity })),
+      })
+      return tx.serviceProduct.findMany({
+        where: { tenantId, serviceId },
+        include: { product: true },
+      })
     })
-    return this.getServiceTemplate(tenantId, serviceId)
   }
 
   // Appointment products
@@ -130,10 +135,13 @@ export class ProductRepository {
   }
 
   async saveAppointmentProducts(tenantId: string, appointmentId: string, products: Array<{ productId: string; quantity: number }>) {
-    await prisma.appointmentProduct.deleteMany({ where: { tenantId, appointmentId } })
-    if (products.length === 0) return []
-    await prisma.appointmentProduct.createMany({
-      data: products.map(p => ({ tenantId, appointmentId, productId: p.productId, quantity: p.quantity })),
+    await prisma.$transaction(async (tx) => {
+      await tx.appointmentProduct.deleteMany({ where: { tenantId, appointmentId } })
+      if (products.length > 0) {
+        await tx.appointmentProduct.createMany({
+          data: products.map(p => ({ tenantId, appointmentId, productId: p.productId, quantity: p.quantity })),
+        })
+      }
     })
   }
 }
