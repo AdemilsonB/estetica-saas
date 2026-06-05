@@ -9,6 +9,7 @@ export type AppointmentProduct = {
 
 export type AppointmentProductsInput = {
   products: Array<{ productId: string; quantity: number }>
+  stockAction?: 'deduct' | 'restore' | 'none'
 }
 
 async function getAppointmentProducts(appointmentId: string): Promise<AppointmentProduct[]> {
