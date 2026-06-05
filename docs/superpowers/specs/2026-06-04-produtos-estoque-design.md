@@ -162,7 +162,7 @@ src/domains/inventory/
 |--------|-----------|
 | `createProduct(tenantId, input)` | Cria produto; valida nome único por tenant |
 | `updateProduct(tenantId, id, input)` | Atualiza campos; não permite alterar stockQuantity diretamente |
-| `deleteProduct(tenantId, id)` | Soft delete via `active = false`; bloqueia se houver movimentações |
+| `deleteProduct(tenantId, id)` | Soft delete via `active = false` — produto some do catálogo, histórico de movimentações é preservado |
 | `listProducts(tenantId, filters)` | Lista com filtros: categoria, baixo estoque, busca por nome |
 | `createCategory(tenantId, name)` | Cria categoria; valida unicidade |
 | `deleteCategory(tenantId, id)` | Remove se não houver produtos vinculados |
@@ -300,7 +300,6 @@ useAppointmentProducts(appointmentId) → GET /api/appointments/[id]/products
 | `PRODUCT_NOT_FOUND` | Produto não encontrado no tenant |
 | `INSUFFICIENT_STOCK` | Venda/uso solicitado excede `stockQuantity` |
 | `CATEGORY_HAS_PRODUCTS` | Tentativa de deletar categoria com produtos vinculados |
-| `PRODUCT_HAS_MOVEMENTS` | Tentativa de deletar produto com movimentações |
 | `CATEGORY_NAME_CONFLICT` | Nome de categoria já existe no tenant |
 
 ---
