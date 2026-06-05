@@ -35,6 +35,13 @@ const schema = z.object({
     .string()
     .min(1, 'Preço de venda é obrigatório')
     .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) >= 0, 'Valor inválido'),
+  stockQuantity: z
+    .string()
+    .optional()
+    .refine(
+      (v) => v === undefined || v === '' || (!isNaN(parseInt(v ?? '')) && parseInt(v ?? '') >= 0),
+      'Valor inválido',
+    ),
   lowStockAlert: z
     .string()
     .optional()
@@ -52,6 +59,7 @@ type Product = {
   categoryId: string | null
   costPrice: string
   salePrice: string
+  stockQuantity?: number
   lowStockAlert: number
   imageUrl: string | null
 }
@@ -115,7 +123,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
   }
 
   function onSubmit(values: FormValues) {
-    const payload = {
+    const basePayload = {
       name: values.name,
       categoryId: values.categoryId || undefined,
       costPrice: parseFloat(values.costPrice),
@@ -128,7 +136,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
 
     if (isEditing && product) {
       updateProduct.mutate(
-        { id: product.id, ...payload },
+        { id: product.id, ...basePayload },
         {
           onSuccess: () => {
             toast.success('Produto atualizado com sucesso')
@@ -140,7 +148,14 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         },
       )
     } else {
-      createProduct.mutate(payload, {
+      const createPayload = {
+        ...basePayload,
+        stockQuantity:
+          values.stockQuantity !== undefined && values.stockQuantity !== ''
+            ? parseInt(values.stockQuantity)
+            : 0,
+      }
+      createProduct.mutate(createPayload, {
         onSuccess: () => {
           toast.success('Produto criado com sucesso')
           handleClose()
@@ -226,6 +241,28 @@ export function ProductFormModal({ open, onClose, product }: Props) {
               )}
             </div>
           </div>
+
+          {!isEditing && (
+            <div className="space-y-1.5">
+              <Label htmlFor="prod-stock">Quantidade Inicial em Estoque</Label>
+              <Input
+                id="prod-stock"
+                type="number"
+                min="0"
+                placeholder="0"
+                {...register('stockQuantity')}
+              />
+              {errors.stockQuantity && (
+                <p className="text-xs text-rose-500">{errors.stockQuantity.message}</p>
+              )}
+            </div>
+          )}
+
+          {isEditing && product?.stockQuantity !== undefined && (
+            <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+              Estoque atual: <strong className="text-foreground">{product.stockQuantity}</strong> unidades — use &ldquo;Compra de Estoque&rdquo; para ajustar
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="prod-alert">Alerta de Estoque Mínimo</Label>
