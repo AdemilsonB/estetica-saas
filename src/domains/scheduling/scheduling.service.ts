@@ -126,7 +126,10 @@ export class SchedulingService {
 
     eventBus.publish({
       type: "scheduling.appointment.created",
-      payload: this.toAppointmentEventPayload(tenantId, appointmentDetails),
+      payload: {
+        ...this.toAppointmentEventPayload(tenantId, appointmentDetails),
+        notificationMessage: input.notificationMessage,
+      },
     });
 
     const tenant = await prisma.tenant.findFirst({
@@ -165,7 +168,12 @@ export class SchedulingService {
     if (eventType) {
       eventBus.publish({
         type: eventType,
-        payload: this.toAppointmentEventPayload(tenantId, appointment),
+        payload: {
+          ...this.toAppointmentEventPayload(tenantId, appointment),
+          ...(input.status === AppointmentStatus.CANCELLED
+            ? { notificationMessage: input.notificationMessage }
+            : {}),
+        },
       });
     }
 
