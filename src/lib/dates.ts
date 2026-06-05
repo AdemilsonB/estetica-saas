@@ -110,3 +110,16 @@ export function monthBoundsInTz(tz: string, date: Date = new Date()): { start: D
   const end = new Date(new Date(Date.UTC(y, mo, 1, 0, 0, 0, 0) + offsetMs).getTime() - 1);
   return { start, end };
 }
+
+/**
+ * Converte data local ("YYYY-MM-DD" + "HH:MM") no timezone informado para UTC.
+ * Ex: "2026-06-04" + "09:00" em "America/Sao_Paulo" → 2026-06-04T12:00:00.000Z
+ * Seguro para timezones entre UTC-12 e UTC+11.
+ */
+export function localDateTimeToUtc(dateStr: string, timeStr: string, tz: string): Date {
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  const [h, m] = timeStr.split(':').map(Number);
+  const approxUtc = new Date(Date.UTC(y, mo - 1, d, h, m, 0));
+  const offsetMs = tzOffsetMs(tz, approxUtc);
+  return new Date(approxUtc.getTime() + offsetMs);
+}
