@@ -30,6 +30,7 @@ type AppointmentEventPayload = {
     name: string;
     email: string;
   };
+  notificationMessage?: string;
 };
 
 type RescheduledEventPayload = {

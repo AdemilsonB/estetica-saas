@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 export type TimeSlot = {
   time: string
   available: boolean
+  bookedBy?: string
 }
 
 async function fetchSlots(

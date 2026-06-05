@@ -60,6 +60,7 @@ export function buildEvolutionMessage(
   const tz = tenant.timezone;
 
   if (template === "appointment-created" || template === "appointment-confirmed") {
+    if (payload.message) return payload.message;
     if (!payload.startsAt) {
       return `Olá, ${payload.customerName}! ${principal} | ${payload.serviceName} | ${tenant.name}. ${final}`;
     }
@@ -89,6 +90,10 @@ export function buildEvolutionMessage(
       return `Olá, ${payload.customerName}! Seu agendamento foi remarcado para ${date} às ${time} | ${payload.serviceName} | ${tenant.name}.`;
     }
     return `Olá, ${payload.customerName}! Seu agendamento foi remarcado. | ${payload.serviceName} | ${tenant.name}.`;
+  }
+
+  if (template === "appointment-cancelled") {
+    if (payload.message) return payload.message;
   }
 
   // cancelamento / nao_comparecimento

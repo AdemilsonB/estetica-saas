@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -39,6 +40,36 @@ function toDateInput(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
+function formatDateLabel(dateStr: string): string {
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+  })
+}
+
+function formatHour(time: string): string {
+  return time.replace(':', 'h')
+}
+
+const CONFIRM_TEMPLATE =
+  'Olá, {nome}! Seu agendamento de {serviço} foi criado para {data} às {hora} com {profissional}. Te esperamos! 🤍'
+
+function renderConfirmTemplate(params: {
+  nome: string
+  serviço: string
+  data: string
+  hora: string
+  profissional: string
+}): string {
+  return CONFIRM_TEMPLATE
+    .replace('{nome}', params.nome)
+    .replace('{serviço}', params.serviço)
+    .replace('{data}', params.data)
+    .replace('{hora}', params.hora)
+    .replace('{profissional}', params.profissional)
+}
+
 export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
   const { data: currentUser } = useCurrentUser()
   const { can } = usePermissions()
@@ -52,9 +83,11 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
   const [serviceId, setServiceId] = useState('')
   const [date, setDate] = useState(defaultDate ?? toDateInput(new Date()))
   const [selectedTime, setSelectedTime] = useState('')
+  const [customTime, setCustomTime] = useState('')
   const [customerSearch, setCustomerSearch] = useState('')
   const [customerId, setCustomerId] = useState('')
   const [allowOverlap, setAllowOverlap] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState('')
 
   const { data: customers = [], isLoading: searchingCustomers } =
     useCustomersSearch(customerSearch)
@@ -77,16 +110,38 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
 
   useEffect(() => {
     setSelectedTime('')
+    setCustomTime('')
   }, [professionalId, date, serviceId])
+
+  useEffect(() => {
+    if (!customerId || !serviceId || !date || !selectedTime || !professionalId) return
+
+    const customer = customers.find((c) => c.id === customerId)
+    const service = services.find((s) => s.id === serviceId)
+    const professional = teamMembers.find((m) => m.id === professionalId)
+    if (!customer || !service || !professional) return
+
+    setNotificationMessage(
+      renderConfirmTemplate({
+        nome: customer.name.split(' ')[0],
+        serviço: service.name,
+        data: formatDateLabel(date),
+        hora: formatHour(selectedTime),
+        profissional: professional.name.split(' ')[0],
+      }),
+    )
+  }, [customerId, serviceId, date, selectedTime, professionalId, customers, services, teamMembers])
 
   function handleClose() {
     setProfessionalId(canManage ? '' : (currentUser?.id ?? ''))
     setServiceId('')
     setDate(toDateInput(new Date()))
     setSelectedTime('')
+    setCustomTime('')
     setCustomerSearch('')
     setCustomerId('')
     setAllowOverlap(false)
+    setNotificationMessage('')
     onClose()
   }
 
@@ -103,6 +158,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
         serviceId,
         startsAt,
         allowOverlap,
+        notificationMessage: notificationMessage || undefined,
       },
       {
         onSuccess: () => {
@@ -121,8 +177,6 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
   const professionals = teamMembers.filter((m) =>
     ['OWNER', 'MANAGER', 'PROFESSIONAL'].includes(m.role),
   )
-
-  const visibleSlots = allowOverlap ? slots : slots.filter((s) => s.available)
   const isFormValid = customerId && serviceId && professionalId && date && selectedTime
 
   return (
@@ -199,34 +253,67 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
               {loadingSlots ? (
                 <div className="grid grid-cols-4 gap-2">
                   {Array.from({ length: 8 }).map((_, i) => (
-                    <Skeleton key={i} className="h-10 rounded-xl" />
+                    <Skeleton key={i} className="h-12 rounded-xl" />
                   ))}
                 </div>
-              ) : visibleSlots.length === 0 ? (
+              ) : slots.length === 0 ? (
                 <p className="text-sm text-slate-500 py-2">
                   Nenhum horário disponível neste dia.
                 </p>
               ) : (
                 <div className="grid grid-cols-4 gap-2">
-                  {visibleSlots.map((slot) => (
-                    <button
-                      key={slot.time}
-                      type="button"
-                      onClick={() => setSelectedTime(slot.time)}
-                      className={cn(
-                        'rounded-xl border px-2 py-2 text-sm font-medium transition',
-                        selectedTime === slot.time
-                          ? 'border-rose-500 bg-rose-50 text-rose-700'
-                          : slot.available
-                          ? 'border-slate-200 bg-white text-slate-700 hover:border-rose-300 hover:bg-rose-50'
-                          : 'border-slate-200 bg-slate-50 text-slate-400 line-through',
-                      )}
-                    >
-                      {slot.time}
-                    </button>
-                  ))}
+                  {slots.map((slot) => {
+                    const isSelected = selectedTime === slot.time
+                    const isOccupied = !slot.available
+                    const isClickable = slot.available || allowOverlap
+
+                    return (
+                      <button
+                        key={slot.time}
+                        type="button"
+                        disabled={!isClickable}
+                        onClick={() => {
+                          setSelectedTime(slot.time)
+                          setCustomTime(slot.time)
+                        }}
+                        className={cn(
+                          'rounded-xl border px-2 py-2 text-sm font-medium transition flex flex-col items-center gap-0.5 min-h-[40px]',
+                          isSelected && !isOccupied
+                            ? 'border-rose-500 bg-rose-50 text-rose-700'
+                            : isSelected && isOccupied
+                            ? 'border-orange-500 bg-orange-50 text-orange-700'
+                            : !isOccupied
+                            ? 'border-slate-200 bg-white text-slate-700 hover:border-rose-300 hover:bg-rose-50'
+                            : allowOverlap
+                            ? 'border-slate-200 bg-slate-50 text-slate-400 hover:border-orange-300 hover:bg-orange-50'
+                            : 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-300',
+                        )}
+                      >
+                        <span className={isOccupied ? 'line-through' : ''}>{slot.time}</span>
+                        {slot.bookedBy && (
+                          <span className="text-xs font-normal leading-none">{slot.bookedBy}</span>
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="custom-time" className="text-xs text-slate-500">
+                  Ou informe um horário específico:
+                </Label>
+                <Input
+                  id="custom-time"
+                  type="time"
+                  value={customTime}
+                  onChange={(e) => {
+                    setCustomTime(e.target.value)
+                    setSelectedTime(e.target.value)
+                  }}
+                  className="h-8 text-sm"
+                />
+              </div>
             </div>
           )}
 
@@ -267,6 +354,23 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
               </div>
             )}
           </div>
+
+          {isFormValid && (
+            <div className="space-y-1.5">
+              <Label>Mensagem enviada ao cliente via WhatsApp</Label>
+              <Textarea
+                value={notificationMessage}
+                onChange={(e) => setNotificationMessage(e.target.value)}
+                placeholder="A mensagem será gerada automaticamente ao selecionar o horário..."
+                className="min-h-[90px] resize-none text-sm"
+              />
+              {selectedCustomer && !selectedCustomer.phone && (
+                <p className="text-xs text-slate-400">
+                  Este cliente não tem telefone cadastrado. A mensagem não será enviada.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>

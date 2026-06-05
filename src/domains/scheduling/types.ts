@@ -33,10 +33,12 @@ export const createAppointmentSchema = z.object({
   startsAt: z.string().datetime(),
   notes: z.string().trim().max(500).optional(),
   allowOverlap: z.boolean().optional().default(false),
+  notificationMessage: z.string().trim().optional(),
 });
 
 export const updateAppointmentStatusSchema = z.object({
   status: z.nativeEnum(AppointmentStatus),
+  notificationMessage: z.string().trim().optional(),
 });
 
 export type CreateServiceInput = z.infer<typeof createServiceSchema>;
