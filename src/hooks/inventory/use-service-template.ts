@@ -12,7 +12,7 @@ export type ServiceTemplateInput = {
 }
 
 async function getServiceTemplate(serviceId: string): Promise<ServiceTemplateProduct[]> {
-  const res = await fetch(`/api/scheduling/services/${serviceId}/products`)
+  const res = await fetch(`/api/services/${serviceId}/products`)
   if (!res.ok) throw new Error('Falha ao buscar template de serviço')
   return res.json()
 }
@@ -21,7 +21,7 @@ async function saveServiceTemplate(
   serviceId: string,
   input: ServiceTemplateInput,
 ): Promise<ServiceTemplateProduct[]> {
-  const res = await fetch(`/api/scheduling/services/${serviceId}/products`, {
+  const res = await fetch(`/api/services/${serviceId}/products`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
