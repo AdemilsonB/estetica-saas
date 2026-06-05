@@ -42,6 +42,9 @@ Não é acionada para: hotfixes de UI, ajustes de estilo, correções de bug pon
 | `.context/CONVENTIONS.md` | Novo padrão de naming ou estrutura estabelecido e consolidado |
 | `.context/PROJECT.md` | Mudança no posicionamento do produto ou escopo do projeto |
 | `.claude/BRANCHING.md` | Mudança no workflow de branches ou processo de PR |
+| `memory/project-state.md` | **Toda sessão com desenvolvimento** — sem exceção |
+
+> ⚠️ **Memória entre sessões:** `C:\Users\Usuario\.claude\projects\c--dev-estetica-saas\memory\project-state.md` é o arquivo que o Claude lê no início de cada nova conversa para entender o estado atual do projeto. Se não for atualizado, a próxima sessão começa cega — não sabe o que foi implementado, qual branch está ativa, quais PRs foram abertas. Esta atualização é **obrigatória** independentemente do escopo da sessão.
 
 ---
 
@@ -118,7 +121,31 @@ Fonte possível: [onde buscar a resposta — arquivo, PR, conversa]
 
 Não invente. Não assuma. Sinalize e continue.
 
-### Passo 5 — Reportar ao Orchestrator
+### Passo 5 — Atualizar memória entre sessões
+
+Escreva em `C:\Users\Usuario\.claude\projects\c--dev-estetica-saas\memory\project-state.md`:
+
+```
+## [Descrição da entrega] — [data]
+
+PRs mergeadas: [lista]
+Branch atual: [nome]
+
+O que foi implementado:
+- [item 1]
+- [item 2]
+
+Status por domínio (atualizado):
+| Domínio | Backend | Frontend | Observação |
+...
+
+Detalhes técnicos novos (se houver):
+- [padrão, decisão ou detalhe que impacta futuras sessões]
+```
+
+Use o tool `Write` para sobrescrever o arquivo com o conteúdo atualizado, preservando as seções históricas relevantes.
+
+### Passo 6 — Reportar ao Orchestrator
 
 ```
 📝 Documentação atualizada:
@@ -165,6 +192,7 @@ Antes de reportar conclusão ao Orchestrator:
 - [ ] `DOMAIN.md` de cada domínio afetado — reflete o que existe no código agora
 - [ ] Nenhuma seção com informação falsa ou desatualizada mantida
 - [ ] Itens ambíguos marcados com `[⚠️ VERIFICAR]`
+- [ ] `memory/project-state.md` — atualizado com PRs, status de domínios e detalhes técnicos da sessão
 
 ---
 
