@@ -11,13 +11,14 @@ type Props = {
 }
 
 const ACTION_LABELS: Record<NavAction, string> = {
-  view:   'Visualizar',
-  create: 'Criar',
-  edit:   'Editar',
-  delete: 'Excluir',
+  view:     'Visualizar',
+  create:   'Criar',
+  edit:     'Editar',
+  delete:   'Excluir',
+  view_all: 'Ver todos',
 }
 
-const ALL_ACTIONS: NavAction[] = ['view', 'create', 'edit', 'delete']
+const ALL_ACTIONS: NavAction[] = ['view', 'create', 'edit', 'delete', 'view_all']
 
 export function RolePermissionMatrix({ sections, permissions, onChange, disabled }: Props) {
   function toggle(sectionKey: string, action: NavAction, checked: boolean) {

@@ -46,6 +46,7 @@ export class IamService {
       tenantId: user.tenantId,
       email: user.email,
       name: user.name,
+      role: user.role,
       isOwner: session.isOwner,
       roleId: user.roleId,
       roleName: session.isOwner ? "Dono" : (user.customRole?.name ?? "Sem cargo"),

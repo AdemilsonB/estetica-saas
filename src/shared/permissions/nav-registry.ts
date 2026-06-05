@@ -1,4 +1,4 @@
-export type NavAction = 'view' | 'create' | 'edit' | 'delete'
+export type NavAction = 'view' | 'create' | 'edit' | 'delete' | 'view_all'
 
 export type NavSection = {
   key: string
@@ -21,9 +21,9 @@ export const NAV_REGISTRY: NavSection[] = [
     description: 'Atendimentos e encaixes',
     icon: 'CalendarDays',
     href: '/agenda',
-    actions: ['view', 'create', 'edit', 'delete'],
+    actions: ['view', 'create', 'edit', 'delete', 'view_all'],
     defaultPermissions: {
-      MANAGER:      ['view', 'create', 'edit', 'delete'],
+      MANAGER:      ['view', 'create', 'edit', 'delete', 'view_all'],
       PROFESSIONAL: ['view', 'create'],
       RECEPTIONIST: ['view', 'create', 'edit'],
     },

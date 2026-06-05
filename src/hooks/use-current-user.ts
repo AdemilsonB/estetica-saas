@@ -5,6 +5,7 @@ export type CurrentUser = {
   tenantId: string
   email: string
   name: string
+  role: 'OWNER' | 'MANAGER' | 'PROFESSIONAL' | 'RECEPTIONIST'
   isOwner: boolean
   roleId: string | null
   roleName: string

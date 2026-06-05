@@ -1,7 +1,7 @@
 // src/components/domain/scheduling/agenda-day-view.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, CalendarDays, LayoutList, CalendarRange } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -15,6 +15,9 @@ import { useAppointments } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useCurrentUser } from '@/hooks/use-current-user'
+import { useTeamMembers } from '@/hooks/iam/use-team'
+import type { TeamMember } from '@/hooks/iam/use-team'
+import { ProfessionalFilter } from './ProfessionalFilter'
 
 function startOfDay(d: Date) {
   const r = new Date(d)
@@ -70,6 +73,13 @@ function groupByDay(appointments: Appointment[]) {
   return groups
 }
 
+function toHour(appt: Appointment) {
+  return new Date(appt.startsAt).toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 type ViewMode = 'day' | 'week'
 
 type Props = {
@@ -95,8 +105,30 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
   const { can } = usePermissions()
   const { data: currentUser } = useCurrentUser()
 
-  // Apenas profissionais com roleId específico veem seus próprios agendamentos
-  const professionalId = currentUser?.roleId ? currentUser.id : undefined
+  const canViewAll = can('agenda', 'view_all')
+  const { data: teamMembers = [] } = useTeamMembers()
+
+  const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>([])
+
+  useEffect(() => {
+    if (!canViewAll || teamMembers.length === 0 || selectedProfessionalIds.length > 0) return
+    if (currentUser?.role === 'PROFESSIONAL') {
+      setSelectedProfessionalIds([currentUser.id])
+    } else {
+      setSelectedProfessionalIds(teamMembers.map((m) => m.id))
+    }
+  }, [teamMembers, currentUser, canViewAll])
+
+  // Sem view_all: comportamento original — profissional vê só seus agendamentos
+  // Com view_all e 1 selecionado: filtra por esse profissional na API
+  // Com view_all e múltiplos: busca todos e filtra localmente
+  const queryProfessionalId = !canViewAll
+    ? currentUser?.roleId
+      ? currentUser.id
+      : undefined
+    : selectedProfessionalIds.length === 1
+      ? selectedProfessionalIds[0]
+      : undefined
 
   const weekStart = startOfWeek(selectedDate)
   const weekEnd = new Date(weekStart)
@@ -117,9 +149,14 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
     isLoading,
     error,
     refetch,
-  } = useAppointments({ from, to, professionalId })
+  } = useAppointments({ from, to, professionalId: queryProfessionalId })
 
-  const sorted = [...appointments].sort(
+  const filteredAppointments =
+    canViewAll && selectedProfessionalIds.length > 1
+      ? appointments.filter((a) => selectedProfessionalIds.includes(a.professionalId))
+      : appointments
+
+  const sorted = [...filteredAppointments].sort(
     (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
   )
 
@@ -134,6 +171,25 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
   )
 
   const isEmpty = viewMode === 'day' ? hours.length === 0 : dayKeys.length === 0
+
+  // Dados para o layout de colunas (modo Dia com múltiplos profissionais)
+  const byProfessional = selectedProfessionalIds.map((profId) => ({
+    professional: teamMembers.find((m) => m.id === profId) ?? ({
+      id: profId,
+      name: 'Profissional',
+      email: '',
+      role: 'PROFESSIONAL' as const,
+      isOwner: false,
+      roleId: null,
+      roleName: '',
+      createdAt: '',
+    } satisfies TeamMember),
+    appointments: sorted.filter((a) => a.professionalId === profId),
+  }))
+
+  const allColumnHours = [
+    ...new Set(byProfessional.flatMap(({ appointments: a }) => a.map(toHour))),
+  ].sort()
 
   function handleCardClick(appt: Appointment) {
     setSelectedAppointment(appt)
@@ -169,6 +225,14 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
             <span className="hidden sm:inline">Semana</span>
           </Button>
         </div>
+
+        {canViewAll && currentUser && (
+          <ProfessionalFilter
+            selectedIds={selectedProfessionalIds}
+            onChange={setSelectedProfessionalIds}
+            currentUserId={currentUser.id}
+          />
+        )}
 
         {can('agenda', 'create') && (
           <Button
@@ -237,6 +301,55 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
               Criar primeiro agendamento
             </Button>
           )}
+        </div>
+      ) : viewMode === 'day' && canViewAll && selectedProfessionalIds.length > 1 ? (
+        <div className="overflow-x-auto">
+          <div className="inline-flex min-w-full flex-col">
+            {/* cabeçalho com nome dos profissionais */}
+            <div className="mb-3 flex">
+              <div className="w-14 shrink-0" />
+              {byProfessional.map(({ professional }) => (
+                <div key={professional.id} className="min-w-[240px] flex-1 px-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
+                      {professional.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="truncate text-sm font-medium text-slate-700">
+                      {professional.name}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* linhas por horário */}
+            {allColumnHours.map((hour) => (
+              <div key={hour} className="flex items-start">
+                <div className="sticky left-0 z-10 w-14 shrink-0 bg-background pt-1">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    {hour}
+                  </span>
+                </div>
+                {byProfessional.map(({ professional, appointments: profAppts }) => {
+                  const appts = profAppts.filter((a) => toHour(a) === hour)
+                  return (
+                    <div
+                      key={professional.id}
+                      className="min-w-[240px] flex-1 space-y-2 px-1 pb-2"
+                    >
+                      {appts.map((appt) => (
+                        <AppointmentCard
+                          key={appt.id}
+                          appointment={appt}
+                          onClick={handleCardClick}
+                          onReschedule={handleReschedule}
+                        />
+                      ))}
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       ) : viewMode === 'day' ? (
         <div className="space-y-6">
