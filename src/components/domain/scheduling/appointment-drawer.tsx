@@ -161,6 +161,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
               appointmentId={appointment.id}
               serviceId={appointment.serviceId}
               defaultExpanded={isActive}
+              isCompleted={!isActive}
             />
 
             {isActive && (
