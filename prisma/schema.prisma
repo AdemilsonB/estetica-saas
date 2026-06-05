@@ -217,6 +217,7 @@ model User {
   tenant                  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   appointmentsAssigned    Appointment[]  @relation("ProfessionalAppointments")
   createdAppointments     Appointment[]  @relation("AppointmentCreatedBy")
+  stockMovements          StockMovement[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -343,8 +344,9 @@ model Appointment {
   service         Service           @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   createdByUser   User              @relation("AppointmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
   discountType    DiscountType?     @relation(fields: [discountTypeId], references: [id], onDelete: SetNull)
-  transactions    Transaction[]
+  transactions        Transaction[]
   appointmentProducts AppointmentProduct[]
+  stockMovements      StockMovement[]
 
   @@index([tenantId])
   @@index([tenantId, startsAt])
@@ -609,8 +611,10 @@ model StockMovement {
   createdByUserId String
   createdAt       DateTime          @default(now())
 
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  tenant        Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  createdByUser User         @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
 
   @@index([tenantId])
   @@index([tenantId, productId])
