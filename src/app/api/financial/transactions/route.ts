@@ -18,6 +18,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const query = listTransactionsSchema.parse({
       type: searchParams.get("type") ?? undefined,
+      category: searchParams.get("category") ?? undefined,
+      professionalId: searchParams.get("professionalId") ?? undefined,
       from: searchParams.get("from") ?? undefined,
       to: searchParams.get("to") ?? undefined,
       page: searchParams.get("page") ?? undefined,
@@ -26,6 +28,8 @@ export async function GET(request: Request) {
 
     const result = await financialService.list(session.tenantId, {
       type: query.type as TransactionType | undefined,
+      category: query.category,
+      professionalId: query.professionalId,
       from: query.from ? new Date(query.from) : undefined,
       to: query.to ? new Date(query.to) : undefined,
       page: query.page,
