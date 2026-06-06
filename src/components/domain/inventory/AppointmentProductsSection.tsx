@@ -25,7 +25,17 @@ import {
 import { useServiceTemplate } from '@/hooks/inventory/use-service-template'
 import { useProducts } from '@/hooks/inventory/use-products'
 
-type ProductItem = { productId: string; quantity: number; name: string }
+type ProductItem = {
+  productId: string
+  quantity: number
+  name: string
+  stockQuantity: number
+  costPrice: number
+}
+
+type DiffLine =
+  | { productId: string; name: string; diff: number; newStock: number; costTotal: number; hasError: false }
+  | { productId: string; name: string; diff: number; available: number; needed: number; hasError: true }
 
 type Props = {
   appointmentId: string
@@ -33,24 +43,6 @@ type Props = {
   defaultExpanded?: boolean
   isCompleted?: boolean
 }
-
-const STOCK_OPTIONS = [
-  {
-    value: 'none' as const,
-    label: 'Deixar como está',
-    desc: 'Apenas atualiza o registro, sem alterar o estoque.',
-  },
-  {
-    value: 'deduct' as const,
-    label: 'Retirar do estoque',
-    desc: 'Produtos adicionados ou com mais quantidade serão descontados do estoque.',
-  },
-  {
-    value: 'restore' as const,
-    label: 'Repor no estoque',
-    desc: 'Produtos removidos ou com menos quantidade serão devolvidos ao estoque.',
-  },
-]
 
 export function AppointmentProductsSection({
   appointmentId,
@@ -62,7 +54,8 @@ export function AppointmentProductsSection({
   const [items, setItems] = useState<ProductItem[]>([])
   const [initialized, setInitialized] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [stockAction, setStockAction] = useState<'deduct' | 'restore' | 'none'>('none')
+  const [stockAction, setStockAction] = useState<'apply' | 'none'>('none')
+  const [diffLines, setDiffLines] = useState<DiffLine[]>([])
 
   const { data: savedProducts } = useAppointmentProducts(expanded ? appointmentId : undefined)
   const { data: template } = useServiceTemplate(
@@ -71,7 +64,7 @@ export function AppointmentProductsSection({
   const { data: productsData } = useProducts({ pageSize: 100 })
   const saveProducts = useSaveAppointmentProducts(appointmentId)
 
-  const allProducts: Array<{ id: string; name: string }> = productsData?.data ?? []
+  const allProducts = productsData?.data ?? []
 
   useEffect(() => {
     if (!expanded || initialized) return
@@ -80,11 +73,16 @@ export function AppointmentProductsSection({
       if (saved.length > 0) {
         setItems(
           saved.map(
-            (p: { productId: string; quantity: number; product: { name: string } }) => ({
-              productId: p.productId,
-              quantity: p.quantity,
-              name: p.product.name,
-            }),
+            (p: { productId: string; quantity: number; product: { name: string } }) => {
+              const stock = allProducts.find((a) => a.id === p.productId)
+              return {
+                productId: p.productId,
+                quantity: p.quantity,
+                name: p.product.name,
+                stockQuantity: stock?.stockQuantity ?? 999,
+                costPrice: Number(stock?.costPrice ?? 0),
+              }
+            },
           ),
         )
         setInitialized(true)
@@ -92,17 +90,22 @@ export function AppointmentProductsSection({
         const templateItems = Array.isArray(template) ? template : []
         setItems(
           templateItems.map(
-            (t: { productId: string; quantity: number; product: { name: string } }) => ({
-              productId: t.productId,
-              quantity: t.quantity,
-              name: t.product.name,
-            }),
+            (t: { productId: string; quantity: number; product: { name: string } }) => {
+              const stock = allProducts.find((a) => a.id === t.productId)
+              return {
+                productId: t.productId,
+                quantity: t.quantity,
+                name: t.product.name,
+                stockQuantity: stock?.stockQuantity ?? 999,
+                costPrice: Number(stock?.costPrice ?? 0),
+              }
+            },
           ),
         )
         setInitialized(true)
       }
     }
-  }, [expanded, initialized, savedProducts, template])
+  }, [expanded, initialized, savedProducts, template, allProducts])
 
   function handleExpand() {
     setExpanded((prev) => !prev)
@@ -111,11 +114,13 @@ export function AppointmentProductsSection({
 
   function updateQuantity(productId: string, delta: number) {
     setItems((prev) =>
-      prev.map((item) =>
-        item.productId === productId
-          ? { ...item, quantity: Math.max(1, item.quantity + delta) }
-          : item,
-      ),
+      prev.map((item) => {
+        if (item.productId !== productId) return item
+        const newQty = item.quantity + delta
+        if (newQty < 1) return item
+        if (delta > 0 && newQty > item.stockQuantity && !isCompleted) return item
+        return { ...item, quantity: newQty }
+      }),
     )
   }
 
@@ -127,29 +132,94 @@ export function AppointmentProductsSection({
     if (items.find((i) => i.productId === productId)) return
     const product = allProducts.find((p) => p.id === productId)
     if (!product) return
-    setItems((prev) => [...prev, { productId, quantity: 1, name: product.name }])
+    setItems((prev) => [
+      ...prev,
+      {
+        productId,
+        quantity: 1,
+        name: product.name,
+        stockQuantity: product.stockQuantity,
+        costPrice: Number(product.costPrice),
+      },
+    ])
   }
 
-  async function doSave(action: 'deduct' | 'restore' | 'none') {
-    try {
-      await saveProducts.mutateAsync({
-        products: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
-        stockAction: action,
-      })
-      toast.success('Produtos do atendimento salvos')
-      setDialogOpen(false)
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar produtos')
+  function computeDiff(): DiffLine[] {
+    const savedList = Array.isArray(savedProducts) ? savedProducts : []
+    const oldMap = new Map(
+      savedList.map((p: { productId: string; quantity: number }) => [p.productId, p.quantity])
+    )
+    const lines: DiffLine[] = []
+
+    const allPids = new Set([
+      ...oldMap.keys(),
+      ...items.map((i) => i.productId),
+    ])
+
+    for (const pid of allPids) {
+      const oldQty = oldMap.get(pid) ?? 0
+      const item = items.find((i) => i.productId === pid)
+      const newQty = item?.quantity ?? 0
+      const diff = newQty - oldQty
+      if (diff === 0) continue
+
+      const stock = allProducts.find((p) => p.id === pid)
+      const name = item?.name ?? stock?.name ?? pid
+      const costPrice = Number(item?.costPrice ?? stock?.costPrice ?? 0)
+
+      if (diff > 0) {
+        const available = item?.stockQuantity ?? stock?.stockQuantity ?? 0
+        if (available < diff) {
+          lines.push({ productId: pid, name, diff, available, needed: diff, hasError: true })
+        } else {
+          lines.push({
+            productId: pid,
+            name,
+            diff,
+            newStock: available - diff,
+            costTotal: costPrice * diff,
+            hasError: false,
+          })
+        }
+      } else {
+        lines.push({
+          productId: pid,
+          name,
+          diff,
+          newStock: (item?.stockQuantity ?? stock?.stockQuantity ?? 0) + Math.abs(diff),
+          costTotal: 0,
+          hasError: false,
+        })
+      }
     }
+    return lines
   }
 
   async function handleSave() {
     if (isCompleted) {
       setStockAction('none')
+      setDiffLines([])
       setDialogOpen(true)
       return
     }
     await doSave('none')
+  }
+
+  async function doSave(action: 'apply' | 'none') {
+    try {
+      await saveProducts.mutateAsync({
+        products: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+        stockAction: action,
+      })
+      const msg =
+        action === 'apply'
+          ? 'Estoque e financeiro atualizados com as diferenças do atendimento'
+          : 'Produtos salvos — estoque não alterado'
+      toast.success(msg)
+      setDialogOpen(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar produtos')
+    }
   }
 
   const availableProducts = allProducts.filter((p) => !items.find((i) => i.productId === p.id))
@@ -182,36 +252,47 @@ export function AppointmentProductsSection({
               </p>
             )}
 
-            {items.map((item) => (
-              <div key={item.productId} className="flex items-center gap-2">
-                <span className="flex-1 text-sm truncate">{item.name}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-7"
-                  onClick={() => updateQuantity(item.productId, -1)}
-                >
-                  <Minus className="size-3" />
-                </Button>
-                <span className="w-6 text-center text-sm tabular-nums">{item.quantity}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-7"
-                  onClick={() => updateQuantity(item.productId, 1)}
-                >
-                  <Plus className="size-3" />
-                </Button>
-                <button
-                  type="button"
-                  className="text-destructive hover:text-destructive/80 text-sm px-1"
-                  onClick={() => removeItem(item.productId)}
-                  aria-label="Remover produto"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
+            {items.map((item) => {
+              const overStock = !isCompleted && item.quantity >= item.stockQuantity
+              return (
+                <div key={item.productId} className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="flex-1 text-sm truncate">{item.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7"
+                      onClick={() => updateQuantity(item.productId, -1)}
+                    >
+                      <Minus className="size-3" />
+                    </Button>
+                    <span className="w-6 text-center text-sm tabular-nums">{item.quantity}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7"
+                      onClick={() => updateQuantity(item.productId, 1)}
+                      disabled={overStock}
+                    >
+                      <Plus className="size-3" />
+                    </Button>
+                    <button
+                      type="button"
+                      className="text-destructive hover:text-destructive/80 text-sm px-1"
+                      onClick={() => removeItem(item.productId)}
+                      aria-label="Remover produto"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  {overStock && (
+                    <p className="text-xs text-destructive pl-1">
+                      Estoque insuficiente — disponível: {item.stockQuantity} unidades
+                    </p>
+                  )}
+                </div>
+              )
+            })}
 
             {availableProducts.length > 0 && (
               <Select onValueChange={addProduct}>
@@ -220,8 +301,14 @@ export function AppointmentProductsSection({
                 </SelectTrigger>
                 <SelectContent>
                   {availableProducts.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
+                    <SelectItem
+                      key={p.id}
+                      value={p.id}
+                      disabled={p.stockQuantity === 0}
+                    >
+                      {p.stockQuantity === 0
+                        ? `${p.name} — sem estoque`
+                        : `${p.name} (${p.stockQuantity} un.)`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -248,21 +335,62 @@ export function AppointmentProductsSection({
           </DialogHeader>
 
           <div className="space-y-2">
-            {STOCK_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                className={`w-full text-left rounded-lg border p-3 transition ${
-                  stockAction === opt.value
-                    ? 'border-slate-950 bg-slate-50'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-                onClick={() => setStockAction(opt.value)}
-              >
-                <p className="text-sm font-medium text-slate-900">{opt.label}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{opt.desc}</p>
-              </button>
-            ))}
+            <button
+              type="button"
+              className={`w-full text-left rounded-lg border p-3 transition ${
+                stockAction === 'none'
+                  ? 'border-slate-950 bg-slate-50'
+                  : 'border-slate-200 hover:border-slate-300'
+              }`}
+              onClick={() => { setStockAction('none'); setDiffLines([]) }}
+            >
+              <p className="text-sm font-medium text-slate-900">Não alterar o estoque</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Salva apenas o registro do atendimento. O estoque permanece como está.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              className={`w-full text-left rounded-lg border p-3 transition ${
+                stockAction === 'apply'
+                  ? 'border-slate-950 bg-slate-50'
+                  : 'border-slate-200 hover:border-slate-300'
+              }`}
+              onClick={() => { setStockAction('apply'); setDiffLines(computeDiff()) }}
+            >
+              <p className="text-sm font-medium text-slate-900">Aplicar diferença no estoque</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Calcula automaticamente o que mudou: produtos adicionados são descontados,
+                produtos removidos são devolvidos ao estoque.
+              </p>
+            </button>
+
+            {stockAction === 'apply' && diffLines.length > 0 && (
+              <div className="mt-3 space-y-1 rounded-lg border border-border/50 p-3">
+                {diffLines.map((line) =>
+                  line.hasError ? (
+                    <div key={line.productId} className="text-xs text-destructive flex justify-between">
+                      <span>✕ {line.name}</span>
+                      <span>disponível: {line.available}, necessário: {line.needed}</span>
+                    </div>
+                  ) : line.diff > 0 ? (
+                    <div key={line.productId} className="text-xs flex justify-between text-slate-700">
+                      <span>▼ {line.name}  −{line.diff} un. (estoque: → {line.newStock})</span>
+                      <span className="text-destructive">−R$ {line.costTotal.toFixed(2)}</span>
+                    </div>
+                  ) : (
+                    <div key={line.productId} className="text-xs flex justify-between text-slate-700">
+                      <span>▲ {line.name}  +{Math.abs(line.diff)} un. (devolvido)</span>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+            {stockAction === 'apply' && diffLines.length === 0 && (
+              <p className="text-xs text-slate-500 text-center py-1">Nenhuma diferença detectada.</p>
+            )}
           </div>
 
           <DialogFooter>
@@ -271,7 +399,10 @@ export function AppointmentProductsSection({
             </Button>
             <Button
               onClick={() => doSave(stockAction)}
-              disabled={saveProducts.isPending}
+              disabled={
+                saveProducts.isPending ||
+                (stockAction === 'apply' && diffLines.some((l) => l.hasError))
+              }
               className="bg-slate-950 text-white hover:bg-slate-800"
             >
               {saveProducts.isPending ? 'Salvando...' : 'Confirmar'}

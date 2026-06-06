@@ -1,5 +1,6 @@
 import { Prisma, TransactionType } from "@prisma/client";
 
+import { prisma } from "@/shared/database/prisma";
 import { eventBus } from "@/shared/events/event-bus";
 
 import { transactionRepository } from "./transaction.repository";
@@ -14,11 +15,24 @@ export function registerFinancialSubscriptions() {
   financialSubscriptionsRegistered = true;
 
   eventBus.subscribe("scheduling.appointment.paid", async (payload) => {
+    const appt = await prisma.appointment.findUnique({
+      where: { id: payload.appointmentId },
+      select: {
+        service: { select: { name: true } },
+        customer: { select: { name: true } },
+      },
+    });
+    const serviceName = appt?.service?.name ?? "Serviço";
+    const customerName = appt?.customer?.name ?? "";
+    const description = customerName
+      ? `Receita: ${serviceName} — ${customerName}`
+      : `Receita: ${serviceName}`;
+
     await transactionRepository.create(payload.tenantId, {
       appointmentId: payload.appointmentId,
       type: TransactionType.INCOME,
       category: "service",
-      description: "Receita de serviço",
+      description,
       amount: new Prisma.Decimal(payload.netAmount),
       paidAt: new Date(),
       paymentMethod: payload.paymentMethod,
@@ -49,7 +63,7 @@ export function registerFinancialSubscriptions() {
     await transactionRepository.create(payload.tenantId, {
       type: TransactionType.INCOME,
       category: "Venda de Produto",
-      description: `Venda de produto (qtd: ${payload.quantity})`,
+      description: `Venda: ${payload.productName} × ${payload.quantity} un.`,
       amount: new Prisma.Decimal(payload.totalAmount),
       paidAt: new Date(),
     });
@@ -59,8 +73,30 @@ export function registerFinancialSubscriptions() {
     await transactionRepository.create(payload.tenantId, {
       type: TransactionType.EXPENSE,
       category: "Compra de Estoque",
-      description: `Compra de estoque (qtd: ${payload.quantity})`,
+      description: `Compra: ${payload.productName} × ${payload.quantity} un.`,
       amount: new Prisma.Decimal(payload.totalAmount),
+      paidAt: new Date(),
+    });
+  });
+
+  eventBus.subscribe("stock.appointment_use", async (payload) => {
+    await transactionRepository.create(payload.tenantId, {
+      appointmentId: payload.appointmentId,
+      type: TransactionType.EXPENSE,
+      category: "Insumo de Atendimento",
+      description: `Insumo: ${payload.productName} × ${payload.quantity} un. — ${payload.serviceName}`,
+      amount: new Prisma.Decimal(payload.totalCost),
+      paidAt: new Date(),
+    });
+  });
+
+  eventBus.subscribe("stock.appointment_restore", async (payload) => {
+    await transactionRepository.create(payload.tenantId, {
+      appointmentId: payload.appointmentId,
+      type: TransactionType.EXPENSE,
+      category: "Insumo de Atendimento",
+      description: `Estorno de insumo: ${payload.productName} × ${payload.quantity} un. — ${payload.serviceName}`,
+      amount: new Prisma.Decimal(-payload.totalCost),
       paidAt: new Date(),
     });
   });
