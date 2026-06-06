@@ -103,7 +103,7 @@ describe("SchedulingService.createAppointment — verificação de bloqueio", ()
     ).rejects.toThrow(CustomerBlockedError);
   });
 
-  it("lança CustomerBlockedError com a mensagem contendo o nome do cliente", async () => {
+  it("lança CustomerBlockedError com mensagem genérica", async () => {
     prismaMock.customer.findFirst.mockResolvedValue(mockCustomerBlocked as never);
 
     await expect(
@@ -115,7 +115,7 @@ describe("SchedulingService.createAppointment — verificação de bloqueio", ()
         notificationMessage: "",
         allowOverlap: false,
       }),
-    ).rejects.toThrow(`Cliente "${mockCustomerBlocked.name}" está bloqueado`);
+    ).rejects.toThrow('Não foi possível completar o agendamento. Entre em contato com o salão.');
   });
 
   it("lança CustomerNotFoundError quando cliente não existe", async () => {

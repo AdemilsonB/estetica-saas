@@ -86,7 +86,7 @@ export class SchedulingService {
       throw new CustomerNotFoundError();
     }
     if (customer.isBlocked) {
-      throw new CustomerBlockedError(customer.name);
+      throw new CustomerBlockedError();
     }
 
     const professional = await prisma.user.findFirst({

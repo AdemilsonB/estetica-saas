@@ -175,9 +175,9 @@ export class CategoryNameConflictError extends DomainError {
 // --- CRM: Bloqueio de cliente ---
 
 export class CustomerBlockedError extends DomainError {
-  constructor(customerName: string) {
+  constructor() {
     super(
-      `Cliente "${customerName}" está bloqueado e não pode realizar agendamentos.`,
+      'Não foi possível completar o agendamento. Entre em contato com o salão.',
       'CUSTOMER_BLOCKED',
       403,
     )
