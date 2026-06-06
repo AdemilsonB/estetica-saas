@@ -9,6 +9,9 @@ import type {
   TenantPublicData,
 } from './types'
 import { ServiceStep } from '@/components/domain/booking/service-step'
+import { ProfessionalStep } from '@/components/domain/booking/professional-step'
+import { DateTimeStep } from '@/components/domain/booking/datetime-step'
+import { PersonalStep } from '@/components/domain/booking/personal-step'
 
 const STEP_LABELS: Record<Exclude<BookingStep, 'success'>, string> = {
   service: 'Serviço',
@@ -54,6 +57,8 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
   const [booking, setBooking] = useState<BookingState>({})
 
   const singleProfessional = tenantData.professionals.length === 1
+  const primaryColor = tenantData.branding?.primaryColor ?? '#191919'
+  const maxAdvanceDays = 60
 
   function handleServiceSelect(service: PublicService) {
     const priceLabel =
@@ -82,7 +87,6 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
     }
   }
 
-  // Placeholders para steps futuros (Tasks 8 e 9)
   function handleProfessionalSelect(professional: PublicProfessional | null) {
     setBooking((b) => ({
       ...b,
@@ -92,9 +96,24 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
     setStep('datetime')
   }
 
-  // Suprime aviso de variável não utilizada em desenvolvimento
-  void booking
-  void handleProfessionalSelect
+  function handleDateTimeSelect(startsAt: Date) {
+    setBooking((b) => ({ ...b, startsAt }))
+    setStep('personal')
+  }
+
+  function handlePersonalData(data: {
+    customerName: string
+    customerPhone: string
+    notes?: string
+  }) {
+    setBooking((b) => ({
+      ...b,
+      customerName: data.customerName,
+      customerPhone: data.customerPhone,
+      notes: data.notes,
+    }))
+    setStep('confirmation')
+  }
 
   return (
     <div>
@@ -104,26 +123,41 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
         <ServiceStep
           services={tenantData.services}
           onSelect={handleServiceSelect}
-          primaryColor={tenantData.branding?.primaryColor ?? '#191919'}
+          primaryColor={primaryColor}
         />
       )}
 
-      {/* Steps futuros — serão implementados nas Tasks 8 e 9 */}
       {step === 'professional' && (
-        <div className="text-center text-slate-400 py-12">
-          Step de profissional — Task 8
-        </div>
+        <ProfessionalStep
+          professionals={tenantData.professionals}
+          onSelect={handleProfessionalSelect}
+          onBack={() => setStep('service')}
+          primaryColor={primaryColor}
+        />
       )}
-      {step === 'datetime' && (
-        <div className="text-center text-slate-400 py-12">
-          Step de data/hora — Task 8
-        </div>
+
+      {step === 'datetime' && booking.serviceId && (
+        <DateTimeStep
+          tenantSlug={tenantData.slug}
+          serviceId={booking.serviceId}
+          professionalId={booking.professionalId}
+          maxAdvanceDays={maxAdvanceDays}
+          onSelect={handleDateTimeSelect}
+          onBack={() =>
+            singleProfessional ? setStep('service') : setStep('professional')
+          }
+          primaryColor={primaryColor}
+        />
       )}
+
       {step === 'personal' && (
-        <div className="text-center text-slate-400 py-12">
-          Step de dados — Task 8
-        </div>
+        <PersonalStep
+          onSubmit={handlePersonalData}
+          onBack={() => setStep('datetime')}
+        />
       )}
+
+      {/* Step de confirmação — Task 9 */}
       {step === 'confirmation' && (
         <div className="text-center text-slate-400 py-12">
           Step de confirmação — Task 9
