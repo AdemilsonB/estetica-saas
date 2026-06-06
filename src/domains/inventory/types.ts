@@ -40,7 +40,7 @@ export const appointmentProductsSchema = z.object({
     productId: z.string().cuid(),
     quantity: z.number().int().min(1),
   })),
-  stockAction: z.enum(['deduct', 'restore', 'none']).default('none'),
+  stockAction: z.enum(['apply', 'none']).default('none'),
 })
 export type AppointmentProductsInput = z.infer<typeof appointmentProductsSchema>
 

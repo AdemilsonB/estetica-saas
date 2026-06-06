@@ -131,21 +131,51 @@ export type DomainEvent =
       };
     }
   | {
-      type: "product.sold"
+      type: "product.sold";
       payload: {
-        tenantId: string
-        productId: string
-        quantity: number
-        totalAmount: number
-        customerId?: string
-      }
+        tenantId: string;
+        productId: string;
+        productName: string;
+        quantity: number;
+        totalAmount: number;
+        customerId?: string;
+      };
     }
   | {
-      type: "stock.purchased"
+      type: "stock.purchased";
       payload: {
-        tenantId: string
-        productId: string
-        quantity: number
-        totalAmount: number
-      }
+        tenantId: string;
+        productId: string;
+        productName: string;
+        quantity: number;
+        totalAmount: number;
+      };
+    }
+  | {
+      type: "stock.appointment_use";
+      payload: {
+        tenantId: string;
+        productId: string;
+        productName: string;
+        serviceName: string;
+        customerName: string;
+        quantity: number;
+        costPrice: number;
+        totalCost: number;
+        appointmentId: string;
+      };
+    }
+  | {
+      type: "stock.appointment_restore";
+      payload: {
+        tenantId: string;
+        productId: string;
+        productName: string;
+        serviceName: string;
+        customerName: string;
+        quantity: number;
+        costPrice: number;
+        totalCost: number;
+        appointmentId: string;
+      };
     };

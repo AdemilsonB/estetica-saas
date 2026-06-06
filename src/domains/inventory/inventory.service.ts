@@ -83,7 +83,7 @@ export class InventoryService {
 
     eventBus.publish({
       type: 'stock.purchased',
-      payload: { tenantId, productId: product.id, quantity: input.quantity, totalAmount },
+      payload: { tenantId, productId: product.id, productName: product.name, quantity: input.quantity, totalAmount },
     })
 
     return movement
@@ -122,6 +122,7 @@ export class InventoryService {
       payload: {
         tenantId,
         productId: product.id,
+        productName: product.name,
         quantity: input.quantity,
         totalAmount,
         customerId: input.customerId,
@@ -144,6 +145,7 @@ export class InventoryService {
     appointmentId: string,
     input: AppointmentProductsInput,
     createdByUserId: string,
+    context: { serviceName: string; customerName: string },
   ) {
     // Busca todos os produtos em paralelo em vez de sequencialmente
     const products = await Promise.all(
@@ -184,24 +186,39 @@ export class InventoryService {
     tenantId: string,
     appointmentId: string,
     newProducts: Array<{ productId: string; quantity: number }>,
-    stockAction: 'deduct' | 'restore' | 'none',
+    stockAction: 'apply' | 'none',
     createdByUserId: string,
+    context: { serviceName: string; customerName: string } = { serviceName: '', customerName: '' },
   ) {
     const oldProducts = await productRepository.getAppointmentProducts(tenantId, appointmentId)
-
     const oldMap = new Map(oldProducts.map((p) => [p.productId, p.quantity]))
     const newMap = new Map(newProducts.map((p) => [p.productId, p.quantity]))
 
-    if (stockAction === 'deduct') {
-      for (const [pid, newQty] of newMap) {
+    if (stockAction === 'apply') {
+      const allPids = new Set([...oldMap.keys(), ...newMap.keys()])
+
+      type ProductRecord = NonNullable<Awaited<ReturnType<typeof productRepository.findById>>>
+      const changes: Array<{ pid: string; diff: number; product: ProductRecord }> = []
+
+      for (const pid of allPids) {
         const oldQty = oldMap.get(pid) ?? 0
+        const newQty = newMap.get(pid) ?? 0
         const diff = newQty - oldQty
+        if (diff === 0) continue
+
+        const product = await productRepository.findById(tenantId, pid)
+        if (!product) throw new ProductNotFoundError()
+        if (diff > 0 && product.stockQuantity < diff) {
+          throw new InsufficientStockError(product.stockQuantity, diff, product.name)
+        }
+        changes.push({ pid, diff, product })
+      }
+
+      for (const { pid, diff, product } of changes) {
+        const costPrice = Number(product.costPrice ?? 0)
+        const absDiff = Math.abs(diff)
+
         if (diff > 0) {
-          const product = await productRepository.findById(tenantId, pid)
-          if (!product) throw new ProductNotFoundError()
-          if (product.stockQuantity < diff) {
-            throw new InsufficientStockError(product.stockQuantity, diff)
-          }
           await productRepository.decrementStock(tenantId, pid, diff)
           await stockRepository.create(tenantId, {
             productId: pid,
@@ -210,22 +227,42 @@ export class InventoryService {
             appointmentId,
             createdByUserId,
           })
-        }
-      }
-    }
-
-    if (stockAction === 'restore') {
-      for (const [pid, oldQty] of oldMap) {
-        const newQty = newMap.get(pid) ?? 0
-        const diff = oldQty - newQty
-        if (diff > 0) {
-          await productRepository.incrementStock(tenantId, pid, diff)
+          eventBus.publish({
+            type: 'stock.appointment_use',
+            payload: {
+              tenantId,
+              productId: pid,
+              productName: product.name,
+              serviceName: context.serviceName,
+              customerName: context.customerName,
+              quantity: diff,
+              costPrice,
+              totalCost: costPrice * diff,
+              appointmentId,
+            },
+          })
+        } else {
+          await productRepository.incrementStock(tenantId, pid, absDiff)
           await stockRepository.create(tenantId, {
             productId: pid,
             type: 'ADJUSTMENT',
-            quantity: diff,
+            quantity: absDiff,
             appointmentId,
             createdByUserId,
+          })
+          eventBus.publish({
+            type: 'stock.appointment_restore',
+            payload: {
+              tenantId,
+              productId: pid,
+              productName: product.name,
+              serviceName: context.serviceName,
+              customerName: context.customerName,
+              quantity: absDiff,
+              costPrice,
+              totalCost: costPrice * absDiff,
+              appointmentId,
+            },
           })
         }
       }

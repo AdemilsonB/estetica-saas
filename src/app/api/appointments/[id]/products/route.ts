@@ -33,9 +33,18 @@ export async function PATCH(request: Request, { params }: Params) {
 
     const appointment = await prisma.appointment.findFirst({
       where: { id, tenantId: session.tenantId },
-      select: { status: true },
+      select: {
+        status: true,
+        service: { select: { name: true } },
+        customer: { select: { name: true } },
+      },
     })
     if (!appointment) throw new NotFoundError('Atendimento')
+
+    const context = {
+      serviceName: appointment.service?.name ?? '',
+      customerName: appointment.customer?.name ?? '',
+    }
 
     if (appointment.status === 'COMPLETED') {
       const result = await inventoryService.updateCompletedAppointmentProducts(
@@ -44,6 +53,7 @@ export async function PATCH(request: Request, { params }: Params) {
         input.products,
         input.stockAction,
         session.userId,
+        context,
       )
       return Response.json(result)
     }
@@ -53,6 +63,7 @@ export async function PATCH(request: Request, { params }: Params) {
       id,
       input,
       session.userId,
+      context,
     )
     return Response.json(result)
   } catch (error) {
