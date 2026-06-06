@@ -58,6 +58,9 @@ export default function RelatorioFinanceiroPage() {
     ? [
         { label: 'Receita', value: fmtBRL(data.kpis.receita) },
         { label: 'Despesa', value: fmtBRL(data.kpis.despesa) },
+        ...(data.kpis.estornos > 0
+          ? [{ label: 'Estornos', value: fmtBRL(data.kpis.estornos) }]
+          : []),
         { label: 'Saldo', value: fmtBRL(data.kpis.saldo) },
         { label: 'Ticket médio', value: fmtBRL(data.kpis.ticketMedio) },
       ]

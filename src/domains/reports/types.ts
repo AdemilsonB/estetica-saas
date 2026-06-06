@@ -24,6 +24,7 @@ export type FinancialReport = {
   kpis: {
     receita: number
     despesa: number
+    estornos: number
     saldo: number
     ticketMedio: number
   }
