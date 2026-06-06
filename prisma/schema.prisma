@@ -84,6 +84,12 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
+enum PriceType {
+  FIXED
+  RANGE
+  ON_CONSULTATION
+}
+
 model Tenant {
   id           String           @id @default(cuid())
   name         String
@@ -107,6 +113,19 @@ model Tenant {
   evolutionStatus      String    @default("DISCONNECTED")
   evolutionConnectedAt DateTime?
   evolutionPhone       String?
+  autoReplyEnabled        Boolean @default(false)
+  autoReplyIntervalHours  Int     @default(6)
+  autoReplyMessage        String?
+  offHoursEnabled         Boolean @default(false)
+  offHoursMessage         String?
+  dailyStatusEnabled      Boolean @default(false)
+  dailyStatusHour         Int     @default(9)
+  birthdayEnabled         Boolean @default(false)
+  birthdayMessage         String?
+  birthdayGiftServiceId   String?
+  isBlocked               Boolean @default(false)
+  blockedReason           String?
+  schedulingPolicy        SchedulingPolicy?
   createdAt         DateTime          @default(now())
   updatedAt    DateTime         @updatedAt
   users        User[]
@@ -287,9 +306,12 @@ model Customer {
   consentDate   DateTime?
   consentOrigin String?
   birthDate    DateTime?
-  isVip        Boolean   @default(false)
-  vipUpdatedAt DateTime?
-  createdAt    DateTime       @default(now())
+  isVip         Boolean   @default(false)
+  vipUpdatedAt  DateTime?
+  isBlocked     Boolean   @default(false)
+  blockedReason String?
+  blockedAt     DateTime?
+  createdAt     DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   appointments Appointment[]
@@ -306,6 +328,9 @@ model Service {
   name         String
   duration     Int
   price        Decimal             @db.Decimal(10, 2)
+  priceType    PriceType           @default(FIXED)
+  priceMin     Decimal?            @db.Decimal(10, 2)
+  priceMax     Decimal?            @db.Decimal(10, 2)
   active       Boolean             @default(true)
   imageUrl     String?
   createdAt    DateTime            @default(now())
@@ -650,4 +675,28 @@ model ServiceProduct {
 
   @@unique([serviceId, productId])
   @@index([tenantId])
+}
+
+model SchedulingPolicy {
+  id                 String   @id @default(cuid())
+  tenantId           String   @unique
+  paddingMinutes     Int      @default(0)
+  minAdvanceMinutes  Int      @default(15)
+  maxAdvanceDays     Int      @default(60)
+  allowPublicBooking Boolean  @default(true)
+  updatedAt          DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model PublicRateLimit {
+  id          String   @id @default(cuid())
+  ip          String?
+  phone       String?
+  action      String
+  count       Int      @default(1)
+  windowStart DateTime @default(now())
+
+  @@index([ip, action, windowStart])
+  @@index([phone, action, windowStart])
 }
