@@ -10,6 +10,7 @@ import { eventBus } from "@/shared/events/event-bus";
 import {
   AppointmentNotFoundError,
   AppointmentAlreadyCancelledError,
+  CustomerBlockedError,
   CustomerNotFoundError,
   ProfessionalNotFoundError,
   ServiceNotFoundError,
@@ -83,6 +84,9 @@ export class SchedulingService {
     });
     if (!customer) {
       throw new CustomerNotFoundError();
+    }
+    if (customer.isBlocked) {
+      throw new CustomerBlockedError();
     }
 
     const professional = await prisma.user.findFirst({

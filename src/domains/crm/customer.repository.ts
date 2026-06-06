@@ -198,6 +198,38 @@ export class CustomerRepository {
       },
     });
   }
+
+  async findOrCreateByPhone(tenantId: string, phone: string, name: string) {
+    const existing = await prisma.customer.findFirst({
+      where: { tenantId, phone },
+    });
+    if (existing) return existing;
+    return prisma.customer.create({
+      data: { tenantId, phone, name },
+    });
+  }
+
+  async block(tenantId: string, customerId: string, reason?: string) {
+    return prisma.customer.update({
+      where: { id: customerId, tenantId },
+      data: {
+        isBlocked: true,
+        blockedReason: reason ?? null,
+        blockedAt: new Date(),
+      },
+    });
+  }
+
+  async unblock(tenantId: string, customerId: string) {
+    return prisma.customer.update({
+      where: { id: customerId, tenantId },
+      data: {
+        isBlocked: false,
+        blockedReason: null,
+        blockedAt: null,
+      },
+    });
+  }
 }
 
 export const customerRepository = new CustomerRepository();

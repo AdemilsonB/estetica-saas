@@ -3,17 +3,26 @@
 
 import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ShieldOff, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { CustomerProfileHeader } from '@/components/domain/crm/customer-profile-header'
 import { AppointmentHistory } from '@/components/domain/crm/appointment-history'
 import { AnamneseSheet } from '@/components/domain/crm/anamnese-sheet'
 import { useCustomer } from '@/hooks/crm/use-customer'
+import { useBlockCustomer } from '@/hooks/crm/use-block-customer'
 
 export default function CustomerProfilePage({
   params,
@@ -26,10 +35,34 @@ export default function CustomerProfilePage({
   const [notes, setNotes] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
   const [anamneseOpen, setAnamneseOpen] = useState(false)
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false)
+  const [unblockDialogOpen, setUnblockDialogOpen] = useState(false)
+  const [blockReason, setBlockReason] = useState('')
+  const { block, unblock, isBlocking, isUnblocking } = useBlockCustomer(id)
 
   useEffect(() => {
     if (customer) setNotes(customer.notes ?? '')
   }, [customer])
+
+  function handleConfirmBlock() {
+    block(
+      { reason: blockReason.trim() || undefined },
+      {
+        onSuccess: () => {
+          setBlockDialogOpen(false)
+          setBlockReason('')
+        },
+      },
+    )
+  }
+
+  function handleConfirmUnblock() {
+    unblock(undefined, {
+      onSuccess: () => {
+        setUnblockDialogOpen(false)
+      },
+    })
+  }
 
   async function handleSaveNotes() {
     setSavingNotes(true)
@@ -83,6 +116,46 @@ export default function CustomerProfilePage({
       </Button>
 
       <CustomerProfileHeader customer={customer} />
+
+      {/* Banner de bloqueio */}
+      {customer.isBlocked && (
+        <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-500" />
+          <div className="flex-1 space-y-1">
+            <p className="text-sm font-medium text-red-800">Cliente bloqueado</p>
+            {customer.blockedReason && (
+              <p className="text-sm text-red-600">Motivo: {customer.blockedReason}</p>
+            )}
+            <p className="text-xs text-red-500">
+              Este cliente não pode realizar novos agendamentos enquanto estiver bloqueado.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setUnblockDialogOpen(true)}
+            className="shrink-0 border-red-300 text-red-700 hover:bg-red-100"
+          >
+            <ShieldCheck className="mr-1.5 size-4" />
+            Desbloquear
+          </Button>
+        </div>
+      )}
+
+      {/* Botão de bloquear (quando não está bloqueado) */}
+      {!customer.isBlocked && (
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setBlockDialogOpen(true)}
+            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+          >
+            <ShieldOff className="mr-1.5 size-4" />
+            Bloquear cliente
+          </Button>
+        </div>
+      )}
 
       <Tabs defaultValue="historico">
         <TabsList className="w-full">
@@ -146,6 +219,77 @@ export default function CustomerProfilePage({
         customerId={id}
         customerName={customer.name}
       />
+
+      {/* Dialog de bloqueio */}
+      <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bloquear cliente</DialogTitle>
+            <DialogDescription>
+              Ao bloquear <strong>{customer.name}</strong>, ele não poderá mais realizar novos
+              agendamentos neste estabelecimento.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="block-reason" className="text-sm font-medium">
+              Motivo (opcional)
+            </Label>
+            <Textarea
+              id="block-reason"
+              value={blockReason}
+              onChange={(e) => setBlockReason(e.target.value)}
+              placeholder="Descreva o motivo do bloqueio..."
+              maxLength={500}
+              className="min-h-25 resize-none"
+            />
+            <p className="text-right text-xs text-slate-400">{blockReason.length}/500</p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setBlockDialogOpen(false)
+                setBlockReason('')
+              }}
+              disabled={isBlocking}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmBlock}
+              disabled={isBlocking}
+            >
+              {isBlocking ? 'Bloqueando...' : 'Confirmar bloqueio'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de desbloqueio */}
+      <Dialog open={unblockDialogOpen} onOpenChange={setUnblockDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Desbloquear cliente</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja desbloquear <strong>{customer.name}</strong>? Ele voltará a
+              poder realizar novos agendamentos.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setUnblockDialogOpen(false)}
+              disabled={isUnblocking}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmUnblock} disabled={isUnblocking}>
+              {isUnblocking ? 'Desbloqueando...' : 'Desbloquear'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

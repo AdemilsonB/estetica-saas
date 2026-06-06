@@ -1,0 +1,190 @@
+import { z } from 'zod'
+
+import { prisma } from '@/shared/database/prisma'
+import {
+  CustomerBlockedError,
+  PublicBookingDisabledError,
+  ValidationError,
+} from '@/shared/errors/domain-error'
+import { handleApiError } from '@/shared/http/handle-api-error'
+import { checkRateLimit } from '@/shared/rate-limit/public-rate-limit'
+import { customerRepository } from '@/domains/crm/customer.repository'
+import { publicBookingRepository } from '@/domains/scheduling/public-booking.repository'
+import { schedulingPolicyService } from '@/domains/scheduling/scheduling-policy.service'
+import { schedulingService } from '@/domains/scheduling/scheduling.service'
+
+const CreatePublicAppointmentSchema = z.object({
+  serviceId: z.string().cuid(),
+  professionalId: z.string().cuid().optional(),
+  startsAt: z.string().datetime(),
+  customerName: z.string().min(2).max(100),
+  customerPhone: z.string().min(10).max(20),
+  notes: z.string().max(500).optional(),
+})
+
+type RouteContext = { params: Promise<{ slug: string }> }
+
+export async function POST(req: Request, context: RouteContext) {
+  try {
+    // 1. Extrair IP do header
+    const ip =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+
+    // 2. Validar input com Zod
+    const body = await req.json()
+    const parsed = CreatePublicAppointmentSchema.safeParse(body)
+    if (!parsed.success) {
+      return Response.json(
+        {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Dados inválidos.',
+            details: parsed.error.flatten().fieldErrors,
+          },
+        },
+        { status: 422 },
+      )
+    }
+    const input = parsed.data
+
+    // 3. Rate limit por IP (5 agendamentos/hora)
+    const ipLimit = await checkRateLimit({
+      ip,
+      action: 'appointment',
+      maxPerWindow: 5,
+    })
+    if (!ipLimit.allowed) {
+      return Response.json(
+        {
+          error: {
+            code: 'RATE_LIMIT_EXCEEDED',
+            message:
+              'Muitas tentativas. Aguarde antes de tentar novamente.',
+          },
+        },
+        { status: 429 },
+      )
+    }
+
+    // 4. Rate limit por telefone (3 agendamentos/hora — MVP)
+    const phoneLimit = await checkRateLimit({
+      phone: input.customerPhone,
+      action: 'appointment',
+      maxPerWindow: 3,
+    })
+    if (!phoneLimit.allowed) {
+      return Response.json(
+        {
+          error: {
+            code: 'RATE_LIMIT_EXCEEDED',
+            message:
+              'Muitas tentativas com este telefone. Aguarde antes de tentar novamente.',
+          },
+        },
+        { status: 429 },
+      )
+    }
+
+    // 5. Buscar tenant pelo slug
+    const { slug } = await context.params
+    const tenant = await publicBookingRepository.findTenantBySlug(slug)
+
+    // 6. Verificar política de agendamento público
+    const policy = await schedulingPolicyService.getPolicy(tenant.id)
+    if (!policy.allowPublicBooking) {
+      throw new PublicBookingDisabledError()
+    }
+
+    // 7. Validar antecedência mínima (minAdvanceMinutes)
+    const startsAt = new Date(input.startsAt)
+    const now = new Date()
+    const minAdvanceMs = policy.minAdvanceMinutes * 60 * 1000
+    if (startsAt.getTime() < now.getTime() + minAdvanceMs) {
+      throw new ValidationError(
+        `O agendamento deve ser feito com pelo menos ${policy.minAdvanceMinutes} minuto(s) de antecedência.`,
+        { minAdvanceMinutes: policy.minAdvanceMinutes },
+      )
+    }
+
+    // 8. Validar janela máxima (maxAdvanceDays)
+    const maxAdvanceMs = policy.maxAdvanceDays * 24 * 60 * 60 * 1000
+    if (startsAt.getTime() > now.getTime() + maxAdvanceMs) {
+      throw new ValidationError(
+        `O agendamento não pode ser feito com mais de ${policy.maxAdvanceDays} dia(s) de antecedência.`,
+        { maxAdvanceDays: policy.maxAdvanceDays },
+      )
+    }
+
+    // 9. Criar/buscar customer via findOrCreateByPhone
+    const customer = await customerRepository.findOrCreateByPhone(
+      tenant.id,
+      input.customerPhone,
+      input.customerName,
+    )
+
+    // 10. Verificar se customer está bloqueado — resposta genérica (não revelar motivo)
+    if (customer.isBlocked) {
+      return Response.json(
+        {
+          error: 'Não foi possível completar o agendamento. Entre em contato com o salão.',
+        },
+        { status: 403 },
+      )
+    }
+
+    // 11. Resolver professionalId: usar o enviado ou buscar primeiro profissional disponível
+    let professionalId = input.professionalId
+    if (!professionalId) {
+      const professionals = await publicBookingRepository.findPublicProfessionals(tenant.id)
+      if (professionals.length === 0) {
+        throw new ValidationError(
+          'Nenhum profissional disponível para agendamento online.',
+        )
+      }
+      professionalId = professionals[0].id
+    }
+
+    // 12. Resolver userId: buscar o owner do tenant para satisfazer FK de createdByUserId
+    const owner = await prisma.user.findFirst({
+      where: { tenantId: tenant.id, role: 'OWNER' },
+      select: { id: true },
+    })
+    if (!owner) {
+      throw new ValidationError('Configuração do salão incompleta.')
+    }
+
+    // 13. Criar appointment via scheduling service
+    const appointment = await schedulingService.createAppointment(
+      tenant.id,
+      owner.id,
+      {
+        customerId: customer.id,
+        professionalId,
+        serviceId: input.serviceId,
+        startsAt: input.startsAt,
+        notes: input.notes,
+        allowOverlap: false,
+      },
+    )
+
+    // 14. Retornar appointmentId e startsAt com status 201
+    return Response.json(
+      {
+        appointmentId: appointment.id,
+        startsAt: appointment.startsAt,
+      },
+      { status: 201 },
+    )
+  } catch (error) {
+    // CustomerBlockedError não deve revelar detalhes ao cliente
+    if (error instanceof CustomerBlockedError) {
+      return Response.json(
+        {
+          error: 'Não foi possível completar o agendamento. Entre em contato com o salão.',
+        },
+        { status: 403 },
+      )
+    }
+    return handleApiError(error)
+  }
+}

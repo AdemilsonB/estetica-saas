@@ -12,6 +12,7 @@ import { DiscountTypesManager } from '@/components/domain/settings/discount-type
 import { CommissionsGrid } from '@/components/domain/settings/commissions-grid'
 import { CardFeesForm } from '@/components/domain/settings/card-fees-form'
 import { SettingsAnamneseTab } from '@/components/domain/crm/settings-anamnese-tab'
+import { SchedulingPolicyForm } from '@/components/domain/settings/scheduling-policy-form'
 import { usePermissions } from '@/hooks/use-permissions'
 import { RolesManager } from '@/components/domain/iam/roles-manager'
 import { Loader2 } from 'lucide-react'
@@ -74,13 +75,14 @@ export default function ConfiguracoesPage() {
 
       <Tabs defaultValue="negocio" onValueChange={handleTabChange}>
         <div className="overflow-x-auto scrollbar-hide">
-          <TabsList className={`grid w-full min-w-120 ${user?.isOwner ? 'grid-cols-7' : 'grid-cols-6'}`}>
+          <TabsList className={`grid w-full min-w-[140%] ${user?.isOwner ? 'grid-cols-8' : 'grid-cols-7'}`}>
             <TabsTrigger value="negocio">Negócio</TabsTrigger>
             <TabsTrigger value="horarios">Horários</TabsTrigger>
             <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
             <TabsTrigger value="layout">Layout</TabsTrigger>
             <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
             <TabsTrigger value="crm">CRM</TabsTrigger>
+            <TabsTrigger value="agendamento-online">Agend. Online</TabsTrigger>
             {user?.isOwner && <TabsTrigger value="cargos">Cargos</TabsTrigger>}
           </TabsList>
         </div>
@@ -152,6 +154,17 @@ export default function ConfiguracoesPage() {
               Configurações de anamnese
             </h2>
             <SettingsAnamneseTab />
+          </div>
+        </TabsContent>
+        <TabsContent value="agendamento-online" className="mt-6">
+          <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">
+            <h2 className="mb-4 text-base font-semibold text-slate-950">
+              Agendamento online
+            </h2>
+            <p className="mb-6 text-sm text-slate-500">
+              Configure como os clientes podem agendar pelo link público do seu negócio.
+            </p>
+            <SchedulingPolicyForm />
           </div>
         </TabsContent>
         {user?.isOwner && (

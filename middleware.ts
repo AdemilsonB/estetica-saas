@@ -4,8 +4,16 @@ import { NextResponse, type NextRequest } from "next/server";
 const AUTH_ROUTES = ["/login", "/forgot-password"];
 const TOKEN_ROUTES = ["/reset-password", "/callback"];
 
+// Rotas públicas — sem autenticação
+const PUBLIC_PREFIXES = ["/agendar/", "/api/public/", "/planos", "/avaliar/"];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Rotas públicas não passam pelo fluxo de autenticação
+  if (PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    return NextResponse.next({ request });
+  }
 
   const isAuthRoute = AUTH_ROUTES.includes(pathname);
   const isTokenRoute = TOKEN_ROUTES.includes(pathname);
