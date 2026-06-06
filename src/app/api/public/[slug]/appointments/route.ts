@@ -14,8 +14,9 @@ import { schedulingPolicyService } from '@/domains/scheduling/scheduling-policy.
 import { schedulingService } from '@/domains/scheduling/scheduling.service'
 
 const CreatePublicAppointmentSchema = z.object({
-  serviceId: z.string().cuid(),
-  professionalId: z.string().cuid().optional(),
+  // IDs vêm do nosso próprio banco — .min(1) evita falsos positivos do .cuid() com variações de formato
+  serviceId: z.string().min(1),
+  professionalId: z.string().min(1).optional(),
   startsAt: z.string().datetime(),
   customerName: z.string().min(2).max(100),
   customerPhone: z.string().min(10).max(20),
