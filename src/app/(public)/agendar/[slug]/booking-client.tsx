@@ -12,6 +12,8 @@ import { ServiceStep } from '@/components/domain/booking/service-step'
 import { ProfessionalStep } from '@/components/domain/booking/professional-step'
 import { DateTimeStep } from '@/components/domain/booking/datetime-step'
 import { PersonalStep } from '@/components/domain/booking/personal-step'
+import { ConfirmationStep } from '@/components/domain/booking/confirmation-step'
+import { BookingSuccess } from '@/components/domain/booking/booking-success'
 
 const STEP_LABELS: Record<Exclude<BookingStep, 'success'>, string> = {
   service: 'Serviço',
@@ -55,6 +57,7 @@ function StepIndicator({ currentStep }: { currentStep: BookingStep }) {
 export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) {
   const [step, setStep] = useState<BookingStep>('service')
   const [booking, setBooking] = useState<BookingState>({})
+  const [appointmentId, setAppointmentId] = useState<string | null>(null)
 
   const singleProfessional = tenantData.professionals.length === 1
   const primaryColor = tenantData.branding?.primaryColor ?? '#191919'
@@ -115,6 +118,12 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
     setStep('confirmation')
   }
 
+  function handleConfirm(confirmedAppointmentId: string, startsAt: Date) {
+    setBooking((b) => ({ ...b, startsAt }))
+    setAppointmentId(confirmedAppointmentId)
+    setStep('success')
+  }
+
   return (
     <div>
       <StepIndicator currentStep={step} />
@@ -157,11 +166,22 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
         />
       )}
 
-      {/* Step de confirmação — Task 9 */}
       {step === 'confirmation' && (
-        <div className="text-center text-slate-400 py-12">
-          Step de confirmação — Task 9
-        </div>
+        <ConfirmationStep
+          booking={booking}
+          tenantSlug={tenantData.slug}
+          onConfirm={handleConfirm}
+          onBack={() => setStep('personal')}
+          primaryColor={primaryColor}
+        />
+      )}
+
+      {step === 'success' && (
+        <BookingSuccess
+          booking={booking}
+          tenantName={tenantData.name}
+          primaryColor={primaryColor}
+        />
       )}
     </div>
   )
