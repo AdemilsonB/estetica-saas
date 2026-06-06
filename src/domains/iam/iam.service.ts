@@ -159,6 +159,64 @@ export class IamService {
     return iamRepository.updateUserRoleById(tenantId, targetUserId, roleId);
   }
 
+  async updateMember(
+    tenantId: string,
+    requesterId: string,
+    targetId: string,
+    input: { name?: string; email?: string; avatarUrl?: string | null },
+  ) {
+    const requester = await iamRepository.findUserById(tenantId, requesterId)
+    if (!requester) throw new UserNotFoundError()
+
+    const target = await iamRepository.findUserById(tenantId, targetId)
+    if (!target) throw new UserNotFoundError()
+
+    const isOwner = requester.role === UserRole.OWNER
+    const isManager = requester.role === UserRole.MANAGER
+    const isSelf = requesterId === targetId
+
+    if (isOwner) {
+      // OWNER pode editar qualquer membro, inclusive si mesmo
+    } else if (isManager) {
+      if (!isSelf && (target.role === UserRole.OWNER || target.role === UserRole.MANAGER)) {
+        throw new ForbiddenError('Gerentes não podem editar o dono ou outros gerentes.')
+      }
+    } else {
+      throw new ForbiddenError('Sem permissão para editar membros.')
+    }
+
+    if (input.email && input.email !== target.email) {
+      const conflict = await prisma.user.findFirst({ where: { tenantId, email: input.email } })
+      if (conflict) throw new ConflictError('E-mail já cadastrado neste negócio.')
+    }
+
+    return iamRepository.updateUser(tenantId, targetId, input)
+  }
+
+  async setMemberServices(tenantId: string, userId: string, serviceIds: string[]) {
+    const currentServices = await iamRepository.findUserServices(tenantId, userId)
+    const currentServiceIds = new Set(currentServices.map((ps) => ps.serviceId))
+    const newServiceIds = serviceIds.filter((id) => !currentServiceIds.has(id))
+
+    const updated = await iamRepository.setUserServices(tenantId, userId, serviceIds)
+
+    await prisma.serviceCommission.createMany({
+      data: newServiceIds.map((serviceId) => ({
+        tenantId,
+        serviceId,
+        professionalId: userId,
+        rate: 0,
+      })),
+      skipDuplicates: true,
+    })
+
+    return updated
+  }
+
+  async getMemberServices(tenantId: string, userId: string) {
+    return iamRepository.findUserServices(tenantId, userId)
+  }
+
   async joinTenant(
     userId: string,
     email: string,
