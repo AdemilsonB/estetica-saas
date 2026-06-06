@@ -41,7 +41,7 @@ describe('IamRepository.updateUser', () => {
 
   it('chama updateMany com tenantId e userId e retorna usuário atualizado', async () => {
     prismaMock.user.updateMany.mockResolvedValue({ count: 1 })
-    prismaMock.user.findFirst.mockResolvedValue({
+    prismaMock.user.findFirstOrThrow.mockResolvedValue({
       id: USER_ID, name: 'Novo Nome', email: 'novo@email.com',
       role: 'PROFESSIONAL', avatarUrl: null, roleId: null,
       customRole: null, createdAt: new Date(),

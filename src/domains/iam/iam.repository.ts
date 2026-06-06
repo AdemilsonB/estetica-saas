@@ -215,7 +215,7 @@ export class IamRepository {
     data: { name?: string; email?: string; avatarUrl?: string | null },
   ) {
     await prisma.user.updateMany({ where: { id: userId, tenantId }, data })
-    return prisma.user.findFirst({
+    return prisma.user.findFirstOrThrow({
       where: { id: userId, tenantId },
       select: {
         id: true,
@@ -257,7 +257,7 @@ export class IamRepository {
     return prisma.user.findMany({
       where: {
         tenantId,
-        role: { in: ['OWNER', 'MANAGER', 'PROFESSIONAL'] },
+        role: { in: [UserRole.OWNER, UserRole.MANAGER, UserRole.PROFESSIONAL] },
         professionalServices: { some: { tenantId, serviceId } },
       },
       select: {
