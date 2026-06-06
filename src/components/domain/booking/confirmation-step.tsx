@@ -52,13 +52,19 @@ export function ConfirmationStep({
       const data = (await res.json()) as {
         appointmentId?: string
         startsAt?: string
-        error?: string
+        error?: string | { code?: string; message?: string }
       }
 
       if (!res.ok) {
-        setError(
-          data.error ?? 'Não foi possível confirmar o agendamento. Tente novamente.',
-        )
+        // handleApiError retorna { error: { code, message, details } } — extrair string
+        const rawError = data.error
+        const errorMessage =
+          typeof rawError === 'string'
+            ? rawError
+            : typeof rawError?.message === 'string'
+            ? rawError.message
+            : 'Não foi possível confirmar o agendamento. Tente novamente.'
+        setError(errorMessage)
         return
       }
 
