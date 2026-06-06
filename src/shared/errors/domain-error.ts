@@ -171,3 +171,25 @@ export class CategoryNameConflictError extends DomainError {
     super(`Categoria "${name}" já existe.`, 'CATEGORY_NAME_CONFLICT', 409, { name })
   }
 }
+
+// --- CRM: Bloqueio de cliente ---
+
+export class CustomerBlockedError extends DomainError {
+  constructor(customerName: string) {
+    super(
+      `Cliente "${customerName}" está bloqueado e não pode realizar agendamentos.`,
+      'CUSTOMER_BLOCKED',
+      403,
+    )
+  }
+}
+
+export class PublicBookingDisabledError extends DomainError {
+  constructor() {
+    super(
+      'Este salão não está aceitando agendamentos online no momento.',
+      'PUBLIC_BOOKING_DISABLED',
+      403,
+    )
+  }
+}
