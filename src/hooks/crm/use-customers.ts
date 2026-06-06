@@ -10,6 +10,9 @@ export type Customer = {
   isVip: boolean
   vipUpdatedAt: string | null
   birthDate: string | null
+  isBlocked: boolean
+  blockedReason: string | null
+  blockedAt: string | null
   createdAt: string
   updatedAt: string
 }
