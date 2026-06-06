@@ -699,4 +699,5 @@ model PublicRateLimit {
 
   @@index([ip, action, windowStart])
   @@index([phone, action, windowStart])
+  @@index([windowStart])
 }
