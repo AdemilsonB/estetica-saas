@@ -34,6 +34,8 @@ type ListParams = {
   from?: string
   to?: string
   type?: TransactionType
+  category?: string
+  professionalId?: string
   page?: number
   pageSize?: number
 }
@@ -43,6 +45,8 @@ async function listTransactions(params: ListParams): Promise<TransactionsPage> {
   if (params.from) url.searchParams.set('from', params.from)
   if (params.to) url.searchParams.set('to', params.to)
   if (params.type) url.searchParams.set('type', params.type)
+  if (params.category) url.searchParams.set('category', params.category)
+  if (params.professionalId) url.searchParams.set('professionalId', params.professionalId)
   if (params.page) url.searchParams.set('page', String(params.page))
   if (params.pageSize) url.searchParams.set('pageSize', String(params.pageSize))
   const res = await fetch(url)

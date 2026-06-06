@@ -12,6 +12,8 @@ type Props = {
   from?: string
   to?: string
   type?: TransactionType
+  category?: string
+  professionalId?: string
   page?: number
   pageSize?: number
   onPageChange?: (page: number) => void
@@ -21,6 +23,8 @@ export function TransactionList({
   from,
   to,
   type,
+  category,
+  professionalId,
   page = 1,
   pageSize = 20,
   onPageChange,
@@ -29,6 +33,8 @@ export function TransactionList({
     from,
     to,
     type,
+    category,
+    professionalId,
     page,
     pageSize,
   })
