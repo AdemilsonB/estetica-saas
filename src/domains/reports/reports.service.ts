@@ -3,6 +3,7 @@ import { AppointmentStatus, TransactionType } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { defaultFrom, defaultTo } from '@/lib/dates'
 import { featureGuard, FEATURES } from '@/domains/billing/feature-guard'
+import { isReversal } from '@/domains/financial/categories'
 
 import type {
   AppointmentsReport,
@@ -45,13 +46,22 @@ export class ReportsService {
       },
     })
 
+    const isReversalTx = (t: (typeof transactions)[0]) =>
+      isReversal(t.category, Number(t.amount))
+
     const receita = transactions
       .filter((t) => t.type === TransactionType.INCOME)
       .reduce((s, t) => s + Number(t.amount), 0)
 
-    const despesa = transactions
-      .filter((t) => t.type === TransactionType.EXPENSE)
+    const estornos = transactions
+      .filter((t) => t.type === TransactionType.EXPENSE && isReversalTx(t))
+      .reduce((s, t) => s + Math.abs(Number(t.amount)), 0)
+
+    const grossExpenses = transactions
+      .filter((t) => t.type === TransactionType.EXPENSE && !isReversalTx(t))
       .reduce((s, t) => s + Number(t.amount), 0)
+
+    const despesa = Math.max(0, grossExpenses - estornos)
 
     const appointmentIdsComReceita = new Set(
       transactions
@@ -77,7 +87,7 @@ export class ReportsService {
     const rows = [...byGroup.values()].sort((a, b) => b.receita - a.receita)
 
     return {
-      kpis: { receita, despesa, saldo: receita - despesa, ticketMedio },
+      kpis: { receita, despesa, estornos, saldo: receita - despesa, ticketMedio },
       rows,
     }
   }

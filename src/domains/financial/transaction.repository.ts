@@ -4,6 +4,8 @@ import { prisma } from "@/shared/database/prisma";
 
 export type TransactionFilters = {
   type?: TransactionType;
+  category?: string;
+  professionalId?: string;
   from?: Date;
   to?: Date;
   page?: number;
@@ -12,12 +14,14 @@ export type TransactionFilters = {
 
 export class TransactionRepository {
   async list(tenantId: string, filters: TransactionFilters = {}) {
-    const { type, from, to, page = 1, pageSize = 20 } = filters;
+    const { type, category, professionalId, from, to, page = 1, pageSize = 20 } = filters;
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.TransactionWhereInput = {
       tenantId,
       ...(type && { type }),
+      ...(category && { category }),
+      ...(professionalId && { professionalId }),
       ...(from || to
         ? {
             paidAt: {

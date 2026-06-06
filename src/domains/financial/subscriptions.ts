@@ -2,6 +2,7 @@ import { Prisma, TransactionType } from "@prisma/client";
 
 import { prisma } from "@/shared/database/prisma";
 import { eventBus } from "@/shared/events/event-bus";
+import { FINANCIAL_CATEGORIES } from "./categories";
 
 import { transactionRepository } from "./transaction.repository";
 
@@ -31,7 +32,7 @@ export function registerFinancialSubscriptions() {
     await transactionRepository.create(payload.tenantId, {
       appointmentId: payload.appointmentId,
       type: TransactionType.INCOME,
-      category: "service",
+      category: FINANCIAL_CATEGORIES.SERVICE,
       description,
       amount: new Prisma.Decimal(payload.netAmount),
       paidAt: new Date(),
@@ -52,7 +53,7 @@ export function registerFinancialSubscriptions() {
     await transactionRepository.create(payload.tenantId, {
       appointmentId: payload.appointmentId,
       type: TransactionType.EXPENSE,
-      category: "cortesia",
+      category: FINANCIAL_CATEGORIES.COURTESY,
       description: "Cortesia — serviço sem cobrança",
       amount: new Prisma.Decimal(payload.grossAmount),
       paidAt: new Date(),
@@ -62,7 +63,7 @@ export function registerFinancialSubscriptions() {
   eventBus.subscribe("product.sold", async (payload) => {
     await transactionRepository.create(payload.tenantId, {
       type: TransactionType.INCOME,
-      category: "Venda de Produto",
+      category: FINANCIAL_CATEGORIES.PRODUCT_SALE,
       description: `Venda: ${payload.productName} × ${payload.quantity} un.`,
       amount: new Prisma.Decimal(payload.totalAmount),
       paidAt: new Date(),
@@ -72,7 +73,7 @@ export function registerFinancialSubscriptions() {
   eventBus.subscribe("stock.purchased", async (payload) => {
     await transactionRepository.create(payload.tenantId, {
       type: TransactionType.EXPENSE,
-      category: "Compra de Estoque",
+      category: FINANCIAL_CATEGORIES.STOCK_PURCHASE,
       description: `Compra: ${payload.productName} × ${payload.quantity} un.`,
       amount: new Prisma.Decimal(payload.totalAmount),
       paidAt: new Date(),
@@ -83,7 +84,7 @@ export function registerFinancialSubscriptions() {
     await transactionRepository.create(payload.tenantId, {
       appointmentId: payload.appointmentId,
       type: TransactionType.EXPENSE,
-      category: "Insumo de Atendimento",
+      category: FINANCIAL_CATEGORIES.SUPPLY_USE,
       description: `Insumo: ${payload.productName} × ${payload.quantity} un. — ${payload.serviceName}`,
       amount: new Prisma.Decimal(payload.totalCost),
       paidAt: new Date(),
@@ -94,9 +95,9 @@ export function registerFinancialSubscriptions() {
     await transactionRepository.create(payload.tenantId, {
       appointmentId: payload.appointmentId,
       type: TransactionType.EXPENSE,
-      category: "Insumo de Atendimento",
+      category: FINANCIAL_CATEGORIES.SUPPLY_REVERSAL,
       description: `Estorno de insumo: ${payload.productName} × ${payload.quantity} un. — ${payload.serviceName}`,
-      amount: new Prisma.Decimal(-payload.totalCost),
+      amount: new Prisma.Decimal(payload.totalCost),
       paidAt: new Date(),
     });
   });

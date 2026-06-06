@@ -5,6 +5,7 @@ import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
 import { ensurePermission, PERMISSIONS } from "@/shared/auth/permissions";
 import { getSessionContext } from "@/shared/auth/session";
 import { handleApiError } from "@/shared/http/handle-api-error";
+import { FINANCIAL_CATEGORIES, isReversal } from "@/domains/financial/categories";
 
 const querySchema = z.object({
   from: z.string().datetime(),
@@ -34,17 +35,57 @@ export async function GET(request: Request) {
     const tips = income.reduce((s, t) => s + Number(t.tipAmount ?? 0), 0);
     const cardFees = income.reduce((s, t) => s + Number(t.cardFeeAmount ?? 0), 0);
     const netRevenue = income.reduce((s, t) => s + Number(t.netAmount ?? t.amount), 0);
-    const variableExpenses = expenses
-      .filter((t) => t.category !== "cortesia")
-      .reduce((s, t) => s + Number(t.amount), 0);
-    const fixedExpenses = 0;
-    const totalExpenses = expenses.reduce((s, t) => s + Number(t.amount), 0);
-    const profit = netRevenue - totalExpenses;
     const commissions = income.reduce((s, t) => s + Number(t.commissionAmount ?? 0), 0);
 
+    const isReversalTx = (t: (typeof transactions)[0]) =>
+      isReversal(t.category, Number(t.amount));
+
+    const supplyExpenses = expenses
+      .filter((t) => t.category === FINANCIAL_CATEGORIES.SUPPLY_USE && !isReversalTx(t))
+      .reduce((s, t) => s + Number(t.amount), 0);
+
+    const supplyReversals = expenses
+      .filter(isReversalTx)
+      .reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
+
+    const netSupplyCost = Math.max(0, supplyExpenses - supplyReversals);
+
+    const stockPurchases = expenses
+      .filter((t) => t.category === FINANCIAL_CATEGORIES.STOCK_PURCHASE && !isReversalTx(t))
+      .reduce((s, t) => s + Number(t.amount), 0);
+
+    const courtesies = expenses
+      .filter((t) => t.category === FINANCIAL_CATEGORIES.COURTESY && !isReversalTx(t))
+      .reduce((s, t) => s + Number(t.amount), 0);
+
+    const operationalExpenses = expenses
+      .filter(
+        (t) =>
+          !isReversalTx(t) &&
+          t.category !== FINANCIAL_CATEGORIES.SUPPLY_USE &&
+          t.category !== FINANCIAL_CATEGORIES.STOCK_PURCHASE &&
+          t.category !== FINANCIAL_CATEGORIES.COURTESY,
+      )
+      .reduce((s, t) => s + Number(t.amount), 0);
+
+    const totalExpenses = netSupplyCost + stockPurchases + courtesies + operationalExpenses;
+    const profit = netRevenue - totalExpenses;
+
     return Response.json({
-      grossRevenue, discounts, tips, cardFees, netRevenue,
-      variableExpenses, fixedExpenses, totalExpenses, profit, commissions,
+      grossRevenue,
+      discounts,
+      tips,
+      cardFees,
+      netRevenue,
+      supplyExpenses,
+      supplyReversals,
+      netSupplyCost,
+      stockPurchases,
+      courtesies,
+      operationalExpenses,
+      totalExpenses,
+      profit,
+      commissions,
     });
   } catch (error) {
     return handleApiError(error);

@@ -3,6 +3,8 @@ import { z } from "zod";
 
 export const listTransactionsSchema = z.object({
   type: z.nativeEnum(TransactionType).optional(),
+  category: z.string().optional(),
+  professionalId: z.string().optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   page: z.coerce.number().int().min(1).default(1),
