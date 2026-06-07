@@ -3,6 +3,7 @@ import {
   AppointmentPaymentStatus,
   PaymentMethod,
   Prisma,
+  PriceType,
 } from "@prisma/client";
 
 import { prisma } from "@/shared/database/prisma";
@@ -58,6 +59,11 @@ export class SchedulingService {
       name: input.name,
       duration: input.duration,
       price: new Prisma.Decimal(input.price),
+      priceType: input.priceType as PriceType,
+      ...(input.priceMin != null && { priceMin: new Prisma.Decimal(input.priceMin) }),
+      ...(input.priceMax != null && { priceMax: new Prisma.Decimal(input.priceMax) }),
+      description: input.description,
+      categoryId: input.categoryId,
       active: input.active,
     });
   }
@@ -254,7 +260,17 @@ export class SchedulingService {
   async updateService(tenantId: string, serviceId: string, input: UpdateServiceInput) {
     const existing = await catalogServiceRepository.findById(tenantId, serviceId);
     if (!existing) throw new ServiceNotFoundError();
-    return catalogServiceRepository.update(tenantId, serviceId, input);
+    return catalogServiceRepository.update(tenantId, serviceId, {
+      ...(input.name !== undefined && { name: input.name }),
+      ...(input.duration !== undefined && { duration: input.duration }),
+      ...(input.price !== undefined && { price: input.price }),
+      ...(input.priceType !== undefined && { priceType: input.priceType as PriceType }),
+      ...(input.priceMin !== undefined && { priceMin: input.priceMin }),
+      ...(input.priceMax !== undefined && { priceMax: input.priceMax }),
+      ...(input.description !== undefined && { description: input.description }),
+      ...(input.categoryId !== undefined && { categoryId: input.categoryId }),
+      ...(input.imageUrl !== undefined && { imageUrl: input.imageUrl }),
+    });
   }
 
   async deactivateService(tenantId: string, serviceId: string) {
