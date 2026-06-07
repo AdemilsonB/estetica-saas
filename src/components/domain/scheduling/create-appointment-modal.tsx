@@ -26,7 +26,7 @@ import { useServices } from '@/hooks/scheduling/use-services'
 import { useCustomersSearch } from '@/hooks/crm/use-customers-search'
 import { useCreateAppointment } from '@/hooks/scheduling/use-appointments'
 import { useAvailableSlots } from '@/hooks/scheduling/use-availability'
-import { useTeamMembers } from '@/hooks/iam/use-team'
+import { useTeamMembers, useProfessionalsByService } from '@/hooks/iam/use-team'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { usePermissions } from '@/hooks/use-permissions'
 
@@ -88,6 +88,8 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
   const [customerId, setCustomerId] = useState('')
   const [allowOverlap, setAllowOverlap] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState('')
+
+  const { data: professionalsByService } = useProfessionalsByService(serviceId || null)
 
   const { data: customers = [], isLoading: searchingCustomers } =
     useCustomersSearch(customerSearch)
@@ -174,9 +176,16 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
 
   const activeServices = services.filter((s) => s.active)
   const selectedCustomer = customers.find((c) => c.id === customerId)
-  const professionals = teamMembers.filter((m) =>
+  const allEligible = teamMembers.filter((m) =>
     ['OWNER', 'MANAGER', 'PROFESSIONAL'].includes(m.role),
   )
+
+  const professionals = serviceId && professionalsByService
+    ? professionalsByService.professionals
+    : allEligible
+
+  const showServiceWarning =
+    serviceId && professionalsByService && !professionalsByService.filtered
   const isFormValid = customerId && serviceId && professionalId && date && selectedTime
 
   return (
@@ -188,21 +197,29 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {canManage && (
-            <div className="space-y-2">
-              <Label>Profissional</Label>
-              <Select value={professionalId} onValueChange={setProfessionalId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar profissional" />
-                </SelectTrigger>
-                <SelectContent>
-                  {professionals.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              {showServiceWarning && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  Nenhum profissional configurado para este serviço. Configure na aba{' '}
+                  <span className="font-medium">Equipe</span>.
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>Profissional</Label>
+                <Select value={professionalId} onValueChange={setProfessionalId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar profissional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {professionals.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
           )}
 
           <div className="space-y-2">

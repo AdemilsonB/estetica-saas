@@ -88,8 +88,12 @@ export class IamRepository {
         email: true,
         role: true,
         roleId: true,
+        avatarUrl: true,
         customRole: { select: { name: true } },
         createdAt: true,
+        professionalServices: {
+          select: { service: { select: { id: true, name: true } } },
+        },
       },
     })
     return users.map((u) => ({
@@ -99,8 +103,10 @@ export class IamRepository {
       role: u.role,
       isOwner: u.role === "OWNER",
       roleId: u.roleId,
+      avatarUrl: u.avatarUrl,
       roleName: u.role === "OWNER" ? "Dono" : (u.customRole?.name ?? "Sem cargo"),
       createdAt: u.createdAt,
+      services: u.professionalServices.map((ps) => ps.service),
     }))
   }
 
@@ -201,6 +207,71 @@ export class IamRepository {
       where: { id: userId, tenantId },
       select: { id: true, name: true, email: true, role: true, roleId: true, createdAt: true },
     });
+  }
+
+  async updateUser(
+    tenantId: string,
+    userId: string,
+    data: { name?: string; email?: string; avatarUrl?: string | null },
+  ) {
+    await prisma.user.updateMany({ where: { id: userId, tenantId }, data })
+    return prisma.user.findFirstOrThrow({
+      where: { id: userId, tenantId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        avatarUrl: true,
+        roleId: true,
+        customRole: { select: { name: true } },
+        createdAt: true,
+      },
+    })
+  }
+
+  async findUserServices(tenantId: string, userId: string) {
+    return prisma.professionalService.findMany({
+      where: { tenantId, userId },
+      include: { service: { select: { id: true, name: true } } },
+    })
+  }
+
+  async setUserServices(tenantId: string, userId: string, serviceIds: string[]) {
+    return prisma.$transaction(async (tx) => {
+      await tx.professionalService.deleteMany({ where: { tenantId, userId } })
+      if (serviceIds.length > 0) {
+        await tx.professionalService.createMany({
+          data: serviceIds.map((serviceId) => ({ tenantId, userId, serviceId })),
+          skipDuplicates: true,
+        })
+      }
+      return tx.professionalService.findMany({
+        where: { tenantId, userId },
+        include: { service: { select: { id: true, name: true } } },
+      })
+    })
+  }
+
+  async findProfessionalsByService(tenantId: string, serviceId: string) {
+    return prisma.user.findMany({
+      where: {
+        tenantId,
+        role: { in: [UserRole.OWNER, UserRole.MANAGER, UserRole.PROFESSIONAL] },
+        professionalServices: { some: { tenantId, serviceId } },
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        avatarUrl: true,
+        roleId: true,
+        customRole: { select: { name: true } },
+        createdAt: true,
+      },
+      orderBy: { name: 'asc' },
+    })
   }
 
   async findTenant(tenantId: string) {

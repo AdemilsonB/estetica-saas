@@ -1,9 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NotFoundError } from '@/shared/errors'
+import { NotFoundError, ForbiddenError, UserNotFoundError } from '@/shared/errors'
 
 vi.mock('./iam.repository', () => ({
   iamRepository: {
     deleteInvite: vi.fn(),
+    findUserById: vi.fn(),
+    updateUser: vi.fn(),
+    findUserServices: vi.fn(),
+    setUserServices: vi.fn(),
   },
 }))
 
@@ -20,11 +24,19 @@ vi.mock('@/domains/billing/feature-guard', () => ({
 }))
 
 vi.mock('@/shared/database/prisma', () => ({
-  prisma: {},
+  prisma: {
+    user: {
+      findFirst: vi.fn(),
+    },
+    serviceCommission: {
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+  },
 }))
 
 import { iamRepository } from './iam.repository'
 import { IamService } from './iam.service'
+import { prisma } from '@/shared/database/prisma'
 
 const TENANT_ID = 'tenant-abc'
 const INVITE_ID = 'invite-xyz'
@@ -48,5 +60,103 @@ describe('IamService.cancelInvite', () => {
     vi.mocked(iamRepository.deleteInvite).mockResolvedValue({ count: 0 })
 
     await expect(service.cancelInvite(TENANT_ID, INVITE_ID)).rejects.toThrow(NotFoundError)
+  })
+})
+
+describe('IamService.updateMember', () => {
+  let service: IamService
+
+  beforeEach(() => {
+    service = new IamService()
+    vi.clearAllMocks()
+  })
+
+  it('OWNER pode editar qualquer membro', async () => {
+    vi.mocked(iamRepository.findUserById)
+      .mockResolvedValueOnce({ id: 'req-1', role: 'OWNER', tenantId: 'tenant-1' } as any)
+      .mockResolvedValueOnce({ id: 'tgt-1', role: 'PROFESSIONAL', email: 'old@test.com', tenantId: 'tenant-1' } as any)
+    vi.mocked(iamRepository.updateUser).mockResolvedValue({ id: 'tgt-1', name: 'Novo' } as any)
+
+    await service.updateMember('tenant-1', 'req-1', 'tgt-1', { name: 'Novo' })
+
+    expect(iamRepository.updateUser).toHaveBeenCalledWith('tenant-1', 'tgt-1', { name: 'Novo' })
+  })
+
+  it('OWNER pode editar a si mesmo', async () => {
+    const requester = { id: 'req-1', role: 'OWNER', tenantId: 'tenant-1' }
+    vi.mocked(iamRepository.findUserById)
+      .mockResolvedValueOnce(requester as any)
+      .mockResolvedValueOnce(requester as any)
+    vi.mocked(iamRepository.updateUser).mockResolvedValue(requester as any)
+
+    await expect(service.updateMember('tenant-1', 'req-1', 'req-1', { name: 'Novo' })).resolves.not.toThrow()
+  })
+
+  it('MANAGER não pode editar OWNER', async () => {
+    vi.mocked(iamRepository.findUserById)
+      .mockResolvedValueOnce({ id: 'req-1', role: 'MANAGER', tenantId: 'tenant-1' } as any)
+      .mockResolvedValueOnce({ id: 'tgt-1', role: 'OWNER', tenantId: 'tenant-1' } as any)
+
+    await expect(service.updateMember('tenant-1', 'req-1', 'tgt-1', { name: 'Novo' })).rejects.toThrow(ForbiddenError)
+  })
+
+  it('MANAGER não pode editar outro MANAGER', async () => {
+    vi.mocked(iamRepository.findUserById)
+      .mockResolvedValueOnce({ id: 'req-1', role: 'MANAGER', tenantId: 'tenant-1' } as any)
+      .mockResolvedValueOnce({ id: 'tgt-1', role: 'MANAGER', tenantId: 'tenant-1' } as any)
+
+    await expect(service.updateMember('tenant-1', 'req-1', 'tgt-1', { name: 'Novo' })).rejects.toThrow(ForbiddenError)
+  })
+
+  it('MANAGER pode editar PROFESSIONAL', async () => {
+    vi.mocked(iamRepository.findUserById)
+      .mockResolvedValueOnce({ id: 'req-1', role: 'MANAGER', tenantId: 'tenant-1' } as any)
+      .mockResolvedValueOnce({ id: 'tgt-1', role: 'PROFESSIONAL', email: 'old@test.com', tenantId: 'tenant-1' } as any)
+    vi.mocked(iamRepository.updateUser).mockResolvedValue({ id: 'tgt-1' } as any)
+
+    await expect(service.updateMember('tenant-1', 'req-1', 'tgt-1', { name: 'Novo' })).resolves.not.toThrow()
+  })
+
+  it('lança UserNotFoundError quando target não existe', async () => {
+    vi.mocked(iamRepository.findUserById)
+      .mockResolvedValueOnce({ id: 'req-1', role: 'OWNER', tenantId: 'tenant-1' } as any)
+      .mockResolvedValueOnce(null)
+
+    await expect(service.updateMember('tenant-1', 'req-1', 'tgt-1', { name: 'Novo' })).rejects.toThrow(UserNotFoundError)
+  })
+})
+
+describe('IamService.setMemberServices', () => {
+  let service: IamService
+
+  beforeEach(() => {
+    service = new IamService()
+    vi.clearAllMocks()
+  })
+
+  it('substitui serviços e cria ServiceCommission para novos vínculos', async () => {
+    vi.mocked(iamRepository.findUserServices).mockResolvedValue([
+      { serviceId: 'svc-old', service: { id: 'svc-old', name: 'Antigo' } } as any,
+    ])
+    vi.mocked(iamRepository.setUserServices).mockResolvedValue([
+      { service: { id: 'svc-new', name: 'Novo' } } as any,
+    ])
+
+    await service.setMemberServices('tenant-1', 'user-1', ['svc-new'])
+
+    expect(iamRepository.setUserServices).toHaveBeenCalledWith('tenant-1', 'user-1', ['svc-new'])
+  })
+
+  it('não cria ServiceCommission para serviços já existentes', async () => {
+    vi.mocked(iamRepository.findUserServices).mockResolvedValue([
+      { serviceId: 'svc-1', service: { id: 'svc-1', name: 'Corte' } } as any,
+    ])
+    vi.mocked(iamRepository.setUserServices).mockResolvedValue([
+      { service: { id: 'svc-1', name: 'Corte' } } as any,
+    ])
+
+    const result = await service.setMemberServices('tenant-1', 'user-1', ['svc-1'])
+
+    expect(result).toBeDefined()
   })
 })

@@ -146,8 +146,9 @@ model Tenant {
   products            Product[]
   productCategories   ProductCategory[]
   stockMovements      StockMovement[]
-  appointmentProducts AppointmentProduct[]
-  serviceProducts     ServiceProduct[]
+  appointmentProducts  AppointmentProduct[]
+  serviceProducts      ServiceProduct[]
+  professionalServices ProfessionalService[]
 }
 
 model BrandingConfig {
@@ -229,6 +230,7 @@ model User {
   name                    String
   role                    UserRole       @default(PROFESSIONAL)
   permissions             String[]
+  avatarUrl               String?
   roleId                  String?
   customRole              Role?          @relation("UserCustomRole", fields: [roleId], references: [id])
   createdAt               DateTime       @default(now())
@@ -237,6 +239,7 @@ model User {
   appointmentsAssigned    Appointment[]  @relation("ProfessionalAppointments")
   createdAppointments     Appointment[]  @relation("AppointmentCreatedBy")
   stockMovements          StockMovement[]
+  professionalServices    ProfessionalService[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -336,10 +339,11 @@ model Service {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  appointments Appointment[]
-  packages     ServicePackageItem[]
-  promotions   PromotionItem[]
-  serviceProducts ServiceProduct[]
+  appointments         Appointment[]
+  packages             ServicePackageItem[]
+  promotions           PromotionItem[]
+  serviceProducts      ServiceProduct[]
+  professionalServices ProfessionalService[]
 
   @@index([tenantId])
 }
@@ -700,4 +704,21 @@ model PublicRateLimit {
   @@index([ip, action, windowStart])
   @@index([phone, action, windowStart])
   @@index([windowStart])
+}
+
+model ProfessionalService {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  serviceId String
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId, serviceId])
+  @@index([tenantId])
+  @@index([tenantId, serviceId])
+  @@index([tenantId, userId])
 }

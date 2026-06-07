@@ -58,6 +58,10 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
   const [step, setStep] = useState<BookingStep>('service')
   const [booking, setBooking] = useState<BookingState>({})
   const [appointmentId, setAppointmentId] = useState<string | null>(null)
+  const [professionalsForService, setProfessionalsForService] = useState<PublicProfessional[]>(
+    tenantData.professionals,
+  )
+  const [showServiceWarning, setShowServiceWarning] = useState(false)
 
   const singleProfessional = tenantData.professionals.length === 1
   const primaryColor = tenantData.branding?.primaryColor ?? '#191919'
@@ -81,8 +85,16 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
       servicePrice: priceLabel,
     }))
 
-    if (singleProfessional) {
-      const p = tenantData.professionals[0]!
+    // Filtra profissionais pelo serviço selecionado
+    const linked = tenantData.professionals.filter((p) =>
+      p.serviceIds.includes(service.id),
+    )
+    const filtered = linked.length > 0 ? linked : tenantData.professionals
+    setProfessionalsForService(filtered)
+    setShowServiceWarning(linked.length === 0)
+
+    if (filtered.length === 1) {
+      const p = filtered[0]!
       setBooking((b) => ({ ...b, professionalId: p.id, professionalName: p.name }))
       setStep('datetime')
     } else {
@@ -136,9 +148,14 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
         />
       )}
 
+      {step === 'professional' && showServiceWarning && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Nenhum profissional configurado para este serviço.
+        </div>
+      )}
       {step === 'professional' && (
         <ProfessionalStep
-          professionals={tenantData.professionals}
+          professionals={professionalsForService}
           onSelect={handleProfessionalSelect}
           onBack={() => setStep('service')}
           primaryColor={primaryColor}

@@ -65,33 +65,38 @@ export async function scheduleAppointmentReminder(
   appointmentId: string,
   startsAt: Date,
 ): Promise<void> {
-  const tenantConfig = await prisma.tenant.findFirst({
-    where: { id: tenantId },
-    select: { reminderLeadHours: true, reminderWindowStart: true, reminderWindowEnd: true, timezone: true },
-  });
+  try {
+    const tenantConfig = await prisma.tenant.findFirst({
+      where: { id: tenantId },
+      select: { reminderLeadHours: true, reminderWindowStart: true, reminderWindowEnd: true, timezone: true },
+    });
 
-  const leadHours = tenantConfig?.reminderLeadHours ?? 24;
-  const windowStart = tenantConfig?.reminderWindowStart ?? 7;
-  const windowEnd = tenantConfig?.reminderWindowEnd ?? 22;
-  const tz = tenantConfig?.timezone ?? "America/Sao_Paulo";
+    const leadHours = tenantConfig?.reminderLeadHours ?? 24;
+    const windowStart = tenantConfig?.reminderWindowStart ?? 7;
+    const windowEnd = tenantConfig?.reminderWindowEnd ?? 22;
+    const tz = tenantConfig?.timezone ?? "America/Sao_Paulo";
 
-  let sendAt = new Date(startsAt.getTime() - leadHours * 3600_000);
-  if (sendAt <= new Date()) return;
+    let sendAt = new Date(startsAt.getTime() - leadHours * 3600_000);
+    if (sendAt <= new Date()) return;
 
-  sendAt = adjustToWindow(sendAt, windowStart, windowEnd, tz);
-  if (sendAt <= new Date()) return;
+    sendAt = adjustToWindow(sendAt, windowStart, windowEnd, tz);
+    if (sendAt <= new Date()) return;
 
-  const boss = getPgBoss();
-  await boss.send(
-    APPOINTMENT_REMINDER_JOB,
-    { appointmentId, tenantId },
-    {
-      startAfter: sendAt,
-      singletonKey: appointmentId,
-      retryLimit: 2,
-      retryDelay: 300,
-    },
-  );
+    const boss = getPgBoss();
+    await boss.send(
+      APPOINTMENT_REMINDER_JOB,
+      { appointmentId, tenantId },
+      {
+        startAfter: sendAt,
+        singletonKey: appointmentId,
+        retryLimit: 2,
+        retryDelay: 300,
+      },
+    );
+  } catch (err) {
+    // Reminder é best-effort — falha silenciosa para não quebrar o fluxo de agendamento
+    console.error('[queue] Falha ao agendar lembrete:', appointmentId, err)
+  }
 }
 
 export async function cancelAppointmentReminder(appointmentId: string): Promise<void> {
