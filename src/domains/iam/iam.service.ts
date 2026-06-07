@@ -271,6 +271,10 @@ export class IamService {
   ) {
     return iamRepository.updateBusinessHours(tenantId, hours);
   }
+
+  async listProfessionalsByService(tenantId: string, serviceId: string) {
+    return iamRepository.findProfessionalsByService(tenantId, serviceId);
+  }
 }
 
 export const iamService = new IamService();

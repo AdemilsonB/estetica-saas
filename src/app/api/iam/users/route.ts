@@ -1,5 +1,4 @@
 import { iamService } from '@/domains/iam/iam.service'
-import { iamRepository } from '@/domains/iam/iam.repository'
 import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 import { ensurePermission, PERMISSIONS } from '@/shared/auth/permissions'
 import { getSessionContext } from '@/shared/auth/session'
@@ -20,7 +19,7 @@ export async function GET(request: Request) {
     }
 
     // Filtro por serviço — retorna { professionals, filtered }
-    const linked = await iamRepository.findProfessionalsByService(session.tenantId, serviceId)
+    const linked = await iamService.listProfessionalsByService(session.tenantId, serviceId)
 
     if (linked.length > 0) {
       return Response.json({ professionals: linked, filtered: true })

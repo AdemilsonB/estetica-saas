@@ -4,7 +4,7 @@ import { getSessionContext } from '@/shared/auth/session'
 import { handleApiError } from '@/shared/http/handle-api-error'
 import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 import { supabaseAdmin } from '@/integrations/supabase/admin'
-import { ValidationError } from '@/shared/errors'
+import { DomainError, ValidationError } from '@/shared/errors'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
@@ -41,7 +41,7 @@ export async function POST(request: Request, { params }: Params) {
       .from(BUCKET)
       .upload(path, arrayBuffer, { contentType: file.type, upsert: true })
 
-    if (uploadError) throw new Error(`Erro no upload: ${uploadError.message}`)
+    if (uploadError) throw new DomainError(`Upload falhou: ${uploadError.message}`, 'STORAGE_ERROR', 502)
 
     const { data: publicUrlData } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path)
     const avatarUrl = publicUrlData.publicUrl
