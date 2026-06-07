@@ -119,6 +119,12 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
   }, [professionalId, date, serviceId])
 
   useEffect(() => {
+    if (canManage) {
+      setProfessionalId('')
+    }
+  }, [serviceId, canManage])
+
+  useEffect(() => {
     if (!customerId || !serviceId || !date || !selectedTime || !professionalId) return
 
     const customer = customers.find((c) => c.id === customerId)
@@ -199,6 +205,18 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* 1. Serviço — sempre primeiro */}
+          <div className="space-y-2">
+            <Label>Serviço</Label>
+            <ServicePickerWithCategories
+              services={activeServices}
+              categories={categories}
+              selectedId={serviceId}
+              onSelect={(s) => setServiceId(s.id)}
+            />
+          </div>
+
+          {/* 2. Profissional — filtrado pelo serviço, só para quem pode gerenciar */}
           {canManage && (
             <>
               {showServiceWarning && (
@@ -225,16 +243,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
             </>
           )}
 
-          <div className="space-y-2">
-            <Label>Serviço</Label>
-            <ServicePickerWithCategories
-              services={activeServices}
-              categories={categories}
-              selectedId={serviceId}
-              onSelect={(s) => setServiceId(s.id)}
-            />
-          </div>
-
+          {/* 3. Data */}
           <div className="space-y-2">
             <Label htmlFor="apt-date">Data</Label>
             <Input
@@ -246,6 +255,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
             />
           </div>
 
+          {/* 4. Horário — só aparece quando profissional + serviço + data estão definidos */}
           {professionalId && serviceId && date && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -331,6 +341,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
             </div>
           )}
 
+          {/* 5. Cliente */}
           <div className="space-y-2">
             <Label>Cliente</Label>
             <Input
@@ -369,6 +380,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
             )}
           </div>
 
+          {/* 6. Mensagem WhatsApp — só quando formulário completo */}
           {isFormValid && (
             <div className="space-y-1.5">
               <Label>Mensagem enviada ao cliente via WhatsApp</Label>
@@ -386,6 +398,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
             </div>
           )}
 
+          {/* 7. Botões */}
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
