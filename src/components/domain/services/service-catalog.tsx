@@ -89,16 +89,18 @@ export function ServiceCatalog() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-foreground">{service.name}</span>
+                  {service.category && (
+                    <Badge variant="outline" className="text-xs font-normal">{service.category.name}</Badge>
+                  )}
                   {!service.active && (
                     <Badge variant="secondary" className="text-xs">Inativo</Badge>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {service.duration} min ·{' '}
-                  {Number(service.price).toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  })}
+                  {service.priceType === 'STARTING_FROM'
+                    ? `A partir de ${Number(service.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
+                    : Number(service.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </p>
               </div>
               <div className="flex gap-1">

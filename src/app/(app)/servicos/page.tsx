@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ServiceCatalog } from '@/components/domain/services/service-catalog'
 import { PackageCatalog } from '@/components/domain/services/package-catalog'
 import { PromotionCatalog } from '@/components/domain/services/promotion-catalog'
+import { CategoryCatalog } from '@/components/domain/services/category-catalog'
 
 export default function ServicosPage() {
   return (
@@ -16,10 +17,11 @@ export default function ServicosPage() {
       </div>
 
       <Tabs defaultValue="servicos">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="servicos">Serviços</TabsTrigger>
           <TabsTrigger value="pacotes">Pacotes</TabsTrigger>
           <TabsTrigger value="promocoes">Promoções</TabsTrigger>
+          <TabsTrigger value="categorias">Categorias</TabsTrigger>
         </TabsList>
 
         <TabsContent value="servicos" className="mt-6">
@@ -46,6 +48,13 @@ export default function ServicosPage() {
               Crie descontos temporários para serviços ou pacotes.
             </p>
             <PromotionCatalog />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="categorias" className="mt-6">
+          <div className="rounded-2xl border border-border/50 bg-card p-6 shadow-sm">
+            <h2 className="mb-4 text-base font-semibold text-foreground">Categorias de serviços</h2>
+            <CategoryCatalog />
           </div>
         </TabsContent>
       </Tabs>
