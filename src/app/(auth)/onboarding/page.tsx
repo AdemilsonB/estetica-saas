@@ -12,28 +12,23 @@ import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
 
 type Mode = 'loading' | 'create' | 'join' | 'plan'
 
-const PLANS = [
-  {
-    name: 'FREE',
-    label: 'Free',
-    price: 'Grátis',
-    features: ['2 profissionais', '50 agendamentos/mês', 'Agenda e CRM básico'],
-  },
-  {
-    name: 'STARTER',
-    label: 'Starter',
-    price: 'R$29/mês',
-    features: ['5 profissionais', '300 agendamentos/mês', 'WhatsApp automático'],
-    popular: false,
-  },
-  {
-    name: 'PRO',
-    label: 'Pro',
-    price: 'R$59/mês',
-    features: ['20 profissionais', '2.000 agendamentos/mês', 'Relatórios avançados'],
-    popular: true,
-  },
-]
+type ApiPlan = {
+  name: string
+  displayName: string
+  price: number
+  description: string
+  trialDays: number
+}
+
+function formatPrice(price: number) {
+  if (price === 0) return 'Grátis'
+  return `R$${Math.round(price)}/mês`
+}
+
+function planFeatures(plan: ApiPlan): string[] {
+  if (!plan.description) return []
+  return plan.description.split('\n').map((l) => l.trim()).filter(Boolean)
+}
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -52,6 +47,18 @@ export default function OnboardingPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [plans, setPlans] = useState<ApiPlan[]>([])
+  const [plansLoading, setPlansLoading] = useState(false)
+
+  useEffect(() => {
+    if (mode !== 'plan') return
+    setPlansLoading(true)
+    fetch('/api/public/plans')
+      .then((r) => r.json())
+      .then((data) => setPlans(data as ApiPlan[]))
+      .catch(() => toast.error('Erro ao carregar planos.'))
+      .finally(() => setPlansLoading(false))
+  }, [mode])
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
@@ -213,78 +220,95 @@ export default function OnboardingPage() {
   }
 
   if (mode === 'plan') {
+    const trialDays = plans.find((p) => p.price > 0)?.trialDays ?? 14
+    const isPopular = (name: string) => name === 'PRO'
+
     return (
       <div className="flex min-h-screen items-center justify-center p-8">
-        <div className="w-full max-w-2xl space-y-8">
+        <div className="w-full max-w-5xl space-y-8">
           <div className="flex size-10 items-center justify-center rounded-xl bg-[#191919]">
             <Sparkles className="size-5 text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-[#191919]">Escolha seu plano</h1>
             <p className="mt-2 text-sm text-[#787774]">
-              14 dias grátis em qualquer plano pago. Cancele a qualquer momento.
+              {trialDays} dias grátis em qualquer plano pago. Cancele a qualquer momento.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {PLANS.map(plan => (
-              <div
-                key={plan.name}
-                className={`relative rounded-xl border bg-white p-5 flex flex-col gap-4
-                  ${plan.popular ? 'border-[#191919] shadow-md ring-1 ring-[#191919]' : 'border-slate-200'}`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="rounded-full bg-[#191919] px-3 py-1 text-xs font-medium text-white">Mais popular</span>
-                  </div>
-                )}
-                <div>
-                  <p className="font-semibold text-[#191919]">{plan.label}</p>
-                  <p className="text-xl font-bold text-[#191919] mt-1">{plan.price}</p>
-                </div>
-                <ul className="space-y-1.5 flex-1">
-                  {plan.features.map(f => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
-                      <Check className="size-4 text-green-500 mt-0.5 shrink-0" />{f}
-                    </li>
-                  ))}
-                </ul>
-                {plan.name === 'FREE' ? (
-                  <Button
-                    onClick={() => handleSelectPlan('FREE')}
-                    disabled={loadingKey !== null}
-                    variant="outline"
+
+          {plansLoading ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="size-8 animate-spin text-slate-400" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {plans.map((plan) => {
+                const popular = isPopular(plan.name)
+                const features = planFeatures(plan)
+                return (
+                  <div
+                    key={plan.name}
+                    className={`relative rounded-xl border bg-white p-5 flex flex-col gap-4
+                      ${popular ? 'border-[#191919] shadow-md ring-1 ring-[#191919]' : 'border-slate-200'}`}
                   >
-                    Começar grátis
-                  </Button>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      onClick={() => handleSelectPlan(plan.name, false)}
-                      disabled={loadingKey !== null}
-                      variant={plan.popular ? 'default' : 'outline'}
-                      className={plan.popular ? 'bg-[#191919] hover:bg-[#2d2d2d]' : ''}
-                    >
-                      {loadingKey === `${plan.name}_trial`
-                        ? <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
-                        : 'Iniciar trial grátis'
-                      }
-                    </Button>
-                    <Button
-                      onClick={() => handleSelectPlan(plan.name, true)}
-                      disabled={loadingKey !== null}
-                      variant="ghost"
-                      className="text-slate-500 text-sm"
-                    >
-                      {loadingKey === `${plan.name}_direct`
-                        ? <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
-                        : 'Assinar agora'
-                      }
-                    </Button>
+                    {popular && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <span className="rounded-full bg-[#191919] px-3 py-1 text-xs font-medium text-white">Mais popular</span>
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-[#191919]">{plan.displayName}</p>
+                      <p className="text-xl font-bold text-[#191919] mt-1">{formatPrice(plan.price)}</p>
+                    </div>
+                    <ul className="space-y-1.5 flex-1">
+                      {features.map((f) => (
+                        <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
+                          <Check className="size-4 text-green-500 mt-0.5 shrink-0" />{f}
+                        </li>
+                      ))}
+                    </ul>
+                    {plan.name === 'FREE' ? (
+                      <Button
+                        onClick={() => handleSelectPlan('FREE')}
+                        disabled={loadingKey !== null}
+                        variant="outline"
+                      >
+                        Começar grátis
+                      </Button>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {plan.trialDays > 0 && (
+                          <Button
+                            onClick={() => handleSelectPlan(plan.name, false)}
+                            disabled={loadingKey !== null}
+                            variant={popular ? 'default' : 'outline'}
+                            className={popular ? 'bg-[#191919] hover:bg-[#2d2d2d]' : ''}
+                          >
+                            {loadingKey === `${plan.name}_trial`
+                              ? <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
+                              : `Testar ${plan.trialDays} dias grátis`
+                            }
+                          </Button>
+                        )}
+                        <Button
+                          onClick={() => handleSelectPlan(plan.name, true)}
+                          disabled={loadingKey !== null}
+                          variant="ghost"
+                          className="text-slate-500 text-sm"
+                        >
+                          {loadingKey === `${plan.name}_direct`
+                            ? <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
+                            : 'Assinar agora'
+                          }
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
+                )
+              })}
+            </div>
+          )}
+
           <p className="text-xs text-center text-[#787774]">
             Você pode alterar o plano a qualquer momento em Configurações → Planos.
           </p>

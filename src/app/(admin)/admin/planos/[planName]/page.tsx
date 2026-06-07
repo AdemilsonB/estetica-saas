@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
 import { usePlans, useUpdatePlan } from '@/hooks/admin/use-plans'
@@ -40,6 +41,7 @@ export default function PlanEditorPage() {
   const [price, setPrice] = useState('0')
   const [description, setDescription] = useState('')
   const [trialDays, setTrialDays] = useState('14')
+  const [stripePriceId, setStripePriceId] = useState('')
   const [isActive, setIsActive] = useState(true)
   const [featureState, setFeatureState] = useState<Record<string, boolean>>({})
   const [limitState, setLimitState] = useState<Record<string, number>>({})
@@ -50,6 +52,7 @@ export default function PlanEditorPage() {
       setPrice(String(plan.price))
       setDescription(plan.description ?? '')
       setTrialDays(String(plan.trialDays))
+      setStripePriceId(plan.stripePriceId ?? '')
       setIsActive(plan.isActive)
     }
   }, [plan])
@@ -79,7 +82,7 @@ export default function PlanEditorPage() {
 
   function handleSaveMetadata() {
     updatePlan.mutate(
-      { name: planName, displayName, price: parseFloat(price) || 0, description: description || null, trialDays: parseInt(trialDays) || 0, isActive },
+      { name: planName, displayName, price: parseFloat(price) || 0, description: description || null, trialDays: parseInt(trialDays) || 0, stripePriceId: stripePriceId.trim() || null, isActive },
       {
         onSuccess: () => toast.success('Metadados salvos'),
         onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro'),
@@ -129,8 +132,15 @@ export default function PlanEditorPage() {
               <Input type="number" min={0} step={0.01} value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Descrição</Label>
-              <Input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} />
+              <Label>Benefícios do plano</Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={5}
+                placeholder={'5 profissionais\n300 agendamentos/mês\nWhatsApp automático'}
+                className="resize-none font-mono text-sm"
+              />
+              <p className="text-xs text-slate-400">Um benefício por linha — exibido como bullets no onboarding e na página de planos.</p>
             </div>
             <div className="space-y-1.5">
               <Label>Dias de trial grátis</Label>
@@ -142,6 +152,20 @@ export default function PlanEditorPage() {
                 onChange={(e) => setTrialDays(e.target.value)}
               />
               <p className="text-xs text-slate-400">0 = sem trial. O Stripe cobrará imediatamente ao assinar.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Stripe Price ID</Label>
+              <Input
+                value={stripePriceId}
+                onChange={(e) => setStripePriceId(e.target.value)}
+                placeholder="price_xxxxxxxxxxxxxxxxxxxx"
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-slate-400">
+                ID do preço no Stripe (começa com <code className="font-mono">price_</code>).
+                Encontre em: Catálogo de produtos → produto → seção Preços.
+                Deixe vazio para planos sem cobrança (Free).
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <Switch checked={isActive} onCheckedChange={setIsActive} />

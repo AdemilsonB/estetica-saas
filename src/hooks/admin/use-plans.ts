@@ -7,6 +7,7 @@ export type AdminPlan = {
   price: number
   description: string | null
   trialDays: number
+  stripePriceId: string | null
   isActive: boolean
   displayOrder: number
 }
@@ -17,6 +18,7 @@ type UpdatePlanInput = {
   price?: number
   description?: string | null
   trialDays?: number
+  stripePriceId?: string | null
   isActive?: boolean
 }
 
