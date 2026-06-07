@@ -15,6 +15,7 @@ import { SettingsAnamneseTab } from '@/components/domain/crm/settings-anamnese-t
 import { SchedulingPolicyForm } from '@/components/domain/settings/scheduling-policy-form'
 import { usePermissions } from '@/hooks/use-permissions'
 import { RolesManager } from '@/components/domain/iam/roles-manager'
+import { BillingPlansContent } from '@/components/domain/billing/billing-plans-content'
 import { Loader2 } from 'lucide-react'
 
 type BrandingConfig = {
@@ -75,7 +76,7 @@ export default function ConfiguracoesPage() {
 
       <Tabs defaultValue="negocio" onValueChange={handleTabChange}>
         <div className="overflow-x-auto scrollbar-hide">
-          <TabsList className={`grid w-full min-w-[140%] ${user?.isOwner ? 'grid-cols-8' : 'grid-cols-7'}`}>
+          <TabsList className={`grid w-full min-w-[140%] ${user?.isOwner ? 'grid-cols-9' : 'grid-cols-7'}`}>
             <TabsTrigger value="negocio">Negócio</TabsTrigger>
             <TabsTrigger value="horarios">Horários</TabsTrigger>
             <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
@@ -83,7 +84,12 @@ export default function ConfiguracoesPage() {
             <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
             <TabsTrigger value="crm">CRM</TabsTrigger>
             <TabsTrigger value="agendamento-online">Agend. Online</TabsTrigger>
-            {user?.isOwner && <TabsTrigger value="cargos">Cargos</TabsTrigger>}
+            {user?.isOwner && (
+              <>
+                <TabsTrigger value="cargos">Cargos</TabsTrigger>
+                <TabsTrigger value="planos">Planos</TabsTrigger>
+              </>
+            )}
           </TabsList>
         </div>
 
@@ -177,6 +183,16 @@ export default function ConfiguracoesPage() {
                 Defina o que cada cargo pode ver e fazer no sistema.
               </p>
               <RolesManager />
+            </div>
+          </TabsContent>
+        )}
+        {user?.isOwner && (
+          <TabsContent value="planos" className="mt-6">
+            <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">
+              <h2 className="mb-4 text-base font-semibold text-slate-950">
+                Plano e assinatura
+              </h2>
+              <BillingPlansContent />
             </div>
           </TabsContent>
         )}
