@@ -2,13 +2,15 @@ import { PlanName, SubscriptionStatus } from "@prisma/client";
 
 import { eventBus } from "@/shared/events/event-bus";
 import { addDays } from "@/lib/dates";
+import { prisma } from "@/shared/database/prisma";
 
 import { billingRepository } from "./billing.repository";
 
 export class BillingService {
   async startTrial(tenantId: string) {
     const now = new Date();
-    const trialEndsAt = addDays(now, 14);
+    const starterPlan = await prisma.plan.findUnique({ where: { name: PlanName.STARTER }, select: { trialDays: true } });
+    const trialEndsAt = addDays(now, starterPlan?.trialDays ?? 14);
 
     const sub = await billingRepository.createSubscription({
       tenantId,

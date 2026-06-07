@@ -45,7 +45,7 @@ export default function OnboardingPage() {
   const [joinConfirmPassword, setJoinConfirmPassword] = useState('')
   const [joinPasswordError, setJoinPasswordError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+  const [loadingKey, setLoadingKey] = useState<string | null>(null)
   const [primaryColor, setPrimaryColor] = useState('#191919')
   const [backgroundColor, setBackgroundColor] = useState('#f8f8f7')
   const [logoFile, setLogoFile] = useState<File | null>(null)
@@ -122,7 +122,7 @@ export default function OnboardingPage() {
     }
   }
 
-  async function handleSelectPlan(planName: string) {
+  async function handleSelectPlan(planName: string, skipTrial = false) {
     if (planName === 'FREE') {
       toast.success('Tudo pronto! Bem-vindo ao workspace.')
       router.push('/dashboard')
@@ -130,7 +130,8 @@ export default function OnboardingPage() {
       return
     }
 
-    setLoadingPlan(planName)
+    const key = skipTrial ? `${planName}_direct` : `${planName}_trial`
+    setLoadingKey(key)
     try {
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
@@ -138,7 +139,7 @@ export default function OnboardingPage() {
           'Content-Type': 'application/json',
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
-        body: JSON.stringify({ planName }),
+        body: JSON.stringify({ planName, skipTrial }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -150,7 +151,7 @@ export default function OnboardingPage() {
     } catch {
       toast.error('Erro de conexão. Tente novamente.')
     } finally {
-      setLoadingPlan(null)
+      setLoadingKey(null)
     }
   }
 
@@ -247,17 +248,40 @@ export default function OnboardingPage() {
                     </li>
                   ))}
                 </ul>
-                <Button
-                  onClick={() => handleSelectPlan(plan.name)}
-                  disabled={loadingPlan !== null}
-                  variant={plan.popular ? 'default' : 'outline'}
-                  className={plan.popular ? 'bg-[#191919] hover:bg-[#2d2d2d]' : ''}
-                >
-                  {loadingPlan === plan.name
-                    ? <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
-                    : plan.name === 'FREE' ? 'Começar grátis' : 'Iniciar 14 dias grátis'
-                  }
-                </Button>
+                {plan.name === 'FREE' ? (
+                  <Button
+                    onClick={() => handleSelectPlan('FREE')}
+                    disabled={loadingKey !== null}
+                    variant="outline"
+                  >
+                    Começar grátis
+                  </Button>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      onClick={() => handleSelectPlan(plan.name, false)}
+                      disabled={loadingKey !== null}
+                      variant={plan.popular ? 'default' : 'outline'}
+                      className={plan.popular ? 'bg-[#191919] hover:bg-[#2d2d2d]' : ''}
+                    >
+                      {loadingKey === `${plan.name}_trial`
+                        ? <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
+                        : 'Iniciar trial grátis'
+                      }
+                    </Button>
+                    <Button
+                      onClick={() => handleSelectPlan(plan.name, true)}
+                      disabled={loadingKey !== null}
+                      variant="ghost"
+                      className="text-slate-500 text-sm"
+                    >
+                      {loadingKey === `${plan.name}_direct`
+                        ? <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
+                        : 'Assinar agora'
+                      }
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

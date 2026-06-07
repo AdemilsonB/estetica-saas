@@ -39,6 +39,7 @@ export default function PlanEditorPage() {
   const [displayName, setDisplayName] = useState('')
   const [price, setPrice] = useState('0')
   const [description, setDescription] = useState('')
+  const [trialDays, setTrialDays] = useState('14')
   const [isActive, setIsActive] = useState(true)
   const [featureState, setFeatureState] = useState<Record<string, boolean>>({})
   const [limitState, setLimitState] = useState<Record<string, number>>({})
@@ -48,6 +49,7 @@ export default function PlanEditorPage() {
       setDisplayName(plan.displayName)
       setPrice(String(plan.price))
       setDescription(plan.description ?? '')
+      setTrialDays(String(plan.trialDays))
       setIsActive(plan.isActive)
     }
   }, [plan])
@@ -77,7 +79,7 @@ export default function PlanEditorPage() {
 
   function handleSaveMetadata() {
     updatePlan.mutate(
-      { name: planName, displayName, price: parseFloat(price) || 0, description: description || null, isActive },
+      { name: planName, displayName, price: parseFloat(price) || 0, description: description || null, trialDays: parseInt(trialDays) || 0, isActive },
       {
         onSuccess: () => toast.success('Metadados salvos'),
         onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro'),
@@ -129,6 +131,17 @@ export default function PlanEditorPage() {
             <div className="space-y-1.5">
               <Label>Descrição</Label>
               <Input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Dias de trial grátis</Label>
+              <Input
+                type="number"
+                min={0}
+                max={365}
+                value={trialDays}
+                onChange={(e) => setTrialDays(e.target.value)}
+              />
+              <p className="text-xs text-slate-400">0 = sem trial. O Stripe cobrará imediatamente ao assinar.</p>
             </div>
             <div className="flex items-center gap-3">
               <Switch checked={isActive} onCheckedChange={setIsActive} />
