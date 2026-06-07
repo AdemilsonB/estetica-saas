@@ -21,8 +21,10 @@ import {
 import { AvatarUpload } from './avatar-upload'
 import { MemberServicesSelector } from './member-services-selector'
 import { useUpdateMemberProfile, useUpdateMemberRole, type TeamMember } from '@/hooks/iam/use-team'
-import { useGetMemberServices, useSetMemberServices } from '@/hooks/iam/use-member-services'
+import { useGetMemberServices, useSetMemberServices, type MemberService } from '@/hooks/iam/use-member-services'
 import { useRoles } from '@/hooks/iam/use-roles'
+
+const EMPTY_SERVICES: MemberService[] = []
 
 type Props = {
   member: TeamMember | null
@@ -32,7 +34,7 @@ type Props = {
 
 export function EditMemberModal({ member, open, onClose }: Props) {
   const { data: roles = [] } = useRoles()
-  const { data: memberServices = [], isLoading: loadingServices } = useGetMemberServices(
+  const { data: memberServices = EMPTY_SERVICES, isLoading: loadingServices } = useGetMemberServices(
     member?.id ?? null,
   )
 
@@ -56,9 +58,7 @@ export function EditMemberModal({ member, open, onClose }: Props) {
   }, [member])
 
   useEffect(() => {
-    if (memberServices.length >= 0) {
-      setSelectedServiceIds(memberServices.map((s) => s.id))
-    }
+    setSelectedServiceIds(memberServices.map((s) => s.id))
   }, [memberServices])
 
   function handleClose() {
