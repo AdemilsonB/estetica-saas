@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -16,8 +17,11 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { CurrencyInput } from '@/components/ui/currency-input'
+import { ImageUploadField } from '@/components/ui/image-upload-field'
 import { useCreateService, useUpdateService, type Service } from '@/hooks/scheduling/use-services'
+import { useServiceCategories } from '@/hooks/scheduling/use-service-categories'
 import { useProducts } from '@/hooks/inventory/use-products'
+import { minutesToHHMM, hhmmToMinutes } from '@/lib/format-duration'
 
 type ProductItem = { productId: string; quantity: number; name: string }
 
@@ -31,22 +35,33 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
   const isEditing = !!service
   const { mutate: create, isPending: creating } = useCreateService()
   const { mutate: update, isPending: updating } = useUpdateService()
+  const { data: categories = [] } = useServiceCategories()
 
   const [name, setName] = useState('')
-  const [duration, setDuration] = useState('60')
+  const [categoryId, setCategoryId] = useState<string | null>(null)
+  const [description, setDescription] = useState('')
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [priceType, setPriceType] = useState<'FIXED' | 'STARTING_FROM'>('FIXED')
   const [price, setPrice] = useState('')
+  const [priceMax, setPriceMax] = useState('')
+  const [durationHHMM, setDurationHHMM] = useState('01:00')
   const [productItems, setProductItems] = useState<ProductItem[]>([])
   const [savingTemplate, setSavingTemplate] = useState(false)
 
   const { data: productsData } = useProducts({ pageSize: 100 })
   const allProducts = productsData?.data ?? []
 
-  // Carrega campos do serviço e template de produtos ao abrir
+  // Carrega campos do serviço ao abrir no modo edição
   useEffect(() => {
     if (open && service) {
       setName(service.name)
-      setDuration(String(service.duration))
+      setCategoryId(service.categoryId ?? null)
+      setDescription(service.description ?? '')
+      setImageUrl(service.imageUrl ?? null)
+      setPriceType(service.priceType === 'STARTING_FROM' ? 'STARTING_FROM' : 'FIXED')
       setPrice(Number(service.price).toFixed(2))
+      setPriceMax(service.priceMax ? Number(service.priceMax).toFixed(2) : '')
+      setDurationHHMM(minutesToHHMM(service.duration))
       // Busca template de produtos do serviço
       fetch(`/api/services/${service.id}/products`)
         .then((r) => r.json())
@@ -58,8 +73,13 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
         .catch(() => { /* silently ignore */ })
     } else if (!open) {
       setName('')
-      setDuration('60')
+      setCategoryId(null)
+      setDescription('')
+      setImageUrl(null)
+      setPriceType('FIXED')
       setPrice('')
+      setPriceMax('')
+      setDurationHHMM('01:00')
       setProductItems([])
     }
   }, [open, service])
@@ -75,15 +95,34 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const durationNum = parseInt(duration, 10)
+
+    const durationNum = hhmmToMinutes(durationHHMM)
+    if (durationNum === null) {
+      toast.error('Tempo médio inválido. Use o formato HH:MM (ex: 01:30).')
+      return
+    }
+
     const priceNum = parseFloat(price)
-    if (isNaN(durationNum) || isNaN(priceNum) || priceNum <= 0) return
+    if (isNaN(priceNum) || priceNum <= 0) return
+
+    const priceMaxNum = priceMax ? parseFloat(priceMax) : null
+
+    const payload = {
+      name: name.trim(),
+      duration: durationNum,
+      price: priceNum,
+      priceType,
+      priceMax: priceMaxNum ?? null,
+      description: description.trim() || null,
+      categoryId: categoryId || null,
+      imageUrl,
+    }
 
     setSavingTemplate(true)
 
     if (isEditing) {
       update(
-        { id: service.id, name: name.trim(), duration: durationNum, price: priceNum },
+        { id: service.id, ...payload },
         {
           onSuccess: async () => {
             try { await saveTemplate(service.id) } catch { /* ignore */ }
@@ -95,7 +134,7 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
       )
     } else {
       create(
-        { name: name.trim(), duration: durationNum, price: priceNum },
+        payload,
         {
           onSuccess: async (created) => {
             try { await saveTemplate(created.id) } catch { /* ignore */ }
@@ -130,12 +169,13 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar serviço' : 'Novo serviço'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          {/* Campos básicos */}
+
+          {/* Nome */}
           <div className="space-y-2">
             <Label htmlFor="service-name">Nome do serviço</Label>
             <Input
@@ -149,19 +189,102 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="service-duration">Duração (min)</Label>
-              <Input
-                id="service-duration"
-                type="number"
-                min={5}
-                max={480}
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                required
-              />
+          {/* Categoria */}
+          <div className="space-y-2">
+            <Label htmlFor="service-category">Categoria</Label>
+            <Select
+              value={categoryId ?? 'none'}
+              onValueChange={(v) => setCategoryId(v === 'none' ? null : v)}
+            >
+              <SelectTrigger id="service-category">
+                <SelectValue placeholder="Sem categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem categoria</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Descrição */}
+          <div className="space-y-2">
+            <Label htmlFor="service-description">Descrição</Label>
+            <Textarea
+              id="service-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Descreva o serviço..."
+              rows={3}
+              maxLength={1000}
+            />
+          </div>
+
+          {/* Imagem */}
+          <ImageUploadField
+            entityType="services"
+            entityId={service?.id ?? null}
+            value={imageUrl}
+            onChange={setImageUrl}
+            label="Imagem do serviço"
+          />
+
+          {/* Tipo de preço */}
+          <div className="space-y-2">
+            <Label>Tipo de preço</Label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input
+                  type="radio"
+                  name="priceType"
+                  value="FIXED"
+                  checked={priceType === 'FIXED'}
+                  onChange={() => setPriceType('FIXED')}
+                  className="accent-primary"
+                />
+                Valor fixo
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input
+                  type="radio"
+                  name="priceType"
+                  value="STARTING_FROM"
+                  checked={priceType === 'STARTING_FROM'}
+                  onChange={() => setPriceType('STARTING_FROM')}
+                  className="accent-primary"
+                />
+                A partir de
+              </label>
             </div>
+          </div>
+
+          {/* Campo(s) de preço */}
+          {priceType === 'STARTING_FROM' ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="service-price">A partir de</Label>
+                <CurrencyInput
+                  id="service-price"
+                  value={price}
+                  onChange={setPrice}
+                  placeholder="R$ 0,00"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="service-price-max">Até (opcional)</Label>
+                <CurrencyInput
+                  id="service-price-max"
+                  value={priceMax}
+                  onChange={setPriceMax}
+                  placeholder="R$ 0,00"
+                />
+              </div>
+            </div>
+          ) : (
             <div className="space-y-2">
               <Label htmlFor="service-price">Preço</Label>
               <CurrencyInput
@@ -172,6 +295,18 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
                 required
               />
             </div>
+          )}
+
+          {/* Duração HH:MM */}
+          <div className="space-y-2">
+            <Label htmlFor="service-duration">Tempo médio (HH:MM)</Label>
+            <Input
+              id="service-duration"
+              value={durationHHMM}
+              onChange={(e) => setDurationHHMM(e.target.value)}
+              placeholder="01:30"
+              required
+            />
           </div>
 
           <Separator />
