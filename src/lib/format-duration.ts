@@ -6,11 +6,13 @@ export function formatDuration(minutes: number): string {
 }
 
 export function minutesToHHMM(minutes: number): string {
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
+  const h = Math.floor(Math.max(0, minutes) / 60)
+  const m = Math.max(0, minutes) % 60
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
+// Retorna null para entradas inválidas. Mínimo de 5min e máximo de 480min (8h)
+// conforme validação do servidor. Aceita formato "HH:MM" ou minutos inteiros.
 export function hhmmToMinutes(value: string): number | null {
   const trimmed = value.trim()
   if (/^\d+$/.test(trimmed)) {

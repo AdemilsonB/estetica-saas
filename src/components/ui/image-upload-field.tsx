@@ -18,6 +18,10 @@ export function ImageUploadField({ entityType, entityId, value, onChange, label 
   const [uploading, setUploading] = useState(false)
 
   async function handleFile(file: File) {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Arquivo excede o limite de 5 MB.')
+      return
+    }
     if (!entityId) {
       toast.error('Salve o serviço primeiro para adicionar uma imagem.')
       return

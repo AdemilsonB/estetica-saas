@@ -19,7 +19,7 @@ export type CreateServiceInput = {
   name: string
   duration: number
   price: number
-  priceType?: 'FIXED' | 'STARTING_FROM'
+  priceType?: 'FIXED' | 'STARTING_FROM' | 'RANGE' | 'ON_CONSULTATION'
   priceMin?: number | null
   priceMax?: number | null
   description?: string | null
