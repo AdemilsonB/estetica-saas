@@ -182,6 +182,8 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
       isOwner: false,
       roleId: null,
       roleName: '',
+      avatarUrl: null,
+      services: [],
       createdAt: '',
     } satisfies TeamMember),
     appointments: sorted.filter((a) => a.professionalId === profId),
