@@ -6,14 +6,15 @@ import { stripeBillingService } from '@/domains/billing/stripe-billing.service'
 import { iamRepository } from '@/domains/iam/iam.repository'
 
 const CheckoutSchema = z.object({
-  planName: z.enum(['STARTER', 'PRO', 'ENTERPRISE']),
+  planName:  z.enum(['STARTER', 'PRO', 'ENTERPRISE']),
+  skipTrial: z.boolean().optional().default(false),
 })
 
 export async function POST(req: Request) {
   try {
     const session = await getSessionContext(req)
     const body = await req.json()
-    const { planName } = CheckoutSchema.parse(body)
+    const { planName, skipTrial } = CheckoutSchema.parse(body)
 
     const user = await iamRepository.findUserById(session.tenantId, session.userId)
     if (!user) throw new Error('Usuário não encontrado')
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
       ownerEmail: user.email,
       ownerName: user.name,
       planName: planName as PlanName,
+      skipTrial,
     })
 
     return Response.json(result)

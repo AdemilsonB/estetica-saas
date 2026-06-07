@@ -4,16 +4,17 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 export function useBillingActions() {
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+  const [loadingKey, setLoadingKey] = useState<string | null>(null)
   const [loadingPortal, setLoadingPortal] = useState(false)
 
-  async function startUpgrade(planName: string) {
-    setLoadingPlan(planName)
+  async function startUpgrade(planName: string, skipTrial = false) {
+    const key = skipTrial ? `${planName}_direct` : `${planName}_trial`
+    setLoadingKey(key)
     try {
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planName }),
+        body: JSON.stringify({ planName, skipTrial }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -25,7 +26,7 @@ export function useBillingActions() {
     } catch {
       toast.error('Erro de conexão. Tente novamente.')
     } finally {
-      setLoadingPlan(null)
+      setLoadingKey(null)
     }
   }
 
@@ -47,5 +48,5 @@ export function useBillingActions() {
     }
   }
 
-  return { startUpgrade, openPortal, loadingPlan, loadingPortal }
+  return { startUpgrade, openPortal, loadingKey, loadingPortal }
 }

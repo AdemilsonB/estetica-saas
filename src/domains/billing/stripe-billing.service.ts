@@ -2,6 +2,7 @@ import { PlanName } from '@prisma/client'
 import { stripe } from './stripe.client'
 import { billingRepository } from './billing.repository'
 import { DomainError } from '@/shared/errors/domain-error'
+import { prisma } from '@/shared/database/prisma'
 
 const PRICE_MAP: Partial<Record<PlanName, string>> = {
   STARTER: process.env.STRIPE_PRICE_STARTER_MONTHLY!,
@@ -34,6 +35,7 @@ export class StripeBillingService {
     ownerEmail: string
     ownerName: string
     planName: PlanName
+    skipTrial?: boolean
   }): Promise<{ checkoutUrl: string }> {
     const priceId = PRICE_MAP[params.planName]
     if (!priceId) throw new DomainError(`Plano ${params.planName} não tem price configurado.`, 'INVALID_PLAN', 400)
@@ -46,6 +48,12 @@ export class StripeBillingService {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
+    let trialDays = 0
+    if (!params.skipTrial) {
+      const plan = await prisma.plan.findUnique({ where: { name: params.planName }, select: { trialDays: true } })
+      trialDays = plan?.trialDays ?? 0
+    }
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
@@ -53,6 +61,10 @@ export class StripeBillingService {
       success_url: `${appUrl}/configuracoes/planos?stripe=success`,
       cancel_url: `${appUrl}/configuracoes/planos?stripe=cancelled`,
       metadata: { tenantId: params.tenantId, planName: params.planName },
+      ...(trialDays > 0 && {
+        subscription_data: { trial_period_days: trialDays },
+        payment_method_collection: 'always',
+      }),
     })
 
     if (!session.url) throw new DomainError('Falha ao criar sessão de checkout.', 'STRIPE_ERROR', 500)

@@ -11,6 +11,7 @@ const updatePlanSchema = z.object({
   displayName: z.string().min(1).max(50).optional(),
   price:       z.number().min(0).optional(),
   description: z.string().max(200).nullable().optional(),
+  trialDays:   z.number().int().min(0).max(365).optional(),
   isActive:    z.boolean().optional(),
 })
 
