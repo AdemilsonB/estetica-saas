@@ -23,6 +23,8 @@ import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useServices } from '@/hooks/scheduling/use-services'
+import { useServiceCategories } from '@/hooks/scheduling/use-service-categories'
+import { ServicePickerWithCategories } from '@/components/domain/services/service-picker-with-categories'
 import { useCustomersSearch } from '@/hooks/crm/use-customers-search'
 import { useCreateAppointment } from '@/hooks/scheduling/use-appointments'
 import { useAvailableSlots } from '@/hooks/scheduling/use-availability'
@@ -74,6 +76,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
   const { data: currentUser } = useCurrentUser()
   const { can } = usePermissions()
   const { data: services = [] } = useServices()
+  const { data: categories = [] } = useServiceCategories()
   const { data: teamMembers = [] } = useTeamMembers()
   const createAppointment = useCreateAppointment()
 
@@ -224,18 +227,12 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
 
           <div className="space-y-2">
             <Label>Serviço</Label>
-            <Select value={serviceId} onValueChange={setServiceId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar serviço" />
-              </SelectTrigger>
-              <SelectContent>
-                {activeServices.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name} · {s.duration}min · R${Number(s.price).toFixed(2)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ServicePickerWithCategories
+              services={activeServices}
+              categories={categories}
+              selectedId={serviceId}
+              onSelect={(s) => setServiceId(s.id)}
+            />
           </div>
 
           <div className="space-y-2">
