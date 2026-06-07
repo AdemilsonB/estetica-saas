@@ -255,6 +255,10 @@ model Subscription {
   currentPeriodEnd   DateTime
   cancelledAt        DateTime?
   externalId         String?
+  stripeCustomerId   String?            @unique
+  stripeSubId        String?            @unique
+  stripePriceId      String?
+  cancelAtPeriodEnd  Boolean            @default(false)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 

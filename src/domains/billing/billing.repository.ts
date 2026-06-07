@@ -61,6 +61,26 @@ export class BillingRepository {
       where: { status: "ACTIVE", currentPeriodEnd: { lt: now } },
     });
   }
+
+  async findByStripeCustomerId(stripeCustomerId: string) {
+    return prisma.subscription.findFirst({ where: { stripeCustomerId } })
+  }
+
+  async findByStripeSubId(stripeSubId: string) {
+    return prisma.subscription.findFirst({
+      where: { stripeSubId },
+      include: { tenant: { select: { id: true, plan: true } } },
+    })
+  }
+
+  async setStripeIds(tenantId: string, data: {
+    stripeCustomerId?: string
+    stripeSubId?: string
+    stripePriceId?: string
+    cancelAtPeriodEnd?: boolean
+  }) {
+    return prisma.subscription.update({ where: { tenantId }, data })
+  }
 }
 
 export const billingRepository = new BillingRepository();
