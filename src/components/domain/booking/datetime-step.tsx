@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
+type PublicSlot = { time: string; available: boolean }
+
 const MONTHS_PT = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
@@ -32,7 +34,7 @@ export function DateTimeStep({
     return d
   })
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
-  const [slots, setSlots] = useState<string[]>([])
+  const [slots, setSlots] = useState<PublicSlot[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
 
   const today = new Date()
@@ -47,7 +49,7 @@ export function DateTimeStep({
     if (professionalId) params.set('professionalId', professionalId)
     fetch(`/api/public/${tenantSlug}/availability?${params}`)
       .then((r) => r.json())
-      .then((d: { slots?: string[] }) => setSlots(d.slots ?? []))
+      .then((d: { slots?: PublicSlot[] }) => setSlots(d.slots ?? []))
       .catch(() => setSlots([]))
       .finally(() => setLoadingSlots(false))
   }, [selectedDay, serviceId, professionalId, tenantSlug])
@@ -67,9 +69,9 @@ export function DateTimeStep({
     return d < today || d > maxDate
   }
 
-  function handleSlotClick(slot: string) {
-    if (!selectedDay) return
-    const [h, m] = slot.split(':').map(Number)
+  function handleSlotClick(slot: PublicSlot) {
+    if (!selectedDay || !slot.available) return
+    const [h, m] = slot.time.split(':').map(Number)
     const dt = new Date(selectedDay + 'T00:00:00')
     dt.setHours(h ?? 0, m ?? 0, 0, 0)
     onSelect(dt)
@@ -196,15 +198,25 @@ export function DateTimeStep({
             </p>
           ) : (
             <div className="grid grid-cols-3 gap-2">
-              {slots.map((slot) => (
-                <button
-                  key={slot}
-                  onClick={() => handleSlotClick(slot)}
-                  className="slot-btn h-11 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 transition-all"
-                >
-                  {slot}
-                </button>
-              ))}
+              {slots.map((slot) =>
+                slot.available ? (
+                  <button
+                    key={slot.time}
+                    onClick={() => handleSlotClick(slot)}
+                    className="slot-btn h-11 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 transition-all"
+                  >
+                    {slot.time}
+                  </button>
+                ) : (
+                  <div
+                    key={slot.time}
+                    className="flex h-11 flex-col items-center justify-center rounded-lg border border-slate-100 bg-slate-50 text-xs text-slate-400"
+                  >
+                    <span className="font-medium">{slot.time}</span>
+                    <span className="leading-none">Agendado</span>
+                  </div>
+                )
+              )}
             </div>
           )}
         </div>
