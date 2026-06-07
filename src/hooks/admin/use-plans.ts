@@ -6,6 +6,7 @@ export type AdminPlan = {
   displayName: string
   price: number
   description: string | null
+  trialDays: number
   isActive: boolean
   displayOrder: number
 }
@@ -15,6 +16,7 @@ type UpdatePlanInput = {
   displayName?: string
   price?: number
   description?: string | null
+  trialDays?: number
   isActive?: boolean
 }
 

@@ -33,7 +33,7 @@ const UPGRADEABLE_PLANS = [
 
 export function BillingPlansContent() {
   const { data, isLoading } = useBillingStatus()
-  const { startUpgrade, openPortal, loadingPlan, loadingPortal } = useBillingActions()
+  const { startUpgrade, openPortal, loadingKey, loadingPortal } = useBillingActions()
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -58,6 +58,7 @@ export function BillingPlansContent() {
   const isPaid = data.status === 'ACTIVE' || data.status === 'TRIALING'
   const isCurrentPlanFree = data.plan === 'FREE'
   const hasStripeSubscription = !!data.stripeSubId
+  const isLoading_ = loadingKey !== null
 
   return (
     <div className="space-y-6">
@@ -137,20 +138,36 @@ export function BillingPlansContent() {
       </div>
 
       {isCurrentPlanFree && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <p className="text-sm font-medium">Fazer upgrade do plano</p>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
             {UPGRADEABLE_PLANS.map(plan => (
-              <Button
-                key={plan.name}
-                onClick={() => startUpgrade(plan.name)}
-                disabled={loadingPlan !== null}
-                variant={plan.name === 'PRO' ? 'default' : 'outline'}
-              >
-                {loadingPlan === plan.name ? 'Redirecionando...' : plan.label}
-              </Button>
+              <div key={plan.name} className="flex flex-col gap-2 rounded-lg border p-4 sm:w-56">
+                <p className="text-sm font-semibold">{plan.label}</p>
+                <Button
+                  size="sm"
+                  variant={plan.name === 'PRO' ? 'default' : 'outline'}
+                  onClick={() => startUpgrade(plan.name, false)}
+                  disabled={isLoading_}
+                  className="w-full"
+                >
+                  {loadingKey === `${plan.name}_trial` ? 'Redirecionando...' : 'Iniciar trial grátis'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => startUpgrade(plan.name, true)}
+                  disabled={isLoading_}
+                  className="w-full text-muted-foreground"
+                >
+                  {loadingKey === `${plan.name}_direct` ? 'Redirecionando...' : 'Assinar agora'}
+                </Button>
+              </div>
             ))}
           </div>
+          <p className="text-xs text-muted-foreground">
+            "Iniciar trial grátis" — você só é cobrado após o período de trial. Cartão necessário para garantir a continuidade.
+          </p>
         </div>
       )}
 
