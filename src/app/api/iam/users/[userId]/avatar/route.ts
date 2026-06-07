@@ -6,6 +6,9 @@ import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 import { supabaseAdmin } from '@/integrations/supabase/admin'
 import { DomainError, ValidationError } from '@/shared/errors'
 
+// Bucket 'professional-avatars' deve existir no Supabase Storage.
+// Para criar: npx tsx scripts/setup-storage-buckets.ts
+
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
 const BUCKET = 'professional-avatars'
