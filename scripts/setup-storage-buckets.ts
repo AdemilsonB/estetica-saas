@@ -39,6 +39,11 @@ const BUCKETS: BucketConfig[] = [
     isPublic: true,
     fileSizeLimit: 2 * 1024 * 1024, // 2 MB
   },
+  {
+    name: 'service-images',
+    isPublic: true,
+    fileSizeLimit: 5 * 1024 * 1024, // 5 MB
+  },
 ]
 
 async function setupBuckets() {

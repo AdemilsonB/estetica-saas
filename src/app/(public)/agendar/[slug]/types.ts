@@ -13,10 +13,13 @@ export type PublicService = {
   name: string
   duration: number
   price: number
-  priceType: 'FIXED' | 'RANGE' | 'ON_CONSULTATION'
+  priceType: 'FIXED' | 'STARTING_FROM' | 'RANGE' | 'ON_CONSULTATION'
   priceMin?: number | null
   priceMax?: number | null
   imageUrl?: string | null
+  description?: string | null
+  categoryId?: string | null
+  categoryName?: string | null
 }
 
 export type PublicProfessional = {

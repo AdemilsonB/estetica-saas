@@ -34,7 +34,7 @@ export class PublicBookingRepository {
   }
 
   async findPublicServices(tenantId: string) {
-    return prisma.service.findMany({
+    const services = await prisma.service.findMany({
       where: { tenantId, active: true },
       select: {
         id: true,
@@ -45,9 +45,16 @@ export class PublicBookingRepository {
         priceMin: true,
         priceMax: true,
         imageUrl: true,
+        description: true,
+        categoryId: true,
+        category: { select: { name: true } },
       },
       orderBy: { name: 'asc' },
     })
+    return services.map(({ category, ...rest }) => ({
+      ...rest,
+      categoryName: category?.name ?? null,
+    }))
   }
 
   async findPublicProfessionals(tenantId: string) {

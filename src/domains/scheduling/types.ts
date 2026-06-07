@@ -13,16 +13,26 @@ export type ListAppointmentsQuery = z.infer<typeof listAppointmentsSchema>;
 export const createServiceSchema = z.object({
   name: z.string().trim().min(2).max(100),
   duration: z.number().int().min(5).max(480),
-  price: z.number().positive(),
+  price: z.number().nonnegative(),
+  priceType: z.enum(['FIXED', 'STARTING_FROM', 'RANGE', 'ON_CONSULTATION']).default('FIXED'),
+  priceMin: z.number().positive().optional(),
+  priceMax: z.number().positive().optional(),
+  description: z.string().trim().max(1000).optional(),
+  categoryId: z.string().cuid().optional().nullable(),
   active: z.boolean().default(true),
-});
+})
 
 export const updateServiceSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   duration: z.number().int().min(5).max(480).optional(),
-  price: z.number().positive().optional(),
+  price: z.number().nonnegative().optional(),
+  priceType: z.enum(['FIXED', 'STARTING_FROM', 'RANGE', 'ON_CONSULTATION']).optional(),
+  priceMin: z.number().positive().optional().nullable(),
+  priceMax: z.number().positive().optional().nullable(),
+  description: z.string().trim().max(1000).optional().nullable(),
+  categoryId: z.string().cuid().optional().nullable(),
   imageUrl: z.string().url().optional().nullable(),
-});
+})
 
 export type UpdateServiceInput = z.infer<typeof updateServiceSchema>;
 
@@ -119,3 +129,16 @@ export const updatePromotionSchema = z
 
 export type CreatePromotionInput = z.infer<typeof createPromotionSchema>
 export type UpdatePromotionInput = z.infer<typeof updatePromotionSchema>
+
+export const createServiceCategorySchema = z.object({
+  name: z.string().trim().min(2).max(60),
+  order: z.number().int().min(0).optional(),
+})
+
+export const updateServiceCategorySchema = z.object({
+  name: z.string().trim().min(2).max(60).optional(),
+  order: z.number().int().min(0).optional(),
+})
+
+export type CreateServiceCategoryInput = z.infer<typeof createServiceCategorySchema>
+export type UpdateServiceCategoryInput = z.infer<typeof updateServiceCategorySchema>

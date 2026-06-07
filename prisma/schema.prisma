@@ -86,6 +86,7 @@ enum SubscriptionStatus {
 
 enum PriceType {
   FIXED
+  STARTING_FROM
   RANGE
   ON_CONSULTATION
 }
@@ -149,6 +150,7 @@ model Tenant {
   appointmentProducts  AppointmentProduct[]
   serviceProducts      ServiceProduct[]
   professionalServices ProfessionalService[]
+  serviceCategories    ServiceCategory[]
 }
 
 model BrandingConfig {
@@ -331,6 +333,21 @@ model Customer {
   @@index([tenantId, birthDate])
 }
 
+model ServiceCategory {
+  id        String    @id @default(cuid())
+  tenantId  String
+  name      String
+  order     Int       @default(0)
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  services  Service[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
 model Service {
   id           String              @id @default(cuid())
   tenantId     String
@@ -342,6 +359,9 @@ model Service {
   priceMax     Decimal?            @db.Decimal(10, 2)
   active       Boolean             @default(true)
   imageUrl     String?
+  description  String?
+  categoryId   String?
+  category     ServiceCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -352,6 +372,7 @@ model Service {
   professionalServices ProfessionalService[]
 
   @@index([tenantId])
+  @@index([tenantId, categoryId])
 }
 
 model Appointment {
