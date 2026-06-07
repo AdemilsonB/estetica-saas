@@ -22,6 +22,8 @@ export type PublicService = {
 export type PublicProfessional = {
   id: string
   name: string
+  avatarUrl: string | null
+  serviceIds: string[]
 }
 
 export type TenantPublicData = {

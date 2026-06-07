@@ -51,11 +51,22 @@ export class PublicBookingRepository {
   }
 
   async findPublicProfessionals(tenantId: string) {
-    return prisma.user.findMany({
+    const professionals = await prisma.user.findMany({
       where: { tenantId, role: { in: ['PROFESSIONAL', 'OWNER', 'MANAGER'] } },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        avatarUrl: true,
+        professionalServices: { select: { serviceId: true } },
+      },
       orderBy: { name: 'asc' },
     })
+    return professionals.map((prof) => ({
+      id: prof.id,
+      name: prof.name,
+      avatarUrl: prof.avatarUrl,
+      serviceIds: prof.professionalServices.map((ps) => ps.serviceId),
+    }))
   }
 }
 
