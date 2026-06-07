@@ -17,6 +17,7 @@ export class SchedulingPolicyRepository {
       paddingMinutes?: number
       minAdvanceMinutes?: number
       maxAdvanceDays?: number
+      slotIntervalMinutes?: number
       allowPublicBooking?: boolean
     },
   ) {
