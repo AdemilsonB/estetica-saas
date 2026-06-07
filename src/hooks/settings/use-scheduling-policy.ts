@@ -7,6 +7,7 @@ export type SchedulingPolicy = {
   paddingMinutes: number
   minAdvanceMinutes: number
   maxAdvanceDays: number
+  slotIntervalMinutes: number
 }
 
 export type UpdateSchedulingPolicyInput = {
@@ -14,6 +15,7 @@ export type UpdateSchedulingPolicyInput = {
   paddingMinutes?: number
   minAdvanceMinutes?: number
   maxAdvanceDays?: number
+  slotIntervalMinutes?: number
 }
 
 async function fetchSchedulingPolicy(): Promise<SchedulingPolicy> {

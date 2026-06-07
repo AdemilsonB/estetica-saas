@@ -12,6 +12,7 @@ export class SchedulingPolicyService {
       minAdvanceMinutes?: number
       maxAdvanceDays?: number
       allowPublicBooking?: boolean
+      slotIntervalMinutes?: number
     },
   ) {
     return schedulingPolicyRepository.upsert(tenantId, data)

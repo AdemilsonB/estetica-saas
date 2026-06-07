@@ -18,10 +18,10 @@ export default function ServicosPage() {
 
       <Tabs defaultValue="servicos">
         <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="categorias">Categorias</TabsTrigger>
           <TabsTrigger value="servicos">Serviços</TabsTrigger>
           <TabsTrigger value="pacotes">Pacotes</TabsTrigger>
           <TabsTrigger value="promocoes">Promoções</TabsTrigger>
-          <TabsTrigger value="categorias">Categorias</TabsTrigger>
         </TabsList>
 
         <TabsContent value="servicos" className="mt-6">

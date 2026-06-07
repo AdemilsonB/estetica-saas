@@ -709,13 +709,14 @@ model ServiceProduct {
 }
 
 model SchedulingPolicy {
-  id                 String   @id @default(cuid())
-  tenantId           String   @unique
-  paddingMinutes     Int      @default(0)
-  minAdvanceMinutes  Int      @default(15)
-  maxAdvanceDays     Int      @default(60)
-  allowPublicBooking Boolean  @default(true)
-  updatedAt          DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  tenantId            String   @unique
+  paddingMinutes      Int      @default(0)
+  minAdvanceMinutes   Int      @default(15)
+  maxAdvanceDays      Int      @default(60)
+  slotIntervalMinutes Int      @default(30)
+  allowPublicBooking  Boolean  @default(true)
+  updatedAt           DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
