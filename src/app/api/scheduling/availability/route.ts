@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { availabilityService } from "@/domains/scheduling/availability.service";
 import { catalogServiceRepository } from "@/domains/scheduling/service.repository";
+import { schedulingPolicyService } from "@/domains/scheduling/scheduling-policy.service";
 import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
 import { ensurePermission, PERMISSIONS } from "@/shared/auth/permissions";
 import { getSessionContext } from "@/shared/auth/session";
@@ -28,7 +29,11 @@ export async function GET(request: Request) {
 
     const { professionalId, date, serviceId } = parsed.data;
 
-    const service = await catalogServiceRepository.findById(session.tenantId, serviceId);
+    const [service, policy] = await Promise.all([
+      catalogServiceRepository.findById(session.tenantId, serviceId),
+      schedulingPolicyService.getPolicy(session.tenantId),
+    ]);
+
     if (!service) {
       return Response.json({ slots: [] });
     }
@@ -38,6 +43,7 @@ export async function GET(request: Request) {
       professionalId,
       date,
       service.duration,
+      policy.slotIntervalMinutes,
     );
 
     return Response.json({ slots });
