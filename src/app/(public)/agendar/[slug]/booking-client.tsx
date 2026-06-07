@@ -75,7 +75,9 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
             service.priceMin != null &&
             service.priceMax != null
           ? `R$ ${Number(service.priceMin).toFixed(2)} – R$ ${Number(service.priceMax).toFixed(2)}`
-          : `R$ ${Number(service.price).toFixed(2)}`
+          : service.priceType === 'STARTING_FROM'
+            ? `A partir de R$ ${Number(service.price).toFixed(2)}`
+            : `R$ ${Number(service.price).toFixed(2)}`
 
     setBooking((b) => ({
       ...b,
