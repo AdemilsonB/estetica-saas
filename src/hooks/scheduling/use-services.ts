@@ -5,14 +5,25 @@ export type Service = {
   name: string
   duration: number
   price: string
-  active: boolean
+  priceType: 'FIXED' | 'STARTING_FROM' | 'RANGE' | 'ON_CONSULTATION'
+  priceMin: string | null
+  priceMax: string | null
+  description: string | null
   imageUrl: string | null
+  categoryId: string | null
+  category: { id: string; name: string } | null
+  active: boolean
 }
 
 export type CreateServiceInput = {
   name: string
   duration: number
   price: number
+  priceType?: 'FIXED' | 'STARTING_FROM'
+  priceMin?: number | null
+  priceMax?: number | null
+  description?: string | null
+  categoryId?: string | null
   active?: boolean
 }
 
@@ -20,6 +31,12 @@ export type UpdateServiceInput = {
   name?: string
   duration?: number
   price?: number
+  priceType?: 'FIXED' | 'STARTING_FROM' | 'RANGE' | 'ON_CONSULTATION'
+  priceMin?: number | null
+  priceMax?: number | null
+  description?: string | null
+  categoryId?: string | null
+  imageUrl?: string | null
 }
 
 async function listServices(): Promise<Service[]> {
