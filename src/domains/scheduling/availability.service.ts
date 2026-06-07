@@ -62,6 +62,7 @@ export class AvailabilityService {
     professionalId: string,
     date: string,
     serviceDuration: number,
+    slotIntervalMinutes = 30,
   ): Promise<TimeSlot[]> {
     const iamRepo = new IamRepository();
     const [businessHours, tz] = await Promise.all([
@@ -70,7 +71,6 @@ export class AvailabilityService {
     ]);
     const timezone = tz ?? "America/Sao_Paulo";
 
-    // Usar T12:00:00Z como referência para obter o dia correto no timezone do tenant
     const dayOfWeek = new Date(date + "T12:00:00Z").getUTCDay();
     const dayConfig = businessHours[String(dayOfWeek)];
 
@@ -78,7 +78,7 @@ export class AvailabilityService {
       return [];
     }
 
-    const step = Math.max(serviceDuration, 15);
+    const interval = Math.max(slotIntervalMinutes, 5);
     const openMin = timeToMinutes(dayConfig.open);
     const closeMin = timeToMinutes(dayConfig.close);
 
@@ -100,7 +100,8 @@ export class AvailabilityService {
     });
 
     const slots: TimeSlot[] = [];
-    for (let min = openMin; min + step <= closeMin; min += step) {
+    // Intervalo fixo como passo; slot é incluído apenas se duração cabe até o fechamento
+    for (let min = openMin; min + serviceDuration <= closeMin; min += interval) {
       const slotStart = localDateTimeToUtc(date, minutesToTime(min), timezone);
       const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60 * 1000);
 
