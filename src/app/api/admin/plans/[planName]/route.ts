@@ -8,11 +8,12 @@ import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 type Params = { params: Promise<{ planName: string }> }
 
 const updatePlanSchema = z.object({
-  displayName: z.string().min(1).max(50).optional(),
-  price:       z.number().min(0).optional(),
-  description: z.string().max(200).nullable().optional(),
-  trialDays:   z.number().int().min(0).max(365).optional(),
-  isActive:    z.boolean().optional(),
+  displayName:   z.string().min(1).max(50).optional(),
+  price:         z.number().min(0).optional(),
+  description:   z.string().max(2000).nullable().optional(),
+  trialDays:     z.number().int().min(0).max(365).optional(),
+  stripePriceId: z.string().max(100).nullable().optional(),
+  isActive:      z.boolean().optional(),
 })
 
 export async function PUT(request: Request, { params }: Params) {

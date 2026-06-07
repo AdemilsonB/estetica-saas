@@ -4,12 +4,6 @@ import { billingRepository } from './billing.repository'
 import { DomainError } from '@/shared/errors/domain-error'
 import { prisma } from '@/shared/database/prisma'
 
-const PRICE_MAP: Partial<Record<PlanName, string>> = {
-  STARTER: process.env.STRIPE_PRICE_STARTER_MONTHLY!,
-  PRO: process.env.STRIPE_PRICE_PRO_MONTHLY!,
-  ENTERPRISE: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY!,
-}
-
 export class StripeBillingService {
   async getOrCreateStripeCustomer(params: {
     tenantId: string
@@ -37,8 +31,21 @@ export class StripeBillingService {
     planName: PlanName
     skipTrial?: boolean
   }): Promise<{ checkoutUrl: string }> {
-    const priceId = PRICE_MAP[params.planName]
-    if (!priceId) throw new DomainError(`Plano ${params.planName} não tem price configurado.`, 'INVALID_PLAN', 400)
+    const plan = await prisma.plan.findUnique({
+      where: { name: params.planName },
+      select: { stripePriceId: true, trialDays: true },
+    })
+
+    if (!plan?.stripePriceId) {
+      throw new DomainError(
+        `Plano ${params.planName} não tem Stripe Price ID configurado. Configure em Admin → Planos.`,
+        'INVALID_PLAN',
+        400,
+      )
+    }
+
+    const priceId = plan.stripePriceId
+    const trialDays = params.skipTrial ? 0 : (plan.trialDays ?? 0)
 
     const customerId = await this.getOrCreateStripeCustomer({
       tenantId: params.tenantId,
@@ -47,12 +54,6 @@ export class StripeBillingService {
     })
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-
-    let trialDays = 0
-    if (!params.skipTrial) {
-      const plan = await prisma.plan.findUnique({ where: { name: params.planName }, select: { trialDays: true } })
-      trialDays = plan?.trialDays ?? 0
-    }
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
