@@ -263,10 +263,10 @@ export class SchedulingService {
     return catalogServiceRepository.update(tenantId, serviceId, {
       ...(input.name !== undefined && { name: input.name }),
       ...(input.duration !== undefined && { duration: input.duration }),
-      ...(input.price !== undefined && { price: input.price }),
+      ...(input.price !== undefined && { price: new Prisma.Decimal(input.price) }),
       ...(input.priceType !== undefined && { priceType: input.priceType as PriceType }),
-      ...(input.priceMin !== undefined && { priceMin: input.priceMin }),
-      ...(input.priceMax !== undefined && { priceMax: input.priceMax }),
+      ...(input.priceMin !== undefined && { priceMin: input.priceMin != null ? new Prisma.Decimal(input.priceMin) : null }),
+      ...(input.priceMax !== undefined && { priceMax: input.priceMax != null ? new Prisma.Decimal(input.priceMax) : null }),
       ...(input.description !== undefined && { description: input.description }),
       ...(input.categoryId !== undefined && { categoryId: input.categoryId }),
       ...(input.imageUrl !== undefined && { imageUrl: input.imageUrl }),

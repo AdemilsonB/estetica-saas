@@ -51,10 +51,9 @@ export class PublicBookingRepository {
       },
       orderBy: { name: 'asc' },
     })
-    return services.map((s) => ({
-      ...s,
-      categoryName: s.category?.name ?? null,
-      category: undefined,
+    return services.map(({ category, ...rest }) => ({
+      ...rest,
+      categoryName: category?.name ?? null,
     }))
   }
 

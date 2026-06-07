@@ -1,4 +1,4 @@
-import type { Prisma, Service, PriceType } from "@prisma/client";
+import type { Prisma, PriceType } from "@prisma/client";
 
 import { prisma } from "@/shared/database/prisma";
 
@@ -19,15 +19,12 @@ export class CatalogServiceRepository {
 
   async create(
     tenantId: string,
-    data: Omit<Prisma.ServiceUncheckedCreateInput, "tenantId">,
-  ): Promise<Service> {
+    data: Omit<Prisma.ServiceUncheckedCreateInput, 'tenantId'>,
+  ) {
     return prisma.service.create({
-      data: {
-        ...data,
-        tenantId,
-      },
+      data: { ...data, tenantId },
       include: { category: { select: { id: true, name: true } } },
-    }) as any;
+    })
   }
 
   async update(
