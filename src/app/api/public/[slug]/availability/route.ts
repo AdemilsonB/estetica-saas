@@ -44,20 +44,21 @@ export async function GET(
       resolvedProfessionalId = professionals[0].id
     }
 
-    // getAvailableSlots retorna TimeSlot[] com { time, available, bookedBy? }
-    // Para o booking público, retornamos apenas os slots disponíveis
     const allSlots = await availabilityService.getAvailableSlots(
       tenant.id,
       resolvedProfessionalId,
       date,
       service.duration,
+      policy.slotIntervalMinutes,
     )
 
-    const availableSlots = allSlots
-      .filter((slot) => slot.available)
-      .map((slot) => slot.time)
+    // Retorna todos os slots com status. Nunca expõe bookedBy (privacidade).
+    const publicSlots = allSlots.map((slot) => ({
+      time: slot.time,
+      available: slot.available,
+    }))
 
-    return Response.json({ slots: availableSlots })
+    return Response.json({ slots: publicSlots })
   } catch (error) {
     return handleApiError(error)
   }
