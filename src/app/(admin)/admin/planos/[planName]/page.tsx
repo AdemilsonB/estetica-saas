@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
 import { usePlans, useUpdatePlan } from '@/hooks/admin/use-plans'
@@ -129,8 +130,15 @@ export default function PlanEditorPage() {
               <Input type="number" min={0} step={0.01} value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Descrição</Label>
-              <Input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} />
+              <Label>Benefícios do plano</Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={5}
+                placeholder={'5 profissionais\n300 agendamentos/mês\nWhatsApp automático'}
+                className="resize-none font-mono text-sm"
+              />
+              <p className="text-xs text-slate-400">Um benefício por linha — exibido como bullets no onboarding e na página de planos.</p>
             </div>
             <div className="space-y-1.5">
               <Label>Dias de trial grátis</Label>
