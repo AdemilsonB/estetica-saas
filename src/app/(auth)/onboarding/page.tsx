@@ -3,14 +3,37 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Sparkles } from 'lucide-react'
+import { Check, Loader2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
 
-type Mode = 'loading' | 'create' | 'join'
+type Mode = 'loading' | 'create' | 'join' | 'plan'
+
+const PLANS = [
+  {
+    name: 'FREE',
+    label: 'Free',
+    price: 'Grátis',
+    features: ['2 profissionais', '50 agendamentos/mês', 'Agenda e CRM básico'],
+  },
+  {
+    name: 'STARTER',
+    label: 'Starter',
+    price: 'R$29/mês',
+    features: ['5 profissionais', '300 agendamentos/mês', 'WhatsApp automático'],
+    popular: false,
+  },
+  {
+    name: 'PRO',
+    label: 'Pro',
+    price: 'R$59/mês',
+    features: ['20 profissionais', '2.000 agendamentos/mês', 'Relatórios avançados'],
+    popular: true,
+  },
+]
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -22,11 +45,13 @@ export default function OnboardingPage() {
   const [joinConfirmPassword, setJoinConfirmPassword] = useState('')
   const [joinPasswordError, setJoinPasswordError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
   const [primaryColor, setPrimaryColor] = useState('#191919')
   const [backgroundColor, setBackgroundColor] = useState('#f8f8f7')
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
+  const [accessToken, setAccessToken] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
@@ -89,11 +114,43 @@ export default function OnboardingPage() {
       }
 
       await supabase.auth.refreshSession()
+      const { data: { session: refreshedSession } } = await supabase.auth.getSession()
+      setAccessToken(refreshedSession?.access_token ?? null)
+      setMode('plan')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function handleSelectPlan(planName: string) {
+    if (planName === 'FREE') {
       toast.success('Tudo pronto! Bem-vindo ao workspace.')
       router.push('/dashboard')
       router.refresh()
+      return
+    }
+
+    setLoadingPlan(planName)
+    try {
+      const res = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ planName }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err?.message ?? 'Erro ao iniciar checkout. Tente novamente.')
+        return
+      }
+      const { checkoutUrl } = await res.json()
+      window.location.href = checkoutUrl
+    } catch {
+      toast.error('Erro de conexão. Tente novamente.')
     } finally {
-      setIsSubmitting(false)
+      setLoadingPlan(null)
     }
   }
 
@@ -150,6 +207,64 @@ export default function OnboardingPage() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="size-8 animate-spin text-slate-400" />
+      </div>
+    )
+  }
+
+  if (mode === 'plan') {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-8">
+        <div className="w-full max-w-2xl space-y-8">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-[#191919]">
+            <Sparkles className="size-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-[#191919]">Escolha seu plano</h1>
+            <p className="mt-2 text-sm text-[#787774]">
+              14 dias grátis em qualquer plano pago. Cancele a qualquer momento.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {PLANS.map(plan => (
+              <div
+                key={plan.name}
+                className={`relative rounded-xl border bg-white p-5 flex flex-col gap-4
+                  ${plan.popular ? 'border-[#191919] shadow-md ring-1 ring-[#191919]' : 'border-slate-200'}`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="rounded-full bg-[#191919] px-3 py-1 text-xs font-medium text-white">Mais popular</span>
+                  </div>
+                )}
+                <div>
+                  <p className="font-semibold text-[#191919]">{plan.label}</p>
+                  <p className="text-xl font-bold text-[#191919] mt-1">{plan.price}</p>
+                </div>
+                <ul className="space-y-1.5 flex-1">
+                  {plan.features.map(f => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
+                      <Check className="size-4 text-green-500 mt-0.5 shrink-0" />{f}
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  onClick={() => handleSelectPlan(plan.name)}
+                  disabled={loadingPlan !== null}
+                  variant={plan.popular ? 'default' : 'outline'}
+                  className={plan.popular ? 'bg-[#191919] hover:bg-[#2d2d2d]' : ''}
+                >
+                  {loadingPlan === plan.name
+                    ? <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
+                    : plan.name === 'FREE' ? 'Começar grátis' : 'Iniciar 14 dias grátis'
+                  }
+                </Button>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-center text-[#787774]">
+            Você pode alterar o plano a qualquer momento em Configurações → Planos.
+          </p>
+        </div>
       </div>
     )
   }
@@ -266,7 +381,7 @@ export default function OnboardingPage() {
                 className="w-full bg-[#191919] text-white hover:bg-[#2d2d2d]"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? <><Loader2 className="mr-2 size-4 animate-spin" />Configurando...</> : 'Começar →'}
+                {isSubmitting ? <><Loader2 className="mr-2 size-4 animate-spin" />Configurando...</> : 'Continuar →'}
               </Button>
             </form>
           </>

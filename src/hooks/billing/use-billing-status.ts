@@ -4,6 +4,7 @@ type BillingStatus = {
   plan: string
   status: string
   trialEndsAt: string | null
+  stripeSubId: string | null
   features: Record<string, boolean>
   limits: {
     users: { current: number; max: number }

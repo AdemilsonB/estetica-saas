@@ -36,6 +36,7 @@ export async function GET(request: Request) {
       plan,
       status,
       trialEndsAt: sub?.trialEndsAt ?? null,
+      stripeSubId: sub?.stripeSubId ?? null,
       features: activeFeatures,
       limits: {
         users:              { current: userCount,        max: maxUsers },

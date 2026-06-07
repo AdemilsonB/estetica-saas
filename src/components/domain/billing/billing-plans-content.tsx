@@ -1,8 +1,13 @@
 "use client"
 
+import { useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { useBillingStatus } from "@/hooks/billing/use-billing-status"
+import { useBillingActions } from "@/hooks/use-billing-actions"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 
 const PLAN_FEATURES_TABLE = [
   { feature: "Agendamentos/mês",     free: "50",  starter: "300",  pro: "2.000" },
@@ -21,8 +26,27 @@ const STATUS_LABEL: Record<string, string> = {
   EXPIRED:   "Expirado",
 }
 
+const UPGRADEABLE_PLANS = [
+  { name: 'STARTER', label: 'Starter — R$29/mês' },
+  { name: 'PRO',     label: 'Pro — R$59/mês' },
+]
+
 export function BillingPlansContent() {
   const { data, isLoading } = useBillingStatus()
+  const { startUpgrade, openPortal, loadingPlan, loadingPortal } = useBillingActions()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  useEffect(() => {
+    const stripe = searchParams.get('stripe')
+    if (stripe === 'success') {
+      toast.success('Assinatura ativada com sucesso!')
+      router.replace('/configuracoes/planos')
+    } else if (stripe === 'cancelled') {
+      toast.info('Checkout cancelado. Seu plano não foi alterado.')
+      router.replace('/configuracoes/planos')
+    }
+  }, [searchParams, router])
 
   if (isLoading) return <div className="h-64 animate-pulse rounded-lg bg-muted" />
   if (!data) return null
@@ -31,13 +55,17 @@ export function BillingPlansContent() {
     ? Math.max(0, Math.ceil((new Date(data.trialEndsAt).getTime() - Date.now()) / 86400000))
     : null
 
+  const isPaid = data.status === 'ACTIVE' || data.status === 'TRIALING'
+  const isCurrentPlanFree = data.plan === 'FREE'
+  const hasStripeSubscription = !!data.stripeSubId
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Plano atual: {data.plan}
-            <Badge variant={data.status === "ACTIVE" || data.status === "TRIALING" ? "default" : "destructive"}>
+            <Badge variant={isPaid ? "default" : "destructive"}>
               {STATUS_LABEL[data.status] ?? data.status}
             </Badge>
           </CardTitle>
@@ -65,6 +93,18 @@ export function BillingPlansContent() {
             </p>
           </div>
         </CardContent>
+        {hasStripeSubscription && (
+          <CardFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openPortal}
+              disabled={loadingPortal}
+            >
+              {loadingPortal ? 'Abrindo...' : 'Gerenciar assinatura / Faturas'}
+            </Button>
+          </CardFooter>
+        )}
       </Card>
 
       <div
@@ -96,9 +136,29 @@ export function BillingPlansContent() {
         </table>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        Para fazer upgrade do seu plano, entre em contato com o suporte via WhatsApp.
-      </p>
+      {isCurrentPlanFree && (
+        <div className="space-y-3">
+          <p className="text-sm font-medium">Fazer upgrade do plano</p>
+          <div className="flex flex-wrap gap-3">
+            {UPGRADEABLE_PLANS.map(plan => (
+              <Button
+                key={plan.name}
+                onClick={() => startUpgrade(plan.name)}
+                disabled={loadingPlan !== null}
+                variant={plan.name === 'PRO' ? 'default' : 'outline'}
+              >
+                {loadingPlan === plan.name ? 'Redirecionando...' : plan.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!isCurrentPlanFree && !hasStripeSubscription && (
+        <p className="text-sm text-muted-foreground">
+          Para gerenciar sua assinatura, entre em contato com o suporte via WhatsApp.
+        </p>
+      )}
     </div>
   )
 }
