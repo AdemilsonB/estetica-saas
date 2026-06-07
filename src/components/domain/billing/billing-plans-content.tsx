@@ -4,35 +4,69 @@ import { useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useBillingStatus } from "@/hooks/billing/use-billing-status"
+import { usePlans, type PlanData } from "@/hooks/billing/use-plans"
 import { useBillingActions } from "@/hooks/use-billing-actions"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 
-const PLAN_FEATURES_TABLE = [
-  { feature: "Agendamentos/mês",     free: "50",  starter: "300",  pro: "2.000" },
-  { feature: "Usuários",             free: "2",   starter: "5",    pro: "20"   },
-  { feature: "WhatsApp básico",      free: "—",   starter: "✓",    pro: "✓"   },
-  { feature: "Relatórios básicos",   free: "✓",   starter: "✓",    pro: "✓"   },
-  { feature: "Relatórios avançados", free: "—",   starter: "—",    pro: "✓"   },
-  { feature: "Campanhas",            free: "—",   starter: "✓",    pro: "✓"   },
-]
+const PLAN_ORDER = ['FREE', 'STARTER', 'PRO', 'ENTERPRISE']
 
-const STATUS_LABEL: Record<string, string> = {
-  TRIALING:  "Trial ativo",
-  ACTIVE:    "Ativo",
-  PAST_DUE:  "Pagamento pendente",
-  CANCELLED: "Cancelado",
-  EXPIRED:   "Expirado",
+function formatLimitValue(value: number, infiniteThreshold: number): string {
+  if (value >= infiniteThreshold) return 'Ilimitado'
+  return value.toLocaleString('pt-BR')
 }
 
-const UPGRADEABLE_PLANS = [
-  { name: 'STARTER', label: 'Starter — R$29/mês' },
-  { name: 'PRO',     label: 'Pro — R$59/mês' },
-]
+function buildTableRows(plans: PlanData[]) {
+  return [
+    {
+      label: 'Agendamentos/mês',
+      getVal: (p: PlanData) => formatLimitValue(p.limits.max_appointments_month ?? 0, 99999),
+    },
+    {
+      label: 'Usuários',
+      getVal: (p: PlanData) => formatLimitValue(p.limits.max_users ?? 0, 999),
+    },
+    {
+      label: 'WhatsApp/mês',
+      getVal: (p: PlanData) => {
+        const v = p.limits.max_whatsapp_month ?? 0
+        return v === 0 ? '—' : formatLimitValue(v, 99999)
+      },
+    },
+    {
+      label: 'E-mails/mês',
+      getVal: (p: PlanData) => {
+        const v = p.limits.max_email_month ?? 0
+        return v === 0 ? '—' : formatLimitValue(v, 99999)
+      },
+    },
+    {
+      label: 'Múltiplas unidades',
+      getVal: (p: PlanData) => {
+        const v = p.limits.max_units ?? 1
+        if (v >= 999) return 'Ilimitado'
+        return v <= 1 ? '—' : `${v}`
+      },
+    },
+  ]
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  TRIALING:  'Trial ativo',
+  ACTIVE:    'Ativo',
+  PAST_DUE:  'Pagamento pendente',
+  CANCELLED: 'Cancelado',
+  EXPIRED:   'Expirado',
+}
+
+function formatPrice(price: number) {
+  return price === 0 ? 'Grátis' : `R$${price.toFixed(0)}/mês`
+}
 
 export function BillingPlansContent() {
-  const { data, isLoading } = useBillingStatus()
+  const { data, isLoading: statusLoading } = useBillingStatus()
+  const { data: plansData, isLoading: plansLoading } = usePlans()
   const { startUpgrade, openPortal, loadingKey, loadingPortal } = useBillingActions()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -48,17 +82,24 @@ export function BillingPlansContent() {
     }
   }, [searchParams, router])
 
-  if (isLoading) return <div className="h-64 animate-pulse rounded-lg bg-muted" />
-  if (!data) return null
+  if (statusLoading || plansLoading) return <div className="h-64 animate-pulse rounded-lg bg-muted" />
+  if (!data || !plansData) return null
+
+  const { plans } = plansData
+  const tableRows = buildTableRows(plans)
 
   const trialDaysLeft = data.trialEndsAt
     ? Math.max(0, Math.ceil((new Date(data.trialEndsAt).getTime() - Date.now()) / 86400000))
     : null
 
   const isPaid = data.status === 'ACTIVE' || data.status === 'TRIALING'
-  const isCurrentPlanFree = data.plan === 'FREE'
   const hasStripeSubscription = !!data.stripeSubId
-  const isLoading_ = loadingKey !== null
+  const isLoadingAction = loadingKey !== null
+
+  const currentPlanIndex = PLAN_ORDER.indexOf(data.plan)
+  const upgradePlans = plans.filter(p => PLAN_ORDER.indexOf(p.name) > currentPlanIndex)
+  const canUpgradeViaCheckout = upgradePlans.length > 0 && !hasStripeSubscription
+  const canUpgradeViaPortal = upgradePlans.length > 0 && hasStripeSubscription
 
   return (
     <div className="space-y-6">
@@ -66,15 +107,15 @@ export function BillingPlansContent() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Plano atual: {data.plan}
-            <Badge variant={isPaid ? "default" : "destructive"}>
+            <Badge variant={isPaid ? 'default' : 'destructive'}>
               {STATUS_LABEL[data.status] ?? data.status}
             </Badge>
           </CardTitle>
-          {trialDaysLeft !== null && data.status === "TRIALING" && (
+          {trialDaysLeft !== null && data.status === 'TRIALING' && (
             <CardDescription>
               {trialDaysLeft > 0
                 ? `Trial termina em ${trialDaysLeft} dia(s)`
-                : "Trial encerrado"}
+                : 'Trial encerrado'}
             </CardDescription>
           )}
         </CardHeader>
@@ -82,15 +123,15 @@ export function BillingPlansContent() {
           <div>
             <p className="text-muted-foreground">Agendamentos este mês</p>
             <p className="font-medium">
-              {data.limits.appointments_month.current} /{" "}
-              {data.limits.appointments_month.max === -1 ? "Ilimitado" : data.limits.appointments_month.max}
+              {data.limits.appointments_month.current} /{' '}
+              {data.limits.appointments_month.max === -1 ? 'Ilimitado' : data.limits.appointments_month.max}
             </p>
           </div>
           <div>
             <p className="text-muted-foreground">Usuários</p>
             <p className="font-medium">
-              {data.limits.users.current} /{" "}
-              {data.limits.users.max === -1 ? "Ilimitado" : data.limits.users.max}
+              {data.limits.users.current} /{' '}
+              {data.limits.users.max === -1 ? 'Ilimitado' : data.limits.users.max}
             </p>
           </div>
         </CardContent>
@@ -119,45 +160,54 @@ export function BillingPlansContent() {
           <thead>
             <tr className="border-b bg-muted/50">
               <th className="p-3 text-left font-medium">Recurso</th>
-              <th className="p-3 text-center font-medium">Free</th>
-              <th className="p-3 text-center font-medium">Starter</th>
-              <th className="p-3 text-center font-medium">Pro</th>
+              {plans.map(plan => (
+                <th key={plan.name} className="p-3 text-center font-medium">
+                  {plan.displayName}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {PLAN_FEATURES_TABLE.map((row, i) => (
+            {tableRows.map((row, i) => (
               <tr key={i} className="border-b last:border-0">
-                <td className="p-3">{row.feature}</td>
-                <td className="p-3 text-center text-muted-foreground">{row.free}</td>
-                <td className="p-3 text-center">{row.starter}</td>
-                <td className="p-3 text-center">{row.pro}</td>
+                <td className="p-3">{row.label}</td>
+                {plans.map(plan => (
+                  <td key={plan.name} className="p-3 text-center">
+                    {row.getVal(plan)}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {isCurrentPlanFree && (
+      {canUpgradeViaCheckout && (
         <div className="space-y-4">
           <p className="text-sm font-medium">Fazer upgrade do plano</p>
           <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
-            {UPGRADEABLE_PLANS.map(plan => (
+            {upgradePlans.map(plan => (
               <div key={plan.name} className="flex flex-col gap-2 rounded-lg border p-4 sm:w-56">
-                <p className="text-sm font-semibold">{plan.label}</p>
+                <div>
+                  <p className="text-sm font-semibold">{plan.displayName}</p>
+                  <p className="text-xs text-muted-foreground">{formatPrice(plan.price)}</p>
+                </div>
+                {plan.trialDays > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => startUpgrade(plan.name, false)}
+                    disabled={isLoadingAction}
+                    className="w-full"
+                  >
+                    {loadingKey === `${plan.name}_trial` ? 'Redirecionando...' : `Iniciar trial de ${plan.trialDays} dias`}
+                  </Button>
+                )}
                 <Button
                   size="sm"
-                  variant={plan.name === 'PRO' ? 'default' : 'outline'}
-                  onClick={() => startUpgrade(plan.name, false)}
-                  disabled={isLoading_}
-                  className="w-full"
-                >
-                  {loadingKey === `${plan.name}_trial` ? 'Redirecionando...' : 'Iniciar trial grátis'}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
+                  variant={plan.name === 'PRO' ? 'default' : 'ghost'}
                   onClick={() => startUpgrade(plan.name, true)}
-                  disabled={isLoading_}
+                  disabled={isLoadingAction}
                   className="w-full text-muted-foreground"
                 >
                   {loadingKey === `${plan.name}_direct` ? 'Redirecionando...' : 'Assinar agora'}
@@ -166,14 +216,31 @@ export function BillingPlansContent() {
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            "Iniciar trial grátis" — você só é cobrado após o período de trial. Cartão necessário para garantir a continuidade.
+            Trial grátis — você só é cobrado após o período. Cartão necessário para garantir a continuidade.
           </p>
         </div>
       )}
 
-      {!isCurrentPlanFree && !hasStripeSubscription && (
+      {canUpgradeViaPortal && (
+        <div className="rounded-lg border p-4 space-y-2">
+          <p className="text-sm font-medium">Fazer upgrade do plano</p>
+          <p className="text-sm text-muted-foreground">
+            Para mudar para um plano superior, acesse o portal de assinatura e selecione o novo plano.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openPortal}
+            disabled={loadingPortal}
+          >
+            {loadingPortal ? 'Abrindo...' : 'Gerenciar / Fazer upgrade'}
+          </Button>
+        </div>
+      )}
+
+      {upgradePlans.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          Para gerenciar sua assinatura, entre em contato com o suporte via WhatsApp.
+          Você está no plano máximo disponível. Entre em contato com o suporte para necessidades especiais.
         </p>
       )}
     </div>
