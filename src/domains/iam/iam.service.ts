@@ -89,9 +89,12 @@ export class IamService {
         tenantId: createResult.tenant.id,
         role: UserRole.OWNER,
       },
+      user_metadata: {
+        onboardingStep: 'plan',
+      },
     });
 
-    await billingService.startTrial(createResult.tenant.id);
+    await billingService.startFree(createResult.tenant.id);
 
     return { tenantId: createResult.tenant.id, userId: createResult.user.id };
   }

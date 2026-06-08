@@ -4,20 +4,33 @@ import { getSessionContext } from '@/shared/auth/session'
 import { handleApiError } from '@/shared/http/handle-api-error'
 import { stripeBillingService } from '@/domains/billing/stripe-billing.service'
 import { iamRepository } from '@/domains/iam/iam.repository'
+import { billingRepository } from '@/domains/billing/billing.repository'
+import { DomainError } from '@/shared/errors/domain-error'
 
 const CheckoutSchema = z.object({
-  planName:  z.enum(['STARTER', 'PRO', 'ENTERPRISE']),
-  skipTrial: z.boolean().optional().default(false),
+  planName:   z.enum(['STARTER', 'PRO', 'ENTERPRISE']),
+  skipTrial:  z.boolean().optional().default(false),
+  successUrl: z.string().url().optional(),
+  cancelUrl:  z.string().url().optional(),
 })
 
 export async function POST(req: Request) {
   try {
     const session = await getSessionContext(req)
     const body = await req.json()
-    const { planName, skipTrial } = CheckoutSchema.parse(body)
+    const { planName, skipTrial, successUrl, cancelUrl } = CheckoutSchema.parse(body)
+
+    const sub = await billingRepository.getSubscription(session.tenantId)
+    if (sub?.stripeSubId) {
+      throw new DomainError(
+        'Você já possui uma assinatura ativa. Para mudar de plano, use o portal de assinatura.',
+        'SUBSCRIPTION_EXISTS',
+        409,
+      )
+    }
 
     const user = await iamRepository.findUserById(session.tenantId, session.userId)
-    if (!user) throw new Error('Usuário não encontrado')
+    if (!user) throw new DomainError('Usuário não encontrado', 'NOT_FOUND', 404)
 
     const result = await stripeBillingService.createCheckoutSession({
       tenantId: session.tenantId,
@@ -25,6 +38,8 @@ export async function POST(req: Request) {
       ownerName: user.name,
       planName: planName as PlanName,
       skipTrial,
+      successUrl,
+      cancelUrl,
     })
 
     return Response.json(result)
