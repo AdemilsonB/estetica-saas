@@ -30,6 +30,8 @@ export class StripeBillingService {
     ownerName: string
     planName: PlanName
     skipTrial?: boolean
+    successUrl?: string
+    cancelUrl?: string
   }): Promise<{ checkoutUrl: string }> {
     const plan = await prisma.plan.findUnique({
       where: { name: params.planName },
@@ -59,8 +61,8 @@ export class StripeBillingService {
       customer: customerId,
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${appUrl}/configuracoes/planos?stripe=success`,
-      cancel_url: `${appUrl}/configuracoes/planos?stripe=cancelled`,
+      success_url: params.successUrl ?? `${appUrl}/configuracoes/planos?stripe=success`,
+      cancel_url: params.cancelUrl ?? `${appUrl}/configuracoes/planos?stripe=cancelled`,
       metadata: { tenantId: params.tenantId, planName: params.planName },
       ...(trialDays > 0 && {
         subscription_data: { trial_period_days: trialDays },

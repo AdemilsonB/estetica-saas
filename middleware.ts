@@ -71,6 +71,10 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user?.app_metadata?.tenantId && (isAuthRoute || isOnboarding)) {
+    // Permite continuar no onboarding se o usuário ainda não selecionou o plano
+    if (isOnboarding && user.user_metadata?.onboardingStep === 'plan') {
+      return supabaseResponse
+    }
     return NextResponse.redirect(new URL("/", request.url));
   }
 

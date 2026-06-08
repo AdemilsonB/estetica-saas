@@ -3,11 +3,15 @@ import Stripe from 'stripe'
 import { stripe } from '@/domains/billing/stripe.client'
 import { billingRepository } from '@/domains/billing/billing.repository'
 import { billingService } from '@/domains/billing/billing.service'
+import { prisma } from '@/shared/database/prisma'
 
-const PRICE_TO_PLAN: Record<string, PlanName> = {
-  [process.env.STRIPE_PRICE_STARTER_MONTHLY ?? '']: PlanName.STARTER,
-  [process.env.STRIPE_PRICE_PRO_MONTHLY ?? '']: PlanName.PRO,
-  [process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY ?? '']: PlanName.ENTERPRISE,
+async function planFromPriceId(priceId: string): Promise<PlanName | null> {
+  if (!priceId) return null
+  const plan = await prisma.plan.findFirst({
+    where: { stripePriceId: priceId },
+    select: { name: true },
+  })
+  return plan?.name ?? null
 }
 
 function stripeStatusToSubscriptionStatus(status: Stripe.Subscription.Status): SubscriptionStatus {
@@ -44,7 +48,7 @@ export async function POST(req: Request) {
         if (!tenantId) break
 
         const priceId = sub.items.data[0]?.price.id ?? ''
-        const planName = PRICE_TO_PLAN[priceId] ?? PlanName.STARTER
+        const planName = (await planFromPriceId(priceId)) ?? PlanName.STARTER
         const newStatus = stripeStatusToSubscriptionStatus(sub.status)
 
         await billingRepository.setStripeIds(tenantId, {

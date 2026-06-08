@@ -12,9 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { PasswordStrength } from "@/components/auth/password-strength";
-import { GoogleButton } from "@/components/auth/google-button";
 import { createSupabaseBrowserClient } from "@/integrations/supabase/client";
 
 // ─── Schemas ───────────────────────────────────────────────────────────────
@@ -278,15 +276,6 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
           "Entrar"
         )}
       </Button>
-
-      <div className="relative">
-        <Separator className="bg-border" />
-        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-muted-foreground">
-          ou
-        </span>
-      </div>
-
-      <GoogleButton />
     </form>
   );
 }
@@ -418,15 +407,6 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
           "Criar conta"
         )}
       </Button>
-
-      <div className="relative">
-        <Separator className="bg-border" />
-        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-muted-foreground">
-          ou
-        </span>
-      </div>
-
-      <GoogleButton />
 
       <p className="text-center text-xs text-muted-foreground">
         Ao criar uma conta, voce concorda com nossos{" "}

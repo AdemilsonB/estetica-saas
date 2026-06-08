@@ -7,6 +7,17 @@ import { prisma } from "@/shared/database/prisma";
 import { billingRepository } from "./billing.repository";
 
 export class BillingService {
+  async startFree(tenantId: string) {
+    const now = new Date()
+    return billingRepository.createSubscription({
+      tenantId,
+      plan: PlanName.FREE,
+      status: SubscriptionStatus.ACTIVE,
+      currentPeriodStart: now,
+      currentPeriodEnd: new Date('2099-12-31'),
+    })
+  }
+
   async startTrial(tenantId: string) {
     const now = new Date();
     const starterPlan = await prisma.plan.findUnique({ where: { name: PlanName.STARTER }, select: { trialDays: true } });

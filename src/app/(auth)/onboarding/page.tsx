@@ -2,7 +2,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Check, Loader2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -32,6 +32,7 @@ function planFeatures(plan: ApiPlan): string[] {
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [mode, setMode] = useState<Mode>('loading')
   const [pendingTenantId, setPendingTenantId] = useState('')
   const [businessName, setBusinessName] = useState('')
@@ -46,7 +47,6 @@ export default function OnboardingPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
-  const [accessToken, setAccessToken] = useState<string | null>(null)
   const [plans, setPlans] = useState<ApiPlan[]>([])
   const [plansLoading, setPlansLoading] = useState(false)
 
@@ -62,18 +62,31 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
+    const stripeResult = searchParams.get('stripe')
+
     supabase.auth.getUser().then(({ data }) => {
       const meta = data.user?.user_metadata
+
+      if (meta?.onboardingStep === 'plan' && stripeResult === 'success') {
+        supabase.auth.updateUser({ data: { onboardingStep: 'complete' } }).then(() => {
+          router.replace('/agenda')
+        })
+        return
+      }
+
       if (meta?.pendingTenantId) {
         setPendingTenantId(meta.pendingTenantId as string)
         setUserName(meta.full_name ?? meta.name ?? '')
         setMode('join')
+      } else if (meta?.onboardingStep === 'plan') {
+        setUserName(meta?.full_name ?? meta?.name ?? '')
+        setMode('plan')
       } else {
         setUserName(meta?.full_name ?? meta?.name ?? '')
         setMode('create')
       }
     })
-  }, [])
+  }, [searchParams, router])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -121,8 +134,6 @@ export default function OnboardingPage() {
       }
 
       await supabase.auth.refreshSession()
-      const { data: { session: refreshedSession } } = await supabase.auth.getSession()
-      setAccessToken(refreshedSession?.access_token ?? null)
       setMode('plan')
     } finally {
       setIsSubmitting(false)
@@ -131,8 +142,10 @@ export default function OnboardingPage() {
 
   async function handleSelectPlan(planName: string, skipTrial = false) {
     if (planName === 'FREE') {
+      const supabase = createSupabaseBrowserClient()
+      await supabase.auth.updateUser({ data: { onboardingStep: 'complete' } })
       toast.success('Tudo pronto! Bem-vindo ao workspace.')
-      router.push('/dashboard')
+      router.push('/agenda')
       router.refresh()
       return
     }
@@ -140,13 +153,16 @@ export default function OnboardingPage() {
     const key = skipTrial ? `${planName}_direct` : `${planName}_trial`
     setLoadingKey(key)
     try {
+      const origin = window.location.origin
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({ planName, skipTrial }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planName,
+          skipTrial,
+          successUrl: `${origin}/onboarding?stripe=success`,
+          cancelUrl: `${origin}/onboarding?stripe=cancelled`,
+        }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
