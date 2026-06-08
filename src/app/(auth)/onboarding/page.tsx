@@ -1,7 +1,7 @@
 // src/app/(auth)/onboarding/page.tsx
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Check, Loader2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
@@ -31,6 +31,18 @@ function planFeatures(plan: ApiPlan): string[] {
 }
 
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-slate-400" />
+      </div>
+    }>
+      <OnboardingContent />
+    </Suspense>
+  )
+}
+
+function OnboardingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [mode, setMode] = useState<Mode>('loading')
