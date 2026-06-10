@@ -6,7 +6,8 @@ import { cache } from 'react'
 import { getSupabaseSessionFromToken } from '@/integrations/supabase/auth'
 import { env, isProduction } from '@/shared/config/env'
 import { prisma } from '@/shared/database/prisma'
-import { UnauthorizedError } from '@/shared/errors'
+import { TenantBlockedError, UnauthorizedError } from '@/shared/errors'
+import { verifyImpersonationToken } from '@/shared/auth/impersonation'
 import { buildOwnerPermissions } from '@/shared/permissions/nav-registry'
 import type { SessionContext } from '@/shared/types/auth'
 
@@ -24,15 +25,27 @@ function buildLegacyPermissions(role: string): Record<string, string[]> {
   return LEGACY_ROLE_PERMISSIONS[role] ?? {}
 }
 
-async function buildSessionFromUserId(userId: string, tenantId: string): Promise<SessionContext> {
-  const dbUser = await prisma.user.findFirst({
-    where: { id: userId, tenantId },
-    select: {
-      role: true,
-      roleId: true,
-      customRole: { select: { permissions: true } },
-    },
-  })
+async function buildSessionFromUserId(
+  userId: string,
+  tenantId: string,
+  isImpersonating = false,
+): Promise<SessionContext> {
+  const [dbUser, dbTenant] = await Promise.all([
+    prisma.user.findFirst({
+      where: { id: userId, tenantId },
+      select: {
+        role: true,
+        roleId: true,
+        customRole: { select: { permissions: true } },
+      },
+    }),
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { isBlocked: true },
+    }),
+  ])
+
+  if (dbTenant?.isBlocked) throw new TenantBlockedError()
 
   if (!dbUser) {
     throw new UnauthorizedError('Usuario nao encontrado no tenant.')
@@ -50,10 +63,38 @@ async function buildSessionFromUserId(userId: string, tenantId: string): Promise
     permissions = buildLegacyPermissions(dbUser.role)
   }
 
-  return { tenantId, userId, isOwner, permissions }
+  return { tenantId, userId, isOwner, permissions, isImpersonating }
 }
 
 export const getSessionContext = cache(async (request: Request): Promise<SessionContext> => {
+  // 0. Impersonação — admin visualizando como dono do tenant
+  const impersonateHeader = request.headers.get('x-impersonate-token')
+  if (impersonateHeader) {
+    const payload = await verifyImpersonationToken(impersonateHeader)
+
+    const [owner, tenant] = await Promise.all([
+      prisma.user.findFirst({
+        where: { tenantId: payload.tenantId, role: UserRole.OWNER },
+        select: { id: true },
+      }),
+      prisma.tenant.findUnique({
+        where: { id: payload.tenantId },
+        select: { isBlocked: true },
+      }),
+    ])
+
+    if (tenant?.isBlocked) throw new TenantBlockedError()
+    if (!owner) throw new UnauthorizedError('Owner do tenant não encontrado.')
+
+    return {
+      tenantId: payload.tenantId,
+      userId: owner.id,
+      isOwner: true,
+      permissions: buildOwnerPermissions(),
+      isImpersonating: true,
+    }
+  }
+
   // 1. Bearer token
   const accessToken = extractAccessToken(request)
   if (accessToken) {

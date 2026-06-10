@@ -13,6 +13,7 @@ import { registerRecurringExpenseJob } from "@/shared/queue/jobs/recurring-expen
 import { registerVipSweepJob } from "@/shared/queue/jobs/vip-sweep";
 import { registerDailyStatusJob } from '@/shared/queue/jobs/daily-status'
 import { registerSubscriptionExpiryWarnings } from '@/shared/queue/jobs/subscription-expiry-warnings'
+import { registerUsageSnapshotJob } from '@/shared/queue/jobs/usage-snapshot'
 
 let initialized = false;
 
@@ -39,6 +40,7 @@ export function initializeDomainRuntime() {
       await registerVipSweepJob(boss);
       await registerDailyStatusJob(boss);
       await registerSubscriptionExpiryWarnings(boss);
+      await registerUsageSnapshotJob(boss);
     })
     .catch(console.error);
 

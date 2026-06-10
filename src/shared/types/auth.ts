@@ -3,4 +3,5 @@ export type SessionContext = {
   userId: string
   isOwner: boolean
   permissions: Record<string, string[]>
+  isImpersonating?: boolean
 }

@@ -4,8 +4,11 @@ export type AdminTenant = {
   id: string
   name: string
   plan: string
+  isBlocked: boolean
   createdAt: string
-  _count: { users: number }
+  appointmentsThisMonth: number
+  appointmentsLimit: number | null
+  _count: { users: number; appointments: number }
 }
 
 async function fetchAdminTenants(): Promise<AdminTenant[]> {

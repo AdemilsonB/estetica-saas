@@ -184,6 +184,16 @@ export class CustomerBlockedError extends DomainError {
   }
 }
 
+export class TenantBlockedError extends DomainError {
+  constructor() {
+    super(
+      'Este negócio está suspenso. Entre em contato com o suporte.',
+      'TENANT_BLOCKED',
+      403,
+    )
+  }
+}
+
 export class PublicBookingDisabledError extends DomainError {
   constructor() {
     super(

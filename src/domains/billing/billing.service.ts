@@ -89,6 +89,36 @@ export class BillingService {
       await this.changePlan(sub.tenantId, sub.plan, SubscriptionStatus.EXPIRED, "system", "period_expired");
     }
   }
+
+  async resetTrial(tenantId: string, adminId: string) {
+    const now = new Date()
+    const trialEndsAt = addDays(now, 14)
+
+    const current = await billingRepository.getSubscription(tenantId)
+
+    const updated = await billingRepository.updateSubscription(tenantId, {
+      plan: PlanName.STARTER,
+      status: SubscriptionStatus.TRIALING,
+      trialEndsAt,
+      currentPeriodStart: now,
+      currentPeriodEnd: trialEndsAt,
+      cancelledAt: null,
+    })
+
+    await billingRepository.addHistory({
+      subscriptionId: updated.id,
+      fromPlan: current?.plan ?? null,
+      toPlan: PlanName.STARTER,
+      fromStatus: current?.status ?? null,
+      toStatus: SubscriptionStatus.TRIALING,
+      reason: 'admin_reset_trial',
+      changedBy: adminId,
+    })
+
+    await billingRepository.updateTenantPlanCache(tenantId, PlanName.STARTER)
+
+    return updated
+  }
 }
 
 export const billingService = new BillingService();
