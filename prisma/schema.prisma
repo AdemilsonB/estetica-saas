@@ -152,6 +152,7 @@ model Tenant {
   serviceProducts      ServiceProduct[]
   professionalServices ProfessionalService[]
   serviceCategories    ServiceCategory[]
+  usageSnapshots       UsageSnapshot[]
 }
 
 model BrandingConfig {
@@ -762,4 +763,18 @@ model ProfessionalService {
   @@index([tenantId])
   @@index([tenantId, serviceId])
   @@index([tenantId, userId])
+}
+
+model UsageSnapshot {
+  id        String   @id @default(cuid())
+  tenantId  String
+  limitKey  String
+  count     Int
+  period    String   // "2026-06" (YYYY-MM)
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, limitKey, period])
+  @@index([tenantId])
 }
