@@ -41,6 +41,17 @@ export class IamService {
       throw new NotFoundError("Usuario");
     }
 
+    // Busca avatar_url do Supabase Auth (pode ser null para usuários sem OAuth)
+    // Degradação graciosa: falha no Supabase Auth não derruba o endpoint
+    let avatarUrl: string | null = null
+    try {
+      const { data: authData } = await supabaseAdmin.auth.admin.getUserById(session.userId)
+      const raw = authData?.user?.user_metadata?.['avatar_url']
+      avatarUrl = typeof raw === 'string' ? raw : null
+    } catch {
+      // avatar_url é dado não-crítico; degrada para null sem derrubar o endpoint
+    }
+
     return {
       id: user.id,
       tenantId: user.tenantId,
@@ -52,6 +63,7 @@ export class IamService {
       roleName: session.isOwner ? "Dono" : (user.customRole?.name ?? "Sem cargo"),
       permissions: session.permissions,
       businessName: user.tenant.name,
+      avatarUrl,
     };
   }
 

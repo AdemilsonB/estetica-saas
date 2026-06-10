@@ -24,6 +24,7 @@ export function useEvolutionStatus(options?: { refetchInterval?: number | false 
       if (!res.ok) throw new Error("Erro ao buscar status Evolution");
       return res.json();
     },
+    staleTime: 60 * 1000,
     refetchInterval: options?.refetchInterval ?? false,
   });
 }
