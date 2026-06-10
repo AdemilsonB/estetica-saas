@@ -174,12 +174,15 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
           </span>
         )}
         {showLabel && hasBadge && (
-          <span className="ml-auto inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-green-500 text-[9px] font-bold leading-none text-white">
+          <span
+            aria-label="Configuração pendente"
+            className="ml-auto inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-green-500 text-[9px] font-bold leading-none text-white"
+          >
             !
           </span>
         )}
         {!showLabel && hasBadge && (
-          <span className="absolute right-0.5 top-0.5 size-2 rounded-full bg-green-500" />
+          <span aria-hidden="true" className="absolute right-0.5 top-0.5 size-2 rounded-full bg-green-500" />
         )}
       </Link>
     )
@@ -278,7 +281,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
                   <div className="rounded-xl bg-linear-to-br from-violet-600 to-purple-600 p-3 text-white">
                     <div className="flex items-start justify-between gap-1">
                       <div className="min-w-0">
-                        <p className="text-xs font-bold leading-tight">🚀 Desbloqueie mais recursos</p>
+                        <p className="text-xs font-bold leading-tight"><span aria-hidden="true">🚀</span> Desbloqueie mais recursos</p>
                         <p className="mt-0.5 text-[10px] leading-tight opacity-80">WhatsApp, relatórios e muito mais</p>
                       </div>
                       <button
