@@ -14,6 +14,7 @@ type CreateSubscriptionData = {
 type UpdateSubscriptionData = {
   plan?: PlanName;
   status?: SubscriptionStatus;
+  trialEndsAt?: Date | null;
   currentPeriodStart?: Date;
   currentPeriodEnd?: Date;
   cancelledAt?: Date | null;
