@@ -41,6 +41,12 @@ export async function POST(request: Request) {
       console.warn("[Evolution] Falha ao configurar webhook:", err instanceof Error ? err.message : "erro desconhecido");
     });
 
+    // Configura webhook para mensagens inbound (chatbot)
+    const messagesWebhookUrl = `${process.env.APP_URL}/api/webhooks/evolution/messages`;
+    await evolutionProvider.configureMessagesWebhook(instanceName, messagesWebhookUrl).catch((err: unknown) => {
+      console.warn("[Evolution] Falha ao configurar webhook de mensagens:", err instanceof Error ? err.message : "erro desconhecido");
+    });
+
     await prisma.tenant.update({
       where: { id: session.tenantId },
       data: {

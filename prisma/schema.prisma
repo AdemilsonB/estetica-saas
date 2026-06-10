@@ -135,6 +135,7 @@ model Tenant {
   appointments Appointment[]
   transactions Transaction[]
   notifications       NotificationLog[]
+  autoReplyLogs        WhatsAppAutoReplyLog[]
   invites             TenantInvite[]
   roles               Role[]
   discountTypes       DiscountType[]
@@ -454,6 +455,18 @@ model NotificationLog {
 
   @@index([tenantId])
   @@index([tenantId, channel, status])
+}
+
+model WhatsAppAutoReplyLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  phone     String
+  intent    String
+  repliedAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, phone, repliedAt])
 }
 
 model WhatsAppMonthlyUsage {
