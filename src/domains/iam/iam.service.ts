@@ -42,16 +42,17 @@ export class IamService {
       throw new NotFoundError("Usuario");
     }
 
-    // Prioridade: OAuth avatar_url (Google etc.) > foto manual do DB > null
-    // Degradação graciosa: falha no Supabase Auth não derruba o endpoint
-    let avatarUrl: string | null = user.avatarUrl ?? null
+    // Prioridade: foto manual do DB > OAuth avatar_url (Google etc.) > null
+    // Foto manual é escolha explícita do usuário — deve prevalecer sobre OAuth
+    let oauthAvatarUrl: string | null = null
     try {
       const { data: authData } = await supabaseAdmin.auth.admin.getUserById(session.userId)
       const raw = authData?.user?.user_metadata?.['avatar_url']
-      if (typeof raw === 'string') avatarUrl = raw
+      if (typeof raw === 'string' && raw.length > 0) oauthAvatarUrl = raw
     } catch {
       // avatar_url é dado não-crítico; degrada para null sem derrubar o endpoint
     }
+    const avatarUrl = user.avatarUrl ?? oauthAvatarUrl
 
     return {
       id: user.id,

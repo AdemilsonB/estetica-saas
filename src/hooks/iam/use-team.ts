@@ -194,6 +194,7 @@ export function useUploadAvatar() {
     mutationFn: uploadAvatar,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-members'] })
+      queryClient.invalidateQueries({ queryKey: ['current-user'] })
     },
   })
 }
