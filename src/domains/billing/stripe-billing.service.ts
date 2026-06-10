@@ -64,10 +64,11 @@ export class StripeBillingService {
       success_url: params.successUrl ?? `${appUrl}/configuracoes/planos?stripe=success`,
       cancel_url: params.cancelUrl ?? `${appUrl}/configuracoes/planos?stripe=cancelled`,
       metadata: { tenantId: params.tenantId, planName: params.planName },
-      ...(trialDays > 0 && {
-        subscription_data: { trial_period_days: trialDays },
-        payment_method_collection: 'always',
-      }),
+      subscription_data: {
+        metadata: { tenantId: params.tenantId, planName: params.planName },
+        ...(trialDays > 0 && { trial_period_days: trialDays }),
+      },
+      ...(trialDays > 0 && { payment_method_collection: 'always' }),
     })
 
     if (!session.url) throw new DomainError('Falha ao criar sessão de checkout.', 'STRIPE_ERROR', 500)

@@ -192,32 +192,18 @@ export function BillingPlansContent() {
                   <p className="text-sm font-semibold">{plan.displayName}</p>
                   <p className="text-xs text-muted-foreground">{formatPrice(plan.price)}</p>
                 </div>
-                {plan.trialDays > 0 && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => startUpgrade(plan.name, false)}
-                    disabled={isLoadingAction}
-                    className="w-full"
-                  >
-                    {loadingKey === `${plan.name}_trial` ? 'Redirecionando...' : `Iniciar trial de ${plan.trialDays} dias`}
-                  </Button>
-                )}
                 <Button
                   size="sm"
-                  variant={plan.name === 'PRO' ? 'default' : 'ghost'}
+                  variant={plan.name === 'PRO' ? 'default' : 'outline'}
                   onClick={() => startUpgrade(plan.name, true)}
                   disabled={isLoadingAction}
-                  className="w-full text-muted-foreground"
+                  className="w-full"
                 >
                   {loadingKey === `${plan.name}_direct` ? 'Redirecionando...' : 'Assinar agora'}
                 </Button>
               </div>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Trial grátis — você só é cobrado após o período. Cartão necessário para garantir a continuidade.
-          </p>
         </div>
       )}
 
