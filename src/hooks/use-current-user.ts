@@ -11,6 +11,7 @@ export type CurrentUser = {
   roleName: string
   permissions: Record<string, string[]>
   businessName: string
+  avatarUrl: string | null
 }
 
 async function fetchCurrentUser(): Promise<CurrentUser> {
