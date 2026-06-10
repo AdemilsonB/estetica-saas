@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { unstable_cache } from 'next/cache'
 import { AppShell } from '@/components/app/app-shell'
+import { ImpersonationBanner } from '@/components/admin/impersonation-banner'
 import { brandingRepository } from '@/domains/iam/branding.repository'
 import { buildCssVariables } from '@/lib/branding/build-css-variables'
 import { iamRepository } from '@/domains/iam/iam.repository'
@@ -80,6 +81,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       {brandingCss && (
         <style dangerouslySetInnerHTML={{ __html: `:root { ${brandingCss} }` }} />
       )}
+      <ImpersonationBanner />
       <AppShell logoUrl={logoUrl} businessName={businessName}>
         {children}
       </AppShell>

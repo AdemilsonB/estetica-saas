@@ -30,6 +30,7 @@ import {
   useChangePlan,
   useSendAdminMessage,
 } from '@/hooks/admin/use-admin-tenant-detail'
+import { storeImpersonationSession } from '@/lib/impersonation-client'
 
 const PLAN_LABELS: Record<string, string> = {
   FREE: 'Free', STARTER: 'Starter', PRO: 'Pro', ENTERPRISE: 'Enterprise',
@@ -51,10 +52,6 @@ const STATUS_COLORS: Record<string, string> = {
   EXPIRED: 'bg-slate-100 text-slate-700',
 }
 
-// TODO: mover para @/lib/impersonation-client após Task 12
-function storeImpersonationSession(session: { token: string; tenantId: string; tenantName: string }) {
-  sessionStorage.setItem('impersonation_session', JSON.stringify(session))
-}
 
 export default function TenantDetailPage() {
   const params = useParams<{ tenantId: string }>()

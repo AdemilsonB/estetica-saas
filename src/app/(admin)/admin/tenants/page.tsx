@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useAdminTenants } from '@/hooks/admin/use-admin-tenants'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
@@ -45,6 +46,7 @@ export default function AdminTenantsPage() {
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-slate-500">Negócio</th>
                 <th className="px-4 py-3 text-left font-medium text-slate-500">Plano</th>
+                <th className="px-4 py-3 text-left font-medium text-slate-500">Uso (agend.)</th>
                 <th className="px-4 py-3 text-left font-medium text-slate-500">Usuários</th>
                 <th className="px-4 py-3 text-left font-medium text-slate-500">Cadastro</th>
               </tr>
@@ -52,18 +54,53 @@ export default function AdminTenantsPage() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
                     Nenhum tenant encontrado
                   </td>
                 </tr>
               ) : (
                 filtered.map((tenant) => (
-                  <tr key={tenant.id} className="border-b border-slate-50 last:border-0">
-                    <td className="px-4 py-3 font-medium text-slate-900">{tenant.name}</td>
+                  <tr
+                    key={tenant.id}
+                    className="border-b border-slate-50 last:border-0 hover:bg-slate-50 cursor-pointer"
+                  >
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/admin/tenants/${tenant.id}`}
+                        className="flex items-center gap-2"
+                      >
+                        <span className="font-medium text-slate-900">{tenant.name}</span>
+                        {tenant.isBlocked && (
+                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                            Bloqueado
+                          </span>
+                        )}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${PLAN_COLORS[tenant.plan] ?? 'bg-slate-100 text-slate-700'}`}>
                         {tenant.plan}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="w-32">
+                        <div className="flex justify-between text-xs text-slate-500 mb-0.5">
+                          <span>{tenant.appointmentsThisMonth}</span>
+                          <span>{tenant.appointmentsLimit ?? '∞'}</span>
+                        </div>
+                        {tenant.appointmentsLimit ? (
+                          <div className="h-1.5 w-full rounded-full bg-slate-100">
+                            <div
+                              className="h-1.5 rounded-full bg-blue-500 transition-all"
+                              style={{
+                                width: `${Math.min(100, (tenant.appointmentsThisMonth / tenant.appointmentsLimit) * 100)}%`,
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-1.5 w-full rounded-full bg-slate-100" />
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-slate-600">{tenant._count.users}</td>
                     <td className="px-4 py-3 text-slate-400">
