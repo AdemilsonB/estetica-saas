@@ -32,6 +32,7 @@ export class IamService {
         name: true,
         role: true,
         roleId: true,
+        avatarUrl: true,
         customRole: { select: { id: true, name: true } },
         tenant: { select: { name: true } },
       },
@@ -41,16 +42,17 @@ export class IamService {
       throw new NotFoundError("Usuario");
     }
 
-    // Busca avatar_url do Supabase Auth (pode ser null para usuários sem OAuth)
-    // Degradação graciosa: falha no Supabase Auth não derruba o endpoint
-    let avatarUrl: string | null = null
+    // Prioridade: foto manual do DB > OAuth avatar_url (Google etc.) > null
+    // Foto manual é escolha explícita do usuário — deve prevalecer sobre OAuth
+    let oauthAvatarUrl: string | null = null
     try {
       const { data: authData } = await supabaseAdmin.auth.admin.getUserById(session.userId)
       const raw = authData?.user?.user_metadata?.['avatar_url']
-      avatarUrl = typeof raw === 'string' ? raw : null
+      if (typeof raw === 'string' && raw.length > 0) oauthAvatarUrl = raw
     } catch {
       // avatar_url é dado não-crítico; degrada para null sem derrubar o endpoint
     }
+    const avatarUrl = user.avatarUrl ?? oauthAvatarUrl
 
     return {
       id: user.id,
