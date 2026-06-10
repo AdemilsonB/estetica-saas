@@ -2,10 +2,17 @@
 'use client'
 
 import { useState } from 'react'
-import { UserPlus, Users, Mail, X, Loader2 } from 'lucide-react'
+import { Settings2, UserPlus, Users, Mail, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +26,7 @@ import {
 import { toast } from 'sonner'
 import { TeamMemberCard } from '@/components/domain/iam/team-member-card'
 import { InviteMemberModal } from '@/components/domain/iam/invite-member-modal'
+import { RolesManager } from '@/components/domain/iam/roles-manager'
 import { useTeamMembers, useTeamInvites, useCancelInvite, type UserRole } from '@/hooks/iam/use-team'
 import { usePermissions } from '@/hooks/use-permissions'
 
@@ -31,6 +39,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 
 export default function EquipePage() {
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [rolesOpen, setRolesOpen] = useState(false)
   const { can, user } = usePermissions()
   const {
     data: members,
@@ -76,7 +85,7 @@ export default function EquipePage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
             Equipe
@@ -85,15 +94,27 @@ export default function EquipePage() {
             Gerencie os membros e convites do seu negócio
           </p>
         </div>
-        {canInvite && (
-          <Button
-            onClick={() => setInviteOpen(true)}
-            className="rounded-full bg-slate-950 text-white hover:bg-slate-800"
-          >
-            <UserPlus className="size-4" />
-            <span className="hidden sm:inline">Convidar</span>
-          </Button>
-        )}
+        <div className="flex w-full gap-2 sm:w-auto sm:justify-end">
+          {user?.isOwner && (
+            <Button
+              variant="outline"
+              onClick={() => setRolesOpen(true)}
+              className="flex-1 rounded-full sm:flex-none"
+            >
+              <Settings2 className="size-4" />
+              Cargos
+            </Button>
+          )}
+          {canInvite && (
+            <Button
+              onClick={() => setInviteOpen(true)}
+              className="flex-1 rounded-full bg-slate-950 text-white hover:bg-slate-800 sm:flex-none"
+            >
+              <UserPlus className="size-4" />
+              Convidar
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Membros ativos */}
@@ -207,6 +228,18 @@ export default function EquipePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={rolesOpen} onOpenChange={setRolesOpen}>
+        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-5xl">
+          <DialogHeader className="pr-8">
+            <DialogTitle>Cargos e permissões</DialogTitle>
+            <DialogDescription>
+              Defina o que cada cargo pode ver e fazer no sistema.
+            </DialogDescription>
+          </DialogHeader>
+          <RolesManager />
+        </DialogContent>
+      </Dialog>
 
       <InviteMemberModal open={inviteOpen} onClose={() => setInviteOpen(false)} />
     </div>

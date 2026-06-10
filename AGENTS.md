@@ -1,82 +1,74 @@
-# AGENTS.md — Orquestrador de agentes
+# AGENTS.md — Mapa do sistema de skills
 
-> Cole este arquivo no início de uma conversa quando precisar orientar o Claude
-> sobre QUAL agente usar para a tarefa. O orquestrador decide o fluxo.
-
----
-
-## Como funciona o sistema de agentes
-
-Este projeto usa agentes especializados para diferentes tipos de tarefa.
-Cada agente tem um prompt específico em `.claude/agent-*.md`.
-
-Para ativar um agente, cole o conteúdo do arquivo correspondente
-no início da conversa com o Claude, junto com o `CLAUDE.md`.
+> Referência humana do pipeline de desenvolvimento.
+> Para uso no Codex CLI: cole o `CODEX.md` no início da sessão.
+> Para Claude Code: o `CLAUDE.md` é carregado automaticamente.
 
 ---
 
-## Mapa de agentes
+## Ponto de entrada para qualquer tarefa
 
-| Tarefa | Agente | Arquivo |
+```
+Ideia do usuário
+      ↓
+agent-onboarding   ← explora intenção, propõe abordagens, estrutura brief
+      ↓
+orchestrator       ← executa o brief com o pipeline correto de skills
+      ↓
+[database] → [backend] → [frontend] → [testing + security] → [review] → [documentation]
+      ↓
+PR aberta e mergeada na main
+```
+
+Só acione o orchestrator diretamente (sem onboarding) se:
+- É um bug com arquivo + comportamento + erro exatos descritos
+- É uma mudança pontual e cirúrgica com escopo inequívoco
+
+---
+
+## Skills disponíveis
+
+| Skill | Arquivo | Quando usar |
 |---|---|---|
-| Criar domínio, service, repository, API Route | Backend | `agent-backend.md` |
-| Criar página, componente, layout, UI | Frontend | `agent-frontend.md` |
-| Criar/alterar schema Prisma, migration | Database | `agent-database.md` |
-| Revisar código gerado, encontrar problemas | Review | `agent-review.md` |
+| **Onboarding** | `.claude/skills/agent-onboarding.md` | **Primeiro passo** — toda ideia nova passa aqui |
+| **Orchestrator** | `.claude/skills/orchestrator.md` | Executa o brief estruturado pelo Onboarding |
+| **Database** | `.claude/skills/agent-database.md` | Schema Prisma, migrations, RLS |
+| **Backend** | `.claude/skills/agent-backend.md` | Services, repos, API Routes, Zod schemas |
+| **Frontend** | `.claude/skills/agent-frontend.md` | Pages, components, hooks de UI |
+| **Testing** | `.claude/skills/agent-testing.md` | Vitest, testes unit + integração |
+| **Security** | `.claude/skills/agent-security.md` | Auditoria OWASP, tenancy, rate limiting |
+| **Review** | `.claude/skills/agent-review.md` | Gate de build final, aprovação de PR |
+| **Documentation** | `.claude/skills/agent-documentation.md` | Atualiza docs após cada feature |
+| **Arquiteto** | `.claude/skills/agent-architect.md` | Decisões arquiteturais novas |
 
 ---
 
-## Fluxo recomendado para uma nova feature
+## Paralelismo possível no pipeline
 
-```
-1. agent-database  →  schema Prisma + migration
-2. agent-backend   →  repository + service + API Route
-3. agent-frontend  →  componente + página + integração
-4. agent-review    →  revisão final antes do commit
-```
-
-### Exemplo: implementar agendamento
-
-```
-Sessão 1 — Database Agent
-"Crie o model Appointment no Prisma seguindo as regras do projeto"
-
-Sessão 2 — Backend Agent
-"Crie o AppointmentRepository, AppointmentService e a API Route POST /api/scheduling/appointments"
-
-Sessão 3 — Frontend Agent
-"Crie a página de agenda semanal consumindo a API de agendamentos"
-
-Sessão 4 — Review Agent
-"Revise o código gerado nas sessões anteriores"
-```
+- `agent-testing` e `agent-security` podem rodar em paralelo após o código pronto
+- `agent-documentation` roda SEMPRE APÓS `agent-review` — nunca em paralelo com o gate de build
 
 ---
 
-## Como iniciar qualquer sessão de Vibe Coding
+## Gates de validação obrigatórios
 
-Cole sempre no início da conversa:
-
-```
-[conteúdo do CLAUDE.md]
----
-[conteúdo do agent-*.md correspondente]
----
-Tarefa: [descreva o que quer construir]
-```
-
-Quanto mais contexto você der, melhor o resultado.
-Inclua também o `DOMAIN.md` do domínio sendo trabalhado.
+| Skill concluída | Validação |
+|---|---|
+| `agent-database` | `npx prisma validate && npx prisma generate` |
+| `agent-backend` | `npx tsc --noEmit` sem erros na área modificada |
+| `agent-frontend` | `npx tsc --noEmit` sem erros de tipo |
+| `agent-testing` | `npx vitest run` — todos passando |
+| `agent-security` | Nenhum item CRÍTICO em aberto |
+| `agent-review` | `npx tsc --noEmit` + `npx vitest run` — projeto inteiro verde |
 
 ---
 
 ## Regras para todos os agentes
 
 - Sempre respeitar os padrões do `CLAUDE.md`
-- Sempre gerar TypeScript strict — sem `any`
-- Sempre incluir `tenantId` em operações de banco
-- Sempre usar erros tipados de `src/shared/errors/`
-- Sempre publicar eventos após operações importantes
-- Nunca acoplar domínios diretamente
-- Nunca gerar lógica de negócio em componentes React
-- Nunca gerar queries diretas ao banco em API Routes
+- TypeScript strict — sem `any`, sem `as unknown as`
+- `tenantId` em todo model e em toda query de banco
+- Erros tipados de `src/shared/errors/` — nunca strings genéricas
+- Eventos via `eventBus.publish()` — nunca importação direta entre domínios
+- Nunca lógica de negócio em componentes React
+- Nunca queries diretas ao banco em API Routes

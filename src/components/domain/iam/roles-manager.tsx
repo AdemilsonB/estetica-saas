@@ -51,9 +51,9 @@ export function RolesManager() {
   }
 
   return (
-    <div className="flex gap-6">
+    <div className="flex flex-col gap-6 lg:flex-row">
       {/* Lista de cargos */}
-      <div className="w-56 shrink-0 space-y-2">
+      <div className="w-full shrink-0 space-y-2 lg:w-56">
         {roles?.map((role) => (
           <div
             key={role.id}
@@ -110,7 +110,7 @@ export function RolesManager() {
       </div>
 
       {/* Painel de edição */}
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         {editingRole ? (
           <RoleEditor
             key={editingRole.id}

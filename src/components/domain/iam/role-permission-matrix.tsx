@@ -40,7 +40,7 @@ export function RolePermissionMatrix({ sections, permissions, onChange, disabled
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="min-w-[560px] w-full text-sm">
         <thead>
           <tr className="border-b border-slate-100">
             <th className="pb-2 text-left font-medium text-slate-500">Tela</th>
