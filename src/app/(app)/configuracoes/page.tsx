@@ -14,7 +14,6 @@ import { CardFeesForm } from '@/components/domain/settings/card-fees-form'
 import { SettingsAnamneseTab } from '@/components/domain/crm/settings-anamnese-tab'
 import { SchedulingPolicyForm } from '@/components/domain/settings/scheduling-policy-form'
 import { usePermissions } from '@/hooks/use-permissions'
-import { RolesManager } from '@/components/domain/iam/roles-manager'
 import { BillingPlansContent } from '@/components/domain/billing/billing-plans-content'
 import { Loader2 } from 'lucide-react'
 
@@ -64,7 +63,7 @@ export default function ConfiguracoesPage() {
   if (!can('configuracoes', 'view')) return null
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
           Configurações
@@ -75,30 +74,44 @@ export default function ConfiguracoesPage() {
       </div>
 
       <Tabs defaultValue="negocio" onValueChange={handleTabChange}>
-        <div className="overflow-x-auto scrollbar-hide">
-          <TabsList className={`grid w-full min-w-[140%] ${user?.isOwner ? 'grid-cols-9' : 'grid-cols-7'}`}>
+        <div className="overflow-x-auto pb-1 scrollbar-hide">
+          <TabsList className="flex h-auto min-w-max justify-start">
             <TabsTrigger value="negocio">Negócio</TabsTrigger>
             <TabsTrigger value="horarios">Horários</TabsTrigger>
             <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
             <TabsTrigger value="layout">Layout</TabsTrigger>
             <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
             <TabsTrigger value="crm">CRM</TabsTrigger>
-            <TabsTrigger value="agendamento-online">Agend. Online</TabsTrigger>
-            {user?.isOwner && (
-              <>
-                <TabsTrigger value="cargos">Cargos</TabsTrigger>
-                <TabsTrigger value="planos">Planos</TabsTrigger>
-              </>
-            )}
           </TabsList>
         </div>
 
         <TabsContent value="negocio" className="mt-6">
-          <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-slate-950">
-              Dados do negócio
-            </h2>
-            <BusinessInfoForm />
+          <div className="space-y-4">
+            <section className="rounded-2xl border border-white/80 bg-white/85 p-4 shadow-sm sm:p-6">
+              <h2 className="mb-4 text-base font-semibold text-slate-950">
+                Dados do negócio
+              </h2>
+              <BusinessInfoForm />
+            </section>
+
+            <section className="rounded-2xl border border-white/80 bg-white/85 p-4 shadow-sm sm:p-6">
+              <h2 className="mb-2 text-base font-semibold text-slate-950">
+                Agenda online
+              </h2>
+              <p className="mb-6 text-sm text-slate-500">
+                Configure como os clientes podem agendar pelo link público do seu negócio.
+              </p>
+              <SchedulingPolicyForm />
+            </section>
+
+            {user?.isOwner && (
+              <section className="rounded-2xl border border-white/80 bg-white/85 p-4 shadow-sm sm:p-6">
+                <h2 className="mb-4 text-base font-semibold text-slate-950">
+                  Plano e assinatura
+                </h2>
+                <BillingPlansContent />
+              </section>
+            )}
           </div>
         </TabsContent>
 
@@ -162,40 +175,6 @@ export default function ConfiguracoesPage() {
             <SettingsAnamneseTab />
           </div>
         </TabsContent>
-        <TabsContent value="agendamento-online" className="mt-6">
-          <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-slate-950">
-              Agendamento online
-            </h2>
-            <p className="mb-6 text-sm text-slate-500">
-              Configure como os clientes podem agendar pelo link público do seu negócio.
-            </p>
-            <SchedulingPolicyForm />
-          </div>
-        </TabsContent>
-        {user?.isOwner && (
-          <TabsContent value="cargos" className="mt-6">
-            <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">
-              <h2 className="mb-1 text-base font-semibold text-slate-950">
-                Cargos e Permissões
-              </h2>
-              <p className="mb-6 text-sm text-slate-500">
-                Defina o que cada cargo pode ver e fazer no sistema.
-              </p>
-              <RolesManager />
-            </div>
-          </TabsContent>
-        )}
-        {user?.isOwner && (
-          <TabsContent value="planos" className="mt-6">
-            <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm">
-              <h2 className="mb-4 text-base font-semibold text-slate-950">
-                Plano e assinatura
-              </h2>
-              <BillingPlansContent />
-            </div>
-          </TabsContent>
-        )}
       </Tabs>
     </div>
   )
