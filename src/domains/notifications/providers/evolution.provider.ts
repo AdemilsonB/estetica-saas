@@ -190,6 +190,33 @@ export class EvolutionProvider implements IWhatsAppProvider {
     });
   }
 
+  async configureMessagesWebhook(instanceName: string, webhookUrl: string): Promise<void> {
+    await fetch(`${this.baseUrl}/webhook/set/${instanceName}`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({
+        url: webhookUrl,
+        webhook_by_events: false,
+        webhook_base64: false,
+        events: ["MESSAGES_UPSERT"],
+      }),
+    });
+  }
+
+  async sendRawText(instanceName: string, phone: string, text: string): Promise<void> {
+    let number: string;
+    try {
+      number = toE164Number(phone);
+    } catch {
+      return;
+    }
+    await fetch(`${this.baseUrl}/message/sendText/${instanceName}`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({ number, text }),
+    }).catch(() => {});
+  }
+
   async getQrCode(instanceName: string): Promise<string> {
     const response = await fetch(`${this.baseUrl}/instance/connect/${instanceName}`, {
       headers: this.headers(),
