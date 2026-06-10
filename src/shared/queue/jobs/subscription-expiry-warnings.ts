@@ -28,11 +28,6 @@ export async function handleSubscriptionExpiryWarnings(
             select: { id: true },
             take: 1,
           },
-          customers: {
-            where: { role: { equals: undefined } },
-            select: { id: true },
-            take: 1,
-          },
         },
       },
     },
