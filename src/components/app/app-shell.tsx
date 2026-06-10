@@ -10,6 +10,8 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useBillingStatus } from '@/hooks/billing/use-billing-status'
+import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
 import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
 import { cn } from '@/lib/utils'
 import { NAV_REGISTRY, type NavSection } from '@/shared/permissions/nav-registry'
@@ -32,6 +34,13 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { canAccess, user, isLoading } = usePermissions()
+  const { data: billingStatus } = useBillingStatus()
+  const [upgradeCardDismissed, setUpgradeCardDismissed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return sessionStorage.getItem('upgrade-card-dismissed') === '1'
+  })
+  const { data: evolutionStatus, isLoading: evolutionLoading } = useEvolutionStatus()
+  const whatsappPending = !evolutionLoading && evolutionStatus?.connected === false
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     return localStorage.getItem('sidebar-collapsed') === 'true'
@@ -57,6 +66,52 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
   const visibleItems = NAV_REGISTRY.filter((section) => canAccess(section.key))
   const mainItems = visibleItems.filter((s) => s.key !== 'configuracoes')
   const configItem = visibleItems.find((s) => s.key === 'configuracoes')
+
+  function UserAvatar({ size = 'md' }: { size?: 'md' | 'sm' }) {
+    const dim = size === 'sm' ? 'size-9' : 'size-[34px]'
+    if (user?.avatarUrl) {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={user.avatarUrl}
+          alt={user.name}
+          className={cn(dim, 'shrink-0 rounded-xl object-cover')}
+        />
+      )
+    }
+    return (
+      <div className={cn(dim, 'inline-flex shrink-0 items-center justify-center rounded-xl bg-primary/15 text-xs font-bold text-primary')}>
+        {getInitials(user?.name ?? 'U')}
+      </div>
+    )
+  }
+
+  function PlanBadge() {
+    if (!billingStatus) return null
+    const { plan, status, trialEndsAt } = billingStatus
+
+    if (status === 'TRIALING' && trialEndsAt) {
+      const daysLeft = Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86400000))
+      return (
+        <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+          Trial · {daysLeft}d
+        </span>
+      )
+    }
+
+    const styles: Record<string, string> = {
+      FREE:       'bg-slate-100 text-slate-600 border-slate-200',
+      STARTER:    'bg-blue-50 text-blue-700 border-blue-200',
+      PRO:        'bg-violet-50 text-violet-700 border-violet-200',
+      ENTERPRISE: 'bg-amber-50 text-amber-700 border-amber-200',
+    }
+
+    return (
+      <span className={cn('inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide', styles[plan] ?? styles['FREE'])}>
+        {plan}
+      </span>
+    )
+  }
 
   function LogoBrand({ size = 'normal' }: { size?: 'normal' | 'small' }) {
     const isSmall = size === 'small'
@@ -88,7 +143,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
     )
   }
 
-  function NavLink({ item, showLabel }: { item: NavSection; showLabel: boolean }) {
+  function NavLink({ item, showLabel, hasBadge }: { item: NavSection; showLabel: boolean; hasBadge?: boolean }) {
     const Icon = (Icons as unknown as Record<string, React.ElementType>)[item.icon] ?? Icons.Circle
     const isActive = pathname.startsWith(item.href)
     return (
@@ -96,6 +151,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
         href={item.href}
         className={cn(
           'flex items-center rounded-xl transition',
+          hasBadge && 'relative',
           showLabel ? 'gap-3 px-3 py-2.5' : 'size-10 justify-center',
           isActive
             ? 'bg-accent text-primary'
@@ -112,10 +168,18 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
           <Icon className="size-4" />
         </span>
         {showLabel && (
-          <span className="min-w-0">
+          <span className="min-w-0 flex-1">
             <span className="block text-sm font-medium">{item.label}</span>
             <span className="block text-xs text-muted-foreground">{item.description}</span>
           </span>
+        )}
+        {showLabel && hasBadge && (
+          <span className="ml-auto inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-green-500 text-[9px] font-bold leading-none text-white">
+            !
+          </span>
+        )}
+        {!showLabel && hasBadge && (
+          <span className="absolute right-0.5 top-0.5 size-2 rounded-full bg-green-500" />
         )}
       </Link>
     )
@@ -180,11 +244,11 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
           <div className={cn('border-t border-border/50 py-3', showLabel ? 'px-3 space-y-1' : 'px-2 space-y-2 flex flex-col items-center')}>
             {configItem && (
               showLabel ? (
-                <NavLink item={configItem} showLabel />
+                <NavLink item={configItem} showLabel hasBadge={whatsappPending} />
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div><NavLink item={configItem} showLabel={false} /></div>
+                    <div><NavLink item={configItem} showLabel={false} hasBadge={whatsappPending} /></div>
                   </TooltipTrigger>
                   <TooltipContent side="right">{configItem.label}</TooltipContent>
                 </Tooltip>
@@ -192,22 +256,50 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
             )}
 
             {showLabel && (
-              <div className="mt-2 flex items-center gap-2 rounded-xl border border-border/50 bg-accent/30 px-3 py-2">
-                <div className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-xs font-bold text-primary">
-                  {getInitials(user?.name ?? 'U')}
-                </div>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs font-medium text-foreground">
-                    {isLoading ? '...' : (user?.name ?? '—')}
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center gap-2 rounded-xl border border-border/50 bg-accent/30 px-3 py-2">
+                  <UserAvatar />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-medium text-foreground">
+                      {isLoading ? '...' : (user?.name ?? '—')}
+                    </span>
+                    <PlanBadge />
                   </span>
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="shrink-0 text-muted-foreground transition hover:text-foreground"
-                  aria-label="Sair da conta"
-                >
-                  <LogOut className="size-4" />
-                </button>
+                  <button
+                    onClick={handleLogout}
+                    className="shrink-0 text-muted-foreground transition hover:text-foreground"
+                    aria-label="Sair da conta"
+                  >
+                    <LogOut className="size-4" />
+                  </button>
+                </div>
+
+                {billingStatus?.plan === 'FREE' && billingStatus?.status !== 'TRIALING' && !upgradeCardDismissed && (
+                  <div className="rounded-xl bg-linear-to-br from-violet-600 to-purple-600 p-3 text-white">
+                    <div className="flex items-start justify-between gap-1">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold leading-tight">🚀 Desbloqueie mais recursos</p>
+                        <p className="mt-0.5 text-[10px] leading-tight opacity-80">WhatsApp, relatórios e muito mais</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          sessionStorage.setItem('upgrade-card-dismissed', '1')
+                          setUpgradeCardDismissed(true)
+                        }}
+                        className="shrink-0 text-[12px] text-white/60 transition hover:text-white"
+                        aria-label="Dispensar"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <Link
+                      href="/configuracoes/planos"
+                      className="mt-2 block w-full rounded-lg bg-white py-1.5 text-center text-[11px] font-bold text-violet-700 transition hover:bg-white/90"
+                    >
+                      Ver planos →
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 
@@ -264,9 +356,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
             </div>
 
             <div className="shrink-0">
-              <div className="inline-flex size-9 items-center justify-center rounded-xl bg-primary/15 text-xs font-bold text-primary">
-                {isLoading ? '…' : getInitials(user?.name ?? 'U')}
-              </div>
+              <UserAvatar size="sm" />
             </div>
           </header>
 
