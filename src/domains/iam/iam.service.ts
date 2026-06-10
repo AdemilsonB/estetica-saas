@@ -42,8 +42,15 @@ export class IamService {
     }
 
     // Busca avatar_url do Supabase Auth (pode ser null para usuários sem OAuth)
-    const { data: authData } = await supabaseAdmin.auth.admin.getUserById(session.userId)
-    const avatarUrl = authData?.user?.user_metadata?.['avatar_url'] as string | null ?? null
+    // Degradação graciosa: falha no Supabase Auth não derruba o endpoint
+    let avatarUrl: string | null = null
+    try {
+      const { data: authData } = await supabaseAdmin.auth.admin.getUserById(session.userId)
+      const raw = authData?.user?.user_metadata?.['avatar_url']
+      avatarUrl = typeof raw === 'string' ? raw : null
+    } catch {
+      // avatar_url é dado não-crítico; degrada para null sem derrubar o endpoint
+    }
 
     return {
       id: user.id,
