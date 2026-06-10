@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import {
   useAutomations,
   useUpdateAutomations,
@@ -48,7 +48,6 @@ export function WhatsAppAutomationsForm() {
   const { data, isLoading } = useAutomations()
   const { data: services = [] } = useServices()
   const { mutate, isPending } = useUpdateAutomations()
-  const { toast } = useToast()
 
   const [form, setForm] = useState<Partial<AutomationsConfig>>({})
   const isDirty = Object.keys(form).length > 0
@@ -70,10 +69,9 @@ export function WhatsAppAutomationsForm() {
     mutate(form, {
       onSuccess: () => {
         setForm({})
-        toast({ title: 'Automações salvas com sucesso.' })
+        toast.success('Automações salvas com sucesso.')
       },
-      onError: () =>
-        toast({ title: 'Erro ao salvar automações.', variant: 'destructive' }),
+      onError: () => toast.error('Erro ao salvar automações.'),
     })
   }
 

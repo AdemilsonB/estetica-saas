@@ -14,6 +14,7 @@ const envSchema = z.object({
   PG_BOSS_SCHEMA: z.string().min(1).default("pgboss"),
   EVOLUTION_API_URL: z.url().optional(),
   EVOLUTION_API_KEY: z.string().min(1).optional(),
+  EVOLUTION_WEBHOOK_SECRET: z.string().min(1).optional(),
   WHATSAPP_PROVIDER: z.enum(["evolution", "twilio"]).default("twilio"),
 });
 
