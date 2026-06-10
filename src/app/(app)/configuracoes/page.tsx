@@ -13,6 +13,7 @@ import { SettingsAnamneseTab } from '@/components/domain/crm/settings-anamnese-t
 import { SchedulingPolicyForm } from '@/components/domain/settings/scheduling-policy-form'
 import { usePermissions } from '@/hooks/use-permissions'
 import { BillingPlansContent } from '@/components/domain/billing/billing-plans-content'
+import { WhatsAppAutomationsForm } from '@/components/domain/settings/whatsapp-automations-form'
 import { Loader2 } from 'lucide-react'
 
 type BrandingConfig = {
@@ -77,6 +78,7 @@ export default function ConfiguracoesPage() {
             <TabsTrigger value="negocio">Negócio</TabsTrigger>
             <TabsTrigger value="horarios">Horários</TabsTrigger>
             <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+            <TabsTrigger value="automacoes">Automações</TabsTrigger>
             <TabsTrigger value="layout">Layout</TabsTrigger>
             <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
             <TabsTrigger value="crm">CRM</TabsTrigger>
@@ -165,6 +167,17 @@ export default function ConfiguracoesPage() {
               Configurações de anamnese
             </h2>
             <SettingsAnamneseTab />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="automacoes" className="mt-6">
+          <div className="rounded-2xl border border-border/50 bg-card p-6 shadow-sm">
+            <h2 className="mb-1 text-base font-semibold text-foreground">Automações WhatsApp</h2>
+            <p className="mb-6 text-sm text-muted-foreground">
+              Configure mensagens automáticas enviadas pelo WhatsApp do seu negócio.
+              Requer WhatsApp conectado em Configurações → WhatsApp.
+            </p>
+            <WhatsAppAutomationsForm />
           </div>
         </TabsContent>
       </Tabs>
