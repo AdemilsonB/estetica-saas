@@ -16,11 +16,11 @@ async function planFromPriceId(priceId: string): Promise<PlanName | null> {
 
 function stripeStatusToSubscriptionStatus(status: Stripe.Subscription.Status): SubscriptionStatus {
   switch (status) {
-    case 'active': return SubscriptionStatus.ACTIVE
+    case 'active':   return SubscriptionStatus.ACTIVE
     case 'trialing': return SubscriptionStatus.TRIALING
     case 'past_due': return SubscriptionStatus.PAST_DUE
     case 'canceled': return SubscriptionStatus.CANCELLED
-    default: return SubscriptionStatus.EXPIRED
+    default:         return SubscriptionStatus.EXPIRED
   }
 }
 
@@ -41,6 +41,50 @@ export async function POST(req: Request) {
 
   try {
     switch (event.type) {
+      // Evento primário para checkout: usa planName do metadata diretamente,
+      // sem depender de lookup por priceId. Dispara por último no fluxo,
+      // quando pagamento e assinatura já estão confirmados.
+      case 'checkout.session.completed': {
+        const sess = event.data.object as Stripe.Checkout.Session
+        if (sess.mode !== 'subscription') break
+
+        const tenantId    = sess.metadata?.tenantId
+        const planNameStr = sess.metadata?.planName
+        if (!tenantId || !planNameStr) break
+
+        const stripeSubId = typeof sess.subscription === 'string' ? sess.subscription : null
+        if (!stripeSubId) break
+
+        const stripeSub = await stripe.subscriptions.retrieve(stripeSubId)
+        const planName  = planNameStr as PlanName
+        const newStatus = stripeStatusToSubscriptionStatus(stripeSub.status)
+        const priceId   = stripeSub.items.data[0]?.price.id ?? ''
+
+        const periodDates = {
+          currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
+          currentPeriodEnd:   new Date(stripeSub.current_period_end   * 1000),
+        }
+
+        await billingRepository.setStripeIds(tenantId, {
+          stripeSubId,
+          stripePriceId:     priceId,
+          cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
+        })
+
+        await billingService.changePlan(tenantId, planName, newStatus, 'stripe-webhook', event.type, periodDates)
+
+        // Sincroniza data de fim de trial se assinatura estiver em período de teste
+        if (stripeSub.trial_end) {
+          await billingRepository.updateSubscription(tenantId, {
+            trialEndsAt: new Date(stripeSub.trial_end * 1000),
+          })
+        }
+        break
+      }
+
+      // Eventos de ciclo de vida da assinatura (renovação, upgrade via portal, cancelamento pendente).
+      // Para novos checkouts, checkout.session.completed já tratou — este handler serve de fallback
+      // e para mudanças que não passam pelo checkout (Customer Portal).
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = event.data.object as Stripe.Subscription
@@ -58,22 +102,31 @@ export async function POST(req: Request) {
         if (!tenantId) break
 
         const priceId = sub.items.data[0]?.price.id ?? ''
-        const planName = (await planFromPriceId(priceId)) ?? PlanName.STARTER
-        const newStatus = stripeStatusToSubscriptionStatus(sub.status)
+
+        // Usa planName do metadata como fonte primária; fallback para lookup por priceId
+        const metadataPlan = sub.metadata?.planName as PlanName | undefined
+        const planName     = metadataPlan ?? (await planFromPriceId(priceId)) ?? PlanName.STARTER
+        const newStatus    = stripeStatusToSubscriptionStatus(sub.status)
 
         await billingRepository.setStripeIds(tenantId, {
-          stripeSubId: sub.id,
-          stripePriceId: priceId,
+          stripeSubId:       sub.id,
+          stripePriceId:     priceId,
           cancelAtPeriodEnd: sub.cancel_at_period_end,
         })
 
-        // Usa as datas reais do Stripe para evitar expiração falsa pelo sweep diário
         const periodDates = {
           currentPeriodStart: new Date(sub.current_period_start * 1000),
           currentPeriodEnd:   new Date(sub.current_period_end   * 1000),
         }
 
         await billingService.changePlan(tenantId, planName, newStatus, 'stripe-webhook', event.type, periodDates)
+
+        // Sincroniza data de fim de trial se assinatura estiver em período de teste
+        if (sub.trial_end) {
+          await billingRepository.updateSubscription(tenantId, {
+            trialEndsAt: new Date(sub.trial_end * 1000),
+          })
+        }
         break
       }
 
@@ -115,7 +168,7 @@ export async function POST(req: Request) {
 
     return Response.json({ received: true })
   } catch (error) {
-    console.error('Webhook error:', error)
+    console.error('[webhook] Erro ao processar evento', event.type, error)
     return Response.json({ error: 'Erro interno no webhook.' }, { status: 500 })
   }
 }
