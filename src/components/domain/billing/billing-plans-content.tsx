@@ -96,7 +96,9 @@ export function BillingPlansContent() {
   const hasStripeSubscription = !!data.stripeSubId
   const isLoadingAction = loadingKey !== null
 
-  const currentPlanIndex = PLAN_ORDER.indexOf(data.plan)
+  // Para upgrades, considera o plano original quando o trial expirou (FREE é plano efetivo, não contratado)
+  const displayPlan = data.isExpiredTrial && data.originalPlan ? data.originalPlan : data.plan
+  const currentPlanIndex = PLAN_ORDER.indexOf(data.isExpiredTrial ? 'FREE' : data.plan)
   const upgradePlans = plans.filter(p => PLAN_ORDER.indexOf(p.name) > currentPlanIndex)
   const canUpgradeViaCheckout = upgradePlans.length > 0 && !hasStripeSubscription
   const canUpgradeViaPortal = upgradePlans.length > 0 && hasStripeSubscription
@@ -106,12 +108,17 @@ export function BillingPlansContent() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            Plano atual: {data.plan}
+            Plano atual: {displayPlan}
             <Badge variant={isPaid ? 'default' : 'destructive'}>
-              {STATUS_LABEL[data.status] ?? data.status}
+              {data.isExpiredTrial ? 'Trial encerrado' : (STATUS_LABEL[data.status] ?? data.status)}
             </Badge>
           </CardTitle>
-          {trialDaysLeft !== null && data.status === 'TRIALING' && (
+          {data.isExpiredTrial && (
+            <CardDescription>
+              Seu trial do plano {data.originalPlan} encerrou. Assine para continuar com acesso completo.
+            </CardDescription>
+          )}
+          {trialDaysLeft !== null && data.status === 'TRIALING' && !data.isExpiredTrial && (
             <CardDescription>
               {trialDaysLeft > 0
                 ? `Trial termina em ${trialDaysLeft} dia(s)`

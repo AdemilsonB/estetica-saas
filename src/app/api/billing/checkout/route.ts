@@ -37,8 +37,14 @@ export async function POST(req: Request) {
       )
     }
 
-    // Bloqueia também se status já é ativo (protege contra race condition no webhook)
-    if (sub && ACTIVE_STATUSES.includes(sub.status)) {
+    // Trial expirado sem stripeSubId — não é uma assinatura ativa, permite novo checkout
+    const isExpiredTrial =
+      sub?.status === SubscriptionStatus.TRIALING &&
+      sub.trialEndsAt != null &&
+      sub.trialEndsAt < new Date()
+
+    // Bloqueia se status é ativo, exceto trial expirado (protege contra race condition no webhook)
+    if (sub && ACTIVE_STATUSES.includes(sub.status) && !isExpiredTrial) {
       throw new DomainError(
         'Você já possui uma assinatura ativa. Para mudar de plano, use o portal de assinatura.',
         'SUBSCRIPTION_EXISTS',
