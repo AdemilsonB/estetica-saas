@@ -15,6 +15,12 @@ export async function GET(request: Request) {
     const { plan, status } = await featureGuard.getSubscriptionState(session.tenantId);
     const sub = await billingRepository.getSubscription(session.tenantId);
 
+    const isExpiredTrial =
+      status === 'EXPIRED' &&
+      sub?.trialEndsAt != null &&
+      sub.trialEndsAt < new Date() &&
+      sub.stripeSubId == null
+
     const [userCount, appointmentCount, maxUsers, maxAppointments] = await Promise.all([
       prisma.user.count({ where: { tenantId: session.tenantId } }),
       prisma.appointment.count({
@@ -37,6 +43,8 @@ export async function GET(request: Request) {
       status,
       trialEndsAt: sub?.trialEndsAt ?? null,
       stripeSubId: sub?.stripeSubId ?? null,
+      isExpiredTrial,
+      originalPlan: isExpiredTrial ? (sub?.plan ?? plan) : null,
       features: activeFeatures,
       limits: {
         users:              { current: userCount,        max: maxUsers },
