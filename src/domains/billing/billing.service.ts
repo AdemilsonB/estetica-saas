@@ -43,15 +43,21 @@ export class BillingService {
     newStatus: SubscriptionStatus,
     changedBy: string,
     reason: string,
+    periodDates?: { currentPeriodStart: Date; currentPeriodEnd: Date },
   ) {
     const current = await billingRepository.getSubscription(tenantId);
     const now = new Date();
 
+    // Usa datas reais do Stripe quando fornecidas; caso contrário preserva as
+    // datas existentes para não sobrescrever com valor fixo (causaria expiração falsa)
+    const periodStart = periodDates?.currentPeriodStart ?? current?.currentPeriodStart ?? now;
+    const periodEnd   = periodDates?.currentPeriodEnd   ?? current?.currentPeriodEnd   ?? addDays(now, 30);
+
     const updated = await billingRepository.updateSubscription(tenantId, {
       plan: newPlan,
       status: newStatus,
-      currentPeriodStart: now,
-      currentPeriodEnd: addDays(now, 30),
+      currentPeriodStart: periodStart,
+      currentPeriodEnd: periodEnd,
       ...(newStatus === SubscriptionStatus.CANCELLED ? { cancelledAt: now } : {}),
     });
 
