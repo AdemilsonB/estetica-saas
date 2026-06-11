@@ -44,7 +44,17 @@ export async function POST(req: Request) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = event.data.object as Stripe.Subscription
-        const tenantId = sub.metadata?.tenantId
+
+        // Tenta obter tenantId da metadata da subscription; se ausente (ex: subscription
+        // criada diretamente pelo Customer Portal), faz fallback pelo stripeCustomerId.
+        let tenantId: string | undefined = sub.metadata?.tenantId
+        if (!tenantId) {
+          const customerId = typeof sub.customer === 'string' ? sub.customer : null
+          if (customerId) {
+            const existing = await billingRepository.findByStripeCustomerId(customerId)
+            tenantId = existing?.tenantId
+          }
+        }
         if (!tenantId) break
 
         const priceId = sub.items.data[0]?.price.id ?? ''
@@ -69,7 +79,14 @@ export async function POST(req: Request) {
 
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription
-        const tenantId = sub.metadata?.tenantId
+        let tenantId: string | undefined = sub.metadata?.tenantId
+        if (!tenantId) {
+          const customerId = typeof sub.customer === 'string' ? sub.customer : null
+          if (customerId) {
+            const existing = await billingRepository.findByStripeCustomerId(customerId)
+            tenantId = existing?.tenantId
+          }
+        }
         if (!tenantId) break
         await billingService.changePlan(tenantId, PlanName.FREE, SubscriptionStatus.CANCELLED, 'stripe-webhook', 'subscription_deleted')
         break

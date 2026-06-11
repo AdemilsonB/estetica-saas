@@ -84,7 +84,7 @@ export class StripeBillingService {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
     const session = await stripe.billingPortal.sessions.create({
       customer: sub.stripeCustomerId,
-      return_url: `${appUrl}/configuracoes/planos`,
+      return_url: `${appUrl}/configuracoes/planos?portal=return`,
     })
 
     return { portalUrl: session.url }

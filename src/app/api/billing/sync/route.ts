@@ -1,3 +1,4 @@
+import Stripe from 'stripe'
 import { getSessionContext } from '@/shared/auth/session'
 import { handleApiError } from '@/shared/http/handle-api-error'
 import { billingRepository } from '@/domains/billing/billing.repository'
@@ -20,14 +21,15 @@ function stripeStatusToLocal(status: string): SubscriptionStatus {
 /**
  * POST /api/billing/sync
  * Sincroniza o status da assinatura local com o estado real no Stripe.
- * Resolve casos onde o status ficou desatualizado (ex: EXPIRED incorreto).
+ * Tenta pelo stripeSubId atual; se cancelado ou ausente, busca a subscription
+ * ativa pelo stripeCustomerId (cobre o caso em que o portal criou uma nova sub).
  */
 export async function POST(req: Request) {
   try {
     const session = await getSessionContext(req)
 
     const sub = await billingRepository.getSubscription(session.tenantId)
-    if (!sub?.stripeSubId) {
+    if (!sub?.stripeCustomerId) {
       throw new DomainError(
         'Nenhuma assinatura Stripe encontrada para sincronizar.',
         'NO_STRIPE_SUBSCRIPTION',
@@ -35,9 +37,50 @@ export async function POST(req: Request) {
       )
     }
 
-    const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubId, {
-      expand: ['items.data.price'],
-    })
+    let stripeSub: Stripe.Subscription | null = null
+
+    // Tenta a subscription atual primeiro
+    if (sub.stripeSubId) {
+      const retrieved = await stripe.subscriptions.retrieve(sub.stripeSubId, {
+        expand: ['items.data.price'],
+      })
+      if (retrieved.status !== 'canceled') {
+        stripeSub = retrieved
+      }
+    }
+
+    // Se cancelada ou ausente, busca a subscription ativa pelo customer
+    if (!stripeSub) {
+      const list = await stripe.subscriptions.list({
+        customer: sub.stripeCustomerId,
+        status: 'active',
+        limit: 1,
+        expand: ['data.items.data.price'],
+      })
+      stripeSub = list.data[0] ?? null
+    }
+
+    // Tenta também status trialing caso não haja ativa
+    if (!stripeSub) {
+      const list = await stripe.subscriptions.list({
+        customer: sub.stripeCustomerId,
+        status: 'trialing',
+        limit: 1,
+        expand: ['data.items.data.price'],
+      })
+      stripeSub = list.data[0] ?? null
+    }
+
+    if (!stripeSub) {
+      await billingService.changePlan(
+        session.tenantId,
+        PlanName.FREE,
+        SubscriptionStatus.CANCELLED,
+        'sync',
+        'no_active_subscription',
+      )
+      return Response.json({ synced: true, plan: PlanName.FREE, status: SubscriptionStatus.CANCELLED })
+    }
 
     const newStatus = stripeStatusToLocal(stripeSub.status)
     const priceId   = stripeSub.items.data[0]?.price.id ?? ''
@@ -52,7 +95,9 @@ export async function POST(req: Request) {
       currentPeriodEnd:   new Date(stripeSub.current_period_end   * 1000),
     }
 
+    // Atualiza stripeSubId se o portal criou uma nova subscription
     await billingRepository.setStripeIds(session.tenantId, {
+      stripeSubId:       stripeSub.id,
       stripePriceId:     priceId,
       cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
     })
@@ -67,9 +112,9 @@ export async function POST(req: Request) {
     )
 
     return Response.json({
-      synced: true,
-      plan:   planName,
-      status: newStatus,
+      synced:          true,
+      plan:            planName,
+      status:          newStatus,
       currentPeriodEnd: periodDates.currentPeriodEnd,
     })
   } catch (error) {

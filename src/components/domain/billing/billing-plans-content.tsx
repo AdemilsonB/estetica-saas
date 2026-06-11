@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useBillingStatus } from "@/hooks/billing/use-billing-status"
 import { usePlans, type PlanData } from "@/hooks/billing/use-plans"
@@ -70,19 +71,43 @@ export function BillingPlansContent() {
   const { startUpgrade, openPortal, loadingKey, loadingPortal } = useBillingActions()
   const searchParams = useSearchParams()
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const [syncing, setSyncing] = useState(false)
 
   useEffect(() => {
     const stripe = searchParams.get('stripe')
+    const portal = searchParams.get('portal')
+
     if (stripe === 'success') {
       toast.success('Assinatura ativada com sucesso!')
       router.replace('/configuracoes/planos')
     } else if (stripe === 'cancelled') {
       toast.info('Checkout cancelado. Seu plano não foi alterado.')
       router.replace('/configuracoes/planos')
+    } else if (portal === 'return') {
+      // Ao retornar do Customer Portal, sincroniza o status com o Stripe
+      // para garantir que mudanças de plano sejam refletidas imediatamente,
+      // sem depender exclusivamente do webhook.
+      setSyncing(true)
+      const toastId = toast.loading('Atualizando assinatura...')
+      fetch('/api/billing/sync', { method: 'POST' })
+        .then(async (res) => {
+          if (res.ok) {
+            toast.success('Assinatura atualizada!', { id: toastId })
+            await queryClient.invalidateQueries({ queryKey: ['billing', 'status'] })
+          } else {
+            toast.dismiss(toastId)
+          }
+        })
+        .catch(() => toast.dismiss(toastId))
+        .finally(() => {
+          setSyncing(false)
+          router.replace('/configuracoes/planos')
+        })
     }
-  }, [searchParams, router])
+  }, [searchParams, router, queryClient])
 
-  if (statusLoading || plansLoading) return <div className="h-64 animate-pulse rounded-lg bg-muted" />
+  if (statusLoading || plansLoading || syncing) return <div className="h-64 animate-pulse rounded-lg bg-muted" />
   if (!data || !plansData) return null
 
   const { plans } = plansData
