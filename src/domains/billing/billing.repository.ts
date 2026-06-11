@@ -58,8 +58,9 @@ export class BillingRepository {
   }
 
   async findExpiredActive(now: Date) {
+    // Ignora subscriptions com stripeSubId — o Stripe gerencia essas via webhook
     return prisma.subscription.findMany({
-      where: { status: "ACTIVE", currentPeriodEnd: { lt: now } },
+      where: { status: 'ACTIVE', currentPeriodEnd: { lt: now }, stripeSubId: null },
     });
   }
 

@@ -57,7 +57,13 @@ export async function POST(req: Request) {
           cancelAtPeriodEnd: sub.cancel_at_period_end,
         })
 
-        await billingService.changePlan(tenantId, planName, newStatus, 'stripe-webhook', event.type)
+        // Usa as datas reais do Stripe para evitar expiração falsa pelo sweep diário
+        const periodDates = {
+          currentPeriodStart: new Date(sub.current_period_start * 1000),
+          currentPeriodEnd:   new Date(sub.current_period_end   * 1000),
+        }
+
+        await billingService.changePlan(tenantId, planName, newStatus, 'stripe-webhook', event.type, periodDates)
         break
       }
 

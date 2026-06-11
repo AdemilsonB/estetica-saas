@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { PlanName } from '@prisma/client'
+import { PlanName, SubscriptionStatus } from '@prisma/client'
 import { getSessionContext } from '@/shared/auth/session'
 import { handleApiError } from '@/shared/http/handle-api-error'
 import { stripeBillingService } from '@/domains/billing/stripe-billing.service'
@@ -14,6 +14,12 @@ const CheckoutSchema = z.object({
   cancelUrl:  z.string().url().optional(),
 })
 
+const ACTIVE_STATUSES: SubscriptionStatus[] = [
+  SubscriptionStatus.ACTIVE,
+  SubscriptionStatus.TRIALING,
+  SubscriptionStatus.PAST_DUE,
+]
+
 export async function POST(req: Request) {
   try {
     const session = await getSessionContext(req)
@@ -21,7 +27,18 @@ export async function POST(req: Request) {
     const { planName, skipTrial, successUrl, cancelUrl } = CheckoutSchema.parse(body)
 
     const sub = await billingRepository.getSubscription(session.tenantId)
+
+    // Bloqueia se já existe assinatura gerenciada pelo Stripe
     if (sub?.stripeSubId) {
+      throw new DomainError(
+        'Você já possui uma assinatura ativa. Para mudar de plano, use o portal de assinatura.',
+        'SUBSCRIPTION_EXISTS',
+        409,
+      )
+    }
+
+    // Bloqueia também se status já é ativo (protege contra race condition no webhook)
+    if (sub && ACTIVE_STATUSES.includes(sub.status)) {
       throw new DomainError(
         'Você já possui uma assinatura ativa. Para mudar de plano, use o portal de assinatura.',
         'SUBSCRIPTION_EXISTS',
