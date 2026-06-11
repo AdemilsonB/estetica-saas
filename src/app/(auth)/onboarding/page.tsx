@@ -80,6 +80,9 @@ function OnboardingContent() {
       const meta = data.user?.user_metadata
 
       if (meta?.onboardingStep === 'plan' && stripeResult === 'success') {
+        // Força sincronização do plano com o Stripe — garante que o webhook já tenha
+        // processado antes de redirecionar, evitando exibir plano FREE por race condition.
+        fetch('/api/billing/sync', { method: 'POST' }).catch(() => {})
         supabase.auth.updateUser({ data: { onboardingStep: 'complete' } }).then(() => {
           router.replace('/agenda')
         })
