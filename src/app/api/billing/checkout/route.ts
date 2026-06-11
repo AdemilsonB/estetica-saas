@@ -43,8 +43,11 @@ export async function POST(req: Request) {
       sub.trialEndsAt != null &&
       sub.trialEndsAt < new Date()
 
-    // Bloqueia se status é ativo, exceto trial expirado (protege contra race condition no webhook)
-    if (sub && ACTIVE_STATUSES.includes(sub.status) && !isExpiredTrial) {
+    // Plano FREE é o estado inicial de todo tenant novo — nunca bloqueia upgrade
+    const isFree = sub?.plan === PlanName.FREE
+
+    // Bloqueia se status é ativo E não é trial expirado E não é FREE (protege contra race condition no webhook)
+    if (sub && ACTIVE_STATUSES.includes(sub.status) && !isExpiredTrial && !isFree) {
       throw new DomainError(
         'Você já possui uma assinatura ativa. Para mudar de plano, use o portal de assinatura.',
         'SUBSCRIPTION_EXISTS',
