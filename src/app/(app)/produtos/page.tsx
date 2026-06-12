@@ -36,6 +36,7 @@ type TableProduct = {
 export default function ProdutosPage() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string | undefined>()
+  const [page, setPage] = useState(1)
   const [categoryModalOpen, setCategoryModalOpen] = useState(false)
   const [productModalOpen, setProductModalOpen] = useState(false)
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false)
@@ -43,9 +44,12 @@ export default function ProdutosPage() {
   // Product do hook é superconjunto do tipo local do ProductFormModal — compatível
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
 
+  const PAGE_SIZE = 10
   const { data: productsData, isLoading: loadingProducts } = useProducts({
     name: search || undefined,
     categoryId: categoryFilter,
+    page,
+    pageSize: PAGE_SIZE,
   })
   const { data: categories = [] } = useProductCategories()
   const { data: purchasesData } = useStockMovements({ type: 'PURCHASE' })
@@ -118,11 +122,17 @@ export default function ProdutosPage() {
             <Input
               placeholder="Buscar produto..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
               className="max-w-xs"
             />
             <Select
-              onValueChange={(v) => setCategoryFilter(v === 'all' ? undefined : v)}
+              onValueChange={(v) => {
+                setCategoryFilter(v === 'all' ? undefined : v)
+                setPage(1)
+              }}
             >
               <SelectTrigger className="w-44">
                 <SelectValue placeholder="Todas categorias" />
@@ -162,11 +172,42 @@ export default function ProdutosPage() {
               Carregando...
             </div>
           ) : (
-            <ProductsTable
-              products={products}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
+            <>
+              <ProductsTable
+                products={products}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+
+              {productsData && productsData.total > 0 && (() => {
+                const totalPages = Math.ceil(productsData.total / PAGE_SIZE)
+                return (
+                  <div className="flex items-center justify-between mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Página {page} de {totalPages}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page === 1}
+                        onClick={() => setPage((p) => p - 1)}
+                      >
+                        Anterior
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page >= totalPages}
+                        onClick={() => setPage((p) => p + 1)}
+                      >
+                        Próxima
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })()}
+            </>
           )}
         </TabsContent>
 

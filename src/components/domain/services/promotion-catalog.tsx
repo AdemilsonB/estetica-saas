@@ -24,11 +24,14 @@ function formatDiscount(promo: Promotion): string {
   return `${Number(promo.discountValue).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} de desconto`
 }
 
+const PAGE_SIZE = 10
+
 export function PromotionCatalog() {
   const { data: promotions, isLoading, isError, refetch } = usePromotions()
   const { mutate: deactivate } = useDeactivatePromotion()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingPromotion, setEditingPromotion] = useState<Promotion | undefined>()
+  const [page, setPage] = useState(1)
 
   function handleEdit(promo: Promotion) {
     setEditingPromotion(promo)
@@ -80,44 +83,79 @@ export function PromotionCatalog() {
       )}
 
       {promotions && promotions.length > 0 && (
-        <div className="space-y-2">
-          {promotions.map((promo) => (
-            <div key={promo.id} className="flex items-center gap-4 rounded-2xl border border-border/50 bg-card px-4 py-3 shadow-sm">
-              {promo.imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={promo.imageUrl} alt={promo.name} className="size-12 shrink-0 rounded-xl object-cover" />
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-foreground">{promo.name}</span>
-                  <PromotionStatusBadge promo={promo} />
+        <>
+          <div className="space-y-2">
+            {(() => {
+              const totalPages = Math.ceil(promotions.length / PAGE_SIZE)
+              const pageItems = promotions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+              return pageItems.map((promo) => (
+                <div key={promo.id} className="flex items-center gap-4 rounded-2xl border border-border/50 bg-card px-4 py-3 shadow-sm">
+                  {promo.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={promo.imageUrl} alt={promo.name} className="size-12 shrink-0 rounded-xl object-cover" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-foreground">{promo.name}</span>
+                      <PromotionStatusBadge promo={promo} />
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{formatDiscount(promo)}</p>
+                    {promo.endsAt && (
+                      <p className="mt-0.5 text-xs text-muted-foreground/70">
+                        Válida até {new Date(promo.endsAt).toLocaleDateString('pt-BR')}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => handleEdit(promo)} className="size-8" title="Editar">
+                      <Edit2 className="size-3.5" />
+                    </Button>
+                    {promo.active && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeactivate(promo)}
+                        className="size-8 text-muted-foreground hover:text-destructive"
+                        title="Desativar"
+                      >
+                        <Power className="size-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">{formatDiscount(promo)}</p>
-                {promo.endsAt && (
-                  <p className="mt-0.5 text-xs text-muted-foreground/70">
-                    Válida até {new Date(promo.endsAt).toLocaleDateString('pt-BR')}
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-1">
-                <Button variant="ghost" size="icon" onClick={() => handleEdit(promo)} className="size-8" title="Editar">
-                  <Edit2 className="size-3.5" />
-                </Button>
-                {promo.active && (
+              ))
+            })()}
+          </div>
+
+          {(() => {
+            const totalPages = Math.ceil(promotions.length / PAGE_SIZE)
+            return totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-sm text-muted-foreground">
+                  Página {page} de {totalPages}
+                </p>
+                <div className="flex gap-2">
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeactivate(promo)}
-                    className="size-8 text-muted-foreground hover:text-destructive"
-                    title="Desativar"
+                    variant="outline"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage(p => p - 1)}
                   >
-                    <Power className="size-3.5" />
+                    Anterior
                   </Button>
-                )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage(p => p + 1)}
+                  >
+                    Próxima
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            )
+          })()}
+        </>
       )}
 
       <PromotionFormModal open={modalOpen} onClose={() => setModalOpen(false)} promotion={editingPromotion} />

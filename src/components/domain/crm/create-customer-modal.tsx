@@ -24,12 +24,14 @@ export function CreateCustomerModal({ open, onClose, onCreated }: Props) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [birthDate, setBirthDate] = useState('')
   const createCustomer = useCreateCustomer()
 
   function handleClose() {
     setName('')
     setPhone('')
     setEmail('')
+    setBirthDate('')
     onClose()
   }
 
@@ -42,6 +44,7 @@ export function CreateCustomerModal({ open, onClose, onCreated }: Props) {
         name: name.trim(),
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
+        birthDate: birthDate || undefined,
       },
       {
         onSuccess: (customer) => {
@@ -91,6 +94,16 @@ export function CreateCustomerModal({ open, onClose, onCreated }: Props) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="birthDate">Data de nascimento</Label>
+            <Input
+              id="birthDate"
+              type="date"
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
             />
           </div>
 

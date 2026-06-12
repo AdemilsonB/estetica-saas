@@ -178,4 +178,15 @@ export type DomainEvent =
         totalCost: number;
         appointmentId: string;
       };
+    }
+  | {
+      type: "stock.adjusted";
+      payload: {
+        tenantId: string;
+        productId: string;
+        productName: string;
+        previousQuantity: number;
+        newQuantity: number;
+        diff: number;
+      };
     };

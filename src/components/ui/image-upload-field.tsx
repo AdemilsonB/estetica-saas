@@ -6,14 +6,15 @@ import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
 
 type Props = {
-  entityType: 'services' | 'packages' | 'promotions'
+  entityType: 'services' | 'packages' | 'promotions' | 'products'
   entityId: string | null
   value: string | null
   onChange: (url: string | null) => void
   label?: string
+  savePromptMessage?: string
 }
 
-export function ImageUploadField({ entityType, entityId, value, onChange, label = 'Imagem' }: Props) {
+export function ImageUploadField({ entityType, entityId, value, onChange, label = 'Imagem', savePromptMessage }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
 
@@ -23,7 +24,7 @@ export function ImageUploadField({ entityType, entityId, value, onChange, label 
       return
     }
     if (!entityId) {
-      toast.error('Salve o serviço primeiro para adicionar uma imagem.')
+      toast.error(savePromptMessage ?? 'Salve o registro primeiro para adicionar uma imagem.')
       return
     }
     setUploading(true)

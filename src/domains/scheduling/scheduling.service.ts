@@ -245,7 +245,7 @@ export class SchedulingService {
         customerId: updated.customerId,
         customerName: current.customer.name,
         customerPhone: current.customer.phone,
-        serviceName: current.service.name,
+        serviceName: current.service?.name ?? "",
         professionalName: updated.professional.name,
         oldStartsAt: current.startsAt,
         newStartsAt: updated.startsAt,
@@ -314,9 +314,11 @@ export class SchedulingService {
     const netAmount = subtotal + tipAmount - cardFeeAmount;
 
     // Calcular comissão
-    const commission = await commissionRepository.findRate(
-      tenantId, appointment.serviceId, appointment.professionalId,
-    );
+    const commission = appointment.serviceId
+      ? await commissionRepository.findRate(
+          tenantId, appointment.serviceId, appointment.professionalId,
+        )
+      : null;
     const commissionAmount = commission
       ? netAmount * Number(commission.rate) / 100 + tipAmount
       : 0;
@@ -338,7 +340,7 @@ export class SchedulingService {
       payload: {
         tenantId,
         appointmentId,
-        serviceId: appointment.serviceId,
+        serviceId: appointment.serviceId ?? "",
         professionalId: appointment.professionalId,
         paymentMethod: input.paymentMethod,
         grossAmount,
@@ -368,7 +370,7 @@ export class SchedulingService {
       payload: {
         tenantId,
         appointmentId,
-        serviceId: appointment.serviceId,
+        serviceId: appointment.serviceId ?? "",
         grossAmount: Number(appointment.price),
       },
     });
@@ -461,6 +463,8 @@ export class SchedulingService {
         customerId: appointment.customerId,
         professionalId: appointment.professionalId,
         serviceId: appointment.serviceId,
+        packageId: appointment.packageId,
+        promotionId: appointment.promotionId,
         startsAt: appointment.startsAt,
         endsAt: appointment.endsAt,
         status: appointment.status,
@@ -482,9 +486,9 @@ export class SchedulingService {
         email: appointment.customer.email,
       },
       service: {
-        id: appointment.service.id,
-        name: appointment.service.name,
-        duration: appointment.service.duration,
+        id: appointment.service?.id ?? "",
+        name: appointment.service?.name ?? "",
+        duration: appointment.service?.duration ?? 0,
       },
       professional: {
         id: appointment.professional.id,

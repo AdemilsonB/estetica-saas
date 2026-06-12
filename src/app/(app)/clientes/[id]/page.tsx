@@ -21,6 +21,7 @@ import {
 import { CustomerProfileHeader } from '@/components/domain/crm/customer-profile-header'
 import { AppointmentHistory } from '@/components/domain/crm/appointment-history'
 import { AnamneseSheet } from '@/components/domain/crm/anamnese-sheet'
+import { EditCustomerModal } from '@/components/domain/crm/edit-customer-modal'
 import { useCustomer } from '@/hooks/crm/use-customer'
 import { useBlockCustomer } from '@/hooks/crm/use-block-customer'
 
@@ -34,6 +35,7 @@ export default function CustomerProfilePage({
   const { data: customer, isLoading, isError, refetch } = useCustomer(id)
   const [notes, setNotes] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const [anamneseOpen, setAnamneseOpen] = useState(false)
   const [blockDialogOpen, setBlockDialogOpen] = useState(false)
   const [unblockDialogOpen, setUnblockDialogOpen] = useState(false)
@@ -105,15 +107,24 @@ export default function CustomerProfilePage({
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => router.back()}
-        className="-ml-2 text-slate-500"
-      >
-        <ArrowLeft className="size-4" />
-        Voltar
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.back()}
+          className="-ml-2 text-slate-500"
+        >
+          <ArrowLeft className="size-4" />
+          Voltar
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setEditOpen(true)}
+        >
+          Editar dados
+        </Button>
+      </div>
 
       <CustomerProfileHeader customer={customer} />
 
@@ -218,6 +229,12 @@ export default function CustomerProfilePage({
         onClose={() => setAnamneseOpen(false)}
         customerId={id}
         customerName={customer.name}
+      />
+
+      <EditCustomerModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        customer={customer}
       />
 
       {/* Dialog de bloqueio */}

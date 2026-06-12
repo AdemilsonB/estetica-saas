@@ -272,6 +272,46 @@ export class InventoryService {
     return productRepository.getAppointmentProducts(tenantId, appointmentId)
   }
 
+  async adjustStock(
+    tenantId: string,
+    productId: string,
+    targetQuantity: number,
+    createdByUserId: string,
+  ): Promise<void> {
+    const product = await productRepository.findById(tenantId, productId)
+    if (!product) throw new ProductNotFoundError()
+
+    const currentQty = Number(product.stockQuantity)
+    const diff = targetQuantity - currentQty
+    if (diff === 0) return
+
+    if (diff > 0) {
+      await productRepository.incrementStock(tenantId, productId, diff)
+    } else {
+      await productRepository.decrementStock(tenantId, productId, Math.abs(diff))
+    }
+
+    await stockRepository.create(tenantId, {
+      productId,
+      type: 'ADJUSTMENT',
+      quantity: diff,
+      notes: 'Ajuste manual de estoque',
+      createdByUserId,
+    })
+
+    eventBus.publish({
+      type: 'stock.adjusted',
+      payload: {
+        tenantId,
+        productId,
+        productName: product.name,
+        previousQuantity: currentQty,
+        newQuantity: targetQuantity,
+        diff,
+      },
+    })
+  }
+
   async listMovements(tenantId: string, filters: ListMovementsQuery) {
     return stockRepository.list(tenantId, filters)
   }

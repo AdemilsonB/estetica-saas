@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -14,15 +15,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { ComboboxField } from '@/components/ui/combobox-field'
 import { useCreateProduct, useUpdateProduct } from '@/hooks/inventory/use-products'
 import { useProductCategories } from '@/hooks/inventory/use-product-categories'
+import { ImageUploadField } from '@/components/ui/image-upload-field'
+import type { CreateProductInput } from '@/domains/inventory/types'
 
 const schema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -33,8 +30,8 @@ const schema = z.object({
     .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) >= 0, 'Valor inválido'),
   salePrice: z
     .string()
-    .min(1, 'Preço de venda é obrigatório')
-    .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) >= 0, 'Valor inválido'),
+    .optional()
+    .refine((v) => v === undefined || v === '' || (!isNaN(parseFloat(v)) && parseFloat(v) >= 0), 'Valor inválido'),
   stockQuantity: z
     .string()
     .optional()
@@ -52,6 +49,31 @@ const schema = z.object({
 })
 
 type FormValues = z.infer<typeof schema>
+
+function buildProductPayload(values: FormValues): CreateProductInput {
+  const costPrice = parseFloat(values.costPrice)
+  const salePriceRaw = values.salePrice !== undefined && values.salePrice !== ''
+    ? parseFloat(values.salePrice)
+    : undefined
+  const salePrice = salePriceRaw !== undefined && !isNaN(salePriceRaw) ? salePriceRaw : undefined
+  const stockQuantity =
+    values.stockQuantity !== undefined && values.stockQuantity !== ''
+      ? parseInt(values.stockQuantity, 10)
+      : 0
+  const lowStockAlert =
+    values.lowStockAlert !== undefined && values.lowStockAlert !== ''
+      ? parseInt(values.lowStockAlert, 10)
+      : 5
+
+  return {
+    name: values.name,
+    categoryId: values.categoryId || undefined,
+    costPrice,
+    salePrice,
+    stockQuantity,
+    lowStockAlert,
+  }
+}
 
 type Product = {
   id: string
@@ -72,6 +94,12 @@ type Props = {
 
 export function ProductFormModal({ open, onClose, product }: Props) {
   const isEditing = !!product
+
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [adjustTarget, setAdjustTarget] = useState('')
+  const [adjusting, setAdjusting] = useState(false)
+
+  const queryClient = useQueryClient()
 
   const { data: categories = [] } = useProductCategories()
   const createProduct = useCreateProduct()
@@ -106,6 +134,8 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         salePrice: product.salePrice,
         lowStockAlert: String(product.lowStockAlert),
       })
+      setImageUrl(product.imageUrl ?? null)
+      setAdjustTarget('')
     } else if (open && !product) {
       reset({
         name: '',
@@ -114,29 +144,51 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         salePrice: '',
         lowStockAlert: '',
       })
+      setImageUrl(null)
+      setAdjustTarget('')
     }
   }, [open, product, reset])
 
   function handleClose() {
     reset()
+    setImageUrl(null)
+    setAdjustTarget('')
     onClose()
   }
 
-  function onSubmit(values: FormValues) {
-    const basePayload = {
-      name: values.name,
-      categoryId: values.categoryId || undefined,
-      costPrice: parseFloat(values.costPrice),
-      salePrice: parseFloat(values.salePrice),
-      lowStockAlert:
-        values.lowStockAlert !== undefined && values.lowStockAlert !== ''
-          ? parseInt(values.lowStockAlert)
-          : undefined,
+  async function handleAdjustStock() {
+    if (!product?.id || adjustTarget === '') return
+    const qty = parseInt(adjustTarget, 10)
+    if (isNaN(qty) || qty < 0) {
+      toast.error('Quantidade inválida')
+      return
     }
+    setAdjusting(true)
+    try {
+      const res = await fetch(`/api/products/${product.id}/adjust`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetQuantity: qty }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(body?.error ?? 'Erro ao ajustar estoque')
+      }
+      toast.success(`Estoque ajustado para ${qty} unidades`)
+      setAdjustTarget('')
+      await queryClient.invalidateQueries({ queryKey: ['products'] })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao ajustar estoque')
+    } finally {
+      setAdjusting(false)
+    }
+  }
 
+  function onSubmit(values: FormValues) {
     if (isEditing && product) {
+      const updatePayload = { ...buildProductPayload(values), imageUrl: imageUrl ?? undefined }
       updateProduct.mutate(
-        { id: product.id, ...basePayload },
+        { id: product.id, ...updatePayload },
         {
           onSuccess: () => {
             toast.success('Produto atualizado com sucesso')
@@ -148,14 +200,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         },
       )
     } else {
-      const createPayload = {
-        ...basePayload,
-        stockQuantity:
-          values.stockQuantity !== undefined && values.stockQuantity !== ''
-            ? parseInt(values.stockQuantity)
-            : 0,
-      }
-      createProduct.mutate(createPayload, {
+      createProduct.mutate({ ...buildProductPayload(values), imageUrl: imageUrl ?? undefined }, {
         onSuccess: () => {
           toast.success('Produto criado com sucesso')
           handleClose()
@@ -189,21 +234,16 @@ export function ProductFormModal({ open, onClose, product }: Props) {
 
           <div className="space-y-1.5">
             <Label>Categoria</Label>
-            <Select
-              value={categoryId ?? ''}
-              onValueChange={(v) => setValue('categoryId', v || undefined)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ComboboxField
+              options={[
+                { value: '__none__', label: 'Sem categoria' },
+                ...categories.map((c) => ({ value: c.id, label: c.name })),
+              ]}
+              value={categoryId ?? '__none__'}
+              onChange={(v) => setValue('categoryId', v === '__none__' || !v ? undefined : v)}
+              placeholder="Selecionar categoria..."
+              searchPlaceholder="Buscar categoria..."
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -226,7 +266,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
 
             <div className="space-y-1.5">
               <Label htmlFor="prod-sale">
-                Preço de Venda (R$) <span className="text-rose-500">*</span>
+                Preço de Venda (R$)
               </Label>
               <Input
                 id="prod-sale"
@@ -259,8 +299,34 @@ export function ProductFormModal({ open, onClose, product }: Props) {
           )}
 
           {isEditing && product?.stockQuantity !== undefined && (
-            <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-              Estoque atual: <strong className="text-foreground">{product.stockQuantity}</strong> unidades — use &ldquo;Compra de Estoque&rdquo; para ajustar
+            <div className="space-y-2">
+              <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                Estoque atual: <strong className="text-foreground">{product.stockQuantity}</strong> unidades
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="prod-adjust">Ajustar estoque para (unidades)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="prod-adjust"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={adjustTarget}
+                    onChange={(e) => setAdjustTarget(e.target.value)}
+                    placeholder={String(product.stockQuantity)}
+                    disabled={adjusting}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={adjusting || adjustTarget === ''}
+                    onClick={handleAdjustStock}
+                  >
+                    {adjusting ? 'Ajustando...' : 'Ajustar'}
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -280,6 +346,22 @@ export function ProductFormModal({ open, onClose, product }: Props) {
               Receber alerta quando o estoque atingir este nível
             </p>
           </div>
+
+          {isEditing && product ? (
+            <div className="space-y-1.5">
+              <Label>Imagem do produto</Label>
+              <ImageUploadField
+                value={imageUrl}
+                onChange={setImageUrl}
+                entityId={product.id}
+                entityType="products"
+              />
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400">
+              Salve o produto primeiro para adicionar uma imagem.
+            </p>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose} disabled={isPending}>

@@ -12,13 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { ComboboxField } from '@/components/ui/combobox-field'
 import { useProducts } from '@/hooks/inventory/use-products'
 
 type Props = {
@@ -117,21 +111,18 @@ export function StockSaleModal({ open, onClose }: Props) {
             <Label>
               Produto <span className="text-rose-500">*</span>
             </Label>
-            <Select value={productId} onValueChange={setProductId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar produto" />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                    {p.category ? ` · ${p.category.name}` : ''}
-                    {' · '}
-                    <span className="text-slate-400">{p.stockQuantity} em estoque</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ComboboxField
+              options={products.map((p) => ({
+                value: p.id,
+                label: p.name
+                  + (p.category ? ` · ${p.category.name}` : '')
+                  + ` · ${p.stockQuantity} em estoque`,
+              }))}
+              value={productId || undefined}
+              onChange={(v) => setProductId(v ?? '')}
+              placeholder="Selecionar produto..."
+              searchPlaceholder="Buscar produto..."
+            />
             {selectedProduct && (
               <p className="text-xs text-slate-500">
                 Estoque disponível:{' '}
