@@ -10,6 +10,8 @@ import { LandingPricingCTA } from '@/components/domain/landing/landing-pricing-c
 import { LandingFooter } from '@/components/domain/landing/landing-footer'
 import { WhatsAppFloatButton } from '@/components/domain/landing/whatsapp-float-button'
 
+export const revalidate = 3600
+
 export const metadata = {
   title: 'Agendê — Seu salão no piloto automático',
   description:
