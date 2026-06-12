@@ -230,13 +230,20 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
           </div>
 
           {/* Imagem */}
-          <ImageUploadField
-            entityType="services"
-            entityId={service?.id ?? null}
-            value={imageUrl}
-            onChange={setImageUrl}
-            label="Imagem do serviço"
-          />
+          {isEditing ? (
+            <ImageUploadField
+              entityType="services"
+              entityId={service.id}
+              value={imageUrl}
+              onChange={setImageUrl}
+              label="Imagem do serviço"
+              savePromptMessage="Salve o serviço primeiro para adicionar uma imagem."
+            />
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Salve o serviço para adicionar uma imagem.
+            </p>
+          )}
 
           {/* Tipo de preço */}
           <div className="space-y-2">
