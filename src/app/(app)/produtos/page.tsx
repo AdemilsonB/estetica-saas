@@ -44,11 +44,12 @@ export default function ProdutosPage() {
   // Product do hook é superconjunto do tipo local do ProductFormModal — compatível
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
 
+  const PAGE_SIZE = 10
   const { data: productsData, isLoading: loadingProducts } = useProducts({
     name: search || undefined,
     categoryId: categoryFilter,
     page,
-    pageSize: 10,
+    pageSize: PAGE_SIZE,
   })
   const { data: categories = [] } = useProductCategories()
   const { data: purchasesData } = useStockMovements({ type: 'PURCHASE' })
@@ -178,31 +179,34 @@ export default function ProdutosPage() {
                 onDelete={handleDelete}
               />
 
-              {productsData && productsData.total > 0 && (
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Página {page} de {Math.ceil(productsData.total / 10)}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page === 1}
-                      onClick={() => setPage((p) => p - 1)}
-                    >
-                      Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page >= Math.ceil(productsData.total / 10)}
-                      onClick={() => setPage((p) => p + 1)}
-                    >
-                      Próxima
-                    </Button>
+              {productsData && productsData.total > 0 && (() => {
+                const totalPages = Math.ceil(productsData.total / PAGE_SIZE)
+                return (
+                  <div className="flex items-center justify-between mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Página {page} de {totalPages}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page === 1}
+                        onClick={() => setPage((p) => p - 1)}
+                      >
+                        Anterior
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page >= totalPages}
+                        onClick={() => setPage((p) => p + 1)}
+                      >
+                        Próxima
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
             </>
           )}
         </TabsContent>
