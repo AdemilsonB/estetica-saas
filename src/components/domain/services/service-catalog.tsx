@@ -8,12 +8,15 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useActivateService, useDeactivateService, useServices, type Service } from '@/hooks/scheduling/use-services'
 import { ServiceFormModal } from './service-form-modal'
 
+const PAGE_SIZE = 10
+
 export function ServiceCatalog() {
   const { data: services, isLoading, isError, refetch } = useServices()
   const { mutate: deactivate } = useDeactivateService()
   const { mutate: activate } = useActivateService()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingService, setEditingService] = useState<Service | undefined>()
+  const [page, setPage] = useState(1)
 
   function handleEdit(service: Service) {
     setEditingService(service)
@@ -78,72 +81,107 @@ export function ServiceCatalog() {
       )}
 
       {services && services.length > 0 && (
-        <div className="space-y-2">
-          {services.map((service) => (
-            <div
-              key={service.id}
-              className="flex items-center gap-4 rounded-2xl border border-border/50 bg-card px-4 py-3 shadow-sm"
-            >
-              {service.imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={service.imageUrl}
-                  alt={service.name}
-                  className="size-12 shrink-0 rounded-xl object-cover"
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-foreground">{service.name}</span>
-                  {service.category && (
-                    <Badge variant="outline" className="text-xs font-normal">{service.category.name}</Badge>
-                  )}
-                  {!service.active && (
-                    <Badge variant="secondary" className="text-xs">Inativo</Badge>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {service.duration} min ·{' '}
-                  {service.priceType === 'STARTING_FROM'
-                    ? `A partir de ${Number(service.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
-                    : Number(service.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                </p>
-              </div>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleEdit(service)}
-                  className="size-8"
-                  title="Editar"
+        <>
+          <div className="space-y-2">
+            {(() => {
+              const totalPages = Math.ceil(services.length / PAGE_SIZE)
+              const pageItems = services.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+              return pageItems.map((service) => (
+                <div
+                  key={service.id}
+                  className="flex items-center gap-4 rounded-2xl border border-border/50 bg-card px-4 py-3 shadow-sm"
                 >
-                  <Edit2 className="size-3.5" />
-                </Button>
-                {service.active ? (
+                  {service.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={service.imageUrl}
+                      alt={service.name}
+                      className="size-12 shrink-0 rounded-xl object-cover"
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-foreground">{service.name}</span>
+                      {service.category && (
+                        <Badge variant="outline" className="text-xs font-normal">{service.category.name}</Badge>
+                      )}
+                      {!service.active && (
+                        <Badge variant="secondary" className="text-xs">Inativo</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {service.duration} min ·{' '}
+                      {service.priceType === 'STARTING_FROM'
+                        ? `A partir de ${Number(service.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
+                        : Number(service.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEdit(service)}
+                      className="size-8"
+                      title="Editar"
+                    >
+                      <Edit2 className="size-3.5" />
+                    </Button>
+                    {service.active ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeactivate(service)}
+                        className="size-8 text-muted-foreground hover:text-destructive"
+                        title="Desativar"
+                      >
+                        <Power className="size-3.5" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleActivate(service)}
+                        className="size-8 text-muted-foreground hover:text-green-600"
+                        title="Reativar"
+                      >
+                        <Power className="size-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))
+            })()}
+          </div>
+
+          {(() => {
+            const totalPages = Math.ceil(services.length / PAGE_SIZE)
+            return totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-sm text-muted-foreground">
+                  Página {page} de {totalPages}
+                </p>
+                <div className="flex gap-2">
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeactivate(service)}
-                    className="size-8 text-muted-foreground hover:text-destructive"
-                    title="Desativar"
+                    variant="outline"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage(p => p - 1)}
                   >
-                    <Power className="size-3.5" />
+                    Anterior
                   </Button>
-                ) : (
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleActivate(service)}
-                    className="size-8 text-muted-foreground hover:text-green-600"
-                    title="Reativar"
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage(p => p + 1)}
                   >
-                    <Power className="size-3.5" />
+                    Próxima
                   </Button>
-                )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            )
+          })()}
+        </>
       )}
 
       <ServiceFormModal
