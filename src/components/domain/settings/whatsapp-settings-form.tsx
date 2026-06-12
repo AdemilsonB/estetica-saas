@@ -94,7 +94,7 @@ export function WhatsAppSettingsForm() {
           </div>
           <div>
             <p className="font-medium text-slate-950">Notificações WhatsApp</p>
-            <p className="text-xs text-slate-500">Confirmações e lembretes automáticos via Twilio</p>
+            <p className="text-xs text-slate-500">Confirmações e lembretes automáticos via Evolution API</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
