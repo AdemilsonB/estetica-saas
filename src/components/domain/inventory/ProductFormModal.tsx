@@ -170,7 +170,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         },
       )
     } else {
-      createProduct.mutate(buildProductPayload(values), {
+      createProduct.mutate({ ...buildProductPayload(values), imageUrl: imageUrl ?? undefined }, {
         onSuccess: () => {
           toast.success('Produto criado com sucesso')
           handleClose()
