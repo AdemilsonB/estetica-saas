@@ -32,7 +32,7 @@ export function CustomerList() {
   const params: CustomerListParams = {
     search: debouncedSearch || undefined,
     page,
-    pageSize: 20,
+    pageSize: 10,
     ...advancedFilters,
   }
 
