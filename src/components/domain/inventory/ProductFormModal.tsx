@@ -15,13 +15,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { ComboboxField } from '@/components/ui/combobox-field'
 import { useCreateProduct, useUpdateProduct } from '@/hooks/inventory/use-products'
 import { useProductCategories } from '@/hooks/inventory/use-product-categories'
 import { ImageUploadField } from '@/components/ui/image-upload-field'
@@ -240,21 +234,16 @@ export function ProductFormModal({ open, onClose, product }: Props) {
 
           <div className="space-y-1.5">
             <Label>Categoria</Label>
-            <Select
-              value={categoryId ?? ''}
-              onValueChange={(v) => setValue('categoryId', v || undefined)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ComboboxField
+              options={[
+                { value: '__none__', label: 'Sem categoria' },
+                ...categories.map((c) => ({ value: c.id, label: c.name })),
+              ]}
+              value={categoryId ?? '__none__'}
+              onChange={(v) => setValue('categoryId', v === '__none__' || !v ? undefined : v)}
+              placeholder="Selecionar categoria..."
+              searchPlaceholder="Buscar categoria..."
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">

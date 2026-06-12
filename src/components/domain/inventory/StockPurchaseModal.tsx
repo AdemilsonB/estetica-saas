@@ -13,13 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { ComboboxField } from '@/components/ui/combobox-field'
 import { useProducts } from '@/hooks/inventory/use-products'
 
 type Props = {
@@ -106,19 +100,16 @@ export function StockPurchaseModal({ open, onClose }: Props) {
             <Label>
               Produto <span className="text-rose-500">*</span>
             </Label>
-            <Select value={productId} onValueChange={setProductId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar produto" />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                    {p.category ? ` · ${p.category.name}` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ComboboxField
+              options={products.map((p) => ({
+                value: p.id,
+                label: p.name + (p.category ? ` · ${p.category.name}` : ''),
+              }))}
+              value={productId || undefined}
+              onChange={(v) => setProductId(v ?? '')}
+              placeholder="Selecionar produto..."
+              searchPlaceholder="Buscar produto..."
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">

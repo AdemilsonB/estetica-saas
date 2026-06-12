@@ -8,13 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { ComboboxField } from '@/components/ui/combobox-field'
 import { Separator } from '@/components/ui/separator'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { ImageUploadField } from '@/components/ui/image-upload-field'
@@ -198,22 +192,16 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
           {/* Categoria */}
           <div className="space-y-2">
             <Label htmlFor="service-category">Categoria</Label>
-            <Select
-              value={categoryId ?? 'none'}
-              onValueChange={(v) => setCategoryId(v === 'none' ? null : v)}
-            >
-              <SelectTrigger id="service-category">
-                <SelectValue placeholder="Sem categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sem categoria</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ComboboxField
+              options={[
+                { value: '__none__', label: 'Sem categoria' },
+                ...categories.map((cat) => ({ value: cat.id, label: cat.name })),
+              ]}
+              value={categoryId ?? '__none__'}
+              onChange={(v) => setCategoryId(v === '__none__' || !v ? null : v)}
+              placeholder="Selecionar categoria..."
+              searchPlaceholder="Buscar categoria..."
+            />
           </div>
 
           {/* Descrição */}
@@ -359,18 +347,14 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
             )}
 
             {availableProducts.length > 0 && (
-              <Select onValueChange={addProduct}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="+ Adicionar produto ao kit" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableProducts.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ComboboxField
+                options={availableProducts.map((p) => ({ value: p.id, label: p.name }))}
+                value={undefined}
+                onChange={(v) => { if (v) addProduct(v) }}
+                placeholder="+ Adicionar produto ao kit..."
+                searchPlaceholder="Buscar produto..."
+                className="h-8 text-xs"
+              />
             )}
           </div>
 
