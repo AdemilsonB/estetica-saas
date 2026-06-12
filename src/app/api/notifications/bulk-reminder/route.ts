@@ -48,7 +48,7 @@ export async function POST(request: Request) {
             appointmentId: a.id,
             startsAt: a.startsAt.toISOString(),
             customerName: a.customer.name,
-            serviceName: a.service.name,
+            serviceName: a.service?.name ?? "",
           },
         }),
       ),

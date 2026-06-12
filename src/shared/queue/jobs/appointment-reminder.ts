@@ -54,7 +54,7 @@ export async function handleAppointmentReminder(
         appointmentId,
         startsAt: appointment.startsAt.toISOString(),
         customerName: appointment.customer.name,
-        serviceName: appointment.service.name,
+        serviceName: appointment.service?.name ?? "",
       },
     });
   }
