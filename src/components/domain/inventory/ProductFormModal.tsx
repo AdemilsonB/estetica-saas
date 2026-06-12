@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -101,6 +102,10 @@ export function ProductFormModal({ open, onClose, product }: Props) {
   const isEditing = !!product
 
   const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [adjustTarget, setAdjustTarget] = useState('')
+  const [adjusting, setAdjusting] = useState(false)
+
+  const queryClient = useQueryClient()
 
   const { data: categories = [] } = useProductCategories()
   const createProduct = useCreateProduct()
@@ -136,6 +141,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         lowStockAlert: String(product.lowStockAlert),
       })
       setImageUrl(product.imageUrl ?? null)
+      setAdjustTarget('')
     } else if (open && !product) {
       reset({
         name: '',
@@ -145,13 +151,43 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         lowStockAlert: '',
       })
       setImageUrl(null)
+      setAdjustTarget('')
     }
   }, [open, product, reset])
 
   function handleClose() {
     reset()
     setImageUrl(null)
+    setAdjustTarget('')
     onClose()
+  }
+
+  async function handleAdjustStock() {
+    if (!product?.id || adjustTarget === '') return
+    const qty = parseInt(adjustTarget, 10)
+    if (isNaN(qty) || qty < 0) {
+      toast.error('Quantidade inválida')
+      return
+    }
+    setAdjusting(true)
+    try {
+      const res = await fetch(`/api/products/${product.id}/adjust`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetQuantity: qty }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(body?.error ?? 'Erro ao ajustar estoque')
+      }
+      toast.success(`Estoque ajustado para ${qty} unidades`)
+      setAdjustTarget('')
+      await queryClient.invalidateQueries({ queryKey: ['products'] })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao ajustar estoque')
+    } finally {
+      setAdjusting(false)
+    }
   }
 
   function onSubmit(values: FormValues) {
@@ -274,8 +310,33 @@ export function ProductFormModal({ open, onClose, product }: Props) {
           )}
 
           {isEditing && product?.stockQuantity !== undefined && (
-            <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-              Estoque atual: <strong className="text-foreground">{product.stockQuantity}</strong> unidades — use &ldquo;Compra de Estoque&rdquo; para ajustar
+            <div className="space-y-2">
+              <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                Estoque atual: <strong className="text-foreground">{product.stockQuantity}</strong> unidades
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="prod-adjust">Ajustar estoque para (unidades)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="prod-adjust"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={adjustTarget}
+                    onChange={(e) => setAdjustTarget(e.target.value)}
+                    placeholder={String(product.stockQuantity)}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={adjusting || adjustTarget === ''}
+                    onClick={handleAdjustStock}
+                  >
+                    {adjusting ? 'Ajustando...' : 'Ajustar'}
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
 
