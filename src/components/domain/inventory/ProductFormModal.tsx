@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select'
 import { useCreateProduct, useUpdateProduct } from '@/hooks/inventory/use-products'
 import { useProductCategories } from '@/hooks/inventory/use-product-categories'
+import { ImageUploadField } from '@/components/ui/image-upload-field'
 import type { CreateProductInput } from '@/domains/inventory/types'
 
 const schema = z.object({
@@ -99,6 +100,8 @@ type Props = {
 export function ProductFormModal({ open, onClose, product }: Props) {
   const isEditing = !!product
 
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+
   const { data: categories = [] } = useProductCategories()
   const createProduct = useCreateProduct()
   const updateProduct = useUpdateProduct()
@@ -132,6 +135,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         salePrice: product.salePrice,
         lowStockAlert: String(product.lowStockAlert),
       })
+      setImageUrl(product.imageUrl ?? null)
     } else if (open && !product) {
       reset({
         name: '',
@@ -140,17 +144,19 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         salePrice: '',
         lowStockAlert: '',
       })
+      setImageUrl(null)
     }
   }, [open, product, reset])
 
   function handleClose() {
     reset()
+    setImageUrl(null)
     onClose()
   }
 
   function onSubmit(values: FormValues) {
     if (isEditing && product) {
-      const updatePayload = buildProductPayload(values)
+      const updatePayload = { ...buildProductPayload(values), imageUrl: imageUrl ?? undefined }
       updateProduct.mutate(
         { id: product.id, ...updatePayload },
         {
@@ -289,6 +295,22 @@ export function ProductFormModal({ open, onClose, product }: Props) {
               Receber alerta quando o estoque atingir este nível
             </p>
           </div>
+
+          {isEditing && product ? (
+            <div className="space-y-1.5">
+              <Label>Imagem do produto</Label>
+              <ImageUploadField
+                value={imageUrl}
+                onChange={setImageUrl}
+                entityId={product.id}
+                entityType="products"
+              />
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400">
+              Salve o produto primeiro para adicionar uma imagem.
+            </p>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose} disabled={isPending}>
