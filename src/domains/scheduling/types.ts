@@ -15,9 +15,9 @@ export const createServiceSchema = z.object({
   duration: z.number().int().min(5).max(480),
   price: z.number().nonnegative(),
   priceType: z.enum(['FIXED', 'STARTING_FROM', 'RANGE', 'ON_CONSULTATION']).default('FIXED'),
-  priceMin: z.number().positive().optional(),
-  priceMax: z.number().positive().optional(),
-  description: z.string().trim().max(1000).optional(),
+  priceMin: z.number().positive().optional().nullable(),
+  priceMax: z.number().positive().optional().nullable(),
+  description: z.string().trim().max(1000).optional().nullable(),
   categoryId: z.string().cuid().optional().nullable(),
   active: z.boolean().default(true),
 })
