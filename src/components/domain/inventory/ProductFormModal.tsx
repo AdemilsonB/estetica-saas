@@ -325,6 +325,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
                     value={adjustTarget}
                     onChange={(e) => setAdjustTarget(e.target.value)}
                     placeholder={String(product.stockQuantity)}
+                    disabled={adjusting}
                     className="flex-1"
                   />
                   <Button
