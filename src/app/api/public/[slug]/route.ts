@@ -8,9 +8,11 @@ export async function GET(
   try {
     const { slug } = await context.params
     const tenant = await publicBookingRepository.findTenantBySlug(slug)
-    const [services, professionals] = await Promise.all([
+    const [services, professionals, packages, promotions] = await Promise.all([
       publicBookingRepository.findPublicServices(tenant.id),
       publicBookingRepository.findPublicProfessionals(tenant.id),
+      publicBookingRepository.findPublicPackages(tenant.id),
+      publicBookingRepository.findPublicPromotions(tenant.id),
     ])
 
     return Response.json({
@@ -22,6 +24,8 @@ export async function GET(
       branding: tenant.brandingConfig,
       services,
       professionals,
+      packages,
+      promotions,
       allowPublicBooking: tenant.schedulingPolicy?.allowPublicBooking ?? true,
     })
   } catch (error) {

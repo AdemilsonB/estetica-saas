@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 
 import { prisma } from '@/shared/database/prisma'
@@ -13,15 +14,22 @@ import { publicBookingRepository } from '@/domains/scheduling/public-booking.rep
 import { schedulingPolicyService } from '@/domains/scheduling/scheduling-policy.service'
 import { schedulingService } from '@/domains/scheduling/scheduling.service'
 
-const CreatePublicAppointmentSchema = z.object({
-  // IDs vêm do nosso próprio banco — .min(1) evita falsos positivos do .cuid() com variações de formato
-  serviceId: z.string().min(1),
-  professionalId: z.string().min(1).optional(),
-  startsAt: z.string().datetime(),
-  customerName: z.string().min(2).max(100),
-  customerPhone: z.string().min(10).max(20),
-  notes: z.string().max(500).optional(),
-})
+const CreatePublicAppointmentSchema = z
+  .object({
+    // IDs vêm do nosso próprio banco — .min(1) evita falsos positivos do .cuid() com variações de formato
+    serviceId: z.string().min(1).optional(),
+    packageId: z.string().min(1).optional(),
+    promotionId: z.string().min(1).optional(),
+    professionalId: z.string().min(1).optional(),
+    startsAt: z.string().datetime(),
+    customerName: z.string().min(2).max(100),
+    customerPhone: z.string().min(10).max(20),
+    notes: z.string().max(500).optional(),
+  })
+  .refine((data) => data.serviceId || data.packageId, {
+    message: 'serviceId ou packageId é obrigatório',
+    path: ['serviceId'],
+  })
 
 type RouteContext = { params: Promise<{ slug: string }> }
 
@@ -154,19 +162,53 @@ export async function POST(req: Request, context: RouteContext) {
       throw new ValidationError('Configuração do salão incompleta.')
     }
 
-    // 13. Criar appointment via scheduling service
-    const appointment = await schedulingService.createAppointment(
-      tenant.id,
-      owner.id,
-      {
-        customerId: customer.id,
-        professionalId,
-        serviceId: input.serviceId,
-        startsAt: input.startsAt,
-        notes: input.notes,
-        allowOverlap: false,
-      },
-    )
+    // 13. Criar appointment: via service (serviceId) ou direto via repositório (packageId)
+    let appointment: { id: string; startsAt: Date }
+
+    if (input.packageId) {
+      // Pacote: calcular duração somando serviços do pacote e criar direto no repositório
+      const packages = await publicBookingRepository.findPublicPackages(tenant.id)
+      const foundPkg = packages.find((p) => p.id === input.packageId)
+      if (!foundPkg) {
+        return Response.json(
+          { error: { code: 'NOT_FOUND', message: 'Pacote não encontrado.' } },
+          { status: 404 },
+        )
+      }
+
+      const startsAtDate = new Date(input.startsAt)
+      const endsAt = new Date(startsAtDate.getTime() + foundPkg.duration * 60 * 1000)
+
+      appointment = await prisma.appointment.create({
+        data: {
+          tenantId: tenant.id,
+          customerId: customer.id,
+          professionalId,
+          packageId: input.packageId,
+          promotionId: input.promotionId ?? null,
+          startsAt: startsAtDate,
+          endsAt,
+          notes: input.notes,
+          price: new Prisma.Decimal(foundPkg.price),
+          createdByUserId: owner.id,
+        },
+        select: { id: true, startsAt: true },
+      })
+    } else {
+      // Serviço avulso: usar scheduling service existente
+      appointment = await schedulingService.createAppointment(
+        tenant.id,
+        owner.id,
+        {
+          customerId: customer.id,
+          professionalId,
+          serviceId: input.serviceId!,
+          startsAt: input.startsAt,
+          notes: input.notes,
+          allowOverlap: false,
+        },
+      )
+    }
 
     // 14. Retornar appointmentId e startsAt com status 201
     return Response.json(
