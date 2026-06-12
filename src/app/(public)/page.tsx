@@ -49,7 +49,7 @@ export default async function LandingPage() {
         <LandingFeatures />
         <LandingHowItWorks />
         <LandingTestimonials testimonials={testimonials} />
-        <LandingPricingCTA starterPrice={starterPlan?.price ?? null} />
+        <LandingPricingCTA starterPrice={starterPlan?.price ? Number(starterPlan.price) : null} />
       </main>
       <LandingFooter />
       {whatsappNumber && <WhatsAppFloatButton phoneNumber={whatsappNumber} />}

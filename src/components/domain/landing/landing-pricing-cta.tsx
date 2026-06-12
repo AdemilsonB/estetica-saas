@@ -1,13 +1,12 @@
 import Link from 'next/link'
-import type { Decimal } from '@prisma/client/runtime/library'
 
 interface LandingPricingCTAProps {
-  starterPrice: Decimal | null
+  starterPrice: number | null
 }
 
 export function LandingPricingCTA({ starterPrice }: LandingPricingCTAProps) {
   const formattedPrice = starterPrice
-    ? Number(starterPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 })
+    ? starterPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 })
     : null
 
   return (
