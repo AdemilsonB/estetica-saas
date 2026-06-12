@@ -59,6 +59,14 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Landing page — pública para visitantes, redireciona para dashboard se já autenticado com tenant
+  if (pathname === '/') {
+    if (user?.app_metadata?.tenantId) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    return supabaseResponse
+  }
+
   // Proteção de rotas admin
   if (isAdminRoute) {
     if (!user) {
@@ -75,7 +83,7 @@ export async function middleware(request: NextRequest) {
     if (isOnboarding && user.user_metadata?.onboardingStep === 'plan') {
       return supabaseResponse
     }
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   if (user && !user.app_metadata?.tenantId && !isOnboarding && !isTokenRoute) {
