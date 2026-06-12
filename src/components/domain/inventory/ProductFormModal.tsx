@@ -54,37 +54,29 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-function createPayloadFromValues(values: FormValues): CreateProductInput {
-  return {
-    name: values.name,
-    categoryId: values.categoryId || undefined,
-    costPrice: parseFloat(values.costPrice),
-    salePrice:
-      values.salePrice !== undefined && values.salePrice !== ''
-        ? parseFloat(values.salePrice)
-        : undefined,
-    stockQuantity: 0,
-  } as unknown as CreateProductInput
-}
+function buildProductPayload(values: FormValues): CreateProductInput {
+  const costPrice = parseFloat(values.costPrice)
+  const salePriceRaw = values.salePrice !== undefined && values.salePrice !== ''
+    ? parseFloat(values.salePrice)
+    : undefined
+  const salePrice = salePriceRaw !== undefined && !isNaN(salePriceRaw) ? salePriceRaw : undefined
+  const stockQuantity =
+    values.stockQuantity !== undefined && values.stockQuantity !== ''
+      ? parseInt(values.stockQuantity, 10)
+      : 0
+  const lowStockAlert =
+    values.lowStockAlert !== undefined && values.lowStockAlert !== ''
+      ? parseInt(values.lowStockAlert, 10)
+      : 5
 
-function createPayloadFromValuesForCreate(values: FormValues): CreateProductInput {
   return {
     name: values.name,
     categoryId: values.categoryId || undefined,
-    costPrice: parseFloat(values.costPrice),
-    salePrice:
-      values.salePrice !== undefined && values.salePrice !== ''
-        ? parseFloat(values.salePrice)
-        : undefined,
-    stockQuantity:
-      values.stockQuantity !== undefined && values.stockQuantity !== ''
-        ? parseInt(values.stockQuantity)
-        : 0,
-    lowStockAlert:
-      values.lowStockAlert !== undefined && values.lowStockAlert !== ''
-        ? parseInt(values.lowStockAlert)
-        : 5,
-  } as unknown as CreateProductInput
+    costPrice,
+    salePrice,
+    stockQuantity,
+    lowStockAlert,
+  }
 }
 
 type Product = {
@@ -158,7 +150,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
 
   function onSubmit(values: FormValues) {
     if (isEditing && product) {
-      const updatePayload = createPayloadFromValues(values)
+      const updatePayload = buildProductPayload(values)
       updateProduct.mutate(
         { id: product.id, ...updatePayload },
         {
@@ -172,7 +164,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         },
       )
     } else {
-      createProduct.mutate(createPayloadFromValuesForCreate(values), {
+      createProduct.mutate(buildProductPayload(values), {
         onSuccess: () => {
           toast.success('Produto criado com sucesso')
           handleClose()
