@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select'
 import { useCreateProduct, useUpdateProduct } from '@/hooks/inventory/use-products'
 import { useProductCategories } from '@/hooks/inventory/use-product-categories'
+import type { CreateProductInput } from '@/domains/inventory/types'
 
 const schema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -33,8 +34,8 @@ const schema = z.object({
     .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) >= 0, 'Valor inválido'),
   salePrice: z
     .string()
-    .min(1, 'Preço de venda é obrigatório')
-    .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) >= 0, 'Valor inválido'),
+    .optional()
+    .refine((v) => v === undefined || v === '' || (!isNaN(parseFloat(v)) && parseFloat(v) >= 0), 'Valor inválido'),
   stockQuantity: z
     .string()
     .optional()
@@ -52,6 +53,39 @@ const schema = z.object({
 })
 
 type FormValues = z.infer<typeof schema>
+
+function createPayloadFromValues(values: FormValues): CreateProductInput {
+  return {
+    name: values.name,
+    categoryId: values.categoryId || undefined,
+    costPrice: parseFloat(values.costPrice),
+    salePrice:
+      values.salePrice !== undefined && values.salePrice !== ''
+        ? parseFloat(values.salePrice)
+        : undefined,
+    stockQuantity: 0,
+  } as unknown as CreateProductInput
+}
+
+function createPayloadFromValuesForCreate(values: FormValues): CreateProductInput {
+  return {
+    name: values.name,
+    categoryId: values.categoryId || undefined,
+    costPrice: parseFloat(values.costPrice),
+    salePrice:
+      values.salePrice !== undefined && values.salePrice !== ''
+        ? parseFloat(values.salePrice)
+        : undefined,
+    stockQuantity:
+      values.stockQuantity !== undefined && values.stockQuantity !== ''
+        ? parseInt(values.stockQuantity)
+        : 0,
+    lowStockAlert:
+      values.lowStockAlert !== undefined && values.lowStockAlert !== ''
+        ? parseInt(values.lowStockAlert)
+        : 5,
+  } as unknown as CreateProductInput
+}
 
 type Product = {
   id: string
@@ -123,20 +157,10 @@ export function ProductFormModal({ open, onClose, product }: Props) {
   }
 
   function onSubmit(values: FormValues) {
-    const basePayload = {
-      name: values.name,
-      categoryId: values.categoryId || undefined,
-      costPrice: parseFloat(values.costPrice),
-      salePrice: parseFloat(values.salePrice),
-      lowStockAlert:
-        values.lowStockAlert !== undefined && values.lowStockAlert !== ''
-          ? parseInt(values.lowStockAlert)
-          : undefined,
-    }
-
     if (isEditing && product) {
+      const updatePayload = createPayloadFromValues(values)
       updateProduct.mutate(
-        { id: product.id, ...basePayload },
+        { id: product.id, ...updatePayload },
         {
           onSuccess: () => {
             toast.success('Produto atualizado com sucesso')
@@ -148,14 +172,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         },
       )
     } else {
-      const createPayload = {
-        ...basePayload,
-        stockQuantity:
-          values.stockQuantity !== undefined && values.stockQuantity !== ''
-            ? parseInt(values.stockQuantity)
-            : 0,
-      }
-      createProduct.mutate(createPayload, {
+      createProduct.mutate(createPayloadFromValuesForCreate(values), {
         onSuccess: () => {
           toast.success('Produto criado com sucesso')
           handleClose()
@@ -226,7 +243,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
 
             <div className="space-y-1.5">
               <Label htmlFor="prod-sale">
-                Preço de Venda (R$) <span className="text-rose-500">*</span>
+                Preço de Venda (R$)
               </Label>
               <Input
                 id="prod-sale"

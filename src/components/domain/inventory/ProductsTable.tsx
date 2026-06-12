@@ -53,7 +53,7 @@ export function ProductsTable({ products, onEdit, onDelete }: Props) {
       <div className="divide-y divide-border/50">
         {products.map((product) => {
           const isLowStock = product.stockQuantity <= product.lowStockAlert
-          const patrimony = Number(product.salePrice) * product.stockQuantity
+          const patrimony = (Number(product.salePrice) || 0) * product.stockQuantity
           return (
             <div key={product.id} className="p-4">
               {/* Mobile Card */}
