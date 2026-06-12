@@ -41,6 +41,7 @@ export function ConfirmationStep({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           serviceId: booking.serviceId,
+          packageId: booking.packageId,
           professionalId: booking.professionalId,
           startsAt: booking.startsAt?.toISOString(),
           customerName: booking.customerName,

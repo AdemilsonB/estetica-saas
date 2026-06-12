@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type {
   BookingState,
   BookingStep,
+  PublicPackage,
   PublicProfessional,
   PublicService,
   TenantPublicData,
@@ -66,6 +67,28 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
   const singleProfessional = tenantData.professionals.length === 1
   const primaryColor = tenantData.branding?.primaryColor ?? '#191919'
   const maxAdvanceDays = 60
+
+  function handlePackageSelect(pkg: PublicPackage) {
+    setBooking((b) => ({
+      ...b,
+      packageId: pkg.id,
+      serviceId: undefined,
+      promotionId: undefined,
+      serviceDuration: pkg.duration,
+      servicePrice: `R$ ${Number(pkg.price).toFixed(2).replace('.', ',')}`,
+      serviceName: pkg.name,
+    }))
+    // Para pacotes, mostra todos os profissionais disponíveis
+    setProfessionalsForService(tenantData.professionals)
+    setShowServiceWarning(false)
+    if (tenantData.professionals.length === 1) {
+      const p = tenantData.professionals[0]!
+      setBooking((b) => ({ ...b, professionalId: p.id, professionalName: p.name }))
+      setStep('datetime')
+    } else {
+      setStep('professional')
+    }
+  }
 
   function handleServiceSelect(service: PublicService) {
     const priceLabel =
@@ -147,6 +170,9 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
           services={tenantData.services}
           onSelect={handleServiceSelect}
           primaryColor={primaryColor}
+          packages={tenantData.packages}
+          promotions={tenantData.promotions}
+          onPackageSelect={handlePackageSelect}
         />
       )}
 

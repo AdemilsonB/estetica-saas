@@ -29,6 +29,26 @@ export type PublicProfessional = {
   serviceIds: string[]
 }
 
+export type PublicPackage = {
+  id: string
+  name: string
+  description: string | null
+  imageUrl: string | null
+  price: number
+  duration: number
+  services: { id: string; name: string; duration: number }[]
+}
+
+export type PublicPromotion = {
+  id: string
+  name: string
+  description: string | null
+  imageUrl: string | null
+  discountType: 'PERCENTAGE' | 'FIXED'
+  discountValue: number
+  services: { id: string; name: string; duration: number; originalPrice: number }[]
+}
+
 export type TenantPublicData = {
   name: string
   slug: string
@@ -38,6 +58,8 @@ export type TenantPublicData = {
   branding?: TenantBranding | null
   services: PublicService[]
   professionals: PublicProfessional[]
+  packages: PublicPackage[]
+  promotions: PublicPromotion[]
   allowPublicBooking: boolean
 }
 
@@ -46,6 +68,8 @@ export type BookingState = {
   serviceName?: string
   serviceDuration?: number
   servicePrice?: string
+  packageId?: string
+  promotionId?: string
   professionalId?: string
   professionalName?: string
   startsAt?: Date
