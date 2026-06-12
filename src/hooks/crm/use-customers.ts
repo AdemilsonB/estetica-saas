@@ -21,6 +21,7 @@ export type CreateCustomerInput = {
   name: string
   phone?: string
   email?: string
+  birthDate?: string
   notes?: string
   tags?: string[]
 }
