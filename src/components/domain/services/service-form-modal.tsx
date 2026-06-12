@@ -129,7 +129,10 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
             setSavingTemplate(false)
             onClose()
           },
-          onError: () => setSavingTemplate(false),
+          onError: () => {
+            setSavingTemplate(false)
+            toast.error('Falha ao salvar serviço. Verifique os dados e tente novamente.')
+          },
         },
       )
     } else {
@@ -141,7 +144,10 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
             setSavingTemplate(false)
             onClose()
           },
-          onError: () => setSavingTemplate(false),
+          onError: () => {
+            setSavingTemplate(false)
+            toast.error('Falha ao criar serviço. Verifique os dados e tente novamente.')
+          },
         },
       )
     }
