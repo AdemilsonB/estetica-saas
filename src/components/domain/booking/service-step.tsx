@@ -31,12 +31,20 @@ function toPickerService(s: PublicService): PickerService {
   }
 }
 
+export type PromotionServiceSelection = {
+  id: string
+  name: string
+  duration: number
+  discountedPrice: number
+}
+
 export function ServiceStep({
   services,
   onSelect,
   packages,
   promotions,
   onPackageSelect,
+  onPromotionServiceSelect,
 }: {
   services: PublicService[]
   onSelect: (service: PublicService) => void
@@ -44,6 +52,7 @@ export function ServiceStep({
   packages?: PublicPackage[]
   promotions?: PublicPromotion[]
   onPackageSelect?: (pkg: PublicPackage) => void
+  onPromotionServiceSelect?: (promotionId: string, service: PromotionServiceSelection) => void
 }) {
   const categories = deriveCategories(services)
   const pickerServices = services.map(toPickerService)
@@ -150,13 +159,22 @@ export function ServiceStep({
                           promo.discountType === 'PERCENTAGE'
                             ? s.originalPrice * (1 - promo.discountValue / 100)
                             : Math.max(0, s.originalPrice - promo.discountValue)
-                        onSelect({
-                          id: s.id,
-                          name: s.name,
-                          duration: s.duration,
-                          price: discountedPrice,
-                          priceType: 'FIXED',
-                        })
+                        if (onPromotionServiceSelect) {
+                          onPromotionServiceSelect(promo.id, {
+                            id: s.id,
+                            name: s.name,
+                            duration: s.duration,
+                            discountedPrice,
+                          })
+                        } else {
+                          onSelect({
+                            id: s.id,
+                            name: s.name,
+                            duration: s.duration,
+                            price: discountedPrice,
+                            priceType: 'FIXED',
+                          })
+                        }
                       }}
                       className="w-full text-left p-2 rounded border border-slate-200 hover:border-[--booking-primary,#191919] transition-colors text-sm"
                     >

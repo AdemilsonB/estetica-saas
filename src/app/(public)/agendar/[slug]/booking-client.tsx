@@ -9,7 +9,7 @@ import type {
   PublicService,
   TenantPublicData,
 } from './types'
-import { ServiceStep } from '@/components/domain/booking/service-step'
+import { ServiceStep, type PromotionServiceSelection } from '@/components/domain/booking/service-step'
 import { ProfessionalStep } from '@/components/domain/booking/professional-step'
 import { DateTimeStep } from '@/components/domain/booking/datetime-step'
 import { PersonalStep } from '@/components/domain/booking/personal-step'
@@ -83,6 +83,35 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
     setShowServiceWarning(false)
     if (tenantData.professionals.length === 1) {
       const p = tenantData.professionals[0]!
+      setBooking((b) => ({ ...b, professionalId: p.id, professionalName: p.name }))
+      setStep('datetime')
+    } else {
+      setStep('professional')
+    }
+  }
+
+  function handlePromotionServiceSelect(promotionId: string, service: PromotionServiceSelection) {
+    const priceLabel = `R$ ${Number(service.discountedPrice).toFixed(2).replace('.', ',')}`
+
+    setBooking((b) => ({
+      ...b,
+      promotionId,
+      serviceId: service.id,
+      packageId: undefined,
+      serviceName: service.name,
+      serviceDuration: service.duration,
+      servicePrice: priceLabel,
+    }))
+
+    const linked = tenantData.professionals.filter((p) =>
+      p.serviceIds.includes(service.id),
+    )
+    const filtered = linked.length > 0 ? linked : tenantData.professionals
+    setProfessionalsForService(filtered)
+    setShowServiceWarning(linked.length === 0)
+
+    if (filtered.length === 1) {
+      const p = filtered[0]!
       setBooking((b) => ({ ...b, professionalId: p.id, professionalName: p.name }))
       setStep('datetime')
     } else {
@@ -173,6 +202,7 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
           packages={tenantData.packages}
           promotions={tenantData.promotions}
           onPackageSelect={handlePackageSelect}
+          onPromotionServiceSelect={handlePromotionServiceSelect}
         />
       )}
 
