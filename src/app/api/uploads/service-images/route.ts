@@ -3,7 +3,7 @@ import { handleApiError } from '@/shared/http/handle-api-error'
 import { supabaseAdmin } from '@/integrations/supabase/admin'
 
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
-const ALLOWED_ENTITY_TYPES = new Set(['services', 'packages', 'promotions'])
+const ALLOWED_ENTITY_TYPES = new Set(['services', 'packages', 'promotions', 'products'])
 const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
 
 export async function POST(request: Request) {

@@ -70,6 +70,16 @@ async function deactivateService(id: string): Promise<void> {
   if (!res.ok) throw new Error('Falha ao desativar servico')
 }
 
+async function activateService(id: string): Promise<Service> {
+  const res = await fetch(`/api/scheduling/services/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ active: true }),
+  })
+  if (!res.ok) throw new Error('Falha ao reativar servico')
+  return res.json()
+}
+
 export function useServices() {
   return useQuery({
     queryKey: ['services'],
@@ -98,6 +108,14 @@ export function useDeactivateService() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: deactivateService,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['services'] }),
+  })
+}
+
+export function useActivateService() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: activateService,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['services'] }),
   })
 }

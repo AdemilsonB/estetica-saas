@@ -5,12 +5,13 @@ import { Edit2, Plus, Power } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useDeactivateService, useServices, type Service } from '@/hooks/scheduling/use-services'
+import { useActivateService, useDeactivateService, useServices, type Service } from '@/hooks/scheduling/use-services'
 import { ServiceFormModal } from './service-form-modal'
 
 export function ServiceCatalog() {
   const { data: services, isLoading, isError, refetch } = useServices()
   const { mutate: deactivate } = useDeactivateService()
+  const { mutate: activate } = useActivateService()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingService, setEditingService] = useState<Service | undefined>()
 
@@ -27,6 +28,11 @@ export function ServiceCatalog() {
   function handleDeactivate(service: Service) {
     if (!confirm(`Desativar "${service.name}"?`)) return
     deactivate(service.id)
+  }
+
+  function handleActivate(service: Service) {
+    if (!confirm(`Reativar "${service.name}"?`)) return
+    activate(service.id)
   }
 
   if (isLoading) {
@@ -113,13 +119,23 @@ export function ServiceCatalog() {
                 >
                   <Edit2 className="size-3.5" />
                 </Button>
-                {service.active && (
+                {service.active ? (
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleDeactivate(service)}
                     className="size-8 text-muted-foreground hover:text-destructive"
                     title="Desativar"
+                  >
+                    <Power className="size-3.5" />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleActivate(service)}
+                    className="size-8 text-muted-foreground hover:text-green-600"
+                    title="Reativar"
                   >
                     <Power className="size-3.5" />
                   </Button>
