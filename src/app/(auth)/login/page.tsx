@@ -2,12 +2,13 @@ import { Suspense } from "react";
 import { LoginClient } from "./login-client";
 
 type Props = {
-  searchParams: Promise<{ tenant?: string }>;
+  searchParams: Promise<{ tenant?: string; plan?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: Props) {
   const params = await searchParams;
   const tenantSlug = params.tenant ?? null;
+  const plan = params.plan ?? null;
 
   let branding = {
     primaryColor: "#191919",
@@ -31,7 +32,7 @@ export default async function LoginPage({ searchParams }: Props) {
 
   return (
     <Suspense>
-      <LoginClient branding={branding} />
+      <LoginClient branding={branding} plan={plan} />
     </Suspense>
   );
 }

@@ -8,6 +8,10 @@ import { env } from '@/shared/config/env'
 const Schema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
+  nomeCompleto: z.string().min(2).optional(),
+  telefone: z.string().optional(),
+  cpf: z.string().optional(),
+  cep: z.string().optional(),
 })
 
 async function getRequireEmailVerification() {
@@ -19,18 +23,30 @@ async function getRequireEmailVerification() {
   }
 }
 
+function buildUserMetadata(input: z.infer<typeof Schema>) {
+  const meta: Record<string, string> = {}
+  if (input.nomeCompleto) meta.full_name = input.nomeCompleto
+  if (input.telefone) meta.phone = input.telefone
+  if (input.cpf) meta.cpf = input.cpf
+  if (input.cep) meta.cep = input.cep
+  return meta
+}
+
 export async function POST(req: Request) {
   const input = await validateInput(req, Schema)
 
   const requireEmailVerification = await getRequireEmailVerification()
+  const userMetadata = buildUserMetadata(input)
 
   if (requireEmailVerification) {
-    // Fluxo com verificação: usa signUp público — Supabase envia email de confirmação
     const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY)
     const { error } = await supabase.auth.signUp({
       email: input.email,
       password: input.password,
-      options: { emailRedirectTo: `${env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/auth/callback` },
+      options: {
+        emailRedirectTo: `${env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/auth/callback`,
+        data: userMetadata,
+      },
     })
     if (error) {
       const alreadyExists =
@@ -45,11 +61,11 @@ export async function POST(req: Request) {
     return Response.json({ requiresConfirmation: true })
   }
 
-  // Fluxo sem verificação: admin cria usuário já confirmado
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email: input.email,
     password: input.password,
     email_confirm: true,
+    user_metadata: userMetadata,
   })
 
   if (!error) {
@@ -65,7 +81,6 @@ export async function POST(req: Request) {
     return Response.json({ error: error.message }, { status: 400 })
   }
 
-  // Usuário existe mas pode estar não-confirmado — busca e confirma
   const { data: listData } = await supabaseAdmin.auth.admin.listUsers()
   const existing = listData?.users?.find(
     (u) => u.email?.toLowerCase() === input.email.toLowerCase(),
@@ -82,6 +97,7 @@ export async function POST(req: Request) {
   const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
     email_confirm: true,
     password: input.password,
+    user_metadata: { ...existing.user_metadata, ...userMetadata },
   })
 
   if (updateError) {

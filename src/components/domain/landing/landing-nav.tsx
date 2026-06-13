@@ -29,7 +29,7 @@ export function LandingNav() {
             Entrar
           </Link>
           <Link
-            href="/onboarding"
+            href="/login"
             className="rounded-lg bg-gradient-to-r from-violet-600 to-pink-600 px-4 py-2 text-sm font-bold text-white shadow-md shadow-violet-200 hover:opacity-90 transition-opacity"
           >
             Criar conta grátis →

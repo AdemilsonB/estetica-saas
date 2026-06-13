@@ -100,6 +100,7 @@ model Tenant {
   brandingConfig    BrandingConfig?
   phone             String?
   address           String?
+  zipCode           String?
   whatsappEnabled       Boolean           @default(false)
   timezone              String            @default("America/Sao_Paulo")
   whatsappTemplateConfig Json?
@@ -234,6 +235,8 @@ model User {
   tenantId                String
   email                   String
   name                    String
+  phone                   String?
+  cpf                     String?
   role                    UserRole       @default(PROFESSIONAL)
   permissions             String[]
   avatarUrl               String?
