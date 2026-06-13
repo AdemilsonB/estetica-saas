@@ -19,20 +19,39 @@ export class BillingService {
   }
 
   async startTrial(tenantId: string) {
+    return this.startTrialForPlan(tenantId, PlanName.STARTER)
+  }
+
+  async startTrialForPlan(tenantId: string, planName: PlanName) {
     const now = new Date();
-    const starterPlan = await prisma.plan.findUnique({ where: { name: PlanName.STARTER }, select: { trialDays: true } });
-    const trialEndsAt = addDays(now, starterPlan?.trialDays ?? 14);
+    const plan = await prisma.plan.findUnique({ where: { name: planName }, select: { trialDays: true } });
+    const trialEndsAt = addDays(now, plan?.trialDays ?? 14);
+
+    const existing = await billingRepository.getSubscription(tenantId);
+
+    // Migra de FREE para o plano com trial (cobre o caso do onboarding pós-registro)
+    if (existing) {
+      const updated = await billingRepository.updateSubscription(tenantId, {
+        plan: planName,
+        status: SubscriptionStatus.TRIALING,
+        trialEndsAt,
+        currentPeriodStart: now,
+        currentPeriodEnd: trialEndsAt,
+      });
+      await billingRepository.updateTenantPlanCache(tenantId, planName);
+      return updated;
+    }
 
     const sub = await billingRepository.createSubscription({
       tenantId,
-      plan: PlanName.STARTER,
+      plan: planName,
       status: SubscriptionStatus.TRIALING,
       trialEndsAt,
       currentPeriodStart: now,
       currentPeriodEnd: trialEndsAt,
     });
 
-    await billingRepository.updateTenantPlanCache(tenantId, PlanName.STARTER);
+    await billingRepository.updateTenantPlanCache(tenantId, planName);
 
     return sub;
   }

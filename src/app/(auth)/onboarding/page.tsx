@@ -181,8 +181,35 @@ function OnboardingContent() {
       return
     }
 
-    const key = skipTrial ? `${planName}_direct` : `${planName}_trial`
-    setLoadingKey(key)
+    // Trial gratuito: ativa sem Stripe, usuário entra no sistema agora
+    if (!skipTrial) {
+      setLoadingKey(`${planName}_trial`)
+      try {
+        const res = await fetch('/api/billing/start-trial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planName }),
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          toast.error(err?.message ?? 'Erro ao iniciar trial. Tente novamente.')
+          return
+        }
+        const supabase = createSupabaseBrowserClient()
+        await supabase.auth.updateUser({ data: { onboardingStep: 'complete' } })
+        toast.success('Trial iniciado! Explore o sistema à vontade.')
+        router.push('/agenda')
+        router.refresh()
+      } catch {
+        toast.error('Erro de conexão. Tente novamente.')
+      } finally {
+        setLoadingKey(null)
+      }
+      return
+    }
+
+    // Assinar agora: Stripe checkout imediato
+    setLoadingKey(`${planName}_direct`)
     try {
       const origin = window.location.origin
       const res = await fetch('/api/billing/checkout', {
@@ -190,7 +217,7 @@ function OnboardingContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           planName,
-          skipTrial,
+          skipTrial: true,
           successUrl: `${origin}/onboarding?stripe=success`,
           cancelUrl: `${origin}/onboarding?stripe=cancelled`,
         }),
