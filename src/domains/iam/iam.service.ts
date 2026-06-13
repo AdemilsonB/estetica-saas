@@ -77,6 +77,8 @@ export class IamService {
       throw new NotFoundError("Usuario Supabase");
     }
 
+    const meta = (authUser.user.user_metadata ?? {}) as Record<string, string>
+
     let createResult: Awaited<
       ReturnType<typeof iamRepository.createTenantWithOwner>
     >;
@@ -87,6 +89,9 @@ export class IamService {
         businessName: input.businessName,
         userName: input.userName,
         branding: input.branding,
+        ownerPhone: meta.phone,
+        ownerCpf: meta.cpf,
+        zipCode: meta.cep,
       });
     } catch (err) {
       if (

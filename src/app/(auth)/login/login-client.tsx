@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, Loader2, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Loader2, MapPin, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,50 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PasswordStrength } from "@/components/auth/password-strength";
 import { createSupabaseBrowserClient } from "@/integrations/supabase/client";
+
+// ─── Máscaras ──────────────────────────────────────────────────────────────
+
+function maskPhone(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits.length ? `(${digits}` : "";
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 11)
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  return value;
+}
+
+function maskCpf(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
+function maskCep(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+}
+
+// ─── Validação de CPF ──────────────────────────────────────────────────────
+
+function validateCpf(cpf: string): boolean {
+  const digits = cpf.replace(/\D/g, "");
+  if (digits.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(digits)) return false;
+
+  const calc = (len: number) => {
+    const sum = digits
+      .slice(0, len)
+      .split("")
+      .reduce((acc, d, i) => acc + Number(d) * (len + 1 - i), 0);
+    const rem = (sum * 10) % 11;
+    return rem >= 10 ? 0 : rem;
+  };
+
+  return calc(9) === Number(digits[9]) && calc(10) === Number(digits[10]);
+}
 
 // ─── Schemas ───────────────────────────────────────────────────────────────
 
@@ -24,12 +68,19 @@ const loginSchema = z.object({
 
 const signupSchema = z
   .object({
-    email: z.string().email("Email invalido"),
-    password: z.string().min(8, "Minimo 8 caracteres"),
+    nomeCompleto: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
+    email: z.string().email("Email inválido"),
+    telefone: z
+      .string()
+      .min(14, "Telefone inválido")
+      .max(15, "Telefone inválido"),
+    cpf: z.string().refine((v) => validateCpf(v), { message: "CPF inválido" }),
+    cep: z.string().min(9, "CEP inválido").max(9, "CEP inválido"),
+    password: z.string().min(8, "Mínimo 8 caracteres"),
     confirmPassword: z.string(),
   })
   .refine((d) => d.password === d.confirmPassword, {
-    message: "As senhas nao conferem",
+    message: "As senhas não conferem",
     path: ["confirmPassword"],
   });
 
@@ -46,36 +97,53 @@ type Branding = {
 
 type Props = {
   branding: Branding;
+  plan: string | null;
 };
 
 // ─── Component ─────────────────────────────────────────────────────────────
 
-export function LoginClient({ branding }: Props) {
+export function LoginClient({ branding, plan }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const defaultTab = plan ? "signup" : (searchParams.get("tab") ?? "login");
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user?.app_metadata?.tenantId) {
-        router.replace('/agenda');
+        router.replace("/agenda");
       }
     });
   }, [router]);
 
   return (
     <div className="flex min-h-screen">
-      <LeftPanel branding={branding} />
-      <RightPanel router={router} />
+      <LeftPanel branding={branding} plan={plan} />
+      <RightPanel router={router} plan={plan} defaultTab={defaultTab} />
     </div>
   );
 }
 
 // ─── Left panel ────────────────────────────────────────────────────────────
 
-function LeftPanel({ branding }: { branding: Branding }) {
+const PLAN_LABEL: Record<string, string> = {
+  FREE: "Trial gratuito",
+  STARTER: "Plano Starter",
+  PRO: "Plano Pro",
+  ENTERPRISE: "Plano Enterprise",
+};
+
+function LeftPanel({
+  branding,
+  plan,
+}: {
+  branding: Branding;
+  plan: string | null;
+}) {
   const benefits = [
-    "Agenda inteligente com deteccao de conflitos",
-    "CRM de clientes com historico completo",
+    "Agenda inteligente com detecção de conflitos",
+    "CRM de clientes com histórico completo",
     "Financeiro conectado ao atendimento",
   ];
 
@@ -101,13 +169,18 @@ function LeftPanel({ branding }: { branding: Branding }) {
 
       <div className="my-auto space-y-6">
         <div>
+          {plan && (
+            <div className="mb-4 inline-block rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+              ✓ {PLAN_LABEL[plan] ?? plan} selecionado
+            </div>
+          )}
           <h1 className="text-2xl font-bold leading-tight tracking-tight text-foreground">
             O workspace dos
             <br />
-            profissionais de estetica.
+            profissionais de estética.
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Agenda, CRM, financeiro e IA em uma plataforma so.
+            Agenda, CRM, financeiro e IA em uma plataforma só.
           </p>
         </div>
 
@@ -129,7 +202,15 @@ function LeftPanel({ branding }: { branding: Branding }) {
 
 // ─── Right panel ───────────────────────────────────────────────────────────
 
-function RightPanel({ router }: { router: ReturnType<typeof useRouter> }) {
+function RightPanel({
+  router,
+  plan,
+  defaultTab,
+}: {
+  router: ReturnType<typeof useRouter>;
+  plan: string | null;
+  defaultTab: string;
+}) {
   return (
     <div className="flex w-full flex-col items-center justify-center bg-white p-8 lg:w-[55%]">
       <div className="w-full max-w-sm space-y-6">
@@ -138,11 +219,11 @@ function RightPanel({ router }: { router: ReturnType<typeof useRouter> }) {
             <Sparkles className="size-3.5 text-primary-foreground" />
           </div>
           <span className="text-sm font-semibold text-foreground">
-            SaaS Estetica
+            Agendê
           </span>
         </div>
 
-        <Tabs defaultValue="login" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-background">
             <TabsTrigger
               value="login"
@@ -163,7 +244,7 @@ function RightPanel({ router }: { router: ReturnType<typeof useRouter> }) {
           </TabsContent>
 
           <TabsContent value="signup" className="mt-6">
-            <SignupForm router={router} />
+            <SignupFormComponent router={router} plan={plan} />
           </TabsContent>
         </Tabs>
       </div>
@@ -250,11 +331,7 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
             onClick={() => setShowPassword((p) => !p)}
             aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
           >
-            {showPassword ? (
-              <EyeOff className="size-4" />
-            ) : (
-              <Eye className="size-4" />
-            )}
+            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         </div>
         {errors.password && (
@@ -268,10 +345,7 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
         disabled={isSubmitting}
       >
         {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 size-4 animate-spin" />
-            Entrando...
-          </>
+          <><Loader2 className="mr-2 size-4 animate-spin" />Entrando...</>
         ) : (
           "Entrar"
         )}
@@ -282,32 +356,71 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
 
 // ─── Signup form ───────────────────────────────────────────────────────────
 
-function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
+type CepInfo = { localidade: string; uf: string } | null;
+
+function SignupFormComponent({
+  router,
+  plan,
+}: {
+  router: ReturnType<typeof useRouter>;
+  plan: string | null;
+}) {
   const [showPassword, setShowPassword] = useState(false);
+  const [telefone, setTelefone] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [cep, setCep] = useState("");
+  const [cepInfo, setCepInfo] = useState<CepInfo>(null);
+  const [cepLoading, setCepLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<SignupForm>({ resolver: zodResolver(signupSchema) });
 
   const passwordValue = watch("password", "");
 
-  async function onSubmit(data: SignupForm) {
-    const supabase = createSupabaseBrowserClient();
+  async function fetchCep(rawCep: string) {
+    const digits = rawCep.replace(/\D/g, "");
+    if (digits.length !== 8) { setCepInfo(null); return; }
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        setCepInfo(null);
+        toast.error("CEP não encontrado.");
+      } else {
+        setCepInfo({ localidade: data.localidade, uf: data.uf });
+      }
+    } catch {
+      setCepInfo(null);
+    } finally {
+      setCepLoading(false);
+    }
+  }
 
+  async function onSubmit(data: SignupForm) {
     const res = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: data.email, password: data.password }),
+      body: JSON.stringify({
+        email: data.email,
+        password: data.password,
+        nomeCompleto: data.nomeCompleto,
+        telefone: data.telefone,
+        cpf: data.cpf,
+        cep: data.cep,
+      }),
     });
 
     if (!res.ok) {
       const body = await res.json();
       const msg = body.error ?? "";
       if (msg === "email_taken") {
-        toast.error("Este email ja possui uma conta. Faca login.");
+        toast.error("Este email já possui uma conta. Faça login.");
       } else {
         toast.error(msg || "Erro ao criar conta.");
       }
@@ -321,22 +434,37 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
       return;
     }
 
+    const supabase = createSupabaseBrowserClient();
     const { data: signed, error: signInError } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     });
 
     if (signInError || !signed.session) {
-      toast.error("Erro ao iniciar sessao. Tente fazer login.");
+      toast.error("Erro ao iniciar sessão. Tente fazer login.");
       return;
     }
 
-    router.push("/onboarding");
+    router.push(plan ? `/onboarding?plan=${plan}` : "/onboarding");
     router.refresh();
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {/* Nome completo */}
+      <div className="space-y-1.5">
+        <Label className="text-foreground">Nome completo</Label>
+        <Input
+          placeholder="Seu nome completo"
+          className="border-border bg-background focus-visible:ring-primary"
+          {...register("nomeCompleto")}
+        />
+        {errors.nomeCompleto && (
+          <p className="text-xs text-red-500">{errors.nomeCompleto.message}</p>
+        )}
+      </div>
+
+      {/* Email */}
       <div className="space-y-1.5">
         <Label className="text-foreground">Email</Label>
         <Input
@@ -350,12 +478,88 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
         )}
       </div>
 
+      {/* Telefone e CPF lado a lado */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-foreground">Telefone</Label>
+          <Input
+            placeholder="(00) 0 0000-0000"
+            inputMode="numeric"
+            className="border-border bg-background focus-visible:ring-primary"
+            value={telefone}
+            {...register("telefone")}
+            onChange={(e) => {
+              const masked = maskPhone(e.target.value);
+              setTelefone(masked);
+              setValue("telefone", masked, { shouldValidate: true });
+            }}
+          />
+          {errors.telefone && (
+            <p className="text-xs text-red-500">{errors.telefone.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-foreground">CPF</Label>
+          <Input
+            placeholder="000.000.000-00"
+            inputMode="numeric"
+            className="border-border bg-background focus-visible:ring-primary"
+            value={cpf}
+            {...register("cpf")}
+            onChange={(e) => {
+              const masked = maskCpf(e.target.value);
+              setCpf(masked);
+              setValue("cpf", masked, { shouldValidate: true });
+            }}
+          />
+          {errors.cpf && (
+            <p className="text-xs text-red-500">{errors.cpf.message}</p>
+          )}
+        </div>
+      </div>
+
+      {/* CEP */}
+      <div className="space-y-1.5">
+        <Label className="text-foreground">CEP</Label>
+        <div className="relative">
+          <Input
+            placeholder="00000-000"
+            inputMode="numeric"
+            className="border-border bg-background pr-10 focus-visible:ring-primary"
+            value={cep}
+            {...register("cep")}
+            onChange={(e) => {
+              const masked = maskCep(e.target.value);
+              setCep(masked);
+              setValue("cep", masked, { shouldValidate: true });
+              if (masked.replace(/\D/g, "").length === 8) fetchCep(masked);
+              else setCepInfo(null);
+            }}
+          />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+            {cepLoading
+              ? <Loader2 className="size-4 animate-spin" />
+              : <MapPin className="size-4" />}
+          </div>
+        </div>
+        {cepInfo && (
+          <p className="text-xs text-emerald-600">
+            ✓ {cepInfo.localidade} — {cepInfo.uf}
+          </p>
+        )}
+        {errors.cep && (
+          <p className="text-xs text-red-500">{errors.cep.message}</p>
+        )}
+      </div>
+
+      {/* Senha */}
       <div className="space-y-1.5">
         <Label className="text-foreground">Senha</Label>
         <div className="relative">
           <Input
             type={showPassword ? "text" : "password"}
-            placeholder="Minimo 8 caracteres"
+            placeholder="Mínimo 8 caracteres"
             className="border-border bg-background pr-10 focus-visible:ring-primary"
             {...register("password")}
           />
@@ -365,11 +569,7 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
             onClick={() => setShowPassword((p) => !p)}
             aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
           >
-            {showPassword ? (
-              <EyeOff className="size-4" />
-            ) : (
-              <Eye className="size-4" />
-            )}
+            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         </div>
         <PasswordStrength password={passwordValue} />
@@ -378,6 +578,7 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
         )}
       </div>
 
+      {/* Confirmar senha */}
       <div className="space-y-1.5">
         <Label className="text-foreground">Confirmar senha</Label>
         <Input
@@ -387,9 +588,7 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
           {...register("confirmPassword")}
         />
         {errors.confirmPassword && (
-          <p className="text-xs text-red-500">
-            {errors.confirmPassword.message}
-          </p>
+          <p className="text-xs text-red-500">{errors.confirmPassword.message}</p>
         )}
       </div>
 
@@ -399,25 +598,17 @@ function SignupForm({ router }: { router: ReturnType<typeof useRouter> }) {
         disabled={isSubmitting}
       >
         {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 size-4 animate-spin" />
-            Criando conta...
-          </>
+          <><Loader2 className="mr-2 size-4 animate-spin" />Criando conta...</>
         ) : (
           "Criar conta"
         )}
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">
-        Ao criar uma conta, voce concorda com nossos{" "}
-        <a href="#" className="underline hover:text-foreground">
-          Termos de Uso
-        </a>{" "}
+        Ao criar uma conta, você concorda com nossos{" "}
+        <a href="#" className="underline hover:text-foreground">Termos de Uso</a>{" "}
         e{" "}
-        <a href="#" className="underline hover:text-foreground">
-          Politica de Privacidade
-        </a>
-        .
+        <a href="#" className="underline hover:text-foreground">Política de Privacidade</a>.
       </p>
     </form>
   );

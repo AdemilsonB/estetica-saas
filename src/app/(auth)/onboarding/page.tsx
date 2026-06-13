@@ -3,12 +3,13 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Check, Loader2, Sparkles } from 'lucide-react'
+import { Loader2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
+import { SharedPlanCard, type SharedPlanData } from '@/components/domain/billing/plan-card-shared'
 
 type Mode = 'loading' | 'create' | 'join' | 'plan'
 
@@ -20,14 +21,17 @@ type ApiPlan = {
   trialDays: number
 }
 
-function formatPrice(price: number) {
-  if (price === 0) return 'Grátis'
-  return `R$${Math.round(price)}/mês`
-}
-
-function planFeatures(plan: ApiPlan): string[] {
-  if (!plan.description) return []
-  return plan.description.split('\n').map((l) => l.trim()).filter(Boolean)
+function apiPlanToShared(plan: ApiPlan, isPopular: boolean): SharedPlanData {
+  return {
+    name: plan.name,
+    displayName: plan.displayName,
+    price: plan.price,
+    trialDays: plan.trialDays,
+    isPopular,
+    features: plan.description
+      ? plan.description.split('\n').map((l) => l.trim()).filter(Boolean)
+      : [],
+  }
 }
 
 export default function OnboardingPage() {
@@ -61,6 +65,11 @@ function OnboardingContent() {
   const logoInputRef = useRef<HTMLInputElement>(null)
   const [plans, setPlans] = useState<ApiPlan[]>([])
   const [plansLoading, setPlansLoading] = useState(false)
+  const [showAllPlans, setShowAllPlans] = useState(false)
+
+  // Plano pré-selecionado vindo da landing page
+  const prePlan = searchParams.get('plan')
+  const hasPaidPrePlan = prePlan && prePlan !== 'FREE'
 
   useEffect(() => {
     if (mode !== 'plan') return
@@ -80,8 +89,6 @@ function OnboardingContent() {
       const meta = data.user?.user_metadata
 
       if (meta?.onboardingStep === 'plan' && stripeResult === 'success') {
-        // Força sincronização do plano com o Stripe — garante que o webhook já tenha
-        // processado antes de redirecionar, evitando exibir plano FREE por race condition.
         fetch('/api/billing/sync', { method: 'POST' }).catch(() => {})
         supabase.auth.updateUser({ data: { onboardingStep: 'complete' } }).then(() => {
           router.replace('/agenda')
@@ -97,6 +104,7 @@ function OnboardingContent() {
         setUserName(meta?.full_name ?? meta?.name ?? '')
         setMode('plan')
       } else {
+        // Pré-preenche nome do user_metadata se vier do signup enriquecido
         setUserName(meta?.full_name ?? meta?.name ?? '')
         setMode('create')
       }
@@ -121,8 +129,8 @@ function OnboardingContent() {
           body: fd,
         })
         if (uploadRes.ok) {
-          const data = await uploadRes.json() as { logoUrl: string }
-          logoUrl = data.logoUrl
+          const uploadData = await uploadRes.json() as { logoUrl: string }
+          logoUrl = uploadData.logoUrl
         }
       }
 
@@ -149,6 +157,14 @@ function OnboardingContent() {
       }
 
       await supabase.auth.refreshSession()
+
+      // FREE ou sem plano pré-selecionado: vai direto para o sistema
+      if (!hasPaidPrePlan) {
+        await handleSelectPlan('FREE')
+        return
+      }
+
+      // Plano pago pré-selecionado: vai para o step de plano
       setMode('plan')
     } finally {
       setIsSubmitting(false)
@@ -251,8 +267,11 @@ function OnboardingContent() {
   }
 
   if (mode === 'plan') {
-    const trialDays = plans.find((p) => p.price > 0)?.trialDays ?? 14
-    const isPopular = (name: string) => name === 'PRO'
+    const plansToShow = showAllPlans
+      ? plans
+      : hasPaidPrePlan
+        ? plans.filter((p) => p.name === prePlan)
+        : plans
 
     return (
       <div className="flex min-h-screen items-center justify-center p-8">
@@ -261,9 +280,13 @@ function OnboardingContent() {
             <Sparkles className="size-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#191919]">Escolha seu plano</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-[#191919]">
+              {hasPaidPrePlan && !showAllPlans ? 'Confirme sua assinatura' : 'Escolha seu plano'}
+            </h1>
             <p className="mt-2 text-sm text-[#787774]">
-              {trialDays} dias grátis em qualquer plano pago. Cancele a qualquer momento.
+              {hasPaidPrePlan && !showAllPlans
+                ? 'Você pode iniciar com 14 dias grátis ou assinar agora sem trial.'
+                : 'Trial gratuito em qualquer plano pago. Cancele a qualquer momento.'}
             </p>
           </div>
 
@@ -272,72 +295,50 @@ function OnboardingContent() {
               <Loader2 className="size-8 animate-spin text-slate-400" />
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {plans.map((plan) => {
-                const popular = isPopular(plan.name)
-                const features = planFeatures(plan)
-                return (
-                  <div
+            <>
+              <div className={`grid grid-cols-1 gap-6 ${
+                plansToShow.length === 1
+                  ? 'sm:max-w-xs'
+                  : plansToShow.length === 2
+                    ? 'sm:grid-cols-2 sm:max-w-xl'
+                    : 'sm:grid-cols-2 lg:grid-cols-4'
+              }`}>
+                {plansToShow.map((plan) => (
+                  <SharedPlanCard
                     key={plan.name}
-                    className={`relative rounded-xl border bg-white p-5 flex flex-col gap-4
-                      ${popular ? 'border-[#191919] shadow-md ring-1 ring-[#191919]' : 'border-slate-200'}`}
+                    plan={apiPlanToShared(
+                      plan,
+                      hasPaidPrePlan && !showAllPlans ? true : plan.name === 'PRO',
+                    )}
+                    badge={hasPaidPrePlan && !showAllPlans ? 'Plano selecionado' : undefined}
+                    action={{
+                      type: 'onboarding',
+                      onSelect: handleSelectPlan,
+                      loadingKey,
+                    }}
+                  />
+                ))}
+              </div>
+
+              {hasPaidPrePlan && !showAllPlans && (
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setShowAllPlans(true)}
+                    className="text-sm text-[#787774] underline hover:text-[#191919] transition-colors"
                   >
-                    {popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <span className="rounded-full bg-[#191919] px-3 py-1 text-xs font-medium text-white">Mais popular</span>
-                      </div>
-                    )}
-                    <div>
-                      <p className="font-semibold text-[#191919]">{plan.displayName}</p>
-                      <p className="text-xl font-bold text-[#191919] mt-1">{formatPrice(plan.price)}</p>
-                    </div>
-                    <ul className="space-y-1.5 flex-1">
-                      {features.map((f) => (
-                        <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
-                          <Check className="size-4 text-green-500 mt-0.5 shrink-0" />{f}
-                        </li>
-                      ))}
-                    </ul>
-                    {plan.name === 'FREE' ? (
-                      <Button
-                        onClick={() => handleSelectPlan('FREE')}
-                        disabled={loadingKey !== null}
-                        variant="outline"
-                      >
-                        Começar grátis
-                      </Button>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        {plan.trialDays > 0 && (
-                          <Button
-                            onClick={() => handleSelectPlan(plan.name, false)}
-                            disabled={loadingKey !== null}
-                            variant={popular ? 'default' : 'outline'}
-                            className={popular ? 'bg-[#191919] hover:bg-[#2d2d2d]' : ''}
-                          >
-                            {loadingKey === `${plan.name}_trial`
-                              ? <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
-                              : `Testar ${plan.trialDays} dias grátis`
-                            }
-                          </Button>
-                        )}
-                        <Button
-                          onClick={() => handleSelectPlan(plan.name, true)}
-                          disabled={loadingKey !== null}
-                          variant="ghost"
-                          className="text-slate-500 text-sm"
-                        >
-                          {loadingKey === `${plan.name}_direct`
-                            ? <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
-                            : 'Assinar agora'
-                          }
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+                    Ver todos os planos
+                  </button>
+                  <span className="text-slate-200">·</span>
+                  <button
+                    onClick={() => handleSelectPlan('FREE')}
+                    disabled={loadingKey !== null}
+                    className="text-sm text-[#787774] hover:text-[#191919] transition-colors"
+                  >
+                    Continuar no plano gratuito
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           <p className="text-xs text-center text-[#787774]">
@@ -390,7 +391,6 @@ function OnboardingContent() {
                   Identidade visual <span className="font-normal normal-case">(opcional)</span>
                 </p>
 
-                {/* Logo */}
                 <div className="space-y-2">
                   <Label className="text-sm">Logo</Label>
                   <div className="flex items-center gap-3">
@@ -425,7 +425,6 @@ function OnboardingContent() {
                   </div>
                 </div>
 
-                {/* Cor principal */}
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -437,7 +436,6 @@ function OnboardingContent() {
                   <span className="font-mono text-xs text-slate-500">{primaryColor}</span>
                 </div>
 
-                {/* Cor de fundo */}
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -449,7 +447,6 @@ function OnboardingContent() {
                   <span className="font-mono text-xs text-slate-500">{backgroundColor}</span>
                 </div>
 
-                {/* Hint */}
                 <p className="text-xs text-[#787774]">
                   Mais opções em <span className="font-medium">Configurações → Layout</span>
                 </p>

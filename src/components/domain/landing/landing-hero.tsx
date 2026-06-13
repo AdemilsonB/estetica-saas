@@ -32,16 +32,16 @@ export function LandingHero() {
       {/* CTAs */}
       <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
         <Link
-          href="/planos"
+          href="/login"
           className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-pink-600 px-8 py-4 text-base font-bold text-white shadow-lg shadow-violet-200 transition-opacity hover:opacity-90 sm:w-auto"
         >
-          Ver Planos e Preços →
+          Começar trial gratuito →
         </Link>
         <Link
-          href="#como-funciona"
+          href="/planos"
           className="flex items-center gap-2 text-sm font-semibold text-violet-600 hover:text-violet-800 transition-colors"
         >
-          ▶ Ver como funciona
+          Ver planos e preços
         </Link>
       </div>
 

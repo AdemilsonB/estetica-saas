@@ -78,7 +78,6 @@ export default async function PlansPage() {
               ['Posso cancelar a qualquer momento?', 'Sim. Cancele pelo painel de configurações. Sem multas.'],
               ['O que acontece ao fim do trial?', 'Seu plano retorna ao FREE automaticamente. Nenhum dado é perdido.'],
               ['Posso mudar de plano?', 'Sim. Upgrade ou downgrade a qualquer momento nas configurações.'],
-              ['Como funciona a cobrança anual?', 'Você paga 10x o preço mensal e ganha 2 meses grátis.'],
             ].map(([q, a]) => (
               <details key={q} className="rounded-xl border border-slate-200 bg-white p-4">
                 <summary className="font-medium text-slate-900 cursor-pointer">{q}</summary>

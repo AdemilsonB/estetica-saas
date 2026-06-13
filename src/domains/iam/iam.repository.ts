@@ -8,6 +8,9 @@ type CreateTenantWithOwnerInput = {
   email: string;
   businessName: string;
   userName: string;
+  ownerPhone?: string;
+  ownerCpf?: string;
+  zipCode?: string;
   branding?: {
     logoUrl?: string | null;
     primaryColor?: string;
@@ -34,6 +37,7 @@ export class IamRepository {
         data: {
           name: input.businessName,
           slug,
+          ...(input.zipCode ? { zipCode: input.zipCode } : {}),
         },
       });
 
@@ -52,6 +56,8 @@ export class IamRepository {
           name: input.userName,
           role: UserRole.OWNER,
           permissions: ROLE_PERMISSIONS[UserRole.OWNER],
+          ...(input.ownerPhone ? { phone: input.ownerPhone } : {}),
+          ...(input.ownerCpf ? { cpf: input.ownerCpf } : {}),
         },
       });
 
