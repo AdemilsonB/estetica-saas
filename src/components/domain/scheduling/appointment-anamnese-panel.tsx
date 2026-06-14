@@ -69,10 +69,10 @@ export function AppointmentAnamnesePanel({ appointmentId, onPriceAdjust }: Props
             {capilar.tipoFio && ` · ${capilar.tipoFio}`}
           </span>
         )}
-        {(capilar?.photoUrls?.length ?? 0) > 0 && (
+        {[capilar?.photoFront, capilar?.photoSide, capilar?.photoBack].filter(Boolean).length > 0 && (
           <span className="flex items-center gap-1.5 text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">
             <Camera className="size-3" />
-            {capilar!.photoUrls!.length} foto(s)
+            {[capilar?.photoFront, capilar?.photoSide, capilar?.photoBack].filter(Boolean).length} foto(s)
           </span>
         )}
         {temQuimicaRecente && (
@@ -83,14 +83,21 @@ export function AppointmentAnamnesePanel({ appointmentId, onPriceAdjust }: Props
         )}
       </div>
 
-      {(capilar?.photoUrls?.length ?? 0) > 0 && (
+      {(capilar?.photoFront ?? capilar?.photoSide ?? capilar?.photoBack) && (
         <div className="flex gap-2">
-          {capilar!.photoUrls!.map((url) => (
-            <a key={url} href={url} target="_blank" rel="noopener noreferrer"
-              className="size-16 rounded-lg overflow-hidden border border-slate-200 block">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="Foto do cliente" className="w-full h-full object-cover" />
-            </a>
+          {([
+            { key: 'photoFront', label: 'Frente', url: capilar?.photoFront },
+            { key: 'photoSide',  label: 'Lado',   url: capilar?.photoSide },
+            { key: 'photoBack',  label: 'Atrás',  url: capilar?.photoBack },
+          ] as const).filter((p) => p.url).map((p) => (
+            <div key={p.key} className="flex flex-col items-center gap-0.5">
+              <a href={p.url} target="_blank" rel="noopener noreferrer"
+                className="size-16 rounded-lg overflow-hidden border border-slate-200 block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.url} alt={p.label} className="w-full h-full object-cover" />
+              </a>
+              <span className="text-[10px] text-slate-400">{p.label}</span>
+            </div>
           ))}
         </div>
       )}
