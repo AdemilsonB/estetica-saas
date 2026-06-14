@@ -4,6 +4,7 @@ import {
   PaymentMethod,
   Prisma,
   PriceType,
+  AnamneseMode,
 } from "@prisma/client";
 
 import { prisma } from "@/shared/database/prisma";
@@ -270,6 +271,9 @@ export class SchedulingService {
       ...(input.description !== undefined && { description: input.description }),
       ...(input.categoryId !== undefined && { categoryId: input.categoryId }),
       ...(input.imageUrl !== undefined && { imageUrl: input.imageUrl }),
+      ...(input.anamneseMode !== undefined && { anamneseMode: input.anamneseMode as AnamneseMode }),
+      ...(input.anamneseBlocks !== undefined && { anamneseBlocks: input.anamneseBlocks }),
+      ...(input.anamneseValidityDays !== undefined && { anamneseValidityDays: input.anamneseValidityDays }),
     });
   }
 
