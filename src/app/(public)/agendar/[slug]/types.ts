@@ -20,6 +20,9 @@ export type PublicService = {
   description?: string | null
   categoryId?: string | null
   categoryName?: string | null
+  anamneseMode: 'NONE' | 'OPTIONAL' | 'REQUIRED'
+  anamneseBlocks: string[]
+  anamneseValidityDays: number
 }
 
 export type PublicProfessional = {
@@ -68,6 +71,10 @@ export type BookingState = {
   serviceName?: string
   serviceDuration?: number
   servicePrice?: string
+  servicePriceNumber?: number
+  serviceAnamneseMode?: 'NONE' | 'OPTIONAL' | 'REQUIRED'
+  serviceAnamneseBlocks?: string[]
+  serviceAnamneseValidityDays?: number
   packageId?: string
   promotionId?: string
   professionalId?: string
@@ -76,6 +83,7 @@ export type BookingState = {
   customerName?: string
   customerPhone?: string
   notes?: string
+  anamneseId?: string
 }
 
 export type BookingStep =
@@ -83,5 +91,6 @@ export type BookingStep =
   | 'professional'
   | 'datetime'
   | 'personal'
+  | 'anamnese'
   | 'confirmation'
   | 'success'

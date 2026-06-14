@@ -21,6 +21,7 @@ const STEP_LABELS: Record<Exclude<BookingStep, 'success'>, string> = {
   professional: 'Profissional',
   datetime: 'Data e hora',
   personal: 'Seus dados',
+  anamnese: 'Ficha',
   confirmation: 'Confirmar',
 }
 
@@ -29,6 +30,7 @@ const STEPS: Exclude<BookingStep, 'success'>[] = [
   'professional',
   'datetime',
   'personal',
+  'anamnese',
   'confirmation',
 ]
 

@@ -32,6 +32,9 @@ export const updateServiceSchema = z.object({
   description: z.string().trim().max(1000).optional().nullable(),
   categoryId: z.string().cuid().optional().nullable(),
   imageUrl: z.string().url().optional().nullable(),
+  anamneseMode: z.enum(['NONE', 'OPTIONAL', 'REQUIRED']).optional(),
+  anamneseBlocks: z.array(z.string().min(1)).optional(),
+  anamneseValidityDays: z.number().int().min(7).max(365).optional(),
 })
 
 export type UpdateServiceInput = z.infer<typeof updateServiceSchema>;
