@@ -478,6 +478,7 @@ export class SchedulingService {
         createdByUserId: appointment.createdByUserId,
         createdAt: appointment.createdAt,
         updatedAt: appointment.updatedAt,
+        anamneseId: appointment.anamneseId ?? null,
       },
       customer: {
         id: appointment.customer.id,
