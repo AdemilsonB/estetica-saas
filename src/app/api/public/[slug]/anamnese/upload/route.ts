@@ -28,11 +28,24 @@ export async function POST(
     const path = `${tenant.id}/${Date.now()}.${ext}`
     const bytes = await file.arrayBuffer()
 
-    const { error } = await supabaseAdmin.storage
+    let { error } = await supabaseAdmin.storage
       .from('anamnese-photos')
       .upload(path, bytes, { contentType: file.type, upsert: false })
 
     if (error) {
+      // Bucket pode não existir no ambiente — tenta criar e repete uma vez
+      await supabaseAdmin.storage.createBucket('anamnese-photos', {
+        public: true,
+        fileSizeLimit: 5 * 1024 * 1024,
+      }).catch(() => {})
+      const retry = await supabaseAdmin.storage
+        .from('anamnese-photos')
+        .upload(path, bytes, { contentType: file.type, upsert: false })
+      error = retry.error
+    }
+
+    if (error) {
+      console.error('[anamnese/upload] Supabase error:', error.message)
       return Response.json({ error: 'Falha no upload.' }, { status: 500 })
     }
 
