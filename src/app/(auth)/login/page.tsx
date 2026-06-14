@@ -13,7 +13,7 @@ export default async function LoginPage({ searchParams }: Props) {
   let branding = {
     primaryColor: "#191919",
     logoUrl: null as string | null,
-    displayName: "SaaS Estetica",
+    displayName: "Agendê",
   };
 
   if (tenantSlug) {

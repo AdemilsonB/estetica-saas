@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, Loader2, MapPin, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -142,15 +142,21 @@ function LeftPanel({
   plan: string | null;
 }) {
   const benefits = [
-    "Agenda inteligente com detecção de conflitos",
-    "CRM de clientes com histórico completo",
-    "Financeiro conectado ao atendimento",
+    { icon: "📅", text: "Agenda inteligente com detecção de conflitos" },
+    { icon: "👥", text: "CRM de clientes com histórico completo" },
+    { icon: "💰", text: "Financeiro conectado ao atendimento" },
   ];
 
+  const isCustomBranding = branding.displayName !== "SaaS Estetica" && branding.displayName !== "Agendê";
+
   return (
-    <div className="hidden md:flex md:w-[45%] flex-col border-r border-border bg-background p-12">
-      <div className="flex items-center gap-3">
-        {branding.logoUrl ? (
+    <div className="hidden md:flex md:w-[45%] flex-col relative overflow-hidden bg-gradient-to-br from-violet-50 to-pink-50 p-12">
+      {/* Blobs decorativos */}
+      <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-violet-200/40 blur-3xl" />
+      <div className="pointer-events-none absolute -left-16 bottom-0 h-64 w-64 rounded-full bg-pink-200/30 blur-3xl" />
+
+      <div className="relative flex items-center gap-2">
+        {isCustomBranding && branding.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={branding.logoUrl}
@@ -158,42 +164,56 @@ function LeftPanel({
             className="h-8 w-auto"
           />
         ) : (
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-            <Sparkles className="size-4 text-primary-foreground" />
-          </div>
+          <span className="text-xl font-extrabold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
+            Agendê
+          </span>
         )}
-        <span className="text-sm font-semibold tracking-tight text-foreground">
-          {branding.displayName}
-        </span>
       </div>
 
-      <div className="my-auto space-y-6">
+      <div className="relative my-auto space-y-8">
         <div>
           {plan && (
-            <div className="mb-4 inline-block rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+            <div className="mb-4 inline-block rounded-full border border-violet-200 bg-white/70 px-3 py-1 text-xs font-semibold text-violet-700">
               ✓ {PLAN_LABEL[plan] ?? plan} selecionado
             </div>
           )}
-          <h1 className="text-2xl font-bold leading-tight tracking-tight text-foreground">
-            O workspace dos
-            <br />
-            profissionais de estética.
+          <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-slate-900">
+            Seu salão no{" "}
+            <span className="bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
+              piloto automático.
+            </span>
           </h1>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-3 text-base leading-relaxed text-slate-500">
             Agenda, CRM, financeiro e IA em uma plataforma só.
           </p>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           {benefits.map((b) => (
             <div
-              key={b}
-              className="flex items-center gap-3 rounded-md border border-border bg-white px-4 py-3"
+              key={b.text}
+              className="flex items-center gap-3 rounded-xl border border-violet-100 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm"
             >
-              <div className="size-4 rounded-sm bg-border" />
-              <span className="text-sm text-foreground">{b}</span>
+              <span className="text-base">{b.icon}</span>
+              <span className="text-sm font-medium text-slate-700">{b.text}</span>
             </div>
           ))}
+        </div>
+
+        {/* Mini mockup decorativo */}
+        <div className="rounded-xl border border-violet-100 bg-white/60 p-4 backdrop-blur-sm shadow-sm">
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: "hoje", value: "47", color: "text-violet-600" },
+              { label: "faturado", value: "R$2.840", color: "text-pink-600" },
+              { label: "faltas evitadas", value: "3", color: "text-emerald-600" },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="rounded-lg border border-slate-100 bg-white p-2 text-center">
+                <div className={`text-sm font-extrabold ${color}`}>{value}</div>
+                <div className="text-[10px] text-slate-400">{label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -215,25 +235,22 @@ function RightPanel({
     <div className="flex w-full flex-col items-center justify-center bg-white p-8 lg:w-[55%]">
       <div className="w-full max-w-sm space-y-6">
         <div className="md:hidden flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-primary">
-            <Sparkles className="size-3.5 text-primary-foreground" />
-          </div>
-          <span className="text-sm font-semibold text-foreground">
+          <span className="text-xl font-extrabold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
             Agendê
           </span>
         </div>
 
         <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-background">
+          <TabsList className="grid w-full grid-cols-2 bg-slate-100">
             <TabsTrigger
               value="login"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md"
             >
               Entrar
             </TabsTrigger>
             <TabsTrigger
               value="signup"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md"
             >
               Criar conta
             </TabsTrigger>
@@ -311,7 +328,7 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
           </Label>
           <a
             href="/forgot-password"
-            className="text-xs text-muted-foreground hover:text-foreground"
+            className="text-xs text-violet-500 hover:text-violet-700"
           >
             Esqueceu sua senha?
           </a>
@@ -341,7 +358,7 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
 
       <Button
         type="submit"
-        className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+        className="w-full bg-gradient-to-r from-violet-600 to-pink-600 text-white shadow-md shadow-violet-200 hover:opacity-90 transition-opacity"
         disabled={isSubmitting}
       >
         {isSubmitting ? (
@@ -594,7 +611,7 @@ function SignupFormComponent({
 
       <Button
         type="submit"
-        className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+        className="w-full bg-gradient-to-r from-violet-600 to-pink-600 text-white shadow-md shadow-violet-200 hover:opacity-90 transition-opacity"
         disabled={isSubmitting}
       >
         {isSubmitting ? (
