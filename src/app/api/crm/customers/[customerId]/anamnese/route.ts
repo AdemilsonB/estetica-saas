@@ -1,44 +1,41 @@
-import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
-import { ensurePermission, PERMISSIONS } from "@/shared/auth/permissions";
-import { getSessionContext } from "@/shared/auth/session";
-import { handleApiError } from "@/shared/http/handle-api-error";
-import { validateInput } from "@/shared/http/validate-input";
-import { anamneseService } from "@/domains/crm/anamnese.service";
-import { saveAnamneseSchema } from "@/domains/crm/types";
+import { getSessionContext } from '@/shared/auth/session'
+import { ensurePermission, PERMISSIONS } from '@/shared/auth/permissions'
+import { handleApiError } from '@/shared/http/handle-api-error'
+import { validateInput } from '@/shared/http/validate-input'
+import { anamneseService } from '@/domains/crm/anamnese.service'
+import { saveAnamneseProfessionalSchema } from '@/domains/crm/anamnese-blocks.types'
+import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ customerId: string }> },
-) {
-  initializeDomainRuntime();
+type RouteContext = { params: Promise<{ customerId: string }> }
+
+export async function GET(req: Request, { params }: RouteContext) {
+  initializeDomainRuntime()
   try {
-    const session = await getSessionContext(request);
-    ensurePermission(session, PERMISSIONS.customers.view);
-    const { customerId } = await params;
-    const anamnese = await anamneseService.getAnamnese(session.tenantId, customerId);
-    return Response.json(anamnese ?? null);
+    const session = await getSessionContext(req)
+    ensurePermission(session, PERMISSIONS.customers.view)
+    const { customerId } = await params
+    const anamnese = await anamneseService.getByCustomer(session.tenantId, customerId)
+    return Response.json(anamnese)
   } catch (error) {
-    return handleApiError(error);
+    return handleApiError(error)
   }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ customerId: string }> },
-) {
-  initializeDomainRuntime();
+export async function PUT(req: Request, { params }: RouteContext) {
+  initializeDomainRuntime()
   try {
-    const session = await getSessionContext(request);
-    ensurePermission(session, PERMISSIONS.customers.edit);
-    const { customerId } = await params;
-    const input = await validateInput(request, saveAnamneseSchema);
-    const anamnese = await anamneseService.saveAnamnese(
+    const session = await getSessionContext(req)
+    ensurePermission(session, PERMISSIONS.customers.edit)
+    const { customerId } = await params
+    const input = await validateInput(req, saveAnamneseProfessionalSchema)
+    const anamnese = await anamneseService.saveByProfessional(
       session.tenantId,
       customerId,
+      input.blockType,
       input.data,
-    );
-    return Response.json(anamnese);
+    )
+    return Response.json(anamnese)
   } catch (error) {
-    return handleApiError(error);
+    return handleApiError(error)
   }
 }

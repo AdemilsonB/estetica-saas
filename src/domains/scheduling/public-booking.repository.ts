@@ -47,12 +47,16 @@ export class PublicBookingRepository {
         imageUrl: true,
         description: true,
         categoryId: true,
+        anamneseMode: true,
+        anamneseBlocks: true,
+        anamneseValidityDays: true,
         category: { select: { name: true } },
       },
       orderBy: { name: 'asc' },
     })
     return services.map(({ category, ...rest }) => ({
       ...rest,
+      anamneseBlocks: rest.anamneseBlocks as string[],
       categoryName: category?.name ?? null,
     }))
   }

@@ -18,6 +18,7 @@ import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import { cn } from '@/lib/utils'
 import { CancelAppointmentModal } from './cancel-appointment-modal'
 import { AppointmentProductsSection } from '@/components/domain/inventory/AppointmentProductsSection'
+import { AppointmentAnamnesePanel } from './appointment-anamnese-panel'
 
 const STATUS_LABELS: Record<string, string> = {
   SCHEDULED: 'Agendado',
@@ -155,6 +156,9 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                 </>
               )}
             </div>
+
+            {/* Ficha de anamnese e sugestão de preço */}
+            <AppointmentAnamnesePanel appointmentId={appointment.id} />
 
             {/* Produtos utilizados no atendimento — opcional */}
             <AppointmentProductsSection

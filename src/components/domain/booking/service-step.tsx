@@ -173,6 +173,9 @@ export function ServiceStep({
                             duration: s.duration,
                             price: discountedPrice,
                             priceType: 'FIXED',
+                            anamneseMode: 'NONE',
+                            anamneseBlocks: [],
+                            anamneseValidityDays: 90,
                           })
                         }
                       }}

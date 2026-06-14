@@ -84,6 +84,12 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
+enum AnamneseMode {
+  NONE
+  OPTIONAL
+  REQUIRED
+}
+
 enum PriceType {
   FIXED
   STARTING_FROM
@@ -142,7 +148,6 @@ model Tenant {
   discountTypes       DiscountType[]
   recurringExpenses   RecurringExpense[]
   serviceCommissions  ServiceCommission[]
-  anamneseTemplate    AnamneseTemplate?
   customerAnamneses   CustomerAnamnese[]
   servicePackages     ServicePackage[]
   tenantPromotions    Promotion[]
@@ -364,7 +369,10 @@ model Service {
   priceMax     Decimal?            @db.Decimal(10, 2)
   active       Boolean             @default(true)
   imageUrl     String?
-  description  String?
+  description          String?
+  anamneseMode         AnamneseMode @default(NONE)
+  anamneseBlocks       String[]     @default([])
+  anamneseValidityDays Int          @default(90)
   categoryId   String?
   category     ServiceCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   createdAt    DateTime            @default(now())
@@ -409,6 +417,8 @@ model Appointment {
   promotion       Promotion?        @relation(fields: [promotionId], references: [id], onDelete: Restrict)
   createdByUser   User              @relation("AppointmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
   discountType    DiscountType?     @relation(fields: [discountTypeId], references: [id], onDelete: SetNull)
+  anamneseId          String?
+  anamnese            CustomerAnamnese? @relation("AppointmentAnamnese", fields: [anamneseId], references: [id], onDelete: SetNull)
   transactions        Transaction[]
   appointmentProducts AppointmentProduct[]
   stockMovements      StockMovement[]
@@ -538,31 +548,23 @@ model RecurringExpense {
   @@index([tenantId, nextDueDate])
 }
 
-model AnamneseTemplate {
-  id          String   @id @default(cuid())
-  tenantId    String   @unique
-  fields      Json
-  linkMessage String?
-  updatedAt   DateTime @updatedAt
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-}
 
 model CustomerAnamnese {
   id          String    @id @default(cuid())
   tenantId    String
   customerId  String    @unique
-  data        Json
-  publicToken String    @unique @default(cuid())
-  filledAt    DateTime?
-  filledBy    String?
+  blocks      Json      @default("{}")
+  blockTypes  String[]  @default([])
+  version     Int       @default(1)
   history     Json      @default("[]")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[] @relation("AppointmentAnamnese")
 
   @@index([tenantId])
-  @@index([publicToken])
 }
 
 enum PromoDiscountType {
