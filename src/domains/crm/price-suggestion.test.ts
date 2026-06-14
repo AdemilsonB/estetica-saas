@@ -9,14 +9,14 @@ describe('calcularSugestaoPreco', () => {
   })
 
   it('retorna null quando comprimento não informado', () => {
-    const result = calcularSugestaoPreco(100, { capilar: { produtos: [], photoUrls: [], objetivos: [] } })
+    const result = calcularSugestaoPreco(100, { capilar: { produtos: [], objetivos: [] } })
     expect(result).toBeNull()
   })
 
   it('sugere acréscimo para cabelo longo (cintura)', () => {
     const capilar: CapilarBlock = {
       comprimento: 'cintura',
-      produtos: [], photoUrls: [], objetivos: [],
+      produtos: [], objetivos: [],
     }
     const result = calcularSugestaoPreco(100, { capilar }) as SugestaoPreco
     expect(result).not.toBeNull()
@@ -29,7 +29,7 @@ describe('calcularSugestaoPreco', () => {
     const capilar: CapilarBlock = {
       comprimento: 'meio_costas',
       coloracao: { feito: true, quando: 'menos_30_dias' },
-      produtos: [], photoUrls: [], objetivos: [],
+      produtos: [], objetivos: [],
     }
     const result = calcularSugestaoPreco(100, { capilar }) as SugestaoPreco
     expect(result.ajustes.length).toBeGreaterThanOrEqual(2)
@@ -39,7 +39,7 @@ describe('calcularSugestaoPreco', () => {
   it('não sugere acréscimo para nuca (comprimento curto)', () => {
     const capilar: CapilarBlock = {
       comprimento: 'nuca',
-      produtos: [], photoUrls: [], objetivos: [],
+      produtos: [], objetivos: [],
     }
     const result = calcularSugestaoPreco(100, { capilar })
     // nuca = sem acréscimo, retorna sugestão com valor igual ao base

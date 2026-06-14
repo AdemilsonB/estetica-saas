@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronLeft, Plus, X, Camera, Loader2 } from 'lucide-react'
+import { type ReactElement } from 'react'
+import { ChevronLeft, Plus, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -28,14 +29,68 @@ type Props = {
   onBack: () => void
 }
 
+type PhotoPosition = 'photoFront' | 'photoSide' | 'photoBack'
+type UploadingState = Record<PhotoPosition, boolean>
+
+const PHOTO_SLOTS: { key: PhotoPosition; label: string; hint: string; svg: ReactElement }[] = [
+  {
+    key: 'photoFront',
+    label: 'Frente',
+    hint: 'Vista frontal',
+    svg: (
+      <svg viewBox="0 0 80 100" fill="currentColor" aria-hidden>
+        {/* coroa */}
+        <path d="M40 4C28 4 18 12 18 24v4c4-10 12-16 22-16s18 6 22 16v-4C62 12 52 4 40 4Z" />
+        {/* lateral esquerda */}
+        <path d="M18 28C14 38 12 56 14 74c2 16 6 26 10 30-2-12-4-28-4-44 0-14 2-22 -2-32Z" />
+        {/* lateral direita */}
+        <path d="M62 28C66 38 68 56 66 74c-2 16-6 26-10 30 2-12 4-28 4-44 0-14-2-22 2-32Z" />
+        {/* cabeça */}
+        <ellipse cx="40" cy="38" rx="20" ry="26" />
+      </svg>
+    ),
+  },
+  {
+    key: 'photoSide',
+    label: 'Lado',
+    hint: 'Vista lateral',
+    svg: (
+      <svg viewBox="0 0 80 100" fill="currentColor" aria-hidden>
+        {/* cabelo topo/atrás fluindo */}
+        <path d="M44 6C34 6 24 10 20 20c-2 6-2 14-2 20 0 8 1 16 2 24 2 12 4 22 6 28C24 80 22 62 22 46c0-16 4-28 14-34 4-2 8-4 12-6H44Z" />
+        {/* perfil da cabeça */}
+        <path d="M44 8c10 0 18 8 18 22 0 12-6 22-16 26v8c14-4 22-16 22-34C68 16 58 6 44 6v2Z" />
+        {/* rosto */}
+        <ellipse cx="46" cy="34" rx="16" ry="22" />
+      </svg>
+    ),
+  },
+  {
+    key: 'photoBack',
+    label: 'Atrás',
+    hint: 'Vista posterior',
+    svg: (
+      <svg viewBox="0 0 80 100" fill="currentColor" aria-hidden>
+        {/* cabelo fluindo reto */}
+        <path d="M22 30C18 42 16 62 18 80c2 10 4 16 6 18-2-10-2-26-2-40 0-14 2-22 0-28Z" />
+        <path d="M58 30C62 42 64 62 62 80c-2 10-4 16-6 18 2-10 2-26 2-40 0-14-2-22 0-28Z" />
+        <path d="M22 60C24 78 26 90 28 98h24c2-8 4-20 6-38H22Z" />
+        {/* parte de cima */}
+        <path d="M22 30C24 16 32 8 40 8s16 8 18 22C52 18 46 14 40 14s-12 4-18 16Z" />
+        {/* cabeça (vista de costas) */}
+        <ellipse cx="40" cy="30" rx="18" ry="22" />
+      </svg>
+    ),
+  },
+]
+
 export function CapilarForm({ tenantSlug, initial, primaryColor, onComplete, onBack }: Props) {
   const [subStep, setSubStep] = useState<SubStep>('comprimento')
-  const [uploading, setUploading] = useState(false)
+  const [uploading, setUploading] = useState<UploadingState>({ photoFront: false, photoSide: false, photoBack: false })
   const [uploadError, setUploadError] = useState<string | null>(null)
 
   const [data, setData] = useState<CapilarBlock>({
     produtos: [],
-    photoUrls: [],
     objetivos: [],
     ...initial,
   })
@@ -74,8 +129,8 @@ export function CapilarForm({ tenantSlug, initial, primaryColor, onComplete, onB
     })
   }
 
-  async function uploadFoto(file: File) {
-    setUploading(true)
+  async function uploadFoto(position: PhotoPosition, file: File) {
+    setUploading((u) => ({ ...u, [position]: true }))
     setUploadError(null)
     try {
       const formData = new FormData()
@@ -83,13 +138,13 @@ export function CapilarForm({ tenantSlug, initial, primaryColor, onComplete, onB
       const res = await fetch(`/api/public/${tenantSlug}/anamnese/upload`, { method: 'POST', body: formData })
       const json = await res.json() as { url?: string; error?: string }
       if (!res.ok || !json.url) { setUploadError(json.error ?? 'Erro no upload'); return }
-      setData((d) => ({ ...d, photoUrls: [...(d.photoUrls ?? []), json.url!] }))
+      setData((d) => ({ ...d, [position]: json.url! }))
     } catch { setUploadError('Erro de conexão.') }
-    finally { setUploading(false) }
+    finally { setUploading((u) => ({ ...u, [position]: false })) }
   }
 
-  function removePhoto(url: string) {
-    setData((d) => ({ ...d, photoUrls: (d.photoUrls ?? []).filter((u) => u !== url) }))
+  function removePhoto(position: PhotoPosition) {
+    setData((d) => ({ ...d, [position]: undefined }))
   }
 
   const btnSelected = { borderColor: primaryColor, backgroundColor: `${primaryColor}18`, color: primaryColor }
@@ -289,28 +344,50 @@ export function CapilarForm({ tenantSlug, initial, primaryColor, onComplete, onB
             <h2 className="text-lg font-semibold text-slate-900">Fotos do cabelo</h2>
             <p className="text-sm text-slate-500 mt-0.5">Ajuda o profissional a entender melhor seu cabelo. Opcional.</p>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {(data.photoUrls ?? []).map((url) => (
-              <div key={url} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="Foto do cabelo" className="w-full h-full object-cover" />
-                <button onClick={() => removePhoto(url)}
-                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5">
-                  <X className="size-3" />
-                </button>
-              </div>
-            ))}
-            {(data.photoUrls ?? []).length < 3 && (
-              <label className="aspect-square rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-1 text-slate-400 hover:border-slate-400 cursor-pointer transition-colors">
-                {uploading ? <Loader2 className="size-5 animate-spin" /> : <Camera className="size-5" />}
-                <span className="text-xs">{uploading ? 'Enviando...' : 'Adicionar'}</span>
-                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadFoto(f) }} />
-              </label>
-            )}
+          <div className="grid grid-cols-3 gap-3">
+            {PHOTO_SLOTS.map((slot) => {
+              const url = data[slot.key] as string | undefined
+              const isUploading = uploading[slot.key]
+              return (
+                <div key={slot.key} className="flex flex-col items-center gap-1.5">
+                  <p className="text-xs font-medium text-slate-600">{slot.label}</p>
+                  {url ? (
+                    <div className="relative w-full aspect-[3/4] rounded-xl overflow-hidden border border-slate-200">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={`Foto ${slot.label}`} className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => removePhoto(slot.key)}
+                        className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5"
+                        aria-label="Remover foto"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="relative w-full aspect-[3/4] rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-slate-300 hover:bg-slate-100 transition-colors overflow-hidden">
+                      <span className="w-3/4 text-slate-200">{slot.svg}</span>
+                      <span className="text-[10px] text-slate-400 mt-1">
+                        {isUploading ? (
+                          <Loader2 className="size-3.5 animate-spin mx-auto" />
+                        ) : (
+                          slot.hint
+                        )}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        disabled={isUploading}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadFoto(slot.key, f) }}
+                      />
+                    </label>
+                  )}
+                </div>
+              )
+            })}
           </div>
           {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
-          <p className="text-xs text-slate-400">Máx. 3 fotos · JPEG, PNG ou WebP · até 5 MB cada</p>
+          <p className="text-xs text-slate-400">JPEG, PNG ou WebP · até 5 MB cada</p>
         </div>
       )}
 

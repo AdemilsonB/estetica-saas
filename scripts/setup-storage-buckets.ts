@@ -44,6 +44,11 @@ const BUCKETS: BucketConfig[] = [
     isPublic: true,
     fileSizeLimit: 5 * 1024 * 1024, // 5 MB
   },
+  {
+    name: 'anamnese-photos',
+    isPublic: true,
+    fileSizeLimit: 5 * 1024 * 1024, // 5 MB
+  },
 ]
 
 async function setupBuckets() {

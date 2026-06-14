@@ -21,8 +21,10 @@ export const capilarBlockSchema = z.object({
   produtos: z.array(z.string().max(100)).max(10).default([]),
   frequenciaLavagem: z.enum(['diario', '2_3_semana', '1_semana', 'menos_semana']).optional(),
   usoTermico: z.enum(['nunca', 'raramente', '2_3_semana', 'diario']).optional(),
-  // Sub-seção D: Fotos
-  photoUrls: z.array(z.string().url()).max(3).default([]),
+  // Sub-seção D: Fotos (frente, lado, atrás)
+  photoFront: z.string().url().optional(),
+  photoSide: z.string().url().optional(),
+  photoBack: z.string().url().optional(),
   // Sub-seção E: Objetivo
   objetivos: z.array(z.enum(['mudar_cor', 'hidratar', 'alisar', 'manutencao', 'corte', 'outro'])).default([]),
   descricaoLivre: z.string().max(500).optional(),
