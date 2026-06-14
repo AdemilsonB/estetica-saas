@@ -15,6 +15,7 @@ import { DateTimeStep } from '@/components/domain/booking/datetime-step'
 import { PersonalStep } from '@/components/domain/booking/personal-step'
 import { ConfirmationStep } from '@/components/domain/booking/confirmation-step'
 import { BookingSuccess } from '@/components/domain/booking/booking-success'
+import { AnamneseStep } from '@/components/domain/booking/anamnese-step'
 
 const STEP_LABELS: Record<Exclude<BookingStep, 'success'>, string> = {
   service: 'Serviço',
@@ -139,6 +140,13 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
       serviceName: service.name,
       serviceDuration: service.duration,
       servicePrice: priceLabel,
+      servicePriceNumber:
+        service.priceType === 'FIXED'
+          ? service.price
+          : (service.priceMin ?? service.price),
+      serviceAnamneseMode: service.anamneseMode,
+      serviceAnamneseBlocks: service.anamneseBlocks,
+      serviceAnamneseValidityDays: service.anamneseValidityDays,
     }))
 
     // Filtra profissionais pelo serviço selecionado
@@ -177,12 +185,18 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
     customerPhone: string
     notes?: string
   }) {
-    setBooking((b) => ({
-      ...b,
-      customerName: data.customerName,
-      customerPhone: data.customerPhone,
-      notes: data.notes,
-    }))
+    const updated = { ...booking, ...data }
+    setBooking(updated)
+    const mode = updated.serviceAnamneseMode
+    if (mode && mode !== 'NONE') {
+      setStep('anamnese')
+    } else {
+      setStep('confirmation')
+    }
+  }
+
+  function handleAnamneseComplete(anamneseId: string) {
+    setBooking((b) => ({ ...b, anamneseId }))
     setStep('confirmation')
   }
 
@@ -242,6 +256,22 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
           onBack={() => setStep('datetime')}
         />
       )}
+
+      {step === 'anamnese' &&
+        booking.customerPhone &&
+        booking.serviceAnamneseMode &&
+        booking.serviceAnamneseMode !== 'NONE' && (
+          <AnamneseStep
+            tenantSlug={tenantData.slug}
+            serviceId={booking.serviceId}
+            anamneseMode={booking.serviceAnamneseMode}
+            customerPhone={booking.customerPhone}
+            primaryColor={primaryColor}
+            onComplete={handleAnamneseComplete}
+            onSkip={() => setStep('confirmation')}
+            onBack={() => setStep('personal')}
+          />
+        )}
 
       {step === 'confirmation' && (
         <ConfirmationStep
