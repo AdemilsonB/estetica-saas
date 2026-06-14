@@ -25,6 +25,7 @@ const CreatePublicAppointmentSchema = z
     customerName: z.string().min(2).max(100),
     customerPhone: z.string().min(10).max(20),
     notes: z.string().max(500).optional(),
+    anamneseId: z.string().min(1).optional(),
   })
   .refine((data) => data.serviceId || data.packageId, {
     message: 'serviceId ou packageId é obrigatório',
@@ -194,6 +195,13 @@ export async function POST(req: Request, context: RouteContext) {
         },
         select: { id: true, startsAt: true },
       })
+
+      if (input.anamneseId) {
+        await prisma.appointment.update({
+          where: { id: appointment.id },
+          data: { anamneseId: input.anamneseId },
+        })
+      }
     } else {
       // Serviço avulso: usar scheduling service existente
       appointment = await schedulingService.createAppointment(
@@ -208,6 +216,13 @@ export async function POST(req: Request, context: RouteContext) {
           allowOverlap: false,
         },
       )
+
+      if (input.anamneseId) {
+        await prisma.appointment.update({
+          where: { id: appointment.id },
+          data: { anamneseId: input.anamneseId },
+        })
+      }
     }
 
     // 14. Retornar appointmentId e startsAt com status 201

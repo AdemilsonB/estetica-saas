@@ -47,6 +47,7 @@ export function ConfirmationStep({
           customerName: booking.customerName,
           customerPhone: booking.customerPhone,
           notes: booking.notes,
+          anamneseId: booking.anamneseId,
         }),
       })
 
