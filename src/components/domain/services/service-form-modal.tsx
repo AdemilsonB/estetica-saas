@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { ImageUploadField } from '@/components/ui/image-upload-field'
 import { useCreateService, useUpdateService, type Service } from '@/hooks/scheduling/use-services'
+import { ServiceAnamneseConfig } from './service-anamnese-config'
 import { useServiceCategories } from '@/hooks/scheduling/use-service-categories'
 import { useProducts } from '@/hooks/inventory/use-products'
 import { minutesToHHMM, hhmmToMinutes } from '@/lib/format-duration'
@@ -41,6 +42,8 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
   const [durationHHMM, setDurationHHMM] = useState('01:00')
   const [productItems, setProductItems] = useState<ProductItem[]>([])
   const [savingTemplate, setSavingTemplate] = useState(false)
+  const [anamneseMode, setAnamneseMode] = useState<'NONE' | 'OPTIONAL' | 'REQUIRED'>('NONE')
+  const [anamneseValidityDays, setAnamneseValidityDays] = useState(90)
 
   const { data: productsData } = useProducts({ pageSize: 100 })
   const allProducts = productsData?.data ?? []
@@ -56,6 +59,8 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
       setPrice(Number(service.price).toFixed(2))
       setPriceMax(service.priceMax ? Number(service.priceMax).toFixed(2) : '')
       setDurationHHMM(minutesToHHMM(service.duration))
+      setAnamneseMode(service.anamneseMode ?? 'NONE')
+      setAnamneseValidityDays(service.anamneseValidityDays ?? 90)
       // Busca template de produtos do serviço
       fetch(`/api/services/${service.id}/products`)
         .then((r) => r.json())
@@ -75,6 +80,8 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
       setPriceMax('')
       setDurationHHMM('01:00')
       setProductItems([])
+      setAnamneseMode('NONE')
+      setAnamneseValidityDays(90)
     }
   }, [open, service])
 
@@ -110,6 +117,9 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
       description: description.trim() || null,
       categoryId: categoryId || null,
       imageUrl,
+      anamneseMode,
+      anamneseBlocks: anamneseMode !== 'NONE' ? ['capilar'] : [],
+      anamneseValidityDays,
     }
 
     setSavingTemplate(true)
@@ -357,6 +367,15 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
               />
             )}
           </div>
+
+          <Separator />
+
+          <ServiceAnamneseConfig
+            mode={anamneseMode}
+            validityDays={anamneseValidityDays}
+            onModeChange={setAnamneseMode}
+            onValidityDaysChange={setAnamneseValidityDays}
+          />
 
           <div className="flex gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isPending}>
