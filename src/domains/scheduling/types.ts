@@ -52,6 +52,7 @@ export const createAppointmentSchema = z.object({
 export const updateAppointmentStatusSchema = z.object({
   status: z.nativeEnum(AppointmentStatus),
   notificationMessage: z.string().trim().optional(),
+  confirmedPrice: z.number().positive().optional(),
 });
 
 export type CreateServiceInput = z.infer<typeof createServiceSchema>;

@@ -168,6 +168,7 @@ export class SchedulingService {
       tenantId,
       appointmentId,
       input.status,
+      input.confirmedPrice,
     );
 
     const appointment = await appointmentRepository.findById(tenantId, appointmentId);
@@ -479,6 +480,7 @@ export class SchedulingService {
         notes: appointment.notes,
         allowOverlap: appointment.allowOverlap,
         price: appointment.price,
+        confirmedPrice: appointment.confirmedPrice,
         createdByUserId: appointment.createdByUserId,
         createdAt: appointment.createdAt,
         updatedAt: appointment.updatedAt,
