@@ -396,6 +396,7 @@ model Service {
 
   @@index([tenantId])
   @@index([tenantId, categoryId])
+  @@index([catalogServiceId])
 }
 
 model Appointment {
@@ -690,6 +691,7 @@ model Product {
 
   @@index([tenantId])
   @@index([tenantId, categoryId])
+  @@index([catalogProductId])
 }
 
 model StockMovement {
@@ -827,23 +829,31 @@ model LandingTestimonial {
 }
 
 model CatalogServiceCategory {
-  id       String            @id @default(cuid())
-  slug     String            @unique
-  name     String
-  segments BusinessSegment[]
-  order    Int               @default(0)
-  active   Boolean           @default(true)
-  services CatalogService[]
+  id        String            @id @default(cuid())
+  slug      String            @unique
+  name      String
+  segments  BusinessSegment[]
+  order     Int               @default(0)
+  active    Boolean           @default(true)
+  services  CatalogService[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([active])
 }
 
 model CatalogProductCategory {
-  id       String            @id @default(cuid())
-  slug     String            @unique
-  name     String
-  segments BusinessSegment[]
-  order    Int               @default(0)
-  active   Boolean           @default(true)
-  products CatalogProduct[]
+  id        String            @id @default(cuid())
+  slug      String            @unique
+  name      String
+  segments  BusinessSegment[]
+  order     Int               @default(0)
+  active    Boolean           @default(true)
+  products  CatalogProduct[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([active])
 }
 
 model CatalogService {
