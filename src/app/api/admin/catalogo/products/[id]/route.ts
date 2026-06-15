@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BusinessSegment } from '@prisma/client'
+import { BusinessSegment, type Prisma } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { getAdminContext } from '@/shared/auth/admin-context'
 import { handleApiError } from '@/shared/http/handle-api-error'
@@ -14,7 +14,7 @@ const patchSchema = z.object({
   suggestedPrice: z.number().min(0).optional(),
   order:          z.number().int().optional(),
   active:         z.boolean().optional(),
-  metadata:       z.record(z.unknown()).optional(),
+  metadata:       z.record(z.string(), z.unknown()).optional(),
 })
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -34,9 +34,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     }
 
+    const { metadata, ...rest } = input
     const product = await prisma.catalogProduct.update({
       where: { id },
-      data: input,
+      data: { ...rest, ...(metadata !== undefined ? { metadata: metadata as Prisma.InputJsonValue } : {}) },
       include: { category: true },
     })
     return Response.json(product)

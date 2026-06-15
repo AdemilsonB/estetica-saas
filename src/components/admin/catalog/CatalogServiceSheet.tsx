@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { useCreateCatalogService, useUpdateCatalogService, type CatalogServiceItem, type CatalogCategory } from '@/hooks/admin/use-admin-catalog'
+import { useCreateCatalogService, useUpdateCatalogService, type CatalogServiceItem, type CatalogServiceCreateInput, type CatalogCategory } from '@/hooks/admin/use-admin-catalog'
 
 const SEGMENTS = [
   { value: 'HAIR_SALON',  label: 'Salão' },
@@ -25,12 +25,12 @@ const toSlug = (name: string) =>
 interface Props {
   open: boolean
   onClose: () => void
-  service?: CatalogServiceItem | null
+  item?: CatalogServiceItem | null
   categories: CatalogCategory[]
 }
 
-export function CatalogServiceSheet({ open, onClose, service, categories }: Props) {
-  const isEditing = !!service
+export function CatalogServiceSheet({ open, onClose, item, categories }: Props) {
+  const isEditing = !!item
   const createMutation = useCreateCatalogService()
   const updateMutation = useUpdateCatalogService()
   const isPending = createMutation.isPending || updateMutation.isPending
@@ -43,13 +43,13 @@ export function CatalogServiceSheet({ open, onClose, service, categories }: Prop
   const [slugManual, setSlugManual] = useState(false)
 
   useEffect(() => {
-    if (service) {
+    if (item) {
       setForm({
-        name: service.name, slug: service.slug, description: service.description ?? '',
-        segments: service.segments, categoryId: service.categoryId ?? '',
-        suggestedDuration: service.suggestedDuration,
-        suggestedPrice: Number(service.suggestedPrice),
-        priceType: service.priceType, order: service.order, active: service.active,
+        name: item.name, slug: item.slug, description: item.description ?? '',
+        segments: item.segments, categoryId: item.categoryId ?? '',
+        suggestedDuration: item.suggestedDuration,
+        suggestedPrice: Number(item.suggestedPrice),
+        priceType: item.priceType, order: item.order, active: item.active,
       })
       setSlugManual(true)
     } else {
@@ -57,7 +57,7 @@ export function CatalogServiceSheet({ open, onClose, service, categories }: Prop
         suggestedDuration: 60, suggestedPrice: 0, priceType: 'FIXED', order: 0, active: true })
       setSlugManual(false)
     }
-  }, [service, open])
+  }, [item, open])
 
   function handleNameChange(name: string) {
     setForm(f => ({ ...f, name, ...(!slugManual ? { slug: toSlug(name) } : {}) }))
@@ -77,16 +77,23 @@ export function CatalogServiceSheet({ open, onClose, service, categories }: Prop
       return
     }
     try {
-      const payload = {
-        ...form,
-        categoryId: form.categoryId || undefined,
+      const payload: CatalogServiceCreateInput = {
+        name: form.name,
+        slug: form.slug,
         description: form.description || undefined,
+        segments: form.segments,
+        categoryId: form.categoryId || undefined,
+        suggestedDuration: form.suggestedDuration,
+        suggestedPrice: form.suggestedPrice,
+        priceType: form.priceType,
+        order: form.order,
+        active: form.active,
       }
       if (isEditing) {
-        await updateMutation.mutateAsync({ id: service!.id, ...payload })
+        await updateMutation.mutateAsync({ id: item!.id, ...payload })
         toast.success('Serviço atualizado!')
       } else {
-        await createMutation.mutateAsync(payload as Parameters<typeof createMutation.mutateAsync>[0])
+        await createMutation.mutateAsync(payload)
         toast.success('Serviço criado!')
       }
       onClose()

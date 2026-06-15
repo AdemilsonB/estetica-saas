@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { useCreateCatalogProduct, useUpdateCatalogProduct, type CatalogProductItem, type CatalogCategory } from '@/hooks/admin/use-admin-catalog'
+import { useCreateCatalogProduct, useUpdateCatalogProduct, type CatalogProductItem, type CatalogProductCreateInput, type CatalogCategory } from '@/hooks/admin/use-admin-catalog'
 
 const SEGMENTS = [
   { value: 'HAIR_SALON',  label: 'Salão' },
@@ -25,12 +25,12 @@ const toSlug = (name: string) =>
 interface Props {
   open: boolean
   onClose: () => void
-  product?: CatalogProductItem | null
+  item?: CatalogProductItem | null
   categories: CatalogCategory[]
 }
 
-export function CatalogProductSheet({ open, onClose, product, categories }: Props) {
-  const isEditing = !!product
+export function CatalogProductSheet({ open, onClose, item, categories }: Props) {
+  const isEditing = !!item
   const createMutation = useCreateCatalogProduct()
   const updateMutation = useUpdateCatalogProduct()
   const isPending = createMutation.isPending || updateMutation.isPending
@@ -42,11 +42,11 @@ export function CatalogProductSheet({ open, onClose, product, categories }: Prop
   const [slugManual, setSlugManual] = useState(false)
 
   useEffect(() => {
-    if (product) {
+    if (item) {
       setForm({
-        name: product.name, slug: product.slug, description: product.description ?? '',
-        segments: product.segments, categoryId: product.categoryId ?? '',
-        suggestedPrice: Number(product.suggestedPrice), order: product.order, active: product.active,
+        name: item.name, slug: item.slug, description: item.description ?? '',
+        segments: item.segments, categoryId: item.categoryId ?? '',
+        suggestedPrice: Number(item.suggestedPrice), order: item.order, active: item.active,
       })
       setSlugManual(true)
     } else {
@@ -54,7 +54,7 @@ export function CatalogProductSheet({ open, onClose, product, categories }: Prop
         suggestedPrice: 0, order: 0, active: true })
       setSlugManual(false)
     }
-  }, [product, open])
+  }, [item, open])
 
   function handleNameChange(name: string) {
     setForm(f => ({ ...f, name, ...(!slugManual ? { slug: toSlug(name) } : {}) }))
@@ -74,16 +74,21 @@ export function CatalogProductSheet({ open, onClose, product, categories }: Prop
       return
     }
     try {
-      const payload = {
-        ...form,
-        categoryId: form.categoryId || undefined,
+      const payload: CatalogProductCreateInput = {
+        name: form.name,
+        slug: form.slug,
         description: form.description || undefined,
+        segments: form.segments,
+        categoryId: form.categoryId || undefined,
+        suggestedPrice: form.suggestedPrice,
+        order: form.order,
+        active: form.active,
       }
       if (isEditing) {
-        await updateMutation.mutateAsync({ id: product!.id, ...payload })
+        await updateMutation.mutateAsync({ id: item!.id, ...payload })
         toast.success('Produto atualizado!')
       } else {
-        await createMutation.mutateAsync(payload as Parameters<typeof createMutation.mutateAsync>[0])
+        await createMutation.mutateAsync(payload)
         toast.success('Produto criado!')
       }
       onClose()

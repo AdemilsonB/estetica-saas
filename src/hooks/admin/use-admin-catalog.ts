@@ -46,6 +46,33 @@ export interface CatalogProductItem {
 
 interface PaginatedResponse<T> { data: T[]; total: number; page: number; pageSize: number }
 
+// Tipos de input para mutations (usam number para price, string[] para segments)
+export interface CatalogServiceCreateInput {
+  slug: string
+  name: string
+  description?: string
+  segments: string[]
+  categoryId?: string
+  suggestedDuration: number
+  suggestedPrice: number
+  priceType: 'FIXED' | 'STARTING_FROM'
+  order: number
+  active?: boolean
+  metadata?: Record<string, unknown>
+}
+
+export interface CatalogProductCreateInput {
+  slug: string
+  name: string
+  description?: string
+  segments: string[]
+  categoryId?: string
+  suggestedPrice: number
+  order: number
+  active?: boolean
+  metadata?: Record<string, unknown>
+}
+
 // ---- helpers ----
 
 function buildParams(filters: Record<string, unknown>) {
@@ -113,7 +140,7 @@ export function useAdminCatalogCategories() {
 export function useCreateCatalogService() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (data: Omit<CatalogServiceItem, 'id' | 'category' | 'createdAt' | 'updatedAt'>) => {
+    mutationFn: async (data: CatalogServiceCreateInput) => {
       const res = await fetch('/api/admin/catalogo/services', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -132,7 +159,7 @@ export function useCreateCatalogService() {
 export function useUpdateCatalogService() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, ...data }: Partial<CatalogServiceItem> & { id: string }) => {
+    mutationFn: async ({ id, ...data }: Partial<CatalogServiceCreateInput> & { id: string }) => {
       const res = await fetch(`/api/admin/catalogo/services/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -164,7 +191,7 @@ export function useDeactivateCatalogService() {
 export function useCreateCatalogProduct() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (data: Omit<CatalogProductItem, 'id' | 'category' | 'createdAt' | 'updatedAt'>) => {
+    mutationFn: async (data: CatalogProductCreateInput) => {
       const res = await fetch('/api/admin/catalogo/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -183,7 +210,7 @@ export function useCreateCatalogProduct() {
 export function useUpdateCatalogProduct() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, ...data }: Partial<CatalogProductItem> & { id: string }) => {
+    mutationFn: async ({ id, ...data }: Partial<CatalogProductCreateInput> & { id: string }) => {
       const res = await fetch(`/api/admin/catalogo/products/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

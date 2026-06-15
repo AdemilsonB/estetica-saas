@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BusinessSegment } from '@prisma/client'
+import { BusinessSegment, type Prisma } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { getAdminContext } from '@/shared/auth/admin-context'
 import { handleApiError } from '@/shared/http/handle-api-error'
@@ -13,7 +13,7 @@ const createSchema = z.object({
   categoryId:     z.string().cuid().optional(),
   suggestedPrice: z.number().min(0),
   order:          z.number().int().default(0),
-  metadata:       z.record(z.unknown()).optional(),
+  metadata:       z.record(z.string(), z.unknown()).optional(),
 })
 
 export async function GET(request: Request) {
@@ -64,7 +64,11 @@ export async function POST(request: Request) {
       return Response.json({ error: { message: 'Slug já em uso' } }, { status: 409 })
     }
 
-    const product = await prisma.catalogProduct.create({ data: input, include: { category: true } })
+    const { metadata, ...rest } = input
+    const product = await prisma.catalogProduct.create({
+      data: { ...rest, ...(metadata !== undefined ? { metadata: metadata as Prisma.InputJsonValue } : {}) },
+      include: { category: true },
+    })
     return Response.json(product, { status: 201 })
   } catch (error) {
     return handleApiError(error)
