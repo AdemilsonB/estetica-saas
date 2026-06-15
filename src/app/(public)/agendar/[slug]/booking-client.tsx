@@ -26,7 +26,7 @@ const STEP_LABELS: Record<Exclude<BookingStep, 'success'>, string> = {
   confirmation: 'Confirmar',
 }
 
-const STEPS: Exclude<BookingStep, 'success'>[] = [
+const ALL_STEPS: Exclude<BookingStep, 'success'>[] = [
   'service',
   'professional',
   'datetime',
@@ -35,13 +35,20 @@ const STEPS: Exclude<BookingStep, 'success'>[] = [
   'confirmation',
 ]
 
-function StepIndicator({ currentStep }: { currentStep: BookingStep }) {
+function StepIndicator({
+  currentStep,
+  visibleSteps,
+}: {
+  currentStep: BookingStep
+  visibleSteps: Exclude<BookingStep, 'success'>[]
+}) {
   if (currentStep === 'success') return null
-  const currentIndex = STEPS.indexOf(currentStep as Exclude<BookingStep, 'success'>)
+  const currentIndex = visibleSteps.indexOf(currentStep as Exclude<BookingStep, 'success'>)
+  if (currentIndex < 0) return null
   return (
     <div className="mb-6">
       <div className="flex gap-1">
-        {STEPS.map((step, index) => (
+        {visibleSteps.map((step, index) => (
           <div
             key={step}
             className={`h-1 flex-1 rounded-full transition-colors ${
@@ -51,7 +58,7 @@ function StepIndicator({ currentStep }: { currentStep: BookingStep }) {
         ))}
       </div>
       <p className="mt-2 text-xs text-slate-500">
-        Passo {currentIndex + 1} de {STEPS.length} —{' '}
+        Passo {currentIndex + 1} de {visibleSteps.length} —{' '}
         {STEP_LABELS[currentStep as Exclude<BookingStep, 'success'>]}
       </p>
     </div>
@@ -68,6 +75,11 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
   const [showServiceWarning, setShowServiceWarning] = useState(false)
 
   const singleProfessional = tenantData.professionals.length === 1
+  const visibleSteps = ALL_STEPS.filter((s) => {
+    if (s === 'professional' && singleProfessional) return false
+    if (s === 'anamnese') return false
+    return true
+  })
   const primaryColor = tenantData.branding?.primaryColor ?? '#191919'
   const maxAdvanceDays = 60
 
@@ -208,7 +220,7 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
 
   return (
     <div>
-      <StepIndicator currentStep={step} />
+      <StepIndicator currentStep={step} visibleSteps={visibleSteps} />
 
       {step === 'service' && (
         <ServiceStep
