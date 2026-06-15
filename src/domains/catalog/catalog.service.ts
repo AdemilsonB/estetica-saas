@@ -58,6 +58,14 @@ export class CatalogDomainService {
     })
   }
 
+  async deactivateService(tenantId: string, catalogServiceId: string): Promise<void> {
+    await catalogServiceRepository.deleteByCatalogId(tenantId, catalogServiceId)
+  }
+
+  async deactivateProduct(tenantId: string, catalogProductId: string): Promise<void> {
+    await productRepository.deleteByCatalogId(tenantId, catalogProductId)
+  }
+
   async saveSegments(tenantId: string, input: SaveSegmentsInput) {
     await prisma.tenant.update({
       where: { id: tenantId },
