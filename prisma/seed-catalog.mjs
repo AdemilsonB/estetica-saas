@@ -2,35 +2,35 @@
 export async function seedCatalog(prisma) {
   // Categorias de serviço
   const serviceCategories = [
-    { slug: 'corte', name: 'Corte', segments: ['HAIR_SALON', 'BARBERSHOP'] },
-    { slug: 'coloracao', name: 'Coloração', segments: ['HAIR_SALON'] },
-    { slug: 'tratamento', name: 'Tratamento', segments: ['HAIR_SALON'] },
-    { slug: 'barba', name: 'Barba', segments: ['BARBERSHOP'] },
-    { slug: 'unhas', name: 'Unhas', segments: ['NAIL_DESIGN'] },
-    { slug: 'estetica-facial', name: 'Estética Facial', segments: ['AESTHETICS'] },
-    { slug: 'estetica-corporal', name: 'Estética Corporal', segments: ['AESTHETICS'] },
+    { slug: 'corte', name: 'Corte', segments: ['HAIR_SALON', 'BARBERSHOP'], order: 1 },
+    { slug: 'coloracao', name: 'Coloração', segments: ['HAIR_SALON'], order: 2 },
+    { slug: 'tratamento', name: 'Tratamento', segments: ['HAIR_SALON'], order: 3 },
+    { slug: 'barba', name: 'Barba', segments: ['BARBERSHOP'], order: 2 },
+    { slug: 'unhas', name: 'Unhas', segments: ['NAIL_DESIGN'], order: 1 },
+    { slug: 'estetica-facial', name: 'Estética Facial', segments: ['AESTHETICS'], order: 1 },
+    { slug: 'estetica-corporal', name: 'Estética Corporal', segments: ['AESTHETICS'], order: 2 },
   ]
 
   for (const cat of serviceCategories) {
     await prisma.catalogServiceCategory.upsert({
       where: { slug: cat.slug },
-      update: { name: cat.name, segments: cat.segments },
+      update: { name: cat.name, segments: cat.segments, order: cat.order },
       create: cat,
     })
   }
 
   // Categorias de produto
   const productCategories = [
-    { slug: 'produtos-cabelo', name: 'Cabelo', segments: ['HAIR_SALON'] },
-    { slug: 'produtos-barba', name: 'Barba', segments: ['BARBERSHOP'] },
-    { slug: 'produtos-unhas', name: 'Unhas', segments: ['NAIL_DESIGN'] },
-    { slug: 'produtos-estetica', name: 'Estética', segments: ['AESTHETICS'] },
+    { slug: 'produtos-cabelo', name: 'Cabelo', segments: ['HAIR_SALON'], order: 1 },
+    { slug: 'produtos-barba', name: 'Cabelo & Barba', segments: ['BARBERSHOP'], order: 1 },
+    { slug: 'produtos-unhas', name: 'Unhas', segments: ['NAIL_DESIGN'], order: 1 },
+    { slug: 'produtos-estetica', name: 'Estética', segments: ['AESTHETICS'], order: 1 },
   ]
 
   for (const cat of productCategories) {
     await prisma.catalogProductCategory.upsert({
       where: { slug: cat.slug },
-      update: { name: cat.name, segments: cat.segments },
+      update: { name: cat.name, segments: cat.segments, order: cat.order },
       create: cat,
     })
   }
@@ -46,7 +46,7 @@ export async function seedCatalog(prisma) {
   const services = [
     // HAIR_SALON
     { slug: 'corte-feminino', name: 'Corte Feminino', description: 'Corte profissional com acabamento e finalização.', segments: ['HAIR_SALON'], categoryId: svcCats['corte'], suggestedDuration: 60, suggestedPrice: 80, priceType: 'STARTING_FROM', order: 1 },
-    { slug: 'escova-progressiva', name: 'Escova Progressiva', description: 'Alisamento com produto profissional de longa duração.', segments: ['HAIR_SALON'], categoryId: svcCats['coloracao'], suggestedDuration: 120, suggestedPrice: 180, priceType: 'STARTING_FROM', order: 2 },
+    { slug: 'escova-progressiva', name: 'Escova Progressiva', description: 'Alisamento com produto profissional de longa duração.', segments: ['HAIR_SALON'], categoryId: svcCats['tratamento'], suggestedDuration: 120, suggestedPrice: 180, priceType: 'STARTING_FROM', order: 2 },
     { slug: 'coloracao-completa', name: 'Coloração Completa', description: 'Tintura completa com produtos de alta performance.', segments: ['HAIR_SALON'], categoryId: svcCats['coloracao'], suggestedDuration: 90, suggestedPrice: 150, priceType: 'STARTING_FROM', order: 3 },
     { slug: 'mechas-luzes', name: 'Mechas / Luzes', description: 'Técnica de iluminação com papel alumínio ou touca.', segments: ['HAIR_SALON'], categoryId: svcCats['coloracao'], suggestedDuration: 150, suggestedPrice: 200, priceType: 'STARTING_FROM', order: 4 },
     { slug: 'hidratacao-capilar', name: 'Hidratação Capilar', description: 'Tratamento intensivo de hidratação e nutrição dos fios.', segments: ['HAIR_SALON'], categoryId: svcCats['tratamento'], suggestedDuration: 60, suggestedPrice: 90, priceType: 'FIXED', order: 5 },
@@ -114,5 +114,5 @@ export async function seedCatalog(prisma) {
     })
   }
 
-  console.log('Seed do catalogo mestre concluido: 20 servicos + 20 produtos')
+  console.log('✅ Seed do catálogo mestre concluído: 20 serviços + 20 produtos')
 }
