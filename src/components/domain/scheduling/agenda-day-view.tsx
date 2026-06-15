@@ -109,7 +109,10 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
   function handleConfirmInline(appt: Appointment) {
     updateStatus.mutate(
       { id: appt.id, status: 'CONFIRMED' },
-      { onSuccess: () => toast.success('Agendamento confirmado') },
+      {
+        onSuccess: () => toast.success('Agendamento confirmado'),
+        onError: () => toast.error('Erro ao confirmar agendamento'),
+      },
     )
   }
 
