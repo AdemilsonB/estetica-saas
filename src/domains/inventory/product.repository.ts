@@ -8,6 +8,12 @@ export class ProductRepository {
     return prisma.product.findFirst({ where: { id, tenantId, active: true }, include: { category: true } })
   }
 
+  async findByCatalogId(tenantId: string, catalogProductId: string) {
+    return prisma.product.findFirst({
+      where: { tenantId, catalogProductId, active: true },
+    })
+  }
+
   async list(tenantId: string, filters: ListProductsQuery) {
     const { name, categoryId, lowStock, page = 1, pageSize = 20 } = filters
 

@@ -17,6 +17,12 @@ export class CatalogServiceRepository {
     });
   }
 
+  async findByCatalogId(tenantId: string, catalogServiceId: string) {
+    return prisma.service.findFirst({
+      where: { tenantId, catalogServiceId },
+    })
+  }
+
   async create(
     tenantId: string,
     data: Omit<Prisma.ServiceUncheckedCreateInput, 'tenantId'>,
