@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
 import { cookies, headers } from 'next/headers'
-import { redirect } from 'next/navigation'
 import { createServerClient } from '@supabase/ssr'
 import { unstable_cache } from 'next/cache'
 import { AppShell } from '@/components/app/app-shell'
+import { ClientRedirect } from '@/components/app/client-redirect'
 import { ImpersonationBanner } from '@/components/admin/impersonation-banner'
 import { brandingRepository } from '@/domains/iam/branding.repository'
 import { buildCssVariables } from '@/lib/branding/build-css-variables'
@@ -64,13 +64,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     logoUrl = config?.logoUrl ?? null
     businessName = tenant?.name ?? ''
 
-    // Redireciona tenant sem onboarding de catálogo concluído
+    // Redireciona tenant sem onboarding de catálogo concluído via client router
+    // (redirect() do RSC causa tela branca em soft navigations — ClientRedirect usa router.replace())
     const onboardingCompleted = tenant?.onboardingCompleted ?? false
     if (!onboardingCompleted && pathname !== '/onboarding/catalogo') {
-      redirect('/onboarding/catalogo')
+      return <ClientRedirect to="/onboarding/catalogo" />
     }
     if (onboardingCompleted && pathname === '/onboarding/catalogo') {
-      redirect('/agenda')
+      return <ClientRedirect to="/agenda" />
     }
 
     if (config) {
