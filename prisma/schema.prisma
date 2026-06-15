@@ -97,89 +97,98 @@ enum PriceType {
   ON_CONSULTATION
 }
 
+enum BusinessSegment {
+  HAIR_SALON
+  BARBERSHOP
+  NAIL_DESIGN
+  AESTHETICS
+}
+
 model Tenant {
-  id           String           @id @default(cuid())
-  name         String
-  slug         String           @unique
-  plan           PlanName          @default(FREE)
-  subscription   Subscription?
-  brandingConfig    BrandingConfig?
-  phone             String?
-  address           String?
-  zipCode           String?
-  whatsappEnabled       Boolean           @default(false)
-  timezone              String            @default("America/Sao_Paulo")
+  id                     String                 @id @default(cuid())
+  name                   String
+  slug                   String                 @unique
+  plan                   PlanName               @default(FREE)
+  subscription           Subscription?
+  brandingConfig         BrandingConfig?
+  phone                  String?
+  address                String?
+  zipCode                String?
+  whatsappEnabled        Boolean                @default(false)
+  timezone               String                 @default("America/Sao_Paulo")
   whatsappTemplateConfig Json?
   cardFeeConfig          Json?
-  reminderLeadHours    Int     @default(24)
-  reminderWindowStart  Int     @default(7)
-  reminderWindowEnd    Int     @default(22)
-  businessHours     Json?
+  reminderLeadHours      Int                    @default(24)
+  reminderWindowStart    Int                    @default(7)
+  reminderWindowEnd      Int                    @default(22)
+  businessHours          Json?
   // Evolution API
-  evolutionInstanceId  String?
-  evolutionConnected   Boolean   @default(false)
-  evolutionStatus      String    @default("DISCONNECTED")
-  evolutionConnectedAt DateTime?
-  evolutionPhone       String?
-  autoReplyEnabled        Boolean @default(false)
-  autoReplyIntervalHours  Int     @default(6)
-  autoReplyMessage        String?
-  offHoursEnabled         Boolean @default(false)
-  offHoursMessage         String?
-  dailyStatusEnabled      Boolean @default(false)
-  dailyStatusHour         Int     @default(9)
-  birthdayEnabled         Boolean @default(false)
-  birthdayMessage         String?
-  birthdayGiftServiceId   String?
-  isBlocked               Boolean @default(false)
-  blockedReason           String?
-  schedulingPolicy        SchedulingPolicy?
-  createdAt         DateTime          @default(now())
-  updatedAt    DateTime         @updatedAt
-  users        User[]
-  customers    Customer[]
-  services     Service[]
-  appointments Appointment[]
-  transactions Transaction[]
-  notifications       NotificationLog[]
-  autoReplyLogs        WhatsAppAutoReplyLog[]
-  invites             TenantInvite[]
-  roles               Role[]
-  discountTypes       DiscountType[]
-  recurringExpenses   RecurringExpense[]
-  serviceCommissions  ServiceCommission[]
-  customerAnamneses   CustomerAnamnese[]
-  servicePackages     ServicePackage[]
-  tenantPromotions    Promotion[]
-  products            Product[]
-  productCategories   ProductCategory[]
-  stockMovements      StockMovement[]
-  appointmentProducts  AppointmentProduct[]
-  serviceProducts      ServiceProduct[]
-  professionalServices ProfessionalService[]
-  serviceCategories    ServiceCategory[]
-  usageSnapshots       UsageSnapshot[]
+  evolutionInstanceId    String?
+  evolutionConnected     Boolean                @default(false)
+  evolutionStatus        String                 @default("DISCONNECTED")
+  evolutionConnectedAt   DateTime?
+  evolutionPhone         String?
+  autoReplyEnabled       Boolean                @default(false)
+  autoReplyIntervalHours Int                    @default(6)
+  autoReplyMessage       String?
+  offHoursEnabled        Boolean                @default(false)
+  offHoursMessage        String?
+  dailyStatusEnabled     Boolean                @default(false)
+  dailyStatusHour        Int                    @default(9)
+  segments               BusinessSegment[]      @default([])
+  onboardingCompleted    Boolean                @default(false)
+  birthdayEnabled        Boolean                @default(false)
+  birthdayMessage        String?
+  birthdayGiftServiceId  String?
+  isBlocked              Boolean                @default(false)
+  blockedReason          String?
+  schedulingPolicy       SchedulingPolicy?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  users                  User[]
+  customers              Customer[]
+  services               Service[]
+  appointments           Appointment[]
+  transactions           Transaction[]
+  notifications          NotificationLog[]
+  autoReplyLogs          WhatsAppAutoReplyLog[]
+  invites                TenantInvite[]
+  roles                  Role[]
+  discountTypes          DiscountType[]
+  recurringExpenses      RecurringExpense[]
+  serviceCommissions     ServiceCommission[]
+  customerAnamneses      CustomerAnamnese[]
+  servicePackages        ServicePackage[]
+  tenantPromotions       Promotion[]
+  products               Product[]
+  productCategories      ProductCategory[]
+  stockMovements         StockMovement[]
+  appointmentProducts    AppointmentProduct[]
+  serviceProducts        ServiceProduct[]
+  professionalServices   ProfessionalService[]
+  serviceCategories      ServiceCategory[]
+  usageSnapshots         UsageSnapshot[]
 }
 
 model BrandingConfig {
-  id              String   @id @default(cuid())
-  tenantId        String   @unique
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  tenantId String @unique
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   logoUrl         String?
-  primaryColor    String   @default("#c8916a")
+  primaryColor    String  @default("#c8916a")
   secondaryColor  String?
-  accentColor     String   @default("#fdf0e8")
-  backgroundColor String   @default("#faf7f4")
-  borderColor     String   @default("#e8ddd3")
-  foregroundColor String   @default("#3d2b1f")
-  mutedColor      String   @default("#8a7060")
-  fontFamily      String   @default("inter")
-  borderRadius    String   @default("medium")
-  colorScheme     String   @default("light")
+  accentColor     String  @default("#fdf0e8")
+  backgroundColor String  @default("#faf7f4")
+  borderColor     String  @default("#e8ddd3")
+  foregroundColor String  @default("#3d2b1f")
+  mutedColor      String  @default("#8a7060")
+  fontFamily      String  @default("inter")
+  borderRadius    String  @default("medium")
+  colorScheme     String  @default("light")
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([tenantId])
 }
@@ -212,16 +221,16 @@ model PlanFeatureConfig {
 }
 
 model Plan {
-  id             String   @id @default(cuid())
-  name           PlanName @unique
-  displayName    String
-  price          Decimal  @default(0) @db.Decimal(10, 2)
-  description    String?
-  trialDays      Int      @default(14)
-  stripePriceId  String?
-  isActive       Boolean  @default(true)
-  displayOrder   Int      @default(0)
-  updatedAt      DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          PlanName @unique
+  displayName   String
+  price         Decimal  @default(0) @db.Decimal(10, 2)
+  description   String?
+  trialDays     Int      @default(14)
+  stripePriceId String?
+  isActive      Boolean  @default(true)
+  displayOrder  Int      @default(0)
+  updatedAt     DateTime @updatedAt
 }
 
 model PlanLimitConfig {
@@ -236,24 +245,24 @@ model PlanLimitConfig {
 }
 
 model User {
-  id                      String         @id @default(cuid())
-  tenantId                String
-  email                   String
-  name                    String
-  phone                   String?
-  cpf                     String?
-  role                    UserRole       @default(PROFESSIONAL)
-  permissions             String[]
-  avatarUrl               String?
-  roleId                  String?
-  customRole              Role?          @relation("UserCustomRole", fields: [roleId], references: [id])
-  createdAt               DateTime       @default(now())
-  updatedAt               DateTime       @updatedAt
-  tenant                  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  appointmentsAssigned    Appointment[]  @relation("ProfessionalAppointments")
-  createdAppointments     Appointment[]  @relation("AppointmentCreatedBy")
-  stockMovements          StockMovement[]
-  professionalServices    ProfessionalService[]
+  id                   String                @id @default(cuid())
+  tenantId             String
+  email                String
+  name                 String
+  phone                String?
+  cpf                  String?
+  role                 UserRole              @default(PROFESSIONAL)
+  permissions          String[]
+  avatarUrl            String?
+  roleId               String?
+  customRole           Role?                 @relation("UserCustomRole", fields: [roleId], references: [id])
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointmentsAssigned Appointment[]         @relation("ProfessionalAppointments")
+  createdAppointments  Appointment[]         @relation("AppointmentCreatedBy")
+  stockMovements       StockMovement[]
+  professionalServices ProfessionalService[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -276,8 +285,8 @@ model Subscription {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  history            SubscriptionHistory[]
+  tenant  Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  history SubscriptionHistory[]
 
   @@index([tenantId])
   @@index([status, currentPeriodEnd])
@@ -294,7 +303,7 @@ model SubscriptionHistory {
   changedBy      String?
   createdAt      DateTime            @default(now())
 
-  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@index([subscriptionId])
 }
@@ -316,27 +325,27 @@ model TenantInvite {
 }
 
 model Customer {
-  id           String         @id @default(cuid())
-  tenantId     String
-  name         String
-  phone        String?
-  email        String?
-  notes        String?
-  tags         String[]
-  consentGiven  Boolean   @default(false)
+  id            String            @id @default(cuid())
+  tenantId      String
+  name          String
+  phone         String?
+  email         String?
+  notes         String?
+  tags          String[]
+  consentGiven  Boolean           @default(false)
   consentDate   DateTime?
   consentOrigin String?
-  birthDate    DateTime?
-  isVip         Boolean   @default(false)
+  birthDate     DateTime?
+  isVip         Boolean           @default(false)
   vipUpdatedAt  DateTime?
-  isBlocked     Boolean   @default(false)
+  isBlocked     Boolean           @default(false)
   blockedReason String?
   blockedAt     DateTime?
-  createdAt     DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  appointments Appointment[]
-  anamnese     CustomerAnamnese?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments  Appointment[]
+  anamnese      CustomerAnamnese?
 
   @@index([tenantId])
   @@index([tenantId, phone])
@@ -359,25 +368,26 @@ model ServiceCategory {
 }
 
 model Service {
-  id           String              @id @default(cuid())
-  tenantId     String
-  name         String
-  duration     Int
-  price        Decimal             @db.Decimal(10, 2)
-  priceType    PriceType           @default(FIXED)
-  priceMin     Decimal?            @db.Decimal(10, 2)
-  priceMax     Decimal?            @db.Decimal(10, 2)
-  active       Boolean             @default(true)
-  imageUrl     String?
+  id                   String                @id @default(cuid())
+  tenantId             String
+  name                 String
+  duration             Int
+  price                Decimal               @db.Decimal(10, 2)
+  priceType            PriceType             @default(FIXED)
+  priceMin             Decimal?              @db.Decimal(10, 2)
+  priceMax             Decimal?              @db.Decimal(10, 2)
+  active               Boolean               @default(true)
+  imageUrl             String?
   description          String?
-  anamneseMode         AnamneseMode @default(NONE)
-  anamneseBlocks       String[]     @default([])
-  anamneseValidityDays Int          @default(90)
-  categoryId   String?
-  category     ServiceCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  anamneseMode         AnamneseMode          @default(NONE)
+  anamneseBlocks       String[]              @default([])
+  anamneseValidityDays Int                   @default(90)
+  categoryId           String?
+  category             ServiceCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  catalogServiceId     String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   appointments         Appointment[]
   packages             ServicePackageItem[]
   promotions           PromotionItem[]
@@ -389,37 +399,37 @@ model Service {
 }
 
 model Appointment {
-  id              String            @id @default(cuid())
-  tenantId        String
-  customerId      String
-  professionalId  String
-  serviceId       String?
-  packageId       String?
-  promotionId     String?
-  startsAt        DateTime
-  endsAt          DateTime
-  status          AppointmentStatus @default(SCHEDULED)
-  notes           String?
-  allowOverlap    Boolean           @default(false)
-  paymentStatus   AppointmentPaymentStatus @default(PENDING)
-  paymentMethod   PaymentMethod?
-  discountTypeId  String?
-  discountValue   Decimal?          @db.Decimal(10,2)
-  price           Decimal           @db.Decimal(10, 2)
-  confirmedPrice  Decimal?          @db.Decimal(10, 2)
-  createdByUserId String
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customer        Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  professional    User              @relation("ProfessionalAppointments", fields: [professionalId], references: [id], onDelete: Restrict)
-  service         Service?          @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  package         ServicePackage?   @relation(fields: [packageId], references: [id], onDelete: Restrict)
-  promotion       Promotion?        @relation(fields: [promotionId], references: [id], onDelete: Restrict)
-  createdByUser   User              @relation("AppointmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  discountType    DiscountType?     @relation(fields: [discountTypeId], references: [id], onDelete: SetNull)
+  id                  String                   @id @default(cuid())
+  tenantId            String
+  customerId          String
+  professionalId      String
+  serviceId           String?
+  packageId           String?
+  promotionId         String?
+  startsAt            DateTime
+  endsAt              DateTime
+  status              AppointmentStatus        @default(SCHEDULED)
+  notes               String?
+  allowOverlap        Boolean                  @default(false)
+  paymentStatus       AppointmentPaymentStatus @default(PENDING)
+  paymentMethod       PaymentMethod?
+  discountTypeId      String?
+  discountValue       Decimal?                 @db.Decimal(10, 2)
+  price               Decimal                  @db.Decimal(10, 2)
+  confirmedPrice      Decimal?                 @db.Decimal(10, 2)
+  createdByUserId     String
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  tenant              Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer            Customer                 @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  professional        User                     @relation("ProfessionalAppointments", fields: [professionalId], references: [id], onDelete: Restrict)
+  service             Service?                 @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  package             ServicePackage?          @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  promotion           Promotion?               @relation(fields: [promotionId], references: [id], onDelete: Restrict)
+  createdByUser       User                     @relation("AppointmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  discountType        DiscountType?            @relation(fields: [discountTypeId], references: [id], onDelete: SetNull)
   anamneseId          String?
-  anamnese            CustomerAnamnese? @relation("AppointmentAnamnese", fields: [anamneseId], references: [id], onDelete: SetNull)
+  anamnese            CustomerAnamnese?        @relation("AppointmentAnamnese", fields: [anamneseId], references: [id], onDelete: SetNull)
   transactions        Transaction[]
   appointmentProducts AppointmentProduct[]
   stockMovements      StockMovement[]
@@ -432,21 +442,21 @@ model Appointment {
 }
 
 model Transaction {
-  id            String          @id @default(cuid())
-  tenantId      String
-  appointmentId String?
-  type          TransactionType
-  category      String
-  description   String
-  amount        Decimal         @db.Decimal(10, 2)
+  id               String          @id @default(cuid())
+  tenantId         String
+  appointmentId    String?
+  type             TransactionType
+  category         String
+  description      String
+  amount           Decimal         @db.Decimal(10, 2)
   paidAt           DateTime?
   paymentMethod    PaymentMethod?
-  grossAmount      Decimal?        @db.Decimal(10,2)
-  discountAmount   Decimal?        @db.Decimal(10,2)
-  tipAmount        Decimal?        @db.Decimal(10,2)
-  cardFeeAmount    Decimal?        @db.Decimal(10,2)
-  netAmount        Decimal?        @db.Decimal(10,2)
-  commissionAmount Decimal?        @db.Decimal(10,2)
+  grossAmount      Decimal?        @db.Decimal(10, 2)
+  discountAmount   Decimal?        @db.Decimal(10, 2)
+  tipAmount        Decimal?        @db.Decimal(10, 2)
+  cardFeeAmount    Decimal?        @db.Decimal(10, 2)
+  netAmount        Decimal?        @db.Decimal(10, 2)
+  commissionAmount Decimal?        @db.Decimal(10, 2)
   professionalId   String?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
@@ -458,21 +468,21 @@ model Transaction {
 }
 
 model NotificationLog {
-  id             String              @id @default(cuid())
-  tenantId       String
-  appointmentId  String?
-  customerId     String?
-  channel        NotificationChannel
-  template       String
-  recipient      String
-  status         NotificationStatus  @default(PENDING)
-  provider       String
-  payload        Json
-  errorMessage   String?
-  externalId     String?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id            String              @id @default(cuid())
+  tenantId      String
+  appointmentId String?
+  customerId    String?
+  channel       NotificationChannel
+  template      String
+  recipient     String
+  status        NotificationStatus  @default(PENDING)
+  provider      String
+  payload       Json
+  errorMessage  String?
+  externalId    String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  tenant        Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, channel, status])
@@ -507,7 +517,7 @@ model DiscountType {
   tenantId     String
   name         String
   type         DiscountApplyType
-  defaultValue Decimal?          @db.Decimal(10,2)
+  defaultValue Decimal?          @db.Decimal(10, 2)
   active       Boolean           @default(true)
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
@@ -522,11 +532,11 @@ model ServiceCommission {
   tenantId       String
   serviceId      String
   professionalId String
-  rate           Decimal  @db.Decimal(5,2)
+  rate           Decimal  @db.Decimal(5, 2)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, serviceId, professionalId])
   @@index([tenantId])
@@ -537,7 +547,7 @@ model RecurringExpense {
   tenantId       String
   category       String
   description    String
-  amount         Decimal        @db.Decimal(10,2)
+  amount         Decimal        @db.Decimal(10, 2)
   recurrenceType RecurrenceType
   nextDueDate    DateTime
   active         Boolean        @default(true)
@@ -549,17 +559,16 @@ model RecurringExpense {
   @@index([tenantId, nextDueDate])
 }
 
-
 model CustomerAnamnese {
-  id          String    @id @default(cuid())
-  tenantId    String
-  customerId  String    @unique
-  blocks      Json      @default("{}")
-  blockTypes  String[]  @default([])
-  version     Int       @default(1)
-  history     Json      @default("[]")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String   @unique
+  blocks     Json     @default("{}")
+  blockTypes String[] @default([])
+  version    Int      @default(1)
+  history    Json     @default("[]")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -574,19 +583,19 @@ enum PromoDiscountType {
 }
 
 model ServicePackage {
-  id          String               @id @default(cuid())
-  tenantId    String
-  name        String
-  description String?
-  price       Decimal              @db.Decimal(10, 2)
-  imageUrl    String?
-  active      Boolean              @default(true)
-  items       ServicePackageItem[]
-  promotions  PromotionItem[]
+  id           String               @id @default(cuid())
+  tenantId     String
+  name         String
+  description  String?
+  price        Decimal              @db.Decimal(10, 2)
+  imageUrl     String?
+  active       Boolean              @default(true)
+  items        ServicePackageItem[]
+  promotions   PromotionItem[]
   appointments Appointment[]
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-  tenant      Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }
@@ -645,11 +654,11 @@ enum StockMovementType {
 }
 
 model ProductCategory {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   tenantId  String
   name      String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   products Product[]
@@ -667,10 +676,11 @@ model Product {
   salePrice     Decimal  @db.Decimal(10, 2)
   stockQuantity Int      @default(0)
   lowStockAlert Int      @default(5)
-  active        Boolean  @default(true)
-  imageUrl      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  active           Boolean  @default(true)
+  imageUrl         String?
+  catalogProductId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   category            ProductCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -784,7 +794,7 @@ model UsageSnapshot {
   tenantId  String
   limitKey  String
   count     Int
-  period    String   // "2026-06" (YYYY-MM)
+  period    String // "2026-06" (YYYY-MM)
   createdAt DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -814,4 +824,64 @@ model LandingTestimonial {
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+model CatalogServiceCategory {
+  id       String            @id @default(cuid())
+  slug     String            @unique
+  name     String
+  segments BusinessSegment[]
+  order    Int               @default(0)
+  active   Boolean           @default(true)
+  services CatalogService[]
+}
+
+model CatalogProductCategory {
+  id       String            @id @default(cuid())
+  slug     String            @unique
+  name     String
+  segments BusinessSegment[]
+  order    Int               @default(0)
+  active   Boolean           @default(true)
+  products CatalogProduct[]
+}
+
+model CatalogService {
+  id                String                  @id @default(cuid())
+  slug              String                  @unique
+  name              String
+  description       String?
+  imageUrl          String?
+  segments          BusinessSegment[]
+  categoryId        String?
+  category          CatalogServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  suggestedDuration Int
+  suggestedPrice    Decimal                 @db.Decimal(10, 2)
+  priceType         PriceType               @default(FIXED)
+  active            Boolean                 @default(true)
+  order             Int                     @default(0)
+  metadata          Json?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@index([active])
+}
+
+model CatalogProduct {
+  id             String                  @id @default(cuid())
+  slug           String                  @unique
+  name           String
+  description    String?
+  imageUrl       String?
+  segments       BusinessSegment[]
+  categoryId     String?
+  category       CatalogProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  suggestedPrice Decimal                 @db.Decimal(10, 2)
+  active         Boolean                 @default(true)
+  order          Int                     @default(0)
+  metadata       Json?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@index([active])
 }
