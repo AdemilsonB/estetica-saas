@@ -11,10 +11,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Button } from '@/components/ui/button'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useBillingStatus } from '@/hooks/billing/use-billing-status'
+import { useNavSections } from '@/hooks/iam/use-nav-sections'
 import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
 import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
 import { cn } from '@/lib/utils'
-import { NAV_REGISTRY, type NavSection } from '@/shared/permissions/nav-registry'
+import type { NavSection } from '@/shared/permissions/nav-registry'
 
 function getInitials(name: string): string {
   return name
@@ -35,6 +36,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
   const router = useRouter()
   const { canAccess, user, isLoading } = usePermissions()
   const { data: billingStatus } = useBillingStatus()
+  const { data: planNavSections, isLoading: navSectionsLoading } = useNavSections()
   const [upgradeCardDismissed, setUpgradeCardDismissed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     return sessionStorage.getItem('upgrade-card-dismissed') === '1'
@@ -63,7 +65,9 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
     router.push('/login')
   }
 
-  const visibleItems = NAV_REGISTRY.filter((section) => canAccess(section.key))
+  // Duas camadas: plano (planNavSections) → role (canAccess)
+  const navBase = planNavSections ?? []
+  const visibleItems = navBase.filter((section) => canAccess(section.key))
   const mainItems = visibleItems.filter((s) => s.key !== 'configuracoes')
   const configItem = visibleItems.find((s) => s.key === 'configuracoes')
 
@@ -225,7 +229,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
 
           {/* Nav */}
           <nav className={cn('flex-1 space-y-1 py-4', showLabel ? 'px-3' : 'px-2')}>
-            {isLoading
+            {isLoading || navSectionsLoading
               ? Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className={cn('rounded-xl', showLabel ? 'h-12 w-full' : 'size-10')} />
                 ))
