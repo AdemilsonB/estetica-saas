@@ -47,11 +47,11 @@ interface PaginatedResponse<T> {
 interface CatalogGridProps {
   type: 'services' | 'products'
   segments?: string[]
+  /** @deprecated — não usado após remoção de buildEditHref */
   serviceEditBasePath?: string
+  /** @deprecated — não usado após remoção de buildEditHref */
   productEditBasePath?: string
   activatedCatalogIds?: Set<string>
-  /** Mapa catalogItemId → tenantItemId para montar o href de edição */
-  activatedIdMap?: Map<string, string>
 }
 
 // ---------------------------------------------------------------------------
@@ -106,10 +106,7 @@ function EmptyState() {
 export function CatalogGrid({
   type,
   segments,
-  serviceEditBasePath,
-  productEditBasePath,
   activatedCatalogIds,
-  activatedIdMap,
 }: CatalogGridProps) {
   const queryClient = useQueryClient()
 
@@ -120,6 +117,7 @@ export function CatalogGrid({
 
   // IDs sendo ativados no momento (estado otimista local)
   const [activatingIds, setActivatingIds] = useState<Set<string>>(new Set())
+  const [deactivatingIds, setDeactivatingIds] = useState<Set<string>>(new Set())
   // IDs ativados nesta sessão (sem depender da prop activatedCatalogIds no wizard)
   const [localActivatedIds, setLocalActivatedIds] = useState<Set<string>>(new Set())
 
@@ -209,6 +207,39 @@ export function CatalogGrid({
     },
   })
 
+  const deactivateMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/catalog/${type}/${id}/activate`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) throw new Error('Erro ao desativar item do catálogo')
+    },
+    onMutate: (id) => {
+      setDeactivatingIds(prev => new Set(prev).add(id))
+    },
+    onSuccess: (_data, id) => {
+      setLocalActivatedIds(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      toast.success(type === 'services' ? 'Serviço desativado.' : 'Produto desativado.')
+    },
+    onError: () => {
+      toast.error('Erro ao desativar item. Tente novamente.')
+    },
+    onSettled: (_data, _error, id) => {
+      setDeactivatingIds(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      queryClient.invalidateQueries({
+        queryKey: [type === 'services' ? 'services' : 'products'],
+      })
+    },
+  })
+
   // ---------------------------------------------------------------------------
   // Derived state
   // ---------------------------------------------------------------------------
@@ -223,19 +254,6 @@ export function CatalogGrid({
   const hasMore = responseData
     ? responseData.total > responseData.page * responseData.pageSize
     : false
-
-  // ---------------------------------------------------------------------------
-  // Render helpers
-  // ---------------------------------------------------------------------------
-
-  function buildEditHref(catalogId: string): string | undefined {
-    const tenantId = activatedIdMap?.get(catalogId)
-    if (!tenantId) return undefined
-    const base =
-      type === 'services' ? serviceEditBasePath : productEditBasePath
-    if (!base) return undefined
-    return `${base}/${tenantId}`
-  }
 
   // ---------------------------------------------------------------------------
   // Render
@@ -269,9 +287,10 @@ export function CatalogGrid({
                     key={service.id}
                     service={service}
                     isActivated={(activatedCatalogIds?.has(service.id) ?? false) || localActivatedIds.has(service.id)}
-                    activatedHref={buildEditHref(service.id)}
                     onActivate={id => activateMutation.mutate(id)}
                     isActivating={activatingIds.has(service.id)}
+                    onDeactivate={id => deactivateMutation.mutate(id)}
+                    isDeactivating={deactivatingIds.has(service.id)}
                   />
                 ))}
               </div>
@@ -301,9 +320,10 @@ export function CatalogGrid({
                     key={product.id}
                     product={product}
                     isActivated={(activatedCatalogIds?.has(product.id) ?? false) || localActivatedIds.has(product.id)}
-                    activatedHref={buildEditHref(product.id)}
                     onActivate={id => activateMutation.mutate(id)}
                     isActivating={activatingIds.has(product.id)}
+                    onDeactivate={id => deactivateMutation.mutate(id)}
+                    isDeactivating={deactivatingIds.has(product.id)}
                   />
                 ))}
               </div>
