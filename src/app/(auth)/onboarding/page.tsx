@@ -177,7 +177,6 @@ function OnboardingContent() {
       await supabase.auth.updateUser({ data: { onboardingStep: 'complete' } })
       toast.success('Tudo pronto! Bem-vindo ao workspace.')
       router.push('/agenda')
-      router.refresh()
       return
     }
 
@@ -199,7 +198,6 @@ function OnboardingContent() {
         await supabase.auth.updateUser({ data: { onboardingStep: 'complete' } })
         toast.success('Trial iniciado! Explore o sistema à vontade.')
         router.push('/agenda')
-        router.refresh()
       } catch {
         toast.error('Erro de conexão. Tente novamente.')
       } finally {
@@ -279,7 +277,6 @@ function OnboardingContent() {
 
       toast.success('Bem-vindo à equipe!')
       router.push('/agenda')
-      router.refresh()
     } finally {
       setIsSubmitting(false)
     }
