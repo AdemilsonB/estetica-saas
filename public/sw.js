@@ -1,9 +1,19 @@
 const CACHE = 'agende-shell-v1'
-const SHELL = ['/', '/agenda', '/clientes', '/financeiro']
+// Apenas a raiz como shell — rotas de app exigem auth e não devem ser pré-cacheadas
+const SHELL = ['/']
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())
+    caches.open(CACHE).then((c) =>
+      Promise.all(
+        SHELL.map((url) =>
+          fetch(url).then((res) => {
+            if (!res.ok) return
+            return c.put(url, res)
+          })
+        )
+      )
+    ).then(() => self.skipWaiting())
   )
 })
 
