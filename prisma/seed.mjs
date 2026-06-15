@@ -1,6 +1,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient, UserRole } from "@prisma/client";
+import { PrismaClient, UserRole, PlanName } from "@prisma/client";
 import { config as loadEnv } from "dotenv";
+import { seedCatalog } from "./seed-catalog.mjs";
 
 loadEnv({ path: ".env.local", override: false });
 loadEnv();
@@ -20,7 +21,7 @@ async function main() {
     create: {
       name: "SaaS Estetica Demo",
       slug: "saas-estetica-demo",
-      plan: "pro",
+      plan: PlanName.PRO,
     },
   });
 
@@ -138,6 +139,8 @@ async function main() {
       2,
     ),
   );
+
+  await seedCatalog(prisma);
 }
 
 main()
