@@ -182,9 +182,9 @@ export class SchedulingService {
         type: eventType,
         payload: {
           ...this.toAppointmentEventPayload(tenantId, appointment),
-          ...(input.status === AppointmentStatus.CANCELLED
+          ...([AppointmentStatus.CANCELLED, AppointmentStatus.CONFIRMED] as AppointmentStatus[]).includes(input.status)
             ? { notificationMessage: input.notificationMessage }
-            : {}),
+            : {},
         },
       });
     }
