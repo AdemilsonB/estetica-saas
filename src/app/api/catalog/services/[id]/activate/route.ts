@@ -17,3 +17,18 @@ export async function POST(
     return handleApiError(error)
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  initializeDomainRuntime()
+  try {
+    const session = await getSessionContext(request)
+    const { id } = await params
+    await catalogDomainService.deactivateService(session.tenantId, id)
+    return new Response(null, { status: 204 })
+  } catch (error) {
+    return handleApiError(error)
+  }
+}

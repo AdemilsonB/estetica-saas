@@ -2,7 +2,6 @@ import type { Prisma } from '@prisma/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ActivationBadge } from './ActivationBadge'
 import { formatPrice } from './catalog-utils'
 
 interface CatalogProductCardProps {
@@ -15,17 +14,19 @@ interface CatalogProductCardProps {
     category: { name: string } | null
   }
   isActivated: boolean
-  activatedHref?: string
   onActivate: (productId: string) => void
   isActivating?: boolean
+  onDeactivate: (productId: string) => void
+  isDeactivating?: boolean
 }
 
 export function CatalogProductCard({
   product,
   isActivated,
-  activatedHref,
   onActivate,
   isActivating = false,
+  onDeactivate,
+  isDeactivating = false,
 }: CatalogProductCardProps) {
   return (
     <Card className="flex flex-col">
@@ -49,7 +50,15 @@ export function CatalogProductCard({
           <p className="text-sm font-medium">{formatPrice(product.suggestedPrice)}</p>
 
           {isActivated ? (
-            <ActivationBadge href={activatedHref} />
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-green-500 text-green-700 hover:bg-red-50 hover:border-red-400 hover:text-red-600"
+              disabled={isDeactivating}
+              onClick={() => onDeactivate(product.id)}
+            >
+              {isDeactivating ? 'Removendo...' : '✓ Ativado'}
+            </Button>
           ) : (
             <Button
               size="sm"

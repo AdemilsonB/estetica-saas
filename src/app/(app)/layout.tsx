@@ -44,6 +44,15 @@ async function getTenantCached(tenantId: string) {
   return cached()
 }
 
+async function getTenantOnboardingStatus(tenantId: string): Promise<boolean> {
+  try {
+    const result = await iamRepository.findTenantOnboardingStatus(tenantId)
+    return result?.onboardingCompleted ?? false
+  } catch {
+    return false
+  }
+}
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const tenantId = await getTenantIdFromSession()
 
@@ -56,17 +65,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   let businessName = ''
 
   if (tenantId) {
-    const [config, tenant] = await Promise.all([
+    const [config, tenant, onboardingCompleted] = await Promise.all([
       getBrandingCached(tenantId),
       getTenantCached(tenantId),
+      getTenantOnboardingStatus(tenantId),
     ])
 
     logoUrl = config?.logoUrl ?? null
     businessName = tenant?.name ?? ''
 
-    // Redireciona tenant sem onboarding de catálogo concluído via client router
-    // (redirect() do RSC causa tela branca em soft navigations — ClientRedirect usa router.replace())
-    const onboardingCompleted = tenant?.onboardingCompleted ?? false
     if (!onboardingCompleted && pathname !== '/onboarding/catalogo') {
       return <ClientRedirect to="/onboarding/catalogo" />
     }

@@ -31,12 +31,12 @@ const STEP_CONTENT: Record<number, StepContent> = {
     description: 'Selecione todos que se aplicam. Você pode alterar depois.',
   },
   2: {
-    title: 'Ative seus serviços',
-    description: 'Selecione os serviços que você oferece. Você pode personalizar depois.',
+    title: 'Ative seus serviços iniciais',
+    description: 'Selecione os serviços que você oferece. Você pode personalizar depois e criar novos exclusivos.',
   },
   3: {
-    title: 'Ative seus produtos',
-    description: 'Controle seu estoque de insumos. Você pode adicionar mais depois.',
+    title: 'Ative seus produtos iniciais',
+    description: 'Controle seu estoque de insumos e produtos de revenda. Você pode personalizar depois e adicionar mais.',
   },
   4: {
     title: 'Tudo pronto!',

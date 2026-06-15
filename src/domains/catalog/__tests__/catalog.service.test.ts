@@ -22,6 +22,7 @@ vi.mock('@/domains/scheduling/service.repository', () => ({
   catalogServiceRepository: {
     findByCatalogId: vi.fn(),
     create: vi.fn(),
+    deleteByCatalogId: vi.fn(),
   },
 }))
 
@@ -29,6 +30,7 @@ vi.mock('@/domains/inventory/product.repository', () => ({
   productRepository: {
     findByCatalogId: vi.fn(),
     createFromCatalog: vi.fn(),
+    deleteByCatalogId: vi.fn(),
   },
 }))
 
@@ -160,5 +162,25 @@ describe('completeOnboarding', () => {
       where: { id: 't1' },
       data: { onboardingCompleted: true },
     })
+  })
+})
+
+describe('deactivateService', () => {
+  it('deleta o serviço do tenant pelo catalogServiceId', async () => {
+    vi.mocked(catalogServiceRepository.deleteByCatalogId).mockResolvedValue(undefined as any)
+
+    await service.deactivateService('t1', 'catalog-svc-1')
+
+    expect(catalogServiceRepository.deleteByCatalogId).toHaveBeenCalledWith('t1', 'catalog-svc-1')
+  })
+})
+
+describe('deactivateProduct', () => {
+  it('deleta o produto do tenant pelo catalogProductId', async () => {
+    vi.mocked(productRepository.deleteByCatalogId).mockResolvedValue(undefined as any)
+
+    await service.deactivateProduct('t1', 'catalog-prod-1')
+
+    expect(productRepository.deleteByCatalogId).toHaveBeenCalledWith('t1', 'catalog-prod-1')
   })
 })

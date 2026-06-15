@@ -23,6 +23,12 @@ export class CatalogServiceRepository {
     })
   }
 
+  async deleteByCatalogId(tenantId: string, catalogServiceId: string): Promise<void> {
+    await prisma.service.deleteMany({
+      where: { tenantId, catalogServiceId },
+    })
+  }
+
   async create(
     tenantId: string,
     data: Omit<Prisma.ServiceUncheckedCreateInput, 'tenantId'>,

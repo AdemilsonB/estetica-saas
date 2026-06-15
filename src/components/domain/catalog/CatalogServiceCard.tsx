@@ -3,7 +3,6 @@ import { Clock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ActivationBadge } from './ActivationBadge'
 import { formatPrice, formatDuration } from './catalog-utils'
 
 interface CatalogServiceCardProps {
@@ -18,18 +17,19 @@ interface CatalogServiceCardProps {
     category: { name: string } | null
   }
   isActivated: boolean
-  activatedHref?: string
   onActivate: (serviceId: string) => void
   isActivating?: boolean
+  onDeactivate: (serviceId: string) => void
+  isDeactivating?: boolean
 }
-
 
 export function CatalogServiceCard({
   service,
   isActivated,
-  activatedHref,
   onActivate,
   isActivating = false,
+  onDeactivate,
+  isDeactivating = false,
 }: CatalogServiceCardProps) {
   return (
     <Card className="flex flex-col">
@@ -62,7 +62,15 @@ export function CatalogServiceCard({
           </p>
 
           {isActivated ? (
-            <ActivationBadge href={activatedHref} />
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-green-500 text-green-700 hover:bg-red-50 hover:border-red-400 hover:text-red-600"
+              disabled={isDeactivating}
+              onClick={() => onDeactivate(service.id)}
+            >
+              {isDeactivating ? 'Removendo...' : '✓ Ativado'}
+            </Button>
           ) : (
             <Button
               size="sm"
