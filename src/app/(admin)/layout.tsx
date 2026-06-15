@@ -1,10 +1,11 @@
 import Link from 'next/link'
-import { LayoutDashboard, CreditCard, Building2, Settings, ArrowLeft } from 'lucide-react'
+import { LayoutDashboard, CreditCard, Building2, Settings, ArrowLeft, BookOpen } from 'lucide-react'
 
 const NAV = [
   { href: '/admin',                  label: 'Visão Geral',   icon: LayoutDashboard },
   { href: '/admin/planos',           label: 'Planos',        icon: CreditCard },
   { href: '/admin/tenants',          label: 'Tenants',       icon: Building2 },
+  { href: '/admin/catalogo',         label: 'Catálogo',      icon: BookOpen },
   { href: '/admin/configuracoes',    label: 'Configurações', icon: Settings },
 ]
 
