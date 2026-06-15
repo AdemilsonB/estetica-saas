@@ -34,7 +34,7 @@ export class IamService {
         roleId: true,
         avatarUrl: true,
         customRole: { select: { id: true, name: true } },
-        tenant: { select: { name: true } },
+        tenant: { select: { name: true, slug: true } },
       },
     });
 
@@ -65,6 +65,7 @@ export class IamService {
       roleName: session.isOwner ? "Dono" : (user.customRole?.name ?? "Sem cargo"),
       permissions: session.permissions,
       businessName: user.tenant.name,
+      tenantSlug: user.tenant.slug,
       avatarUrl,
     };
   }

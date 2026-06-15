@@ -14,6 +14,7 @@ import { SchedulingPolicyForm } from '@/components/domain/settings/scheduling-po
 import { usePermissions } from '@/hooks/use-permissions'
 import { BillingPlansContent } from '@/components/domain/billing/billing-plans-content'
 import { WhatsAppAutomationsForm } from '@/components/domain/settings/whatsapp-automations-form'
+import { LinkSharingHub } from '@/components/domain/settings/link-sharing-hub'
 import { Loader2 } from 'lucide-react'
 
 type BrandingConfig = {
@@ -76,6 +77,7 @@ export default function ConfiguracoesPage() {
         <div className="overflow-x-auto pb-1 scrollbar-hide">
           <TabsList className="flex h-auto min-w-max justify-start">
             <TabsTrigger value="negocio">Negócio</TabsTrigger>
+            <TabsTrigger value="meu-link">Meu Link</TabsTrigger>
             <TabsTrigger value="horarios">Horários</TabsTrigger>
             <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
             <TabsTrigger value="automacoes">Automações</TabsTrigger>
@@ -178,6 +180,25 @@ export default function ConfiguracoesPage() {
               Requer WhatsApp conectado em Configurações → WhatsApp.
             </p>
             <WhatsAppAutomationsForm />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="meu-link" className="mt-6">
+          <div className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-sm space-y-2">
+            <h2 className="text-base font-semibold text-slate-950">Meu link de agendamento</h2>
+            <p className="text-sm text-slate-500 mb-4">
+              Compartilhe este link com seus clientes para que possam agendar online.
+            </p>
+            {user && !user.tenantSlug ? (
+              <p className="text-sm text-slate-500 py-4">
+                Seu negócio ainda não possui um link público configurado. Entre em contato com o suporte.
+              </p>
+            ) : user?.tenantSlug ? (
+              <LinkSharingHub
+                slug={user.tenantSlug}
+                baseUrl={process.env.NEXT_PUBLIC_APP_URL ?? 'https://agend.me'}
+              />
+            ) : null}
           </div>
         </TabsContent>
       </Tabs>
