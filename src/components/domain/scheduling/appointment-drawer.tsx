@@ -86,7 +86,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
   return (
     <>
       <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-        <SheetContent className="w-full sm:max-w-md flex flex-col">
+        <SheetContent className="w-full sm:max-w-lg flex flex-col">
           <SheetHeader>
             <SheetTitle>Detalhes do agendamento</SheetTitle>
           </SheetHeader>
