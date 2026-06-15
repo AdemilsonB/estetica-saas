@@ -1,5 +1,5 @@
 // src/components/domain/scheduling/appointment-card.tsx
-import { CalendarDays } from 'lucide-react'
+import { Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import type { Appointment, AppointmentStatus } from '@/hooks/scheduling/use-appointments'
@@ -85,9 +85,9 @@ export function AppointmentCard({ appointment, onClick, onReschedule }: Props) {
             onReschedule(appointment)
           }}
           title="Remarcar"
-          className="absolute right-3 top-3 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+          className="absolute right-3 bottom-3 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
         >
-          <CalendarDays className="size-4" />
+          <Pencil className="size-4" />
         </button>
       )}
     </div>

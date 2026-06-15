@@ -157,3 +157,46 @@ describe("SchedulingService.updateAppointment", () => {
     );
   });
 });
+
+describe("SchedulingService.updateAppointmentStatus com confirmedPrice", () => {
+  let service: SchedulingService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    service = new SchedulingService();
+    vi.mocked(appointmentRepository.findById)
+      .mockResolvedValueOnce(mockAppointment as any) // current
+      .mockResolvedValueOnce({ ...mockAppointment, status: AppointmentStatus.CONFIRMED, confirmedPrice: 95 } as any); // after update
+    vi.mocked(appointmentRepository.updateStatus).mockResolvedValue({
+      ...mockAppointment,
+      status: AppointmentStatus.CONFIRMED,
+    } as any);
+  });
+
+  it("chama updateStatus com confirmedPrice quando fornecido", async () => {
+    await service.updateAppointmentStatus("tenant-1", "appt-1", {
+      status: AppointmentStatus.CONFIRMED,
+      confirmedPrice: 95,
+    });
+
+    expect(appointmentRepository.updateStatus).toHaveBeenCalledWith(
+      "tenant-1",
+      "appt-1",
+      AppointmentStatus.CONFIRMED,
+      95,
+    );
+  });
+
+  it("publica evento com notificationMessage ao confirmar", async () => {
+    await service.updateAppointmentStatus("tenant-1", "appt-1", {
+      status: AppointmentStatus.CONFIRMED,
+      notificationMessage: "Olá! Confirmado.",
+    });
+
+    expect(eventBus.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({ notificationMessage: "Olá! Confirmado." }),
+      }),
+    );
+  });
+});

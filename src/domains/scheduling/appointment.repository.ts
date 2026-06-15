@@ -97,10 +97,14 @@ export class AppointmentRepository {
     tenantId: string,
     appointmentId: string,
     status: AppointmentStatus,
+    confirmedPrice?: number,
   ) {
     await prisma.appointment.updateMany({
       where: { id: appointmentId, tenantId },
-      data: { status },
+      data: {
+        status,
+        ...(confirmedPrice !== undefined ? { confirmedPrice } : {}),
+      },
     });
 
     return prisma.appointment.findFirstOrThrow({

@@ -32,8 +32,14 @@ export function ProfessionalFilter({
   const [open, setOpen] = useState(false)
   const { data: members = [] } = useTeamMembers()
 
+  const allIds = members.map((m) => m.id)
+  const allSelected = allIds.length > 0 && allIds.every((id) => selectedIds.includes(id))
+
+  function toggleAll() {
+    onChange(allSelected ? [] : allIds)
+  }
+
   function toggle(id: string) {
-    if (id === currentUserId) return
     if (selectedIds.includes(id)) {
       onChange(selectedIds.filter((s) => s !== id))
     } else {
@@ -43,7 +49,7 @@ export function ProfessionalFilter({
 
   const label =
     selectedIds.length === 0
-      ? 'Nenhum profissional'
+      ? 'Todos os profissionais'
       : selectedIds.length <= 2
         ? selectedIds
             .map((id) => members.find((m) => m.id === id)?.name ?? id)
@@ -75,29 +81,24 @@ export function ProfessionalFilter({
           <CommandInput placeholder="Buscar profissional..." />
           <CommandEmpty>Nenhum profissional encontrado.</CommandEmpty>
           <CommandGroup>
+            <CommandItem value="__all__" onSelect={toggleAll}>
+              <Check
+                className={cn('mr-2 size-4', allSelected ? 'opacity-100' : 'opacity-0')}
+              />
+              <span className="font-medium">Todos</span>
+            </CommandItem>
             {sorted.map((member) => {
-              const isCurrentUser = member.id === currentUserId
               const isSelected = selectedIds.includes(member.id)
               return (
                 <CommandItem
                   key={member.id}
                   value={member.name}
                   onSelect={() => toggle(member.id)}
-                  disabled={isCurrentUser}
-                  className={cn(isCurrentUser && 'cursor-default opacity-70')}
                 >
                   <Check
-                    className={cn(
-                      'mr-2 size-4',
-                      isSelected ? 'opacity-100' : 'opacity-0',
-                    )}
+                    className={cn('mr-2 size-4', isSelected ? 'opacity-100' : 'opacity-0')}
                   />
-                  <span className="truncate">
-                    {member.name}
-                    {isCurrentUser && (
-                      <span className="ml-1 text-xs text-slate-400">(você)</span>
-                    )}
-                  </span>
+                  <span className="truncate">{member.name}</span>
                 </CommandItem>
               )
             })}

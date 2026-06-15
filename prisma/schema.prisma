@@ -406,6 +406,7 @@ model Appointment {
   discountTypeId  String?
   discountValue   Decimal?          @db.Decimal(10,2)
   price           Decimal           @db.Decimal(10, 2)
+  confirmedPrice  Decimal?          @db.Decimal(10, 2)
   createdByUserId String
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt

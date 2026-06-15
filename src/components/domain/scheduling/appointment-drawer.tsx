@@ -17,6 +17,7 @@ import { useUpdateAppointmentStatus } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import { cn } from '@/lib/utils'
 import { CancelAppointmentModal } from './cancel-appointment-modal'
+import { ConfirmAppointmentModal } from './confirm-appointment-modal'
 import { AppointmentProductsSection } from '@/components/domain/inventory/AppointmentProductsSection'
 import { AppointmentAnamnesePanel } from './appointment-anamnese-panel'
 
@@ -56,6 +57,7 @@ type Props = {
 export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: Props) {
   const updateStatus = useUpdateAppointmentStatus()
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false)
 
   function handleStatus(status: 'CONFIRMED' | 'COMPLETED' | 'NO_SHOW') {
     if (!appointment) return
@@ -86,7 +88,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
   return (
     <>
       <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-        <SheetContent className="w-full sm:max-w-md flex flex-col">
+        <SheetContent className="w-full sm:max-w-lg flex flex-col">
           <SheetHeader>
             <SheetTitle>Detalhes do agendamento</SheetTitle>
           </SheetHeader>
@@ -173,8 +175,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                 {appointment.status === 'SCHEDULED' && (
                   <Button
                     className="w-full bg-blue-600 text-white hover:bg-blue-700"
-                    onClick={() => handleStatus('CONFIRMED')}
-                    disabled={updateStatus.isPending}
+                    onClick={() => setConfirmModalOpen(true)}
                   >
                     Confirmar presença
                   </Button>
@@ -217,6 +218,15 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
         open={cancelModalOpen}
         onClose={() => {
           setCancelModalOpen(false)
+          onClose()
+        }}
+      />
+
+      <ConfirmAppointmentModal
+        appointment={appointment}
+        open={confirmModalOpen}
+        onClose={() => {
+          setConfirmModalOpen(false)
           onClose()
         }}
       />

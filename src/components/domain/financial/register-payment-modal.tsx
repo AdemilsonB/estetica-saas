@@ -53,7 +53,11 @@ export function RegisterPaymentModal({ appointment, open, onClose }: Props) {
   const markCourtesy = useMarkCourtesy();
   const { data: discountTypes = [] } = useDiscountTypes(true);
 
-  const gross = appointment ? Number(appointment.price) : 0;
+  const gross = appointment
+    ? appointment.confirmedPrice
+      ? Number(appointment.confirmedPrice)
+      : Number(appointment.price)
+    : 0;
   const computedDiscount = discountApplyType === "PERCENTAGE"
     ? gross * discountValue / 100
     : discountValue;
@@ -116,7 +120,12 @@ export function RegisterPaymentModal({ appointment, open, onClose }: Props) {
             <p className="text-slate-500">{appointment.customer.name}</p>
             <div className="mt-2 space-y-1">
               <div className="flex justify-between">
-                <span className="text-slate-500">Valor original</span>
+                <span className="text-slate-500">
+                  {appointment.confirmedPrice &&
+                  Number(appointment.confirmedPrice) !== Number(appointment.price)
+                    ? 'Valor confirmado'
+                    : 'Valor original'}
+                </span>
                 <span className="font-medium">{fmt(gross)}</span>
               </div>
               {computedDiscount > 0 && (

@@ -21,6 +21,7 @@ export type Appointment = {
   paymentStatus: AppointmentPaymentStatus
   notes: string | null
   price: string
+  confirmedPrice: string | null
   customer: { id: string; name: string; phone: string | null; notes: string | null }
   professional: { id: string; name: string }
   service: { id: string; name: string; duration: number }
@@ -94,11 +95,12 @@ async function updateAppointmentStatus(
   id: string,
   status: AppointmentStatus,
   notificationMessage?: string,
+  confirmedPrice?: number,
 ): Promise<Appointment> {
   const res = await fetch(`/api/scheduling/appointments/${id}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status, notificationMessage }),
+    body: JSON.stringify({ status, notificationMessage, confirmedPrice }),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -128,8 +130,17 @@ export function useCreateAppointment() {
 export function useUpdateAppointmentStatus() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, status, notificationMessage }: { id: string; status: AppointmentStatus; notificationMessage?: string }) =>
-      updateAppointmentStatus(id, status, notificationMessage),
+    mutationFn: ({
+      id,
+      status,
+      notificationMessage,
+      confirmedPrice,
+    }: {
+      id: string
+      status: AppointmentStatus
+      notificationMessage?: string
+      confirmedPrice?: number
+    }) => updateAppointmentStatus(id, status, notificationMessage, confirmedPrice),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] })
     },

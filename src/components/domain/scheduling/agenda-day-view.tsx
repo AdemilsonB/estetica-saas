@@ -112,12 +112,9 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
 
   useEffect(() => {
     if (!canViewAll || teamMembers.length === 0 || selectedProfessionalIds.length > 0) return
-    if (currentUser?.role === 'PROFESSIONAL') {
-      setSelectedProfessionalIds([currentUser.id])
-    } else {
-      setSelectedProfessionalIds(teamMembers.map((m) => m.id))
-    }
-  }, [teamMembers, currentUser, canViewAll])
+    setSelectedProfessionalIds(teamMembers.map((m) => m.id))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canViewAll, teamMembers])
 
   // Sem view_all: comportamento original — profissional vê só seus agendamentos
   // Com view_all e 1 selecionado: filtra por esse profissional na API
