@@ -14,6 +14,12 @@ export class ProductRepository {
     })
   }
 
+  async deleteByCatalogId(tenantId: string, catalogProductId: string): Promise<void> {
+    await prisma.product.deleteMany({
+      where: { tenantId, catalogProductId },
+    })
+  }
+
   async createFromCatalog(tenantId: string, data: {
     name: string
     imageUrl?: string | null
