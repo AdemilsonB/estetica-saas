@@ -203,7 +203,15 @@ export class CustomerRepository {
     const existing = await prisma.customer.findFirst({
       where: { tenantId, phone },
     });
-    if (existing) return existing;
+    if (existing) {
+      if (existing.name === 'Cliente' && name !== 'Cliente') {
+        return prisma.customer.update({
+          where: { id: existing.id },
+          data: { name },
+        });
+      }
+      return existing;
+    }
     return prisma.customer.create({
       data: { tenantId, phone, name },
     });
