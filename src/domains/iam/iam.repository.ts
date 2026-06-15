@@ -294,6 +294,13 @@ export class IamRepository {
     });
   }
 
+  async findTenantOnboardingStatus(tenantId: string): Promise<{ onboardingCompleted: boolean } | null> {
+    return prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { onboardingCompleted: true },
+    })
+  }
+
   async updateTenant(
     tenantId: string,
     data: { name?: string; phone?: string | null; address?: string | null },
