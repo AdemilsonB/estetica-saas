@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -187,6 +188,9 @@ export function CatalogGrid({
     onMutate: (id) => {
       setActivatingIds(prev => new Set(prev).add(id))
     },
+    onError: () => {
+      toast.error('Erro ao ativar item. Tente novamente.')
+    },
     onSettled: (_data, _error, id) => {
       setActivatingIds(prev => {
         const next = new Set(prev)
@@ -236,6 +240,7 @@ export function CatalogGrid({
     <div className="space-y-4">
       {/* Busca */}
       <Input
+        aria-label="Buscar no catálogo"
         placeholder="Buscar..."
         value={searchInput}
         onChange={e => setSearchInput(e.target.value)}
@@ -270,7 +275,7 @@ export function CatalogGrid({
                   <Button
                     variant="outline"
                     onClick={() => setPage(p => p + 1)}
-                    disabled={isLoading}
+                    disabled={activeQuery.isFetching}
                   >
                     Carregar mais
                   </Button>
@@ -302,7 +307,7 @@ export function CatalogGrid({
                   <Button
                     variant="outline"
                     onClick={() => setPage(p => p + 1)}
-                    disabled={isLoading}
+                    disabled={activeQuery.isFetching}
                   >
                     Carregar mais
                   </Button>
