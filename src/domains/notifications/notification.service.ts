@@ -2,7 +2,7 @@ import { NotificationChannel, NotificationStatus } from "@prisma/client";
 import { eventBus } from "@/shared/events/event-bus";
 import { notificationRepository } from "./notification.repository";
 import { whatsAppGateway } from "./providers/whatsapp.gateway";
-import { EmailProvider } from "./providers/email.provider";
+import { getEmailProvider } from "./providers/email.provider";
 import {
   bookingConfirmedHtml,
   bookingReminderHtml,
@@ -40,8 +40,7 @@ export class NotificationService {
     } else if (draft.channel === NotificationChannel.EMAIL) {
       const subject = EMAIL_SUBJECTS[draft.template] ?? "Notificação";
       const html = buildEmailHtml(draft.template, draft.payload as Record<string, unknown>);
-      const emailProvider = new EmailProvider();
-      delivery = await emailProvider.send({ to: draft.recipient, subject, html });
+      delivery = await getEmailProvider().send({ to: draft.recipient, subject, html });
     } else {
       delivery = { status: NotificationStatus.FAILED, errorMessage: "Canal não suportado." };
     }

@@ -48,3 +48,10 @@ export class EmailProvider {
     }
   }
 }
+
+let _instance: EmailProvider | null = null
+
+export function getEmailProvider(): EmailProvider {
+  if (!_instance) _instance = new EmailProvider()
+  return _instance
+}

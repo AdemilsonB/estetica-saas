@@ -7,6 +7,15 @@ export type EmailTemplateData = {
   tenantPhone?: string
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 function baseLayout(content: string, title: string): string {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -33,13 +42,13 @@ export function bookingConfirmedHtml(data: EmailTemplateData): string {
   return baseLayout(`
     <p style="color:#10b981;font-size:28px;margin:0 0 16px;">✅</p>
     <h1 style="color:#0f172a;font-size:20px;margin:0 0 8px;">Agendamento confirmado!</h1>
-    <p style="color:#64748b;font-size:14px;margin:0 0 24px;">Olá, ${data.customerName}!</p>
+    <p style="color:#64748b;font-size:14px;margin:0 0 24px;">Olá, ${escapeHtml(data.customerName)}!</p>
     <div style="background:#f8fafc;border-radius:8px;padding:16px;margin-bottom:24px;">
-      <p style="margin:0 0 8px;font-weight:600;color:#0f172a;">${data.serviceName}</p>
-      ${data.professionalName ? `<p style="margin:0 0 4px;color:#64748b;font-size:14px;">com ${data.professionalName}</p>` : ''}
+      <p style="margin:0 0 8px;font-weight:600;color:#0f172a;">${escapeHtml(data.serviceName)}</p>
+      ${data.professionalName ? `<p style="margin:0 0 4px;color:#64748b;font-size:14px;">com ${escapeHtml(data.professionalName)}</p>` : ''}
       <p style="margin:0;font-weight:600;color:#334155;font-size:14px;">${data.dateTime}</p>
     </div>
-    <p style="color:#64748b;font-size:14px;margin:0;">— ${data.tenantName}</p>
+    <p style="color:#64748b;font-size:14px;margin:0;">— ${escapeHtml(data.tenantName)}</p>
   `, 'Agendamento confirmado')
 }
 
@@ -47,13 +56,13 @@ export function bookingReminderHtml(data: EmailTemplateData): string {
   return baseLayout(`
     <p style="color:#f59e0b;font-size:28px;margin:0 0 16px;">⏰</p>
     <h1 style="color:#0f172a;font-size:20px;margin:0 0 8px;">Lembrete: seu agendamento é amanhã</h1>
-    <p style="color:#64748b;font-size:14px;margin:0 0 24px;">Olá, ${data.customerName}! Só um lembrete do seu agendamento.</p>
+    <p style="color:#64748b;font-size:14px;margin:0 0 24px;">Olá, ${escapeHtml(data.customerName)}! Só um lembrete do seu agendamento.</p>
     <div style="background:#f8fafc;border-radius:8px;padding:16px;margin-bottom:24px;">
-      <p style="margin:0 0 8px;font-weight:600;color:#0f172a;">${data.serviceName}</p>
-      ${data.professionalName ? `<p style="margin:0 0 4px;color:#64748b;font-size:14px;">com ${data.professionalName}</p>` : ''}
+      <p style="margin:0 0 8px;font-weight:600;color:#0f172a;">${escapeHtml(data.serviceName)}</p>
+      ${data.professionalName ? `<p style="margin:0 0 4px;color:#64748b;font-size:14px;">com ${escapeHtml(data.professionalName)}</p>` : ''}
       <p style="margin:0;font-weight:600;color:#334155;font-size:14px;">${data.dateTime}</p>
     </div>
-    <p style="color:#64748b;font-size:14px;margin:0;">— ${data.tenantName}</p>
+    <p style="color:#64748b;font-size:14px;margin:0;">— ${escapeHtml(data.tenantName)}</p>
   `, 'Lembrete de agendamento')
 }
 
@@ -61,11 +70,11 @@ export function bookingCancelledHtml(data: EmailTemplateData): string {
   return baseLayout(`
     <p style="color:#ef4444;font-size:28px;margin:0 0 16px;">❌</p>
     <h1 style="color:#0f172a;font-size:20px;margin:0 0 8px;">Agendamento cancelado</h1>
-    <p style="color:#64748b;font-size:14px;margin:0 0 24px;">Olá, ${data.customerName}. Seu agendamento foi cancelado.</p>
+    <p style="color:#64748b;font-size:14px;margin:0 0 24px;">Olá, ${escapeHtml(data.customerName)}. Seu agendamento foi cancelado.</p>
     <div style="background:#f8fafc;border-radius:8px;padding:16px;margin-bottom:24px;">
-      <p style="margin:0 0 8px;font-weight:600;color:#0f172a;">${data.serviceName}</p>
+      <p style="margin:0 0 8px;font-weight:600;color:#0f172a;">${escapeHtml(data.serviceName)}</p>
       <p style="margin:0;font-weight:600;color:#334155;font-size:14px;">${data.dateTime}</p>
     </div>
-    ${data.tenantPhone ? `<p style="color:#64748b;font-size:14px;margin:0;">Para reagendar, entre em contato: ${data.tenantPhone}</p>` : ''}
+    ${data.tenantPhone ? `<p style="color:#64748b;font-size:14px;margin:0;">Para reagendar, entre em contato: ${escapeHtml(data.tenantPhone)}</p>` : ''}
   `, 'Agendamento cancelado')
 }
