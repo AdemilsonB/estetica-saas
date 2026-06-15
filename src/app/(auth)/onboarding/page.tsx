@@ -91,7 +91,7 @@ function OnboardingContent() {
       if (meta?.onboardingStep === 'plan' && stripeResult === 'success') {
         fetch('/api/billing/sync', { method: 'POST' }).catch(() => {})
         supabase.auth.updateUser({ data: { onboardingStep: 'complete' } }).then(() => {
-          router.replace('/agenda')
+          router.replace('/onboarding/catalogo')
         })
         return
       }
@@ -175,12 +175,12 @@ function OnboardingContent() {
     if (planName === 'FREE') {
       const supabase = createSupabaseBrowserClient()
       await supabase.auth.updateUser({ data: { onboardingStep: 'complete' } })
-      toast.success('Tudo pronto! Bem-vindo ao workspace.')
-      router.push('/agenda')
+      toast.success('Tudo pronto! Agora vamos configurar seu catálogo.')
+      router.push('/onboarding/catalogo')
       return
     }
 
-    // Trial gratuito: ativa sem Stripe, usuário entra no sistema agora
+    // Trial gratuito: ativa sem Stripe, usuário configura o catálogo em seguida
     if (!skipTrial) {
       setLoadingKey(`${planName}_trial`)
       try {
@@ -196,8 +196,8 @@ function OnboardingContent() {
         }
         const supabase = createSupabaseBrowserClient()
         await supabase.auth.updateUser({ data: { onboardingStep: 'complete' } })
-        toast.success('Trial iniciado! Explore o sistema à vontade.')
-        router.push('/agenda')
+        toast.success('Trial iniciado! Vamos configurar seu catálogo.')
+        router.push('/onboarding/catalogo')
       } catch {
         toast.error('Erro de conexão. Tente novamente.')
       } finally {
