@@ -120,6 +120,8 @@ export function CatalogGrid({
 
   // IDs sendo ativados no momento (estado otimista local)
   const [activatingIds, setActivatingIds] = useState<Set<string>>(new Set())
+  // IDs ativados nesta sessão (sem depender da prop activatedCatalogIds no wizard)
+  const [localActivatedIds, setLocalActivatedIds] = useState<Set<string>>(new Set())
 
   // Debounce: atualiza `search` 300ms após o usuário parar de digitar
   useEffect(() => {
@@ -188,6 +190,10 @@ export function CatalogGrid({
     onMutate: (id) => {
       setActivatingIds(prev => new Set(prev).add(id))
     },
+    onSuccess: (_data, id) => {
+      setLocalActivatedIds(prev => new Set(prev).add(id))
+      toast.success(type === 'services' ? 'Serviço ativado!' : 'Produto ativado!')
+    },
     onError: () => {
       toast.error('Erro ao ativar item. Tente novamente.')
     },
@@ -197,7 +203,6 @@ export function CatalogGrid({
         next.delete(id)
         return next
       })
-      // Invalida a lista de itens do tenant para refletir a ativação
       queryClient.invalidateQueries({
         queryKey: [type === 'services' ? 'services' : 'products'],
       })
@@ -263,7 +268,7 @@ export function CatalogGrid({
                   <CatalogServiceCard
                     key={service.id}
                     service={service}
-                    isActivated={activatedCatalogIds?.has(service.id) ?? false}
+                    isActivated={(activatedCatalogIds?.has(service.id) ?? false) || localActivatedIds.has(service.id)}
                     activatedHref={buildEditHref(service.id)}
                     onActivate={id => activateMutation.mutate(id)}
                     isActivating={activatingIds.has(service.id)}
@@ -295,7 +300,7 @@ export function CatalogGrid({
                   <CatalogProductCard
                     key={product.id}
                     product={product}
-                    isActivated={activatedCatalogIds?.has(product.id) ?? false}
+                    isActivated={(activatedCatalogIds?.has(product.id) ?? false) || localActivatedIds.has(product.id)}
                     activatedHref={buildEditHref(product.id)}
                     onActivate={id => activateMutation.mutate(id)}
                     isActivating={activatingIds.has(product.id)}
