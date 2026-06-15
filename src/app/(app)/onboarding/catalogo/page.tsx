@@ -82,7 +82,7 @@ function ConfirmationStep({
 // Página principal
 // ---------------------------------------------------------------------------
 
-export default function OnboardingPage() {
+export default function OnboardingCatalogoPage() {
   const router = useRouter()
 
   const [step, setStep] = useState(1)

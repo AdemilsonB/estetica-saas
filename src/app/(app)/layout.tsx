@@ -64,13 +64,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     logoUrl = config?.logoUrl ?? null
     businessName = tenant?.name ?? ''
 
-    // Redireciona tenant sem onboarding concluído para /onboarding
+    // Redireciona tenant sem onboarding de catálogo concluído
     const onboardingCompleted = tenant?.onboardingCompleted ?? false
-    if (!onboardingCompleted && pathname !== '/onboarding') {
-      redirect('/onboarding')
+    if (!onboardingCompleted && pathname !== '/onboarding/catalogo') {
+      redirect('/onboarding/catalogo')
     }
-    // Redireciona tenant com onboarding concluído para fora de /onboarding
-    if (onboardingCompleted && pathname === '/onboarding') {
+    if (onboardingCompleted && pathname === '/onboarding/catalogo') {
       redirect('/agenda')
     }
 
