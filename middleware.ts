@@ -28,7 +28,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
-  let supabaseResponse = NextResponse.next({ request });
+  // x-pathname precisa ir nos headers da REQUEST (não da response) para que
+  // Server Components leiam via headers() tanto em SSR quanto em RSC (navegação client-side)
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-pathname', pathname)
+
+  let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -39,7 +44,7 @@ export async function middleware(request: NextRequest) {
         cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value),
         );
-        supabaseResponse = NextResponse.next({ request });
+        supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
         cookiesToSet.forEach(({ name, value, options }) =>
           supabaseResponse.cookies.set(name, value, options),
         );
@@ -59,10 +64,14 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Landing page — pública para visitantes, redireciona para dashboard se já autenticado com tenant
+  // Landing page — redireciona usuários autenticados para o destino correto
   if (pathname === '/') {
     if (user?.app_metadata?.tenantId) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    // Usuário logado mas sem tenant (completou signup mas não configurou negócio)
+    if (user) {
+      return NextResponse.redirect(new URL('/onboarding', request.url))
     }
     return supabaseResponse
   }
@@ -81,9 +90,6 @@ export async function middleware(request: NextRequest) {
   if (user?.app_metadata?.tenantId && isAuthRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
-
-  // Adiciona o pathname como header para que Server Components possam lê-lo
-  supabaseResponse.headers.set('x-pathname', pathname)
 
   if (user && !user.app_metadata?.tenantId && !isOnboarding && !isTokenRoute) {
     return NextResponse.redirect(new URL("/onboarding", request.url));
