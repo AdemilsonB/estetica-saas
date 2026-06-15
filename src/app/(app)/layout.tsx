@@ -1,30 +1,13 @@
 import type { ReactNode } from 'react'
-import { cookies, headers } from 'next/headers'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { createServerClient } from '@supabase/ssr'
 import { unstable_cache } from 'next/cache'
 import { AppShell } from '@/components/app/app-shell'
 import { ImpersonationBanner } from '@/components/admin/impersonation-banner'
 import { brandingRepository } from '@/domains/iam/branding.repository'
 import { buildCssVariables } from '@/lib/branding/build-css-variables'
 import { iamRepository } from '@/domains/iam/iam.repository'
-import { env } from '@/shared/config/env'
-
-async function getTenantIdFromSession(): Promise<string | null> {
-  try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
-      cookies: {
-        getAll() { return cookieStore.getAll() },
-        setAll() {},
-      },
-    })
-    const { data: { user } } = await supabase.auth.getUser()
-    return user?.app_metadata?.tenantId ?? null
-  } catch {
-    return null
-  }
-}
+import { getServerTenantId } from '@/shared/auth/get-server-tenant-id'
 
 async function getBrandingCached(tenantId: string) {
   const cached = unstable_cache(
@@ -54,7 +37,7 @@ async function getTenantOnboardingStatus(tenantId: string): Promise<boolean> {
 }
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const tenantId = await getTenantIdFromSession()
+  const tenantId = await getServerTenantId()
 
   // Lê o pathname injetado pelo middleware via header x-pathname
   const headersList = await headers()

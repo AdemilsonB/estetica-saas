@@ -15,12 +15,12 @@ import { usePlanFeatures, useUpdatePlanFeatures } from '@/hooks/admin/use-plan-f
 import { usePlanLimits, useUpdatePlanLimits } from '@/hooks/admin/use-plan-limits'
 import { LIMIT_REGISTRY } from '@/shared/permissions/limit-registry'
 
-const NAV_SECTIONS = ['agenda','clientes','financeiro','servicos','relatorios','equipe','configuracoes']
+const NAV_SECTIONS = ['agenda','servicos','produtos','clientes','financeiro','relatorios','equipe','configuracoes']
 const BILLING_FEATURES = ['reports_basic','whatsapp_basic','campaigns','reports_advanced','whatsapp_premium','multi_unit']
 
 const SECTION_LABELS: Record<string, string> = {
-  agenda: 'Agenda', clientes: 'Clientes', financeiro: 'Financeiro',
-  servicos: 'Serviços', relatorios: 'Relatórios', equipe: 'Equipe', configuracoes: 'Configurações',
+  agenda: 'Agenda', servicos: 'Serviços', produtos: 'Produtos', clientes: 'Clientes',
+  financeiro: 'Financeiro', relatorios: 'Relatórios', equipe: 'Equipe', configuracoes: 'Configurações',
   reports_basic: 'Relatórios Básicos', whatsapp_basic: 'WhatsApp Básico',
   campaigns: 'Campanhas', reports_advanced: 'Relatórios Avançados',
   whatsapp_premium: 'WhatsApp Premium', multi_unit: 'Multi-unidade',

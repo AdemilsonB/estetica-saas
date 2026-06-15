@@ -1,21 +1,25 @@
-import { prisma } from '@/shared/database/prisma'
 import { NAV_REGISTRY } from '@/shared/permissions/nav-registry'
 import { getSessionContext } from '@/shared/auth/session'
 import { handleApiError } from '@/shared/http/handle-api-error'
 import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
+import { featureGuard } from '@/domains/billing/feature-guard'
+import { prisma } from '@/shared/database/prisma'
 
 export async function GET(request: Request) {
   initializeDomainRuntime()
   try {
     const session = await getSessionContext(request)
 
-    const tenant = await prisma.tenant.findFirst({
-      where: { id: session.tenantId },
-      select: { plan: true },
-    })
+    // Usa o plano efetivo — lida com trial expirado (retorna FREE) e status inativo
+    const { plan, status } = await featureGuard.getSubscriptionState(session.tenantId)
+
+    const isActive = ['TRIALING', 'ACTIVE', 'PAST_DUE'].includes(status)
+
+    // Assinatura inativa: expõe apenas as seções do plano FREE para o tenant não ficar preso
+    const effectivePlan = isActive ? plan : 'FREE'
 
     const configs = await prisma.planFeatureConfig.findMany({
-      where: { plan: tenant?.plan },
+      where: { plan: effectivePlan as any },
       select: { sectionKey: true, enabled: true },
     })
 
