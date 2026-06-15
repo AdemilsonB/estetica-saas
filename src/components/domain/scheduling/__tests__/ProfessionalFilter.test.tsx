@@ -15,8 +15,13 @@ vi.mock('@/hooks/iam/use-team', () => ({
 }))
 
 describe('ProfessionalFilter', () => {
-  afterEach(() => {
-    cleanup()
+  afterEach(() => cleanup())
+
+  it('exibe "Todos os profissionais" quando nenhum está selecionado', () => {
+    render(
+      <ProfessionalFilter selectedIds={[]} onChange={() => {}} currentUserId="u1" />,
+    )
+    expect(screen.getByRole('combobox')).toHaveTextContent('Todos os profissionais')
   })
 
   it('exibe os nomes quando ≤ 2 profissionais estão selecionados', () => {
@@ -53,21 +58,33 @@ describe('ProfessionalFilter', () => {
     expect(onChange).toHaveBeenCalledWith(['u1'])
   })
 
-  it('não chama onChange ao clicar no próprio profissional logado', () => {
+  it('permite desmarcar o próprio usuário logado', () => {
+    const onChange = vi.fn()
+    render(
+      <ProfessionalFilter selectedIds={['u1', 'u2']} onChange={onChange} currentUserId="u1" />,
+    )
+    fireEvent.click(screen.getByRole('combobox'))
+    fireEvent.click(screen.getByText('Ana Silva'))
+    expect(onChange).toHaveBeenCalledWith(['u2'])
+  })
+
+  it('clicar em "Todos" quando não estão todos seleciona todos', () => {
     const onChange = vi.fn()
     render(
       <ProfessionalFilter selectedIds={['u1']} onChange={onChange} currentUserId="u1" />,
     )
     fireEvent.click(screen.getByRole('combobox'))
-    fireEvent.click(screen.getByText(/Ana Silva/))
-    expect(onChange).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByText('Todos'))
+    expect(onChange).toHaveBeenCalledWith(['u1', 'u2', 'u3'])
   })
 
-  it('exibe "(você)" ao lado do profissional logado', () => {
+  it('clicar em "Todos" quando todos estão selecionados deseleciona todos', () => {
+    const onChange = vi.fn()
     render(
-      <ProfessionalFilter selectedIds={['u1']} onChange={() => {}} currentUserId="u1" />,
+      <ProfessionalFilter selectedIds={['u1', 'u2', 'u3']} onChange={onChange} currentUserId="u1" />,
     )
     fireEvent.click(screen.getByRole('combobox'))
-    expect(screen.getByText('(você)')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Todos'))
+    expect(onChange).toHaveBeenCalledWith([])
   })
 })
