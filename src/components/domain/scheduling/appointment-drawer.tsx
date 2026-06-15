@@ -88,7 +88,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
   return (
     <>
       <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-        <SheetContent className="w-full sm:max-w-lg flex flex-col">
+        <SheetContent className="flex flex-col" style={{ width: '100%', maxWidth: '520px' }}>
           <SheetHeader>
             <SheetTitle>Detalhes do agendamento</SheetTitle>
           </SheetHeader>
@@ -117,7 +117,20 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                   {appointment.service.name}
                 </p>
                 <p className="text-xs text-slate-500">
-                  {appointment.service.duration} min · R${Number(appointment.price).toFixed(2)}
+                  {appointment.service.duration} min
+                  {appointment.confirmedPrice && Number(appointment.confirmedPrice) !== Number(appointment.price) ? (
+                    <>
+                      {' · '}
+                      <span className="font-medium text-slate-700">
+                        R${Number(appointment.confirmedPrice).toFixed(2)}
+                      </span>
+                      <span className="ml-1 line-through">
+                        R${Number(appointment.price).toFixed(2)}
+                      </span>
+                    </>
+                  ) : (
+                    <> · R${Number(appointment.price).toFixed(2)}</>
+                  )}
                 </p>
               </div>
               <Separator />

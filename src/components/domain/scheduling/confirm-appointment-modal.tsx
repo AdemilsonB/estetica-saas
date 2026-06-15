@@ -127,7 +127,13 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
               max={999999.99}
               step={0.01}
               value={valorFinal}
-              onChange={(e) => setValorFinal(Number(e.target.value))}
+              onChange={(e) => {
+                const novoValor = Number(e.target.value)
+                setValorFinal(novoValor)
+                setMensagem((prev) =>
+                  prev.replace(/R\$\s*[\d.,]+/, formatCurrency(novoValor)),
+                )
+              }}
               required
             />
           </div>
