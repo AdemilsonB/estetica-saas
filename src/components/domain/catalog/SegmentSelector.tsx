@@ -64,6 +64,7 @@ export function SegmentSelector({ selected, onChange, error }: SegmentSelectorPr
             <button
               key={segment.value}
               type="button"
+              aria-pressed={isSelected}
               onClick={() => toggle(segment.value)}
               className={cn(
                 'flex flex-col items-center gap-2 rounded-lg border p-4 text-center transition-all',
@@ -73,9 +74,9 @@ export function SegmentSelector({ selected, onChange, error }: SegmentSelectorPr
               )}
             >
               <div className="relative w-full flex justify-end h-4">
-                {isSelected && <Check className="size-4 text-primary" />}
+                {isSelected && <Check className="size-4 text-primary" aria-hidden />}
               </div>
-              <Icon className="size-8 text-primary" />
+              <Icon className="size-8 text-primary" aria-hidden />
               <div>
                 <p className="font-medium text-sm">{segment.name}</p>
                 <p className="text-xs text-muted-foreground">{segment.examples}</p>
