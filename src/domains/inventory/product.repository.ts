@@ -10,7 +10,27 @@ export class ProductRepository {
 
   async findByCatalogId(tenantId: string, catalogProductId: string) {
     return prisma.product.findFirst({
-      where: { tenantId, catalogProductId, active: true },
+      where: { tenantId, catalogProductId },
+    })
+  }
+
+  async createFromCatalog(tenantId: string, data: {
+    name: string
+    imageUrl?: string | null
+    salePrice: Prisma.Decimal
+    catalogProductId: string
+  }) {
+    return prisma.product.create({
+      data: {
+        tenantId,
+        name:             data.name,
+        imageUrl:         data.imageUrl ?? undefined,
+        costPrice:        new Prisma.Decimal(0),
+        salePrice:        data.salePrice,
+        catalogProductId: data.catalogProductId,
+        active:           true,
+      },
+      include: { category: true },
     })
   }
 

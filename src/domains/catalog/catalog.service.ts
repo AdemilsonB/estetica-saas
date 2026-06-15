@@ -1,4 +1,4 @@
-import { BusinessSegment, Prisma } from '@prisma/client'
+import { BusinessSegment } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { CatalogItemNotFoundError } from '@/shared/errors'
 import { catalogMasterServiceRepository } from './catalog-master-service.repository'
@@ -50,17 +50,11 @@ export class CatalogDomainService {
     const existing = await productRepository.findByCatalogId(tenantId, catalogProductId)
     if (existing) return existing
 
-    return prisma.product.create({
-      data: {
-        tenantId,
-        name:             catalogItem.name,
-        imageUrl:         catalogItem.imageUrl ?? undefined,
-        costPrice:        new Prisma.Decimal(0),
-        salePrice:        catalogItem.suggestedPrice,
-        catalogProductId: catalogItem.id,
-        active:           true,
-      },
-      include: { category: true },
+    return productRepository.createFromCatalog(tenantId, {
+      name:             catalogItem.name,
+      imageUrl:         catalogItem.imageUrl,
+      salePrice:        catalogItem.suggestedPrice,
+      catalogProductId: catalogItem.id,
     })
   }
 
