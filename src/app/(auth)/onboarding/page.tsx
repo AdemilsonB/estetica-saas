@@ -158,13 +158,7 @@ function OnboardingContent() {
 
       await supabase.auth.refreshSession()
 
-      // FREE ou sem plano pré-selecionado: vai direto para o sistema
-      if (!hasPaidPrePlan) {
-        await handleSelectPlan('FREE')
-        return
-      }
-
-      // Plano pago pré-selecionado: vai para o step de plano
+      // Sempre exibe seleção de plano — o cliente decide (FREE, trial ou assinatura)
       setMode('plan')
     } finally {
       setIsSubmitting(false)
@@ -226,6 +220,9 @@ function OnboardingContent() {
         return
       }
       const { checkoutUrl } = await res.json()
+      // Marca que está aguardando retorno do Stripe para que o useEffect detecte o success
+      const supabase = createSupabaseBrowserClient()
+      await supabase.auth.updateUser({ data: { onboardingStep: 'plan' } })
       window.location.href = checkoutUrl
     } catch {
       toast.error('Erro de conexão. Tente novamente.')
