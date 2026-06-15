@@ -6,8 +6,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CatalogServiceCard } from './CatalogServiceCard'
 import { CatalogProductCard } from './CatalogProductCard'
+
+const SEGMENT_LABELS: Record<string, string> = {
+  HAIR_SALON: 'Salão de Beleza',
+  BARBERSHOP: 'Barbearia',
+  NAIL_DESIGN: 'Nail Design',
+  AESTHETICS: 'Estética',
+}
 
 // ---------------------------------------------------------------------------
 // Tipos de item do catálogo mestre
@@ -115,6 +123,16 @@ export function CatalogGrid({
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
 
+  const [activeSegment, setActiveSegment] = useState<string | undefined>(segments?.[0])
+
+  useEffect(() => {
+    setActiveSegment(segments?.[0])
+  }, [segments?.join(',')])
+
+  const querySegments = searchInput.length > 0
+    ? segments
+    : (activeSegment ? [activeSegment] : segments)
+
   // IDs sendo ativados no momento (estado otimista local)
   const [activatingIds, setActivatingIds] = useState<Set<string>>(new Set())
   const [deactivatingIds, setDeactivatingIds] = useState<Set<string>>(new Set())
@@ -135,10 +153,10 @@ export function CatalogGrid({
   // ---------------------------------------------------------------------------
 
   const servicesQuery = useQuery<PaginatedResponse<CatalogServiceItem>>({
-    queryKey: ['catalog', 'services', { segments, search, page }],
+    queryKey: ['catalog', 'services', { segments: querySegments, search, page }],
     queryFn: async () => {
       const params = new URLSearchParams()
-      segments?.forEach(s => params.append('segments', s))
+      querySegments?.forEach(s => params.append('segments', s))
       if (search) params.set('name', search)
       params.set('page', String(page))
       params.set('pageSize', '20')
@@ -155,10 +173,10 @@ export function CatalogGrid({
   // ---------------------------------------------------------------------------
 
   const productsQuery = useQuery<PaginatedResponse<CatalogProductItem>>({
-    queryKey: ['catalog', 'products', { segments, search, page }],
+    queryKey: ['catalog', 'products', { segments: querySegments, search, page }],
     queryFn: async () => {
       const params = new URLSearchParams()
-      segments?.forEach(s => params.append('segments', s))
+      querySegments?.forEach(s => params.append('segments', s))
       if (search) params.set('name', search)
       params.set('page', String(page))
       params.set('pageSize', '20')
@@ -261,6 +279,23 @@ export function CatalogGrid({
 
   return (
     <div className="space-y-4">
+      {/* Tabs de segmento — visíveis quando 2+ segmentos selecionados */}
+      {segments && segments.length >= 2 && (
+        <Tabs
+          value={activeSegment}
+          onValueChange={setActiveSegment}
+          className="w-full"
+        >
+          <TabsList>
+            {segments.map(seg => (
+              <TabsTrigger key={seg} value={seg}>
+                {SEGMENT_LABELS[seg] ?? seg}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      )}
+
       {/* Busca */}
       <Input
         aria-label="Buscar no catálogo"
