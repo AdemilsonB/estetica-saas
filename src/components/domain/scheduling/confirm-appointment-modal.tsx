@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -50,6 +50,7 @@ type Props = {
 }
 
 export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
+  const queryClient = useQueryClient()
   const updateStatus = useUpdateAppointmentStatus()
 
   const { data: anamneseData } = useQuery<AnamneseData | null>({
@@ -86,6 +87,7 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
       },
       {
         onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['appointment-anamnese', appointment.id] })
           toast.success('Agendamento confirmado')
           onClose()
         },
@@ -122,6 +124,7 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
               id="valor-final"
               type="number"
               min={0}
+              max={999999.99}
               step={0.01}
               value={valorFinal}
               onChange={(e) => setValorFinal(Number(e.target.value))}
