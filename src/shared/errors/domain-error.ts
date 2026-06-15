@@ -203,3 +203,11 @@ export class PublicBookingDisabledError extends DomainError {
     )
   }
 }
+
+// --- Catalog ---
+
+export class CatalogItemNotFoundError extends DomainError {
+  constructor(id: string) {
+    super(`Item de catálogo não encontrado: "${id}".`, 'CATALOG_ITEM_NOT_FOUND', 404, { id })
+  }
+}
