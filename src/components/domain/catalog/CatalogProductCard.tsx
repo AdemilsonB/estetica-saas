@@ -1,8 +1,9 @@
-import { Prisma } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ActivationBadge } from './ActivationBadge'
+import { formatPrice } from './catalog-utils'
 
 interface CatalogProductCardProps {
   product: {
@@ -17,13 +18,6 @@ interface CatalogProductCardProps {
   activatedHref?: string
   onActivate: (productId: string) => void
   isActivating?: boolean
-}
-
-function formatPrice(price: Prisma.Decimal | number): string {
-  return Number(price).toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  })
 }
 
 export function CatalogProductCard({
@@ -55,7 +49,7 @@ export function CatalogProductCard({
           <p className="text-sm font-medium">{formatPrice(product.suggestedPrice)}</p>
 
           {isActivated ? (
-            <ActivationBadge href={activatedHref ?? '#'} />
+            <ActivationBadge href={activatedHref} />
           ) : (
             <Button
               size="sm"

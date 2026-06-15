@@ -1,9 +1,10 @@
-import { Prisma } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 import { Clock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ActivationBadge } from './ActivationBadge'
+import { formatPrice, formatDuration } from './catalog-utils'
 
 interface CatalogServiceCardProps {
   service: {
@@ -22,19 +23,6 @@ interface CatalogServiceCardProps {
   isActivating?: boolean
 }
 
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes}min`
-  const hours = Math.floor(minutes / 60)
-  const remaining = minutes % 60
-  return remaining > 0 ? `${hours}h${remaining}min` : `${hours}h`
-}
-
-function formatPrice(price: Prisma.Decimal | number): string {
-  return Number(price).toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  })
-}
 
 export function CatalogServiceCard({
   service,
@@ -68,12 +56,13 @@ export function CatalogServiceCard({
 
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium">
-            {service.priceType === 'STARTING_FROM' ? 'A partir de ' : 'R$ '}
-            {formatPrice(service.suggestedPrice)}
+            {service.priceType === 'STARTING_FROM'
+              ? `A partir de ${formatPrice(service.suggestedPrice)}`
+              : formatPrice(service.suggestedPrice)}
           </p>
 
           {isActivated ? (
-            <ActivationBadge href={activatedHref ?? '#'} />
+            <ActivationBadge href={activatedHref} />
           ) : (
             <Button
               size="sm"
