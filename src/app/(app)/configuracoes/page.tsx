@@ -15,7 +15,6 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { BillingPlansContent } from '@/components/domain/billing/billing-plans-content'
 import { WhatsAppAutomationsForm } from '@/components/domain/settings/whatsapp-automations-form'
 import { LinkSharingHub } from '@/components/domain/settings/link-sharing-hub'
-import { useCurrentUser } from '@/hooks/use-current-user'
 import { Loader2 } from 'lucide-react'
 
 type BrandingConfig = {
@@ -33,7 +32,6 @@ type BrandingConfig = {
 
 export default function ConfiguracoesPage() {
   const { can, user, isLoading } = usePermissions()
-  const { data: currentUser } = useCurrentUser()
   const router = useRouter()
   const [brandingConfig, setBrandingConfig] = useState<BrandingConfig | null>(null)
   const [brandingLoading, setBrandingLoading] = useState(false)
@@ -191,12 +189,16 @@ export default function ConfiguracoesPage() {
             <p className="text-sm text-slate-500 mb-4">
               Compartilhe este link com seus clientes para que possam agendar online.
             </p>
-            {currentUser?.tenantSlug && (
+            {user && !user.tenantSlug ? (
+              <p className="text-sm text-slate-500 py-4">
+                Seu negócio ainda não possui um link público configurado. Entre em contato com o suporte.
+              </p>
+            ) : user?.tenantSlug ? (
               <LinkSharingHub
-                slug={currentUser.tenantSlug}
+                slug={user.tenantSlug}
                 baseUrl={process.env.NEXT_PUBLIC_APP_URL ?? 'https://agend.me'}
               />
-            )}
+            ) : null}
           </div>
         </TabsContent>
       </Tabs>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import QRCode from 'react-qr-code'
 import { Copy, Check, ExternalLink, QrCode, MessageCircle, Link } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,9 +13,13 @@ type Props = {
 function CopyButton({ text, label = 'Copiar' }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false)
   async function handleCopy() {
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // clipboard indisponível (contexto não-seguro ou permissão negada)
+    }
   }
   return (
     <Button variant="outline" size="sm" onClick={handleCopy} className="shrink-0 gap-1.5">
@@ -25,10 +29,11 @@ function CopyButton({ text, label = 'Copiar' }: { text: string; label?: string }
   )
 }
 
-function downloadQRCode(slug: string) {
-  const svg = document.getElementById('qr-code-svg')
-  if (!svg) return
-  const svgData = new XMLSerializer().serializeToString(svg)
+function downloadQRCode(slug: string, container: HTMLDivElement | null) {
+  if (!container) return
+  const svgEl = container.querySelector('svg')
+  if (!svgEl) return
+  const svgData = new XMLSerializer().serializeToString(svgEl)
   const canvas = document.createElement('canvas')
   canvas.width = 512
   canvas.height = 512
@@ -43,10 +48,11 @@ function downloadQRCode(slug: string) {
     a.href = canvas.toDataURL('image/png')
     a.click()
   }
-  img.src = 'data:image/svg+xml;base64,' + btoa(svgData)
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData)
 }
 
 export function LinkSharingHub({ slug, baseUrl }: Props) {
+  const qrContainerRef = useRef<HTMLDivElement>(null)
   const url = `${baseUrl}/agendar/${slug}`
   const whatsappText = `Olá! Agora você pode agendar online comigo pelo link abaixo. É rápido e fácil! 👇\n${url}`
   const whatsappDeepLink = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`
@@ -81,10 +87,10 @@ export function LinkSharingHub({ slug, baseUrl }: Props) {
         </div>
         <p className="text-xs text-slate-500">Perfeito para imprimir em cartão de visita ou exibir na recepção.</p>
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-          <div className="rounded-xl border border-slate-200 bg-white p-3">
-            <QRCode id="qr-code-svg" value={url} size={128} />
+          <div ref={qrContainerRef} className="rounded-xl border border-slate-200 bg-white p-3">
+            <QRCode value={url} size={128} />
           </div>
-          <Button variant="outline" size="sm" onClick={() => downloadQRCode(slug)} className="gap-1.5">
+          <Button variant="outline" size="sm" onClick={() => downloadQRCode(slug, qrContainerRef.current)} className="gap-1.5">
             Baixar PNG (alta resolução)
           </Button>
         </div>
