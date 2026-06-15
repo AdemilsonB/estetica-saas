@@ -99,15 +99,18 @@ export default function OnboardingPage() {
       setSegmentError(undefined)
       setIsSaving(true)
       try {
-        await fetch('/api/onboarding/segments', {
+        const res = await fetch('/api/onboarding/segments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ segments }),
         })
+        if (!res.ok) throw new Error('Erro ao salvar segmentos')
+        setStep(2)
+      } catch {
+        setSegmentError('Erro ao salvar. Tente novamente.')
       } finally {
         setIsSaving(false)
       }
-      setStep(2)
       return
     }
     setStep(s => Math.min(s + 1, 4))
@@ -116,11 +119,14 @@ export default function OnboardingPage() {
   async function handleComplete() {
     setIsSaving(true)
     try {
-      await fetch('/api/onboarding/complete', { method: 'POST' })
+      const res = await fetch('/api/onboarding/complete', { method: 'POST' })
+      if (!res.ok) throw new Error('Erro ao completar onboarding')
+      router.push('/agenda')
+    } catch {
+      // mantém isSaving=false via finally para o botão ficar habilitado novamente
     } finally {
       setIsSaving(false)
     }
-    router.push('/agenda')
   }
 
   const content = STEP_CONTENT[step]
