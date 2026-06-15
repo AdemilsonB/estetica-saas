@@ -78,13 +78,12 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  if (user?.app_metadata?.tenantId && (isAuthRoute || isOnboarding)) {
-    // Permite continuar no onboarding se o usuário ainda não selecionou o plano
-    if (isOnboarding && user.user_metadata?.onboardingStep === 'plan') {
-      return supabaseResponse
-    }
+  if (user?.app_metadata?.tenantId && isAuthRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
+
+  // Adiciona o pathname como header para que Server Components possam lê-lo
+  supabaseResponse.headers.set('x-pathname', pathname)
 
   if (user && !user.app_metadata?.tenantId && !isOnboarding && !isTokenRoute) {
     return NextResponse.redirect(new URL("/onboarding", request.url));

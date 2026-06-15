@@ -289,6 +289,7 @@ export class IamRepository {
         slug: true,
         phone: true,
         address: true,
+        onboardingCompleted: true,
       },
     });
   }

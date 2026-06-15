@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { createServerClient } from '@supabase/ssr'
 import { unstable_cache } from 'next/cache'
 import { AppShell } from '@/components/app/app-shell'
@@ -46,6 +47,10 @@ async function getTenantCached(tenantId: string) {
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const tenantId = await getTenantIdFromSession()
 
+  // Lê o pathname injetado pelo middleware via header x-pathname
+  const headersList = await headers()
+  const pathname = headersList.get('x-pathname') ?? ''
+
   let brandingCss = ''
   let logoUrl: string | null = null
   let businessName = ''
@@ -58,6 +63,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
     logoUrl = config?.logoUrl ?? null
     businessName = tenant?.name ?? ''
+
+    // Redireciona tenant sem onboarding concluído para /onboarding
+    const onboardingCompleted = tenant?.onboardingCompleted ?? false
+    if (!onboardingCompleted && pathname !== '/onboarding') {
+      redirect('/onboarding')
+    }
+    // Redireciona tenant com onboarding concluído para fora de /onboarding
+    if (onboardingCompleted && pathname === '/onboarding') {
+      redirect('/agenda')
+    }
 
     if (config) {
       const { styleTag } = buildCssVariables({
