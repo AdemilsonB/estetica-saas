@@ -10,7 +10,6 @@ import {
 } from 'lucide-react'
 import { SettingsGroup } from '@/components/domain/settings/settings-group'
 import { SettingsCard } from '@/components/domain/settings/settings-card'
-import { SettingsCardSheet } from '@/components/domain/settings/settings-card-sheet'
 import { BusinessInfoForm } from '@/components/domain/settings/business-info-form'
 import { BusinessHoursForm } from '@/components/domain/settings/business-hours-form'
 import { BrandingForm } from '@/components/domain/settings/branding-form'
@@ -25,12 +24,6 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
 import { Button } from '@/components/ui/button'
 
-type OpenSheet =
-  | 'negocio' | 'horarios' | 'branding' | 'link'
-  | 'agendamento' | 'whatsapp' | 'automacoes'
-  | 'taxas' | 'plano'
-  | null
-
 type BrandingConfig = {
   logoUrl: string | null
   primaryColor: string
@@ -42,6 +35,7 @@ type BrandingConfig = {
   fontFamily: string
   borderRadius: string
   colorScheme: string
+  [key: string]: unknown
 }
 
 type BusinessInfo = {
@@ -49,14 +43,42 @@ type BusinessInfo = {
   phone?: string
 }
 
+function BrandingCardContent() {
+  const [config, setConfig] = useState<BrandingConfig | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/iam/branding')
+      .then((r) => r.json())
+      .then((data) => setConfig(data as BrandingConfig))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (!config) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Não foi possível carregar as configurações de identidade visual.
+      </p>
+    )
+  }
+
+  return <BrandingForm initial={config} />
+}
+
 export default function ConfiguracoesPage() {
   const { can, user, isLoading } = usePermissions()
   const router = useRouter()
   const { data: evolutionStatus } = useEvolutionStatus()
 
-  const [openSheet, setOpenSheet] = useState<OpenSheet>(null)
-  const [brandingConfig, setBrandingConfig] = useState<BrandingConfig | null>(null)
-  const [brandingLoading, setBrandingLoading] = useState(false)
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null)
 
   useEffect(() => {
@@ -71,21 +93,6 @@ export default function ConfiguracoesPage() {
       .then((data) => setBusinessInfo(data as BusinessInfo))
       .catch(() => {})
   }, [])
-
-  function openBrandingSheet() {
-    if (!brandingConfig && !brandingLoading) {
-      setBrandingLoading(true)
-      fetch('/api/iam/branding')
-        .then((r) => r.json())
-        .then((data) => setBrandingConfig(data as BrandingConfig))
-        .finally(() => setBrandingLoading(false))
-    }
-    setOpenSheet('branding')
-  }
-
-  function closeSheet() {
-    setOpenSheet(null)
-  }
 
   const businessInfoComplete =
     businessInfo !== null &&
@@ -116,7 +123,7 @@ export default function ConfiguracoesPage() {
       </div>
 
       {/* GRUPO 1 — Configure seu negócio */}
-      <SettingsGroup title="Configure seu negócio" badge="essencial" defaultExpanded>
+      <SettingsGroup title="Configure seu negócio" badge="essencial">
         <SettingsCard
           icon={Building2}
           title="Dados do negócio"
@@ -128,29 +135,28 @@ export default function ConfiguracoesPage() {
               ? { label: '✓ Completo', variant: 'ok' }
               : { label: '⚠ Pendente', variant: 'warn' }
           }
-          onEdit={() => setOpenSheet('negocio')}
-        />
+        >
+          <BusinessInfoForm />
+        </SettingsCard>
 
         <SettingsCard
           icon={Clock}
           title="Horários de funcionamento"
           subtitle="Dias e horários em que seu negócio está aberto para atendimentos"
-          onEdit={() => setOpenSheet('horarios')}
-        />
+        >
+          <p className="mb-4 text-sm text-muted-foreground">
+            Configure os dias e horários em que seu negócio está aberto. Esses horários definem os slots disponíveis para agendamento.
+          </p>
+          <BusinessHoursForm />
+        </SettingsCard>
 
         <SettingsCard
           icon={Palette}
           title="Identidade visual"
           subtitle="Logo e cores do seu negócio — aparecem no agendamento online"
-          statusBadge={
-            brandingConfig !== null
-              ? brandingConfig.logoUrl
-                ? { label: '✓ Logo enviada', variant: 'ok' }
-                : { label: 'Sem logo', variant: 'neutral' }
-              : undefined
-          }
-          onEdit={openBrandingSheet}
-        />
+        >
+          <BrandingCardContent />
+        </SettingsCard>
       </SettingsGroup>
 
       {/* GRUPO 2 — Divulgue e automatize */}
@@ -158,20 +164,30 @@ export default function ConfiguracoesPage() {
         <SettingsCard
           icon={LinkIcon}
           title="Meu link de agendamento"
-          subtitle="Compartilhe com clientes para que agendem sozinhos, sem precisar do WhatsApp"
-          onEdit={() => setOpenSheet('link')}
+          subtitle="Compartilhe com clientes para que agendem sozinhos"
         >
-          <p className="mt-1 text-[11px] text-blue-600">
+          <p className="mb-4 text-[11px] text-blue-600">
             💡 Dica: cole esse link na bio do Instagram
           </p>
+          {user?.tenantSlug ? (
+            <LinkSharingHub
+              slug={user.tenantSlug}
+              baseUrl={process.env.NEXT_PUBLIC_APP_URL ?? 'https://agend.me'}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Seu negócio ainda não possui um link público configurado.
+            </p>
+          )}
         </SettingsCard>
 
         <SettingsCard
           icon={Settings2}
           title="Regras de agendamento online"
           subtitle="Antecedência mínima, janela de dias disponíveis e intervalo entre horários"
-          onEdit={() => setOpenSheet('agendamento')}
-        />
+        >
+          <SchedulingPolicyForm />
+        </SettingsCard>
 
         <SettingsCard
           icon={MessageCircle}
@@ -184,15 +200,25 @@ export default function ConfiguracoesPage() {
                 : { label: 'Inativo', variant: 'neutral' }
               : undefined
           }
-          onEdit={() => setOpenSheet('whatsapp')}
-        />
+        >
+          <WhatsAppSettingsForm />
+          <div className="mt-6">
+            <NotificationHistory />
+          </div>
+        </SettingsCard>
 
         <SettingsCard
           icon={Zap}
           title="Automações de mensagens"
           subtitle="Lembrete de agendamento, resposta automática, parabéns e resumo do dia"
-          onEdit={() => setOpenSheet('automacoes')}
-        />
+        >
+          {!whatsappConnected && (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Conecte o WhatsApp primeiro para ativar as automações.
+            </div>
+          )}
+          <WhatsAppAutomationsForm />
+        </SettingsCard>
       </SettingsGroup>
 
       {/* GRUPO 3 — Financeiro e acesso */}
@@ -200,100 +226,34 @@ export default function ConfiguracoesPage() {
         <SettingsCard
           icon={CreditCard}
           title="Taxas de pagamento"
-          subtitle="Percentual das maquininhas de débito e crédito — usado para calcular o lucro real"
-          onEdit={() => setOpenSheet('taxas')}
-        />
+          subtitle="Percentual das maquininhas de débito e crédito"
+        >
+          <CardFeesForm />
+        </SettingsCard>
 
         {user?.isOwner && (
           <SettingsCard
             icon={Sparkles}
             title="Plano e assinatura"
             subtitle="Seu plano atual, limites de uso e opções de upgrade"
-            onEdit={() => setOpenSheet('plano')}
-          />
+          >
+            <BillingPlansContent />
+          </SettingsCard>
         )}
 
         <SettingsCard
           icon={ClipboardList}
           title="Ficha de anamnese"
           subtitle="A anamnese é configurada por serviço — acesse um serviço para definir as perguntas"
-          isStatic
         >
-          <div className="mt-3">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/servicos" className="flex items-center gap-1.5">
-                <ExternalLink className="size-3.5" />
-                Ir para Serviços
-              </Link>
-            </Button>
-          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/servicos" className="flex items-center gap-1.5">
+              <ExternalLink className="size-3.5" />
+              Ir para Serviços
+            </Link>
+          </Button>
         </SettingsCard>
       </SettingsGroup>
-
-      {/* ── Sheets ── */}
-
-      <SettingsCardSheet open={openSheet === 'negocio'} onClose={closeSheet} title="Dados do negócio">
-        <BusinessInfoForm />
-      </SettingsCardSheet>
-
-      <SettingsCardSheet open={openSheet === 'horarios'} onClose={closeSheet} title="Horários de funcionamento">
-        <p className="text-sm text-muted-foreground">
-          Configure os dias e horários em que seu negócio está aberto. Esses horários definem os slots disponíveis para agendamento.
-        </p>
-        <BusinessHoursForm />
-      </SettingsCardSheet>
-
-      <SettingsCardSheet open={openSheet === 'branding'} onClose={closeSheet} title="Identidade visual">
-        {brandingLoading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
-          </div>
-        )}
-        {brandingConfig && !brandingLoading && (
-          <BrandingForm initial={brandingConfig} />
-        )}
-      </SettingsCardSheet>
-
-      <SettingsCardSheet open={openSheet === 'link'} onClose={closeSheet} title="Meu link de agendamento">
-        {user?.tenantSlug ? (
-          <LinkSharingHub
-            slug={user.tenantSlug}
-            baseUrl={process.env.NEXT_PUBLIC_APP_URL ?? 'https://agend.me'}
-          />
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Seu negócio ainda não possui um link público configurado. Entre em contato com o suporte.
-          </p>
-        )}
-      </SettingsCardSheet>
-
-      <SettingsCardSheet open={openSheet === 'agendamento'} onClose={closeSheet} title="Regras de agendamento online">
-        <SchedulingPolicyForm />
-      </SettingsCardSheet>
-
-      <SettingsCardSheet open={openSheet === 'whatsapp'} onClose={closeSheet} title="WhatsApp e notificações">
-        <WhatsAppSettingsForm />
-        <NotificationHistory />
-      </SettingsCardSheet>
-
-      <SettingsCardSheet open={openSheet === 'automacoes'} onClose={closeSheet} title="Automações de mensagens">
-        {!whatsappConnected && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Conecte o WhatsApp primeiro para ativar as automações.
-          </div>
-        )}
-        <WhatsAppAutomationsForm />
-      </SettingsCardSheet>
-
-      <SettingsCardSheet open={openSheet === 'taxas'} onClose={closeSheet} title="Taxas de pagamento">
-        <CardFeesForm />
-      </SettingsCardSheet>
-
-      {user?.isOwner && (
-        <SettingsCardSheet open={openSheet === 'plano'} onClose={closeSheet} title="Plano e assinatura">
-          <BillingPlansContent />
-        </SettingsCardSheet>
-      )}
     </div>
   )
 }
