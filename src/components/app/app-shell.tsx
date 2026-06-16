@@ -24,6 +24,7 @@ import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
 import { cn } from '@/lib/utils'
 import type { NavSection } from '@/shared/permissions/nav-registry'
 import { BottomNav } from '@/components/app/bottom-nav'
+import { MobileHeader } from '@/components/app/mobile-header'
 import { CreateAppointmentModal } from '@/components/domain/scheduling/create-appointment-modal'
 
 function getInitials(name: string): string {
@@ -60,6 +61,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
     return localStorage.getItem('sidebar-collapsed') === 'true'
   })
   const [newAppointmentOpen, setNewAppointmentOpen] = useState(false)
+  const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false)
 
   function toggleCollapsed() {
     if (typeof window !== 'undefined' && window.innerWidth < 1280) return
@@ -330,6 +332,14 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
                     </Link>
                   </div>
                 )}
+
+                <button
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <LogOut className="size-4" />
+                  Sair da conta
+                </button>
               </div>
             )}
 
@@ -355,8 +365,15 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Header mobile — visível apenas em < md */}
+      <MobileHeader
+        logoUrl={logoUrl}
+        businessName={businessName}
+        onOpenSidebar={() => setSidebarDrawerOpen(true)}
+      />
+
       <div className="mx-auto flex min-h-screen max-w-[1600px]">
-        {/* Sidebar — tablet (md+) e desktop (xl+) */}
+        {/* Sidebar — tablet (md+) e desktop */}
         <aside
           className={cn(
             'hidden md:flex flex-col h-screen sticky top-0 overflow-hidden border-r border-border/50 bg-background/80 backdrop-blur transition-all duration-200',
@@ -374,12 +391,20 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
         </div>
       </div>
 
-      {/* Bottom nav mobile (< md) */}
+      {/* Sidebar drawer — mobile (< md) */}
+      <Sheet open={sidebarDrawerOpen} onOpenChange={setSidebarDrawerOpen}>
+        <SheetContent side="left" className="w-65 p-0">
+          <SheetTitle className="sr-only">Menu</SheetTitle>
+          <SidebarContent showLabel />
+        </SheetContent>
+      </Sheet>
+
+      {/* Bottom nav mobile */}
       <BottomNav
         onNewAppointment={() => setNewAppointmentOpen(true)}
       />
 
-      {/* Modal novo agendamento — controlado pelo FAB da bottom nav */}
+      {/* Modal novo agendamento */}
       <CreateAppointmentModal
         open={newAppointmentOpen}
         onClose={() => setNewAppointmentOpen(false)}
