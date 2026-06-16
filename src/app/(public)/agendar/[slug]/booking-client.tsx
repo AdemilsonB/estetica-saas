@@ -266,6 +266,9 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
         <PersonalStep
           onSubmit={handlePersonalData}
           onBack={() => setStep('datetime')}
+          initialName={booking.customerName}
+          initialPhone={booking.customerPhone}
+          initialNotes={booking.notes}
         />
       )}
 

@@ -6,6 +6,7 @@ const hexColor = z
 
 export const UpdateBrandingSchema = z.object({
   logoUrl: z.string().url().nullable().optional(),
+  bannerUrl: z.string().url().nullable().optional(),
   primaryColor: hexColor.optional(),
   accentColor: hexColor.optional(),
   backgroundColor: hexColor.optional(),

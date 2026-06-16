@@ -117,12 +117,8 @@ export function AnamneseStep({
           primaryColor={primaryColor}
           onComplete={handleFormComplete}
           onBack={onBack}
+          onSkip={anamneseMode === 'OPTIONAL' ? onSkip : undefined}
         />
-        {anamneseMode === 'OPTIONAL' && (
-          <button onClick={onSkip} className="w-full text-center text-sm text-slate-400 hover:text-slate-600 py-2">
-            Pular preenchimento da ficha
-          </button>
-        )}
       </div>
     )
   }

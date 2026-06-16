@@ -27,6 +27,7 @@ type Props = {
   primaryColor: string
   onComplete: (data: CapilarBlock) => void
   onBack: () => void
+  onSkip?: () => void
 }
 
 type PhotoPosition = 'photoFront' | 'photoSide' | 'photoBack'
@@ -84,7 +85,7 @@ const PHOTO_SLOTS: { key: PhotoPosition; label: string; hint: string; svg: React
   },
 ]
 
-export function CapilarForm({ tenantSlug, initial, primaryColor, onComplete, onBack }: Props) {
+export function CapilarForm({ tenantSlug, initial, primaryColor, onComplete, onBack, onSkip }: Props) {
   const [subStep, setSubStep] = useState<SubStep>('comprimento')
   const [uploading, setUploading] = useState<UploadingState>({ photoFront: false, photoSide: false, photoBack: false })
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -160,7 +161,7 @@ export function CapilarForm({ tenantSlug, initial, primaryColor, onComplete, onB
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-28">
       {/* Indicador de progresso */}
       <div className="space-y-2">
         <div className="flex gap-1">
@@ -428,11 +429,28 @@ export function CapilarForm({ tenantSlug, initial, primaryColor, onComplete, onB
         </div>
       )}
 
-      {/* Botão de ação */}
-      <Button onClick={goNext} className="w-full" style={{ backgroundColor: primaryColor }}
-        disabled={subStep === 'objetivo' && (data.objetivos ?? []).length === 0}>
-        {isLast ? 'Concluir ficha' : 'Próximo'}
-      </Button>
+      {/* Barra de ação fixa na base */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-slate-200">
+        <div className="max-w-lg mx-auto px-4 py-3 space-y-2">
+          <Button
+            onClick={goNext}
+            className="w-full"
+            size="lg"
+            style={{ backgroundColor: primaryColor }}
+            disabled={subStep === 'objetivo' && (data.objetivos ?? []).length === 0}
+          >
+            {isLast ? 'Concluir ficha' : 'Próximo →'}
+          </Button>
+          {onSkip && (
+            <button
+              onClick={onSkip}
+              className="w-full text-center text-sm text-slate-400 hover:text-slate-600 py-1"
+            >
+              Pular preenchimento da ficha
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
