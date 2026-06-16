@@ -22,7 +22,7 @@ function fmt(n: number) {
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-white/80 bg-white/85 p-5 shadow-sm">
+    <div className="rounded-2xl border border-white/80 bg-white/85 p-3 sm:p-5 shadow-sm">
       {children}
     </div>
   )
@@ -54,9 +54,9 @@ export function DashboardMetrics() {
   const maxCount = data?.byProfessional[0]?.count ?? 1
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Linha 1 — 4 cards de resumo */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <div className="inline-flex rounded-xl bg-blue-50 p-2 text-blue-600">
             <CalendarCheck className="size-4" />
@@ -68,11 +68,11 @@ export function DashboardMetrics() {
             </>
           ) : (
             <>
-              <p className="mt-4 text-2xl font-semibold text-slate-950">{total}</p>
+              <p className="mt-3 sm:mt-4 text-xl sm:text-2xl font-semibold text-slate-950">{total}</p>
               <p className="mt-0.5 text-xs text-slate-500">agendamentos hoje</p>
             </>
           )}
-          <p className="mt-3 text-xs font-medium text-slate-400">Total do dia</p>
+          <p className="mt-2 sm:mt-3 hidden sm:block text-xs font-medium text-slate-400">Total do dia</p>
         </Card>
 
         <Card>
@@ -86,13 +86,13 @@ export function DashboardMetrics() {
             </>
           ) : (
             <>
-              <p className="mt-4 text-2xl font-semibold text-slate-950">
+              <p className="mt-3 sm:mt-4 text-xl sm:text-2xl font-semibold text-slate-950">
                 {data?.byStatus.COMPLETED ?? 0}
               </p>
               <p className="mt-0.5 text-xs text-slate-500">hoje</p>
             </>
           )}
-          <p className="mt-3 text-xs font-medium text-slate-400">Concluídos</p>
+          <p className="mt-2 sm:mt-3 hidden sm:block text-xs font-medium text-slate-400">Concluídos</p>
         </Card>
 
         <Card>
@@ -106,13 +106,13 @@ export function DashboardMetrics() {
             </>
           ) : (
             <>
-              <p className="mt-4 text-2xl font-semibold text-slate-950">
+              <p className="mt-3 sm:mt-4 text-xl sm:text-2xl font-semibold text-slate-950">
                 R${fmt(data?.revenue.today ?? 0)}
               </p>
               <p className="mt-0.5 text-xs text-slate-500">atendimentos concluídos</p>
             </>
           )}
-          <p className="mt-3 text-xs font-medium text-slate-400">Receita do dia</p>
+          <p className="mt-2 sm:mt-3 hidden sm:block text-xs font-medium text-slate-400">Receita do dia</p>
         </Card>
 
         <Card>
@@ -126,18 +126,18 @@ export function DashboardMetrics() {
             </>
           ) : (
             <>
-              <p className="mt-4 text-2xl font-semibold text-slate-950">
+              <p className="mt-3 sm:mt-4 text-xl sm:text-2xl font-semibold text-slate-950">
                 R${fmt(data?.revenue.month ?? 0)}
               </p>
               <p className="mt-0.5 text-xs text-slate-500">mês atual</p>
             </>
           )}
-          <p className="mt-3 text-xs font-medium text-slate-400">Receita do mês</p>
+          <p className="mt-2 sm:mt-3 hidden sm:block text-xs font-medium text-slate-400">Receita do mês</p>
         </Card>
       </div>
 
       {/* Linha 2 — Status + Profissionais */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-2 sm:gap-4 lg:grid-cols-2">
         <Card>
           <SectionTitle>Agendamentos por status</SectionTitle>
           {isLoading ? (
@@ -147,16 +147,16 @@ export function DashboardMetrics() {
               ))}
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {STATUS_ORDER.map((status) => {
                 const cfg = STATUS_CONFIG[status]
                 const count = data?.byStatus[status] ?? 0
                 return (
                   <span
                     key={status}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${cfg.color}`}
+                    className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-full px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-medium ${cfg.color}`}
                   >
-                    <span className="text-base font-semibold">{count}</span>
+                    <span className="font-semibold">{count}</span>
                     {cfg.label}
                   </span>
                 )
