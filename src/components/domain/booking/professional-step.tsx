@@ -14,9 +14,6 @@ export function ProfessionalStep({
   onBack: () => void
   primaryColor: string
 }) {
-  // primaryColor é usado nos avatares dos profissionais
-  void primaryColor
-
   return (
     <div className="space-y-4">
       <button
@@ -32,39 +29,38 @@ export function ProfessionalStep({
         <p className="text-sm text-slate-500 mt-1">Ou selecione o primeiro disponível</p>
       </div>
 
-      <div className="space-y-2">
-        {/* Qualquer disponível — sempre primeiro */}
-        <button
-          onClick={() => onSelect(null)}
-          className="w-full text-left rounded-xl border-2 border-dashed border-slate-200 bg-white p-4 hover:border-slate-400 transition-all"
-        >
-          <p className="font-medium text-slate-700 text-sm">Qualquer disponível</p>
-          <p className="text-xs text-slate-400 mt-0.5">Próximo horário livre entre todos</p>
-        </button>
+      {/* Qualquer disponível — largura total */}
+      <button
+        onClick={() => onSelect(null)}
+        className="w-full text-left rounded-xl border-2 border-dashed border-slate-200 bg-white p-4 hover:border-slate-400 transition-all"
+      >
+        <p className="font-medium text-slate-700 text-sm">Qualquer disponível</p>
+        <p className="text-xs text-slate-400 mt-0.5">Próximo horário livre entre todos</p>
+      </button>
 
+      {/* Grid de profissionais com foto média + nome */}
+      <div className="grid grid-cols-2 gap-3">
         {professionals.map((professional) => (
           <button
             key={professional.id}
             onClick={() => onSelect(professional)}
-            className="w-full text-left rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-400 hover:shadow-sm transition-all"
+            className="flex flex-col items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-400 hover:shadow-sm transition-all text-center"
           >
-            <div className="flex items-center gap-3">
-              {professional.avatarUrl ? (
-                <img
-                  src={professional.avatarUrl}
-                  alt={professional.name}
-                  className="size-10 rounded-full object-cover border border-slate-200 shrink-0"
-                />
-              ) : (
-                <div
-                  className="size-10 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  {professional.name[0]?.toUpperCase()}
-                </div>
-              )}
-              <p className="font-medium text-slate-900 text-sm">{professional.name}</p>
-            </div>
+            {professional.avatarUrl ? (
+              <img
+                src={professional.avatarUrl}
+                alt={professional.name}
+                className="size-20 rounded-full object-cover border border-slate-100 shrink-0"
+              />
+            ) : (
+              <div
+                className="size-20 rounded-full flex items-center justify-center text-white font-bold text-2xl shrink-0"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {professional.name[0]?.toUpperCase()}
+              </div>
+            )}
+            <p className="font-medium text-slate-900 text-sm leading-tight">{professional.name}</p>
           </button>
         ))}
       </div>

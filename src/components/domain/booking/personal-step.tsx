@@ -17,15 +17,23 @@ function applyPhoneMask(digits: string): string {
 export function PersonalStep({
   onSubmit,
   onBack,
+  initialName,
+  initialPhone,
+  initialNotes,
 }: {
   onSubmit: (data: { customerName: string; customerPhone: string; notes?: string }) => void
   onBack: () => void
+  initialName?: string
+  initialPhone?: string
+  initialNotes?: string
 }) {
-  const [phone, setPhone] = useState('')
-  const [name, setName] = useState('')
-  const [notes, setNotes] = useState('')
+  const [phone, setPhone] = useState(() =>
+    initialPhone ? applyPhoneMask(initialPhone) : '',
+  )
+  const [name, setName] = useState(initialName ?? '')
+  const [notes, setNotes] = useState(initialNotes ?? '')
   const [welcomeBack, setWelcomeBack] = useState<string | null>(null)
-  const lookupDoneRef = useRef(false)
+  const lookupDoneRef = useRef(initialPhone ? true : false)
 
   async function lookupByPhone(digits: string) {
     if (digits.length < 11 || lookupDoneRef.current) return

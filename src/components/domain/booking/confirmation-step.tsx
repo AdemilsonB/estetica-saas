@@ -79,16 +79,7 @@ export function ConfirmationStep({
   }
 
   return (
-    <div className="space-y-4">
-      <button
-        onClick={onBack}
-        className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 -ml-1 py-1 px-1 rounded"
-        disabled={loading}
-      >
-        <ChevronLeft className="size-4" />
-        Voltar
-      </button>
-
+    <div className="space-y-4 pb-24">
       <div>
         <h2 className="text-xl font-semibold text-slate-900">Confirmar agendamento</h2>
         <p className="text-sm text-slate-500 mt-1">Revise os detalhes antes de confirmar</p>
@@ -143,26 +134,39 @@ export function ConfirmationStep({
         </div>
       )}
 
-      <Button
-        onClick={handleConfirm}
-        disabled={loading}
-        className="w-full"
-        size="lg"
-        style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
-      >
-        {loading ? (
-          <span className="flex items-center gap-2">
-            <span className="size-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-            Confirmando...
-          </span>
-        ) : (
-          'Confirmar agendamento'
-        )}
-      </Button>
-
       <p className="text-xs text-center text-slate-400">
         Você receberá uma confirmação via WhatsApp.
       </p>
+
+      {/* Barra de navegação fixa na base */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-slate-200">
+      <div className="max-w-lg mx-auto px-4 py-3 flex gap-3">
+        <button
+          onClick={onBack}
+          disabled={loading}
+          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:border-slate-300 hover:text-slate-800 transition-colors disabled:opacity-50 shrink-0"
+        >
+          <ChevronLeft className="size-4" />
+          Voltar
+        </button>
+        <Button
+          onClick={handleConfirm}
+          disabled={loading}
+          className="flex-1"
+          size="lg"
+          style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <span className="size-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              Confirmando...
+            </span>
+          ) : (
+            'Avançar →'
+          )}
+        </Button>
+      </div>
+      </div>
     </div>
   )
 }

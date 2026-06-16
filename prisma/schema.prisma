@@ -176,6 +176,7 @@ model BrandingConfig {
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   logoUrl         String?
+  bannerUrl       String?
   primaryColor    String  @default("#c8916a")
   secondaryColor  String?
   accentColor     String  @default("#fdf0e8")

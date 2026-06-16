@@ -142,6 +142,16 @@ export default async function BookingPage({
         </div>
       </header>
 
+      {branding?.bannerUrl && (
+        <div className="w-full max-w-lg mx-auto">
+          <img
+            src={branding.bannerUrl}
+            alt={`Banner ${data.name}`}
+            className="w-full h-36 object-cover"
+          />
+        </div>
+      )}
+
       <main className="max-w-lg mx-auto px-4 py-6 pb-24">
         <BookingClient tenantData={data} />
       </main>
