@@ -157,12 +157,13 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
     )
   }
 
-  function NavLink({ item, showLabel, hasBadge }: { item: NavSection; showLabel: boolean; hasBadge?: boolean }) {
+  function NavLink({ item, showLabel, hasBadge, onClick }: { item: NavSection; showLabel: boolean; hasBadge?: boolean; onClick?: () => void }) {
     const Icon = (Icons as unknown as Record<string, React.ElementType>)[item.icon] ?? Icons.Circle
     const isActive = pathname.startsWith(item.href)
     return (
       <Link
         href={item.href}
+        onClick={onClick}
         className={cn(
           'flex items-center rounded-xl transition',
           hasBadge && 'relative',
@@ -202,7 +203,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
     )
   }
 
-  function SidebarContent({ showLabel }: { showLabel: boolean }) {
+  function SidebarContent({ showLabel, onNavigate }: { showLabel: boolean; onNavigate?: () => void }) {
     return (
       <TooltipProvider delayDuration={300}>
         <div className="flex h-full flex-col">
@@ -246,11 +247,11 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
                 ))
               : mainItems.map((item) =>
                   showLabel ? (
-                    <NavLink key={item.href} item={item} showLabel />
+                    <NavLink key={item.href} item={item} showLabel onClick={onNavigate} />
                   ) : (
                     <Tooltip key={item.href}>
                       <TooltipTrigger asChild>
-                        <div><NavLink item={item} showLabel={false} /></div>
+                        <div><NavLink item={item} showLabel={false} onClick={onNavigate} /></div>
                       </TooltipTrigger>
                       <TooltipContent side="right">{item.label}</TooltipContent>
                     </Tooltip>
@@ -262,11 +263,11 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
           <div className={cn('border-t border-border/50 py-3', showLabel ? 'px-3 space-y-1' : 'px-2 space-y-2 flex flex-col items-center')}>
             {configItem && (
               showLabel ? (
-                <NavLink item={configItem} showLabel hasBadge={whatsappPending} />
+                <NavLink item={configItem} showLabel hasBadge={whatsappPending} onClick={onNavigate} />
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div><NavLink item={configItem} showLabel={false} hasBadge={whatsappPending} /></div>
+                    <div><NavLink item={configItem} showLabel={false} hasBadge={whatsappPending} onClick={onNavigate} /></div>
                   </TooltipTrigger>
                   <TooltipContent side="right">{configItem.label}</TooltipContent>
                 </Tooltip>
@@ -395,7 +396,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
       <Sheet open={sidebarDrawerOpen} onOpenChange={setSidebarDrawerOpen}>
         <SheetContent side="left" className="w-65 p-0">
           <SheetTitle className="sr-only">Menu</SheetTitle>
-          <SidebarContent showLabel />
+          <SidebarContent showLabel onNavigate={() => setSidebarDrawerOpen(false)} />
         </SheetContent>
       </Sheet>
 
