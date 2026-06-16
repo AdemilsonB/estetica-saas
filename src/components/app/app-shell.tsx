@@ -6,7 +6,7 @@ import React, { useEffect, useState, type ReactNode } from 'react'
 import * as Icons from 'lucide-react'
 import { LogOut, Menu, Users } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,6 +33,14 @@ function getInitials(name: string): string {
     .map((n) => n[0]?.toUpperCase() ?? '')
     .join('')
 }
+
+// Itens de navegação secundária para o bottom drawer "Menu"
+const MENU_DRAWER_LINKS = [
+  { label: 'Serviços', href: '/servicos' },
+  { label: 'Produtos', href: '/produtos' },
+  { label: 'Equipe', href: '/equipe' },
+  { label: 'Configurações', href: '/configuracoes' },
+] as const
 
 interface AppShellProps {
   children: ReactNode
@@ -357,14 +365,6 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
     )
   }
 
-  // Itens de navegação secundária para o bottom drawer "Menu"
-  const MENU_DRAWER_LINKS = [
-    { label: 'Serviços', href: '/servicos' },
-    { label: 'Produtos', href: '/produtos' },
-    { label: 'Equipe', href: '/equipe' },
-    { label: 'Configurações', href: '/configuracoes' },
-  ]
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-[1600px]">
@@ -395,6 +395,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
       {/* Bottom drawer "Menu" (mobile) */}
       <Sheet open={menuDrawerOpen} onOpenChange={setMenuDrawerOpen}>
         <SheetContent side="bottom" className="rounded-t-2xl pb-safe">
+          <SheetTitle className="sr-only">Menu</SheetTitle>
           <div className="space-y-1 pt-2">
             {MENU_DRAWER_LINKS.map((link) => (
               <Link

@@ -22,6 +22,7 @@ export function BottomNav({ onNewAppointment, onOpenMenu }: BottomNavProps) {
 
   return (
     <nav
+      aria-label="Navegação principal mobile"
       className="fixed bottom-0 left-0 right-0 z-40 flex items-end justify-around border-t border-border/50 bg-background/95 pt-2 backdrop-blur md:hidden"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)' }}
     >
