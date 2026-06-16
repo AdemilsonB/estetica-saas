@@ -45,7 +45,6 @@ export function CategoryFormModal({ open, onClose, category }: Props) {
               required
               minLength={2}
               maxLength={60}
-              autoFocus
             />
           </div>
           <div className="flex gap-2">
