@@ -45,30 +45,30 @@ const FEATURES = [
 
 export function LandingFeatures() {
   return (
-    <section id="funcionalidades" className="bg-white px-6 py-20">
+    <section id="funcionalidades" className="bg-white px-4 sm:px-6 py-10 sm:py-20">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-16 text-center">
-          <h2 className="text-3xl font-extrabold text-slate-900 md:text-4xl">
+        <div className="mb-8 sm:mb-16 text-center">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 md:text-4xl">
             Tudo que seu salão precisa, num só lugar
           </h2>
-          <p className="mt-3 text-lg text-slate-500">
+          <p className="mt-3 text-sm sm:text-lg text-slate-500">
             Cada funcionalidade foi pensada para a realidade de quem trabalha com beleza
           </p>
         </div>
 
-        <div className="flex flex-col gap-20">
+        <div className="flex flex-col gap-10 sm:gap-20">
           {FEATURES.map((feature, index) => {
             const isReverse = index % 2 !== 0
             return (
               <div
                 key={feature.title}
-                className={`flex flex-col items-center gap-12 md:flex-row ${isReverse ? 'md:flex-row-reverse' : ''}`}
+                className={`flex flex-col items-center gap-6 sm:gap-12 md:flex-row ${isReverse ? 'md:flex-row-reverse' : ''}`}
               >
                 {/* Texto */}
                 <div className="flex-1">
-                  <div className="mb-3 text-4xl">{feature.icon}</div>
-                  <h3 className="mb-3 text-2xl font-bold text-slate-900">{feature.title}</h3>
-                  <p className="mb-5 leading-relaxed text-slate-500">{feature.description}</p>
+                  <div className="mb-3 text-2xl sm:text-4xl">{feature.icon}</div>
+                  <h3 className="mb-3 text-lg sm:text-2xl font-bold text-slate-900">{feature.title}</h3>
+                  <p className="mb-4 sm:mb-5 text-sm sm:text-base leading-relaxed text-slate-500">{feature.description}</p>
                   <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-gradient-to-r from-violet-50 to-pink-50 px-4 py-2 text-sm font-semibold text-violet-700">
                     {feature.metric}
                   </div>

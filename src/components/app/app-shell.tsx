@@ -228,7 +228,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
           </div>
 
           {/* Nav */}
-          <nav className={cn('flex-1 space-y-1 py-4', showLabel ? 'px-3' : 'px-2')}>
+          <nav className={cn('flex-1 overflow-y-auto space-y-1 py-4', showLabel ? 'px-3' : 'px-2')}>
             {isLoading || navSectionsLoading
               ? Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className={cn('rounded-xl', showLabel ? 'h-12 w-full' : 'size-10')} />
@@ -251,11 +251,11 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
           <div className={cn('border-t border-border/50 py-3', showLabel ? 'px-3 space-y-1' : 'px-2 space-y-2 flex flex-col items-center')}>
             {configItem && (
               showLabel ? (
-                <NavLink item={configItem} showLabel hasBadge={whatsappPending} />
+                <NavLink item={configItem} showLabel />
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div><NavLink item={configItem} showLabel={false} hasBadge={whatsappPending} /></div>
+                    <div><NavLink item={configItem} showLabel={false} /></div>
                   </TooltipTrigger>
                   <TooltipContent side="right">{configItem.label}</TooltipContent>
                 </Tooltip>
@@ -336,7 +336,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
         {/* Sidebar desktop (xl+) */}
         <aside
           className={cn(
-            'hidden xl:flex flex-col border-r border-border/50 bg-background/80 backdrop-blur transition-all duration-200',
+            'hidden xl:flex flex-col h-screen sticky top-0 overflow-hidden border-r border-border/50 bg-background/80 backdrop-blur transition-all duration-200',
             collapsed ? 'w-[64px]' : 'w-[220px]',
           )}
         >

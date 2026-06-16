@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 export function LandingHero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-violet-50 to-pink-50 px-6 pb-16 pt-20 text-center">
+    <section className="relative overflow-hidden bg-gradient-to-br from-violet-50 to-pink-50 px-4 sm:px-6 pb-10 sm:pb-16 pt-14 sm:pt-20 text-center">
       {/* Glow decorativo */}
       <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-violet-200/40 blur-3xl" />
       <div className="pointer-events-none absolute -left-24 bottom-0 h-64 w-64 rounded-full bg-pink-200/30 blur-3xl" />
@@ -14,7 +14,7 @@ export function LandingHero() {
       </div>
 
       {/* Headline */}
-      <h1 className="mx-auto max-w-3xl text-4xl font-extrabold leading-tight text-slate-900 md:text-5xl">
+      <h1 className="mx-auto max-w-3xl text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl md:text-5xl lg:text-6xl">
         Seu salão no{' '}
         <span className="bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
           piloto automático.
@@ -24,7 +24,7 @@ export function LandingHero() {
       </h1>
 
       {/* Subtítulo */}
-      <p className="mx-auto mt-5 max-w-xl text-lg text-slate-500">
+      <p className="mx-auto mt-4 sm:mt-5 max-w-xl text-sm sm:text-lg text-slate-500">
         Agenda online, WhatsApp automático e controle financeiro — tudo em um só lugar.
         Sem planilha. Sem telefone tocando.
       </p>
@@ -46,7 +46,7 @@ export function LandingHero() {
       </div>
 
       {/* Screenshot mockup — overflow-x-auto para mobile */}
-      <div className="relative mx-auto mt-14 max-w-4xl overflow-x-auto">
+      <div className="relative mx-auto mt-8 sm:mt-14 max-w-4xl overflow-x-auto">
         <div className="min-w-150 overflow-hidden rounded-2xl border border-slate-200 shadow-2xl shadow-slate-900/20">
           {/* Barra do browser */}
           <div className="flex items-center gap-2 bg-slate-800 px-4 py-3">
