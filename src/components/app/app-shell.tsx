@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import React, { useEffect, useState, type ReactNode } from 'react'
+import React, { useState, type ReactNode } from 'react'
 import * as Icons from 'lucide-react'
 import { LogOut, Menu, Users } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,6 +24,7 @@ import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
 import { cn } from '@/lib/utils'
 import type { NavSection } from '@/shared/permissions/nav-registry'
 import { BottomNav } from '@/components/app/bottom-nav'
+import { MobileHeader } from '@/components/app/mobile-header'
 import { CreateAppointmentModal } from '@/components/domain/scheduling/create-appointment-modal'
 
 function getInitials(name: string): string {
@@ -34,13 +35,6 @@ function getInitials(name: string): string {
     .join('')
 }
 
-// Itens de navegação secundária para o bottom drawer "Menu"
-const MENU_DRAWER_LINKS = [
-  { label: 'Serviços', href: '/servicos' },
-  { label: 'Produtos', href: '/produtos' },
-  { label: 'Equipe', href: '/equipe' },
-  { label: 'Configurações', href: '/configuracoes' },
-] as const
 
 interface AppShellProps {
   children: ReactNode
@@ -66,12 +60,8 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
     if (window.innerWidth < 1280) return false
     return localStorage.getItem('sidebar-collapsed') === 'true'
   })
-  const [menuDrawerOpen, setMenuDrawerOpen] = useState(false)
   const [newAppointmentOpen, setNewAppointmentOpen] = useState(false)
-
-  useEffect(() => {
-    setMenuDrawerOpen(false)
-  }, [pathname])
+  const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false)
 
   function toggleCollapsed() {
     if (typeof window !== 'undefined' && window.innerWidth < 1280) return
@@ -342,6 +332,14 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
                     </Link>
                   </div>
                 )}
+
+                <button
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <LogOut className="size-4" />
+                  Sair da conta
+                </button>
               </div>
             )}
 
@@ -367,8 +365,15 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Header mobile — visível apenas em < md */}
+      <MobileHeader
+        logoUrl={logoUrl}
+        businessName={businessName}
+        onOpenSidebar={() => setSidebarDrawerOpen(true)}
+      />
+
       <div className="mx-auto flex min-h-screen max-w-[1600px]">
-        {/* Sidebar — tablet (md+) e desktop (xl+) */}
+        {/* Sidebar — tablet (md+) e desktop */}
         <aside
           className={cn(
             'hidden md:flex flex-col h-screen sticky top-0 overflow-hidden border-r border-border/50 bg-background/80 backdrop-blur transition-all duration-200',
@@ -386,61 +391,20 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
         </div>
       </div>
 
-      {/* Bottom nav mobile (< md) */}
-      <BottomNav
-        onNewAppointment={() => setNewAppointmentOpen(true)}
-        onOpenMenu={() => setMenuDrawerOpen(true)}
-      />
-
-      {/* Bottom drawer "Menu" (mobile) */}
-      <Sheet open={menuDrawerOpen} onOpenChange={setMenuDrawerOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl pb-safe">
+      {/* Sidebar drawer — mobile (< md) */}
+      <Sheet open={sidebarDrawerOpen} onOpenChange={setSidebarDrawerOpen}>
+        <SheetContent side="left" className="w-65 p-0">
           <SheetTitle className="sr-only">Menu</SheetTitle>
-          <div className="space-y-1 pt-2">
-            {MENU_DRAWER_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'flex items-center rounded-xl px-4 py-3 text-sm font-medium transition',
-                  pathname.startsWith(link.href)
-                    ? 'bg-accent text-primary'
-                    : 'text-foreground hover:bg-accent/60',
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-          <div className="mt-4 border-t border-border/50 pt-4">
-            <div className="flex items-center gap-3 rounded-xl px-4 py-3">
-              <UserAvatar />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">
-                  {user?.name ?? '—'}
-                </p>
-                <PlanBadge />
-              </div>
-            </div>
-            <Link
-              href="/equipe"
-              className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-accent/60 hover:text-foreground"
-            >
-              <Users className="size-4" />
-              Ver equipe
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-destructive transition hover:bg-destructive/10"
-            >
-              <LogOut className="size-4" />
-              Sair
-            </button>
-          </div>
+          <SidebarContent showLabel />
         </SheetContent>
       </Sheet>
 
-      {/* Modal novo agendamento — controlado pelo FAB da bottom nav */}
+      {/* Bottom nav mobile */}
+      <BottomNav
+        onNewAppointment={() => setNewAppointmentOpen(true)}
+      />
+
+      {/* Modal novo agendamento */}
       <CreateAppointmentModal
         open={newAppointmentOpen}
         onClose={() => setNewAppointmentOpen(false)}

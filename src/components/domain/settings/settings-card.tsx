@@ -1,7 +1,7 @@
 'use client'
 
-import type { ElementType, ReactNode } from 'react'
-import { Button } from '@/components/ui/button'
+import { useState, type ElementType, type ReactNode } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface StatusBadge {
@@ -14,9 +14,8 @@ interface SettingsCardProps {
   title: string
   subtitle: string
   statusBadge?: StatusBadge
-  onEdit?: () => void
-  isStatic?: boolean
   children?: ReactNode
+  defaultExpanded?: boolean
 }
 
 const BADGE_STYLES: Record<StatusBadge['variant'], string> = {
@@ -31,13 +30,24 @@ export function SettingsCard({
   title,
   subtitle,
   statusBadge,
-  onEdit,
-  isStatic = false,
   children,
+  defaultExpanded = false,
 }: SettingsCardProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded)
+  const isInteractive = Boolean(children)
+
   return (
     <div className="rounded-2xl border border-white/80 bg-white/85 shadow-sm">
-      <div className="flex items-start gap-3 p-4 sm:p-5">
+      <button
+        type="button"
+        onClick={() => { if (isInteractive) setExpanded(v => !v) }}
+        className={cn(
+          'flex w-full items-start gap-3 p-4 text-left sm:p-5',
+          isInteractive && 'cursor-pointer transition hover:bg-black/2',
+          !isInteractive && 'cursor-default',
+        )}
+        aria-expanded={isInteractive ? expanded : undefined}
+      >
         <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/50 text-foreground">
           <Icon className="size-5" />
         </span>
@@ -54,14 +64,21 @@ export function SettingsCard({
             )}
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+        </div>
+        {isInteractive && (
+          <ChevronDown
+            className={cn(
+              'mt-1 size-4 shrink-0 text-muted-foreground transition-transform duration-200',
+              expanded && 'rotate-180',
+            )}
+          />
+        )}
+      </button>
+      {isInteractive && expanded && (
+        <div className="border-t border-border/50 px-4 py-5 sm:px-5">
           {children}
         </div>
-        {!isStatic && onEdit && (
-          <Button size="sm" variant="outline" onClick={onEdit} className="shrink-0">
-            Editar
-          </Button>
-        )}
-      </div>
+      )}
     </div>
   )
 }
