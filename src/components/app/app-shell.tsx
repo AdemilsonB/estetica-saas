@@ -4,11 +4,18 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import React, { useEffect, useState, type ReactNode } from 'react'
 import * as Icons from 'lucide-react'
-import { LogOut, Menu } from 'lucide-react'
+import { LogOut, Menu, Users } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useBillingStatus } from '@/hooks/billing/use-billing-status'
 import { useNavSections } from '@/hooks/iam/use-nav-sections'
@@ -16,6 +23,8 @@ import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
 import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
 import { cn } from '@/lib/utils'
 import type { NavSection } from '@/shared/permissions/nav-registry'
+import { BottomNav } from '@/components/app/bottom-nav'
+import { CreateAppointmentModal } from '@/components/domain/scheduling/create-appointment-modal'
 
 function getInitials(name: string): string {
   return name
@@ -45,15 +54,19 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
   const whatsappPending = !evolutionLoading && evolutionStatus?.connected === false
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
+    // Tablet (< xl) nunca colapsa
+    if (window.innerWidth < 1280) return false
     return localStorage.getItem('sidebar-collapsed') === 'true'
   })
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [menuDrawerOpen, setMenuDrawerOpen] = useState(false)
+  const [newAppointmentOpen, setNewAppointmentOpen] = useState(false)
 
   useEffect(() => {
-    setDrawerOpen(false)
+    setMenuDrawerOpen(false)
   }, [pathname])
 
   function toggleCollapsed() {
+    if (typeof window !== 'undefined' && window.innerWidth < 1280) return
     const next = !collapsed
     setCollapsed(next)
     localStorage.setItem('sidebar-collapsed', String(next))
@@ -65,7 +78,6 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
     router.push('/login')
   }
 
-  // Duas camadas: plano (planNavSections) → role (canAccess)
   const navBase = planNavSections ?? []
   const visibleItems = navBase.filter((section) => canAccess(section.key))
   const mainItems = visibleItems.filter((s) => s.key !== 'configuracoes')
@@ -201,10 +213,11 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
             {showLabel ? (
               <>
                 <LogoBrand />
+                {/* Toggle só visível em xl+ (desktop) */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="size-8 shrink-0 text-muted-foreground"
+                  className="hidden xl:inline-flex size-8 shrink-0 text-muted-foreground"
                   onClick={toggleCollapsed}
                   aria-label="Recolher sidebar"
                 >
@@ -217,7 +230,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="size-8 text-muted-foreground"
+                  className="hidden xl:inline-flex size-8 text-muted-foreground"
                   onClick={toggleCollapsed}
                   aria-label="Expandir sidebar"
                 >
@@ -251,11 +264,11 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
           <div className={cn('border-t border-border/50 py-3', showLabel ? 'px-3 space-y-1' : 'px-2 space-y-2 flex flex-col items-center')}>
             {configItem && (
               showLabel ? (
-                <NavLink item={configItem} showLabel />
+                <NavLink item={configItem} showLabel hasBadge={whatsappPending} />
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div><NavLink item={configItem} showLabel={false} /></div>
+                    <div><NavLink item={configItem} showLabel={false} hasBadge={whatsappPending} /></div>
                   </TooltipTrigger>
                   <TooltipContent side="right">{configItem.label}</TooltipContent>
                 </Tooltip>
@@ -264,22 +277,36 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
 
             {showLabel && (
               <div className="mt-2 space-y-2">
-                <div className="flex items-center gap-2 rounded-xl border border-border/50 bg-accent/30 px-3 py-2">
-                  <UserAvatar />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-medium text-foreground">
-                      {isLoading ? '...' : (user?.name ?? '—')}
-                    </span>
-                    <PlanBadge />
-                  </span>
-                  <button
-                    onClick={handleLogout}
-                    className="shrink-0 text-muted-foreground transition hover:text-foreground"
-                    aria-label="Sair da conta"
-                  >
-                    <LogOut className="size-4" />
-                  </button>
-                </div>
+                {/* Avatar com DropdownMenu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex w-full items-center gap-2 rounded-xl border border-border/50 bg-accent/30 px-3 py-2 text-left transition hover:bg-accent/50">
+                      <UserAvatar />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-medium text-foreground">
+                          {isLoading ? '...' : (user?.name ?? '—')}
+                        </span>
+                        <PlanBadge />
+                      </span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side="right" align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link href="/equipe" className="flex items-center gap-2">
+                        <Users className="size-4" />
+                        Minha equipe
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 text-destructive focus:text-destructive"
+                    >
+                      <LogOut className="size-4" />
+                      Sair
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
                 {billingStatus?.plan === 'FREE' && billingStatus?.status !== 'TRIALING' && !upgradeCardDismissed && (
                   <div className="rounded-xl bg-linear-to-br from-violet-600 to-purple-600 p-3 text-white">
@@ -330,13 +357,21 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
     )
   }
 
+  // Itens de navegação secundária para o bottom drawer "Menu"
+  const MENU_DRAWER_LINKS = [
+    { label: 'Serviços', href: '/servicos' },
+    { label: 'Produtos', href: '/produtos' },
+    { label: 'Equipe', href: '/equipe' },
+    { label: 'Configurações', href: '/configuracoes' },
+  ]
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-[1600px]">
-        {/* Sidebar desktop (xl+) */}
+        {/* Sidebar — tablet (md+) e desktop (xl+) */}
         <aside
           className={cn(
-            'hidden xl:flex flex-col h-screen sticky top-0 overflow-hidden border-r border-border/50 bg-background/80 backdrop-blur transition-all duration-200',
+            'hidden md:flex flex-col h-screen sticky top-0 overflow-hidden border-r border-border/50 bg-background/80 backdrop-blur transition-all duration-200',
             collapsed ? 'w-[64px]' : 'w-[220px]',
           )}
         >
@@ -345,33 +380,70 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
 
         {/* Área principal */}
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          {/* Header mobile (< xl) */}
-          <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-border/50 bg-background/80 px-4 py-3 backdrop-blur xl:hidden">
-            <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="shrink-0" aria-label="Abrir menu">
-                  <Menu className="size-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[240px] p-0 bg-background">
-                <SidebarContent showLabel />
-              </SheetContent>
-            </Sheet>
-
-            <div className="flex flex-1 items-center justify-center">
-              <LogoBrand />
-            </div>
-
-            <div className="shrink-0">
-              <UserAvatar size="sm" />
-            </div>
-          </header>
-
-          <div className="flex-1 px-4 py-6 sm:px-6 xl:px-8 xl:py-8">
+          <div className="flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-6 xl:px-8 xl:py-8">
             {children}
           </div>
         </div>
       </div>
+
+      {/* Bottom nav mobile (< md) */}
+      <BottomNav
+        onNewAppointment={() => setNewAppointmentOpen(true)}
+        onOpenMenu={() => setMenuDrawerOpen(true)}
+      />
+
+      {/* Bottom drawer "Menu" (mobile) */}
+      <Sheet open={menuDrawerOpen} onOpenChange={setMenuDrawerOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl pb-safe">
+          <div className="space-y-1 pt-2">
+            {MENU_DRAWER_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  'flex items-center rounded-xl px-4 py-3 text-sm font-medium transition',
+                  pathname.startsWith(link.href)
+                    ? 'bg-accent text-primary'
+                    : 'text-foreground hover:bg-accent/60',
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+          <div className="mt-4 border-t border-border/50 pt-4">
+            <div className="flex items-center gap-3 rounded-xl px-4 py-3">
+              <UserAvatar />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">
+                  {user?.name ?? '—'}
+                </p>
+                <PlanBadge />
+              </div>
+            </div>
+            <Link
+              href="/equipe"
+              className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-accent/60 hover:text-foreground"
+            >
+              <Users className="size-4" />
+              Ver equipe
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-destructive transition hover:bg-destructive/10"
+            >
+              <LogOut className="size-4" />
+              Sair
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Modal novo agendamento — controlado pelo FAB da bottom nav */}
+      <CreateAppointmentModal
+        open={newAppointmentOpen}
+        onClose={() => setNewAppointmentOpen(false)}
+      />
     </div>
   )
 }
