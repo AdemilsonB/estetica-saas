@@ -85,7 +85,6 @@ export function EditCustomerModal({ open, onClose, customer }: Props) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              autoFocus
             />
           </div>
           <div className="space-y-1.5">

@@ -73,7 +73,6 @@ export function CreateCustomerModal({ open, onClose, onCreated }: Props) {
               placeholder="Nome completo"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              autoFocus
             />
           </div>
 

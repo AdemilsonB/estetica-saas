@@ -84,7 +84,6 @@ export function RolesManager() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Ex: Esteticista"
-              autoFocus
               maxLength={50}
             />
             <div className="flex gap-2">
