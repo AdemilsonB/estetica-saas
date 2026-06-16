@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import React, { useEffect, useState, type ReactNode } from 'react'
+import React, { useState, type ReactNode } from 'react'
 import * as Icons from 'lucide-react'
 import { LogOut, Menu, Users } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -34,13 +34,6 @@ function getInitials(name: string): string {
     .join('')
 }
 
-// Itens de navegação secundária para o bottom drawer "Menu"
-const MENU_DRAWER_LINKS = [
-  { label: 'Serviços', href: '/servicos' },
-  { label: 'Produtos', href: '/produtos' },
-  { label: 'Equipe', href: '/equipe' },
-  { label: 'Configurações', href: '/configuracoes' },
-] as const
 
 interface AppShellProps {
   children: ReactNode
@@ -66,12 +59,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
     if (window.innerWidth < 1280) return false
     return localStorage.getItem('sidebar-collapsed') === 'true'
   })
-  const [menuDrawerOpen, setMenuDrawerOpen] = useState(false)
   const [newAppointmentOpen, setNewAppointmentOpen] = useState(false)
-
-  useEffect(() => {
-    setMenuDrawerOpen(false)
-  }, [pathname])
 
   function toggleCollapsed() {
     if (typeof window !== 'undefined' && window.innerWidth < 1280) return
@@ -389,56 +377,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
       {/* Bottom nav mobile (< md) */}
       <BottomNav
         onNewAppointment={() => setNewAppointmentOpen(true)}
-        onOpenMenu={() => setMenuDrawerOpen(true)}
       />
-
-      {/* Bottom drawer "Menu" (mobile) */}
-      <Sheet open={menuDrawerOpen} onOpenChange={setMenuDrawerOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl pb-safe">
-          <SheetTitle className="sr-only">Menu</SheetTitle>
-          <div className="space-y-1 pt-2">
-            {MENU_DRAWER_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'flex items-center rounded-xl px-4 py-3 text-sm font-medium transition',
-                  pathname.startsWith(link.href)
-                    ? 'bg-accent text-primary'
-                    : 'text-foreground hover:bg-accent/60',
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-          <div className="mt-4 border-t border-border/50 pt-4">
-            <div className="flex items-center gap-3 rounded-xl px-4 py-3">
-              <UserAvatar />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">
-                  {user?.name ?? '—'}
-                </p>
-                <PlanBadge />
-              </div>
-            </div>
-            <Link
-              href="/equipe"
-              className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-accent/60 hover:text-foreground"
-            >
-              <Users className="size-4" />
-              Ver equipe
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-destructive transition hover:bg-destructive/10"
-            >
-              <LogOut className="size-4" />
-              Sair
-            </button>
-          </div>
-        </SheetContent>
-      </Sheet>
 
       {/* Modal novo agendamento — controlado pelo FAB da bottom nav */}
       <CreateAppointmentModal
