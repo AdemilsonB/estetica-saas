@@ -18,6 +18,8 @@ export class PublicBookingRepository {
         instagramUrl: true,
         coverImageUrl: true,
         bio: true,
+        segments: true,
+        createdAt: true,
         brandingConfig: {
           select: {
             logoUrl: true,
@@ -145,6 +147,7 @@ export class PublicBookingRepository {
       imageUrl: promo.imageUrl,
       discountType: promo.discountType,
       discountValue: Number(promo.discountValue),
+      endsAt: promo.endsAt?.toISOString() ?? null,
       services: promo.items.flatMap((i) =>
         i.service
           ? [
@@ -172,10 +175,48 @@ export class PublicBookingRepository {
         role: true,
         avatarUrl: true,
         bio: true,
+        professionalServices: { select: { serviceId: true } },
       },
       orderBy: { name: 'asc' },
     })
-    return members
+    return members.map(({ professionalServices, ...m }) => ({
+      ...m,
+      serviceIds: professionalServices.map((ps) => ps.serviceId),
+    }))
+  }
+
+  async findPublicHistory(tenantId: string, phone: string) {
+    const customer = await prisma.customer.findFirst({
+      where: { tenantId, phone },
+      select: { id: true },
+    })
+    if (!customer) return []
+
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        tenantId,
+        customerId: customer.id,
+        status: { in: ['COMPLETED', 'CONFIRMED', 'CANCELLED', 'NO_SHOW'] },
+      },
+      select: {
+        id: true,
+        startsAt: true,
+        status: true,
+        service: { select: { name: true } },
+        package: { select: { name: true } },
+        professional: { select: { name: true } },
+      },
+      orderBy: { startsAt: 'desc' },
+      take: 30,
+    })
+
+    return appointments.map((a) => ({
+      id: a.id,
+      date: a.startsAt.toISOString(),
+      serviceName: a.service?.name ?? a.package?.name ?? 'Serviço',
+      professionalName: a.professional?.name ?? null,
+      status: a.status,
+    }))
   }
 
   async findPublicProducts(tenantId: string) {

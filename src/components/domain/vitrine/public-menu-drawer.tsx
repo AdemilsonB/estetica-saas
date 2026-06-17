@@ -1,0 +1,329 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { MessageCircle, History, ChevronDown, ChevronRight } from 'lucide-react'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { ClientHistoryModal } from './client-history-modal'
+
+type PublicService = {
+  id: string
+  name: string
+  duration: number
+  price: number
+  priceType: 'FIXED' | 'STARTING_FROM' | 'RANGE' | 'ON_CONSULTATION'
+  priceMin?: number | null
+  priceMax?: number | null
+  categoryName?: string | null
+}
+
+type PublicPackage = { id: string; name: string; price: number }
+type PublicPromotion = {
+  id: string
+  name: string
+  discountType: 'PERCENTAGE' | 'FIXED'
+  discountValue: number
+}
+type PublicProduct = { id: string; name: string; salePrice: number }
+type TeamMember = { id: string; name: string; role: string }
+
+type Props = {
+  tenantName: string
+  logoUrl?: string | null
+  primaryColor: string
+  phone?: string | null
+  whatsappEnabled?: boolean
+  slug: string
+  bookingBaseUrl: string
+  services: PublicService[]
+  packages: PublicPackage[]
+  promotions: PublicPromotion[]
+  products: PublicProduct[]
+  team: TeamMember[]
+}
+
+function formatPrice(s: PublicService): string {
+  if (s.priceType === 'ON_CONSULTATION') return 'Sob consulta'
+  if (s.priceType === 'RANGE' && s.priceMin != null && s.priceMax != null)
+    return `R$ ${s.priceMin.toFixed(2)}–R$ ${s.priceMax.toFixed(2)}`
+  if (s.priceType === 'STARTING_FROM') return `A partir de R$ ${s.price.toFixed(2)}`
+  return `R$ ${s.price.toFixed(2)}`
+}
+
+function formatDuration(min: number): string {
+  if (min < 60) return `${min}min`
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return m > 0 ? `${h}h${m}` : `${h}h`
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  OWNER: 'Proprietário',
+  MANAGER: 'Gerente',
+  PROFESSIONAL: 'Profissional',
+}
+
+function DrawerSection({
+  title,
+  children,
+  defaultOpen = false,
+}: {
+  title: string
+  children: React.ReactNode
+  defaultOpen?: boolean
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="border-b last:border-b-0">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-3.5 text-left text-sm font-semibold"
+      >
+        {title}
+        <ChevronDown
+          className={`size-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && <div className="pb-3">{children}</div>}
+    </div>
+  )
+}
+
+export function PublicMenuDrawer({
+  tenantName,
+  logoUrl,
+  primaryColor,
+  phone,
+  whatsappEnabled,
+  slug,
+  bookingBaseUrl,
+  services,
+  packages,
+  promotions,
+  products,
+  team,
+}: Props) {
+  const [open, setOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+
+  useEffect(() => {
+    const handler = () => setOpen(true)
+    window.addEventListener('open-public-menu', handler)
+    return () => window.removeEventListener('open-public-menu', handler)
+  }, [])
+
+  const whatsappUrl =
+    whatsappEnabled && phone
+      ? `https://wa.me/55${phone.replace(/\D/g, '')}`
+      : null
+
+  // Agrupa serviços por categoria
+  const categoryOrder: string[] = []
+  const grouped: Record<string, PublicService[]> = {}
+  for (const s of services) {
+    const cat = s.categoryName ?? 'Outros'
+    if (!grouped[cat]) { grouped[cat] = []; categoryOrder.push(cat) }
+    grouped[cat].push(s)
+  }
+
+  function navigate(href: string) {
+    setOpen(false)
+    setTimeout(() => { window.location.href = href }, 150)
+  }
+
+  function scrollTo(id: string) {
+    setOpen(false)
+    setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 200)
+  }
+
+  return (
+    <>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="left" className="w-[85vw] max-w-sm p-0 flex flex-col">
+          {/* Header do drawer */}
+          <SheetHeader className="flex-row items-center gap-3 border-b px-4 py-4">
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl}
+                alt={tenantName}
+                className="size-9 rounded-xl object-contain border"
+              />
+            ) : (
+              <div
+                className="flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {tenantName[0]?.toUpperCase()}
+              </div>
+            )}
+            <SheetTitle className="text-sm font-semibold leading-tight">{tenantName}</SheetTitle>
+          </SheetHeader>
+
+          {/* Conteúdo com scroll */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Serviços */}
+            {services.length > 0 && (
+              <DrawerSection title="Serviços" defaultOpen={true}>
+                {categoryOrder.map((cat) => (
+                  <div key={cat} className="px-4">
+                    {categoryOrder.length > 1 && (
+                      <p className="mb-1 mt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {cat}
+                      </p>
+                    )}
+                    {grouped[cat]!.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => navigate(`${bookingBaseUrl}?serviceId=${s.id}`)}
+                        className="flex w-full items-center justify-between gap-2 rounded-lg py-2.5 text-left hover:bg-muted/50 px-2 -mx-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{s.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDuration(s.duration)}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-xs font-semibold" style={{ color: primaryColor }}>
+                          {formatPrice(s)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </DrawerSection>
+            )}
+
+            {/* Pacotes */}
+            {packages.length > 0 && (
+              <DrawerSection title="Pacotes">
+                <div className="px-4 space-y-1">
+                  {packages.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => navigate(`${bookingBaseUrl}?packageId=${p.id}`)}
+                      className="flex w-full items-center justify-between gap-2 rounded-lg py-2.5 text-left hover:bg-muted/50 px-2 -mx-2"
+                    >
+                      <p className="truncate text-sm font-medium">{p.name}</p>
+                      <span className="shrink-0 text-xs font-semibold" style={{ color: primaryColor }}>
+                        R$ {p.price.toFixed(2)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </DrawerSection>
+            )}
+
+            {/* Promoções */}
+            {promotions.length > 0 && (
+              <DrawerSection title="🔥 Promoções">
+                <div className="px-4 space-y-1">
+                  {promotions.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => scrollTo('promocoes')}
+                      className="flex w-full items-center justify-between gap-2 rounded-lg py-2.5 text-left hover:bg-muted/50 px-2 -mx-2"
+                    >
+                      <p className="truncate text-sm font-medium">{p.name}</p>
+                      <span
+                        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
+                        style={{ backgroundColor: primaryColor }}
+                      >
+                        {p.discountType === 'PERCENTAGE'
+                          ? `${p.discountValue}% OFF`
+                          : `R$ ${p.discountValue.toFixed(2)} OFF`}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </DrawerSection>
+            )}
+
+            {/* Produtos */}
+            {products.length > 0 && (
+              <DrawerSection title="Produtos">
+                <div className="px-4 space-y-1">
+                  {products.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => scrollTo('produtos')}
+                      className="flex w-full items-center justify-between gap-2 rounded-lg py-2.5 text-left hover:bg-muted/50 px-2 -mx-2"
+                    >
+                      <p className="truncate text-sm font-medium">{p.name}</p>
+                      <span className="shrink-0 text-xs font-semibold" style={{ color: primaryColor }}>
+                        R$ {p.salePrice.toFixed(2)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </DrawerSection>
+            )}
+
+            {/* Equipe */}
+            {team.length > 0 && (
+              <DrawerSection title="Nossa Equipe">
+                <div className="px-4 space-y-1">
+                  {team.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => scrollTo('equipe')}
+                      className="flex w-full items-center gap-2 rounded-lg py-2.5 text-left hover:bg-muted/50 px-2 -mx-2"
+                    >
+                      <div
+                        className="flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                        style={{ backgroundColor: primaryColor }}
+                      >
+                        {m.name[0]?.toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{m.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {ROLE_LABELS[m.role] ?? m.role}
+                        </p>
+                      </div>
+                      <ChevronRight className="ml-auto size-4 text-muted-foreground" />
+                    </button>
+                  ))}
+                </div>
+              </DrawerSection>
+            )}
+
+            {/* Histórico */}
+            <button
+              onClick={() => { setOpen(false); setTimeout(() => setHistoryOpen(true), 150) }}
+              className="flex w-full items-center gap-3 border-b px-4 py-3.5 text-sm font-semibold hover:bg-muted/50 text-left"
+            >
+              <History className="size-4 text-muted-foreground" />
+              Meu Histórico
+            </button>
+          </div>
+
+          {/* Rodapé WhatsApp */}
+          {whatsappUrl && (
+            <div className="border-t p-4">
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white"
+                style={{ backgroundColor: '#25D366' }}
+              >
+                <MessageCircle className="size-4" />
+                Falar no WhatsApp
+              </a>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Modal de histórico separado do drawer */}
+      <ClientHistoryModal
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        slug={slug}
+        primaryColor={primaryColor}
+      />
+    </>
+  )
+}
