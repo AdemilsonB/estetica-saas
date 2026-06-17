@@ -1,16 +1,19 @@
 // src/components/domain/landing/landing-nav.tsx
 import Link from 'next/link'
+import Image from 'next/image'
 
 export function LandingNav() {
   return (
     <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 backdrop-blur-sm shadow-sm">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <Link href="/" aria-label="Agendê — página inicial">
+          <Image
             src="/brand/logo-horizontal.png"
             alt="Agendê"
+            width={130}
+            height={32}
             className="h-8 w-auto object-contain"
+            priority
           />
         </Link>
 

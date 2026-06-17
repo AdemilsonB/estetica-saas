@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -43,9 +44,13 @@ export function MobileHeader({ logoUrl, businessName, onOpenSidebar }: MobileHea
             className="size-8 shrink-0 rounded-lg object-contain"
           />
         ) : (
-          <div className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
-            {getInitials(businessName || 'M')}
-          </div>
+          <Image
+            src="/brand/logo-mark.png"
+            alt="Agendê"
+            width={32}
+            height={32}
+            className="size-8 shrink-0 rounded-lg object-contain"
+          />
         )}
       </Link>
     </header>
