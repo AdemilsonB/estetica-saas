@@ -1,3 +1,6 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import { LayoutDashboard, CreditCard, Building2, Settings, ArrowLeft, BookOpen } from 'lucide-react'
 
@@ -10,6 +13,9 @@ const NAV = [
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const [hoveredHref, setHoveredHref] = useState<string | null>(null)
+  const [backHovered, setBackHovered] = useState(false)
+
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: '#0f0d1a' }}>
       <aside
@@ -38,15 +44,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               key={href}
               href={href}
               className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition"
-              style={{ color: 'rgba(255,255,255,0.5)' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(124,58,237,0.4)'
-                e.currentTarget.style.color = 'white'
+              style={{
+                color: hoveredHref === href ? 'white' : 'rgba(255,255,255,0.5)',
+                backgroundColor: hoveredHref === href ? 'rgba(124,58,237,0.4)' : 'transparent',
               }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.5)'
-              }}
+              onMouseEnter={() => setHoveredHref(href)}
+              onMouseLeave={() => setHoveredHref(null)}
             >
               <Icon className="size-4 shrink-0" />
               {label}
@@ -58,9 +61,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link
             href="/agenda"
             className="flex items-center gap-2 text-xs transition"
-            style={{ color: 'rgba(255,255,255,0.35)' }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)' }}
+            style={{ color: backHovered ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)' }}
+            onMouseEnter={() => setBackHovered(true)}
+            onMouseLeave={() => setBackHovered(false)}
           >
             <ArrowLeft className="size-3.5" />
             Voltar ao meu negócio
