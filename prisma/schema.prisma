@@ -140,6 +140,9 @@ model Tenant {
   birthdayEnabled        Boolean                @default(false)
   birthdayMessage        String?
   birthdayGiftServiceId  String?
+  instagramUrl           String?
+  coverImageUrl          String?
+  bio                    String?
   isBlocked              Boolean                @default(false)
   blockedReason          String?
   schedulingPolicy       SchedulingPolicy?
@@ -255,6 +258,8 @@ model User {
   role                 UserRole              @default(PROFESSIONAL)
   permissions          String[]
   avatarUrl            String?
+  bio                  String?
+  showOnPublicPage     Boolean               @default(true)
   roleId               String?
   customRole           Role?                 @relation("UserCustomRole", fields: [roleId], references: [id])
   createdAt            DateTime              @default(now())
