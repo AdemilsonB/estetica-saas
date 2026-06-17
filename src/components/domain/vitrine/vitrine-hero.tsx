@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { MapPin, Clock, MessageCircle, Users } from 'lucide-react'
+import { MapPin, Clock, MessageCircle, Users, AtSign, Menu } from 'lucide-react'
 
 const SEGMENT_LABELS: Record<string, string> = {
   HAIR_SALON: 'Salão de Beleza',
@@ -33,10 +33,14 @@ type Props = {
   accentColor: string
   phone?: string | null
   whatsappEnabled?: boolean
+  instagramUrl?: string | null
   allowPublicBooking: boolean
   bookingUrl: string
   isOpen: boolean
   teamCount: number
+  hasPackages: boolean
+  hasPromotions: boolean
+  hasProducts: boolean
 }
 
 export function VitrineHero({
@@ -52,76 +56,136 @@ export function VitrineHero({
   accentColor,
   phone,
   whatsappEnabled,
+  instagramUrl,
   allowPublicBooking,
   bookingUrl,
   isOpen,
   teamCount,
+  hasPackages,
+  hasPromotions,
+  hasProducts,
 }: Props) {
   const [bioExpanded, setBioExpanded] = useState(false)
 
   const heroImage = coverImageUrl ?? bannerUrl
   const segmentLabel = segments[0] ? (SEGMENT_LABELS[segments[0]] ?? segments[0]) : null
   const whatsappUrl =
-    whatsappEnabled && phone
-      ? `https://wa.me/55${phone.replace(/\D/g, '')}`
-      : null
+    whatsappEnabled && phone ? `https://wa.me/55${phone.replace(/\D/g, '')}` : null
+  const city = address ? address.split(',').slice(-2).join(',').trim() : null
 
-  const city = address
-    ? address.split(',').slice(-2).join(',').trim()
-    : null
+  const anchors = [
+    { id: 'servicos', label: 'Serviços', show: true },
+    { id: 'pacotes', label: 'Pacotes', show: hasPackages },
+    { id: 'promocoes', label: 'Promoções', show: hasPromotions },
+    { id: 'equipe', label: 'Equipe', show: teamCount > 0 },
+    { id: 'produtos', label: 'Produtos', show: hasProducts },
+  ].filter((a) => a.show)
+
+  function openMenu() {
+    window.dispatchEvent(new CustomEvent('open-public-menu'))
+  }
+
+  function scrollTo(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <div>
-      {/* Banner */}
-      <div className="relative h-44 w-full overflow-hidden sm:h-56">
+      {/* ── Banner com navegação flutuante ── */}
+      <div className="relative h-56 w-full overflow-hidden sm:h-64 md:h-72">
         {heroImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={heroImage} alt="" className="h-full w-full object-cover" />
         ) : (
           <div
             className="h-full w-full"
-            style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}
+            style={{
+              background: `linear-gradient(135deg, ${primaryColor} 0%, ${accentColor} 55%, ${primaryColor}cc 100%)`,
+            }}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
-        {/* Badge aberto/fechado sobre o banner */}
-        <div className="absolute bottom-3 right-3">
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-black/40 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm"
+        {/* Gradiente de legibilidade — escurece topo e base */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/10 to-black/45" />
+
+        {/* ── Navegação flutuante sobre o banner ── */}
+        <div className="absolute left-0 right-0 top-0 flex items-center gap-2 px-3 pt-3 sm:pt-4">
+          {/* Hambúrguer */}
+          <button
+            onClick={openMenu}
+            aria-label="Abrir menu"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm transition-colors hover:bg-white/25"
           >
-            <span className={`size-1.5 rounded-full ${isOpen ? 'bg-green-400' : 'bg-white/50'}`} />
-            {isOpen ? 'Aberto agora' : 'Fechado'}
-          </span>
-        </div>
-      </div>
+            <Menu className="size-5 text-white" />
+          </button>
 
-      {/* Identidade */}
-      <div className="mx-auto max-w-3xl px-4">
-        {/* Logo sobrepõe o banner */}
-        <div className="-mt-9 mb-3 flex items-end gap-3">
+          {/* Logo */}
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={logoUrl}
               alt={name}
-              className="size-[72px] shrink-0 rounded-2xl border-4 border-white object-contain shadow-md"
+              className="size-8 shrink-0 rounded-lg border border-white/30 object-contain shadow"
               style={{ backgroundColor: '#fff' }}
             />
           ) : (
             <div
-              className="flex size-[72px] shrink-0 items-center justify-center rounded-2xl border-4 border-white text-2xl font-bold text-white shadow-md"
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-white/30 text-xs font-bold text-white shadow"
               style={{ backgroundColor: primaryColor }}
             >
               {name[0]?.toUpperCase()}
             </div>
           )}
+
+          {/* Nome */}
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white drop-shadow">
+            {name}
+          </span>
+
+          {/* Links sociais */}
+          <div className="flex items-center gap-0.5">
+            {instagramUrl && (
+              <a
+                href={instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                className="flex size-9 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm transition-colors hover:bg-white/25"
+              >
+                <AtSign className="size-4 text-white" />
+              </a>
+            )}
+            {whatsappUrl && (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="WhatsApp"
+                className="flex size-9 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm transition-colors hover:bg-white/25"
+              >
+                <MessageCircle className="size-4 text-white" />
+              </a>
+            )}
+          </div>
         </div>
 
+        {/* Badge aberto/fechado */}
+        <div className="absolute bottom-3 right-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-black/40 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+            <span
+              className={`size-1.5 rounded-full ${isOpen ? 'bg-green-400' : 'bg-white/50'}`}
+            />
+            {isOpen ? 'Aberto agora' : 'Fechado'}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Identidade abaixo do banner ── */}
+      <div className="mx-auto max-w-3xl px-4 pt-5 pb-2">
         {/* Nome + segmento */}
-        <h1 className="text-xl font-bold leading-tight">{name}</h1>
+        <h1 className="text-2xl font-bold leading-tight">{name}</h1>
         {(segmentLabel || city) && (
-          <p className="mt-0.5 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             {[segmentLabel, city].filter(Boolean).join(' · ')}
           </p>
         )}
@@ -190,23 +254,21 @@ export function VitrineHero({
           )}
         </div>
 
-        {/* Âncoras rápidas */}
-        <div className="mt-4 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {(['servicos', 'pacotes', 'promocoes', 'equipe', 'produtos'] as const).map((id) => (
-            <a
-              key={id}
-              href={`#${id}`}
-              className="shrink-0 rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors hover:border-transparent hover:text-white"
-              style={{ ['--hover-bg' as string]: primaryColor }}
-              onClick={(e) => {
-                e.preventDefault()
-                document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              }}
-            >
-              {id === 'servicos' ? 'Serviços' : id === 'promocoes' ? 'Promoções' : id.charAt(0).toUpperCase() + id.slice(1)}
-            </a>
-          ))}
-        </div>
+        {/* Âncoras rápidas — somente mobile */}
+        {anchors.length > 0 && (
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1 md:hidden">
+            {anchors.map(({ id, label }) => (
+              <button
+                key={id}
+                onClick={() => scrollTo(id)}
+                className="shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors hover:border-current"
+                style={{ color: primaryColor }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
