@@ -98,4 +98,22 @@ describe('checkRateLimit', () => {
     )
     expect(result).toEqual({ allowed: true, remaining: 4 })
   })
+
+  it('respeita janela de 15 minutos quando windowMs=900000', async () => {
+    prismaMock.publicRateLimit.findFirst.mockResolvedValue(null)
+    prismaMock.publicRateLimit.create.mockResolvedValue({
+      id: 'r1', ip: '1.1.1.1', phone: null, action: 'appointment', count: 1, windowStart: new Date(),
+    })
+
+    const result = await checkRateLimit({
+      ip: '1.1.1.1',
+      action: 'appointment',
+      maxPerWindow: 5,
+      windowMs: 15 * 60 * 1000,
+    })
+
+    expect(result.allowed).toBe(true)
+    const createCall = prismaMock.publicRateLimit.create.mock.calls[0]![0]
+    expect(createCall.data.action).toBe('appointment')
+  })
 })

@@ -1,15 +1,16 @@
 import { prisma } from '@/shared/database/prisma'
 
-const WINDOW_MS = 60 * 60 * 1000 // 1 hora
+const DEFAULT_WINDOW_MS = 60 * 60 * 1000 // 1 hora
 
 export async function checkRateLimit(params: {
   ip?: string
   phone?: string
-  action: 'appointment'
+  action: string
   maxPerWindow: number
+  windowMs?: number
 }): Promise<{ allowed: boolean; remaining: number }> {
-  const { ip, phone, action, maxPerWindow } = params
-  const windowStart = new Date(Date.now() - WINDOW_MS)
+  const { ip, phone, action, maxPerWindow, windowMs = DEFAULT_WINDOW_MS } = params
+  const windowStart = new Date(Date.now() - windowMs)
 
   const where = {
     action,
