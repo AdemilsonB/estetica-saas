@@ -342,6 +342,7 @@ model Customer {
   consentDate   DateTime?
   consentOrigin String?
   birthDate     DateTime?
+  cpf           String?
   isVip         Boolean           @default(false)
   vipUpdatedAt  DateTime?
   isBlocked     Boolean           @default(false)
@@ -356,6 +357,7 @@ model Customer {
   @@index([tenantId])
   @@index([tenantId, phone])
   @@index([tenantId, birthDate])
+  @@index([tenantId, cpf])
 }
 
 model ServiceCategory {
