@@ -80,7 +80,7 @@ export async function POST(req: Request, context: RouteContext) {
       }))
 
     const token = createPublicSession(customer.id, tenant.id, slug)
-    return new Response(JSON.stringify({ name: customer.name }), {
+    return new Response(JSON.stringify({ id: customer.id, name: customer.name }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',

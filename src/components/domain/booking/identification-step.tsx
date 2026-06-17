@@ -67,12 +67,12 @@ export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryCo
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cpf: cpf.replace(/\D/g, ''), birthDate }),
       })
-      const data = (await res.json()) as { name?: string; error?: { message: string } }
+      const data = (await res.json()) as { id?: string; name?: string; error?: { message: string } }
       if (!res.ok) {
         setError(data.error?.message ?? 'Dados não encontrados')
         return
       }
-      onIdentified('', data.name ?? '')
+      onIdentified(data.id ?? '', data.name ?? '')
     } catch {
       setError('Erro de conexão. Tente novamente.')
     } finally {
@@ -96,12 +96,12 @@ export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryCo
           birthDate: newBirthDate,
         }),
       })
-      const data = (await res.json()) as { name?: string; error?: { message: string } }
+      const data = (await res.json()) as { id?: string; name?: string; error?: { message: string } }
       if (!res.ok) {
         setError(data.error?.message ?? 'Erro ao cadastrar')
         return
       }
-      onIdentified('', data.name ?? newName)
+      onIdentified(data.id ?? '', data.name ?? newName)
     } catch {
       setError('Erro de conexão. Tente novamente.')
     } finally {
@@ -136,7 +136,16 @@ export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryCo
             className="w-full"
             size="lg"
             style={{ backgroundColor: primaryColor }}
-            onClick={() => onIdentified('', sessionName)}
+            onClick={() => {
+              fetch(`/api/public/${tenantSlug}/me`)
+                .then((r) => (r.ok ? r.json() : null))
+                .then((data: { id?: string; name?: string } | null) => {
+                  if (data?.id) {
+                    onIdentified(data.id, data.name ?? sessionName)
+                  }
+                })
+                .catch(() => onIdentified('', sessionName))
+            }}
           >
             Continuar
           </Button>
