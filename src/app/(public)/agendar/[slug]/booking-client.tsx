@@ -13,6 +13,7 @@ import { ServiceStep, type PromotionServiceSelection } from '@/components/domain
 import { ProfessionalStep } from '@/components/domain/booking/professional-step'
 import { DateTimeStep } from '@/components/domain/booking/datetime-step'
 import { PersonalStep } from '@/components/domain/booking/personal-step'
+import { IdentificationStep } from '@/components/domain/booking/identification-step'
 import { ConfirmationStep } from '@/components/domain/booking/confirmation-step'
 import { BookingSuccess } from '@/components/domain/booking/booking-success'
 import { AnamneseStep } from '@/components/domain/booking/anamnese-step'
@@ -22,6 +23,7 @@ const STEP_LABELS: Record<Exclude<BookingStep, 'success'>, string> = {
   professional: 'Profissional',
   datetime: 'Data e hora',
   personal: 'Seus dados',
+  identification: 'Identificação',
   anamnese: 'Ficha',
   confirmation: 'Confirmar',
 }
@@ -31,6 +33,7 @@ const ALL_STEPS: Exclude<BookingStep, 'success'>[] = [
   'professional',
   'datetime',
   'personal',
+  'identification',
   'anamnese',
   'confirmation',
 ]
@@ -227,9 +230,13 @@ export function BookingClient({
     customerPhone: string
     notes?: string
   }) {
-    const updated = { ...booking, ...data }
-    setBooking(updated)
-    const mode = updated.serviceAnamneseMode
+    setBooking((b) => ({ ...b, ...data }))
+    setStep('identification')
+  }
+
+  function handleIdentified(_customerId: string, customerName: string) {
+    setBooking((b) => ({ ...b, identifiedCustomerName: customerName }))
+    const mode = booking.serviceAnamneseMode
     if (mode && mode !== 'NONE') {
       setStep('anamnese')
     } else {
@@ -299,6 +306,15 @@ export function BookingClient({
           initialName={booking.customerName}
           initialPhone={booking.customerPhone}
           initialNotes={booking.notes}
+        />
+      )}
+
+      {step === 'identification' && (
+        <IdentificationStep
+          tenantSlug={tenantData.slug}
+          onIdentified={handleIdentified}
+          onBack={() => setStep('personal')}
+          primaryColor={primaryColor}
         />
       )}
 
