@@ -165,14 +165,20 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
         href={item.href}
         onClick={onClick}
         className={cn(
-          'flex items-center rounded-xl transition',
-          hasBadge && 'relative',
+          'relative flex items-center rounded-xl transition',
           showLabel ? 'gap-3 px-3 py-2.5' : 'size-10 justify-center',
           isActive
-            ? 'bg-accent text-primary'
+            ? 'bg-accent text-primary font-semibold'
             : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
         )}
       >
+        {isActive && showLabel && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 top-[20%] h-[60%] w-[3px] rounded-r"
+            style={{ background: 'linear-gradient(to bottom, #7C3AED, #DB2777)' }}
+          />
+        )}
         <span
           className={cn(
             'inline-flex shrink-0 items-center justify-center rounded-lg',

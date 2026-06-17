@@ -13,7 +13,7 @@ const plusJakarta = Plus_Jakarta_Sans({ variable: '--font-plus-jakarta-sans', su
 const lato = Lato({ variable: '--font-lato', subsets: ['latin'], weight: ['400', '700'] })
 
 export const metadata: Metadata = {
-  title: 'Estetica SaaS',
+  title: 'Agendê',
   description: 'Plataforma operacional inteligente para negocios de estetica e servicos.',
 }
 
@@ -31,9 +31,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR" className={`${fontVars} h-full antialiased`}>
       <head>
-        <style>{`:root { --font-sans: var(--font-inter); }`}</style>
+        <style>{`:root { --font-sans: var(--font-manrope); }`}</style>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#0f172a" />
+        <meta name="theme-color" content="#7C3AED" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />

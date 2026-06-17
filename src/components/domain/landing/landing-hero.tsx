@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 export function LandingHero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-violet-50 to-pink-50 px-4 sm:px-6 pb-10 sm:pb-16 pt-14 sm:pt-20 text-center">
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#FAF8FF] via-[#F0EBFF] to-[#FCE8F3] px-4 sm:px-6 pb-10 sm:pb-16 pt-14 sm:pt-20 text-center">
       {/* Glow decorativo */}
       <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-violet-200/40 blur-3xl" />
       <div className="pointer-events-none absolute -left-24 bottom-0 h-64 w-64 rounded-full bg-pink-200/30 blur-3xl" />

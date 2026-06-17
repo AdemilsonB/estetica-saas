@@ -70,12 +70,26 @@ export function BottomNav({ onNewAppointment }: BottomNavProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center gap-1 px-3 py-2 text-[10px] font-medium',
+                'relative flex flex-col items-center gap-1 px-3 py-2 text-[10px] font-medium',
                 isActive ? 'text-primary' : 'text-muted-foreground',
               )}
             >
-              <Icon className={cn('size-5', isActive && 'fill-primary/15')} />
+              <Icon
+                className={cn('size-5', isActive && 'fill-primary/15')}
+                style={
+                  isActive
+                    ? { filter: 'drop-shadow(0 0 5px rgba(124,58,237,0.35))' }
+                    : { filter: 'drop-shadow(0 0 3px rgba(124,58,237,0.15))' }
+                }
+              />
               <span>{item.label}</span>
+              {isActive && (
+                <span
+                  aria-hidden="true"
+                  className="absolute bottom-0 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full"
+                  style={{ background: 'linear-gradient(to right, #7C3AED, #DB2777)' }}
+                />
+              )}
             </Link>
           )
         })}
