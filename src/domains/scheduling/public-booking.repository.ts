@@ -221,7 +221,7 @@ export class PublicBookingRepository {
 
   async findPublicProducts(tenantId: string) {
     return prisma.product.findMany({
-      where: { tenantId, active: true },
+      where: { tenantId, active: true, availableForSale: true },
       select: {
         id: true,
         name: true,

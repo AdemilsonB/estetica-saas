@@ -44,7 +44,7 @@ type Props = {
 function formatPrice(s: PublicService): string {
   if (s.priceType === 'ON_CONSULTATION') return 'Sob consulta'
   if (s.priceType === 'RANGE' && s.priceMin != null && s.priceMax != null)
-    return `R$ ${s.priceMin.toFixed(2)}–R$ ${s.priceMax.toFixed(2)}`
+    return `R$ ${s.priceMin.toFixed(2)}–${s.priceMax.toFixed(2)}`
   if (s.priceType === 'STARTING_FROM') return `A partir de R$ ${s.price.toFixed(2)}`
   return `R$ ${s.price.toFixed(2)}`
 }
@@ -62,6 +62,7 @@ const ROLE_LABELS: Record<string, string> = {
   PROFESSIONAL: 'Profissional',
 }
 
+/* Seção genérica colapsável */
 function DrawerSection({
   title,
   children,
@@ -84,6 +85,56 @@ function DrawerSection({
         />
       </button>
       {open && <div className="pb-3">{children}</div>}
+    </div>
+  )
+}
+
+/* Sub-seção de categoria dentro de Serviços */
+function CategorySubSection({
+  name,
+  services,
+  primaryColor,
+  onNavigate,
+}: {
+  name: string
+  services: PublicService[]
+  primaryColor: string
+  onNavigate: (href: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="mx-4 mb-1 rounded-xl border overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-3 py-2.5 text-left hover:bg-muted/40"
+      >
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {name}
+        </span>
+        <ChevronDown
+          className={`size-3.5 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && (
+        <div className="border-t bg-muted/20 pb-1">
+          {services.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => onNavigate(`?serviceId=${s.id}`)}
+              className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-muted/50"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{s.name}</p>
+                <p className="text-xs text-muted-foreground">{formatDuration(s.duration)}</p>
+              </div>
+              <span className="shrink-0 text-xs font-semibold" style={{ color: primaryColor }}>
+                {formatPrice(s)}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -116,7 +167,7 @@ export function PublicMenuDrawer({
       ? `https://wa.me/55${phone.replace(/\D/g, '')}`
       : null
 
-  // Agrupa serviços por categoria
+  /* Agrupa serviços por categoria */
   const categoryOrder: string[] = []
   const grouped: Record<string, PublicService[]> = {}
   for (const s of services) {
@@ -125,9 +176,11 @@ export function PublicMenuDrawer({
     grouped[cat].push(s)
   }
 
-  function navigate(href: string) {
+  const hasMultipleCategories = categoryOrder.length > 1
+
+  function navigate(path: string) {
     setOpen(false)
-    setTimeout(() => { window.location.href = href }, 150)
+    setTimeout(() => { window.location.href = `${bookingBaseUrl}${path}` }, 150)
   }
 
   function scrollTo(id: string) {
@@ -141,15 +194,11 @@ export function PublicMenuDrawer({
     <>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-[85vw] max-w-sm p-0 flex flex-col">
-          {/* Header do drawer */}
+          {/* Header */}
           <SheetHeader className="flex-row items-center gap-3 border-b px-4 py-4">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={logoUrl}
-                alt={tenantName}
-                className="size-9 rounded-xl object-contain border"
-              />
+              <img src={logoUrl} alt={tenantName} className="size-9 rounded-xl object-contain border" />
             ) : (
               <div
                 className="flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
@@ -161,29 +210,36 @@ export function PublicMenuDrawer({
             <SheetTitle className="text-sm font-semibold leading-tight">{tenantName}</SheetTitle>
           </SheetHeader>
 
-          {/* Conteúdo com scroll */}
+          {/* Conteúdo */}
           <div className="flex-1 overflow-y-auto">
-            {/* Serviços */}
+
+            {/* Serviços — fechado por padrão, subcategorias também fechadas */}
             {services.length > 0 && (
-              <DrawerSection title="Serviços" defaultOpen={true}>
-                {categoryOrder.map((cat) => (
-                  <div key={cat} className="px-4">
-                    {categoryOrder.length > 1 && (
-                      <p className="mb-1 mt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        {cat}
-                      </p>
-                    )}
-                    {grouped[cat]!.map((s) => (
+              <DrawerSection title={`Serviços (${services.length})`} defaultOpen={false}>
+                {hasMultipleCategories ? (
+                  <div className="space-y-1">
+                    {categoryOrder.map((cat) => (
+                      <CategorySubSection
+                        key={cat}
+                        name={cat}
+                        services={grouped[cat]!}
+                        primaryColor={primaryColor}
+                        onNavigate={navigate}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  /* Categoria única — lista direto */
+                  <div className="px-4 space-y-1">
+                    {services.map((s) => (
                       <button
                         key={s.id}
-                        onClick={() => navigate(`${bookingBaseUrl}?serviceId=${s.id}`)}
+                        onClick={() => navigate(`?serviceId=${s.id}`)}
                         className="flex w-full items-center justify-between gap-2 rounded-lg py-2.5 text-left hover:bg-muted/50 px-2 -mx-2"
                       >
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{s.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDuration(s.duration)}
-                          </p>
+                          <p className="text-xs text-muted-foreground">{formatDuration(s.duration)}</p>
                         </div>
                         <span className="shrink-0 text-xs font-semibold" style={{ color: primaryColor }}>
                           {formatPrice(s)}
@@ -191,18 +247,18 @@ export function PublicMenuDrawer({
                       </button>
                     ))}
                   </div>
-                ))}
+                )}
               </DrawerSection>
             )}
 
             {/* Pacotes */}
             {packages.length > 0 && (
-              <DrawerSection title="Pacotes">
+              <DrawerSection title={`Pacotes (${packages.length})`} defaultOpen={false}>
                 <div className="px-4 space-y-1">
                   {packages.map((p) => (
                     <button
                       key={p.id}
-                      onClick={() => navigate(`${bookingBaseUrl}?packageId=${p.id}`)}
+                      onClick={() => navigate(`?packageId=${p.id}`)}
                       className="flex w-full items-center justify-between gap-2 rounded-lg py-2.5 text-left hover:bg-muted/50 px-2 -mx-2"
                     >
                       <p className="truncate text-sm font-medium">{p.name}</p>
@@ -217,7 +273,7 @@ export function PublicMenuDrawer({
 
             {/* Promoções */}
             {promotions.length > 0 && (
-              <DrawerSection title="🔥 Promoções">
+              <DrawerSection title={`🔥 Promoções (${promotions.length})`} defaultOpen={false}>
                 <div className="px-4 space-y-1">
                   {promotions.map((p) => (
                     <button
@@ -242,7 +298,7 @@ export function PublicMenuDrawer({
 
             {/* Produtos */}
             {products.length > 0 && (
-              <DrawerSection title="Produtos">
+              <DrawerSection title={`Produtos (${products.length})`} defaultOpen={false}>
                 <div className="px-4 space-y-1">
                   {products.map((p) => (
                     <button
@@ -262,7 +318,7 @@ export function PublicMenuDrawer({
 
             {/* Equipe */}
             {team.length > 0 && (
-              <DrawerSection title="Nossa Equipe">
+              <DrawerSection title="Nossa Equipe" defaultOpen={false}>
                 <div className="px-4 space-y-1">
                   {team.map((m) => (
                     <button
@@ -278,9 +334,7 @@ export function PublicMenuDrawer({
                       </div>
                       <div>
                         <p className="text-sm font-medium">{m.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {ROLE_LABELS[m.role] ?? m.role}
-                        </p>
+                        <p className="text-xs text-muted-foreground">{ROLE_LABELS[m.role] ?? m.role}</p>
                       </div>
                       <ChevronRight className="ml-auto size-4 text-muted-foreground" />
                     </button>
@@ -317,7 +371,6 @@ export function PublicMenuDrawer({
         </SheetContent>
       </Sheet>
 
-      {/* Modal de histórico separado do drawer */}
       <ClientHistoryModal
         open={historyOpen}
         onOpenChange={setHistoryOpen}
