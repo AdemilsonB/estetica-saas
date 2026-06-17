@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type {
   BookingState,
   BookingStep,
@@ -13,6 +13,7 @@ import { ServiceStep, type PromotionServiceSelection } from '@/components/domain
 import { ProfessionalStep } from '@/components/domain/booking/professional-step'
 import { DateTimeStep } from '@/components/domain/booking/datetime-step'
 import { PersonalStep } from '@/components/domain/booking/personal-step'
+import { IdentificationStep } from '@/components/domain/booking/identification-step'
 import { ConfirmationStep } from '@/components/domain/booking/confirmation-step'
 import { BookingSuccess } from '@/components/domain/booking/booking-success'
 import { AnamneseStep } from '@/components/domain/booking/anamnese-step'
@@ -22,6 +23,7 @@ const STEP_LABELS: Record<Exclude<BookingStep, 'success'>, string> = {
   professional: 'Profissional',
   datetime: 'Data e hora',
   personal: 'Seus dados',
+  identification: 'Identificação',
   anamnese: 'Ficha',
   confirmation: 'Confirmar',
 }
@@ -31,6 +33,7 @@ const ALL_STEPS: Exclude<BookingStep, 'success'>[] = [
   'professional',
   'datetime',
   'personal',
+  'identification',
   'anamnese',
   'confirmation',
 ]
@@ -65,7 +68,15 @@ function StepIndicator({
   )
 }
 
-export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) {
+export function BookingClient({
+  tenantData,
+  preSelectServiceId,
+  preSelectPackageId,
+}: {
+  tenantData: TenantPublicData
+  preSelectServiceId?: string
+  preSelectPackageId?: string
+}) {
   const [step, setStep] = useState<BookingStep>('service')
   const [booking, setBooking] = useState<BookingState>({})
   const [appointmentId, setAppointmentId] = useState<string | null>(null)
@@ -73,6 +84,28 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
     tenantData.professionals,
   )
   const [showServiceWarning, setShowServiceWarning] = useState(false)
+  const initializedRef = useRef(false)
+
+  useEffect(() => {
+    if (initializedRef.current) return
+    initializedRef.current = true
+
+    if (preSelectServiceId) {
+      const service = tenantData.services.find((s) => s.id === preSelectServiceId)
+      if (service) {
+        handleServiceSelect(service)
+        return
+      }
+    }
+    if (preSelectPackageId) {
+      const pkg = tenantData.packages.find((p) => p.id === preSelectPackageId)
+      if (pkg) {
+        handlePackageSelect(pkg)
+        return
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const singleProfessional = tenantData.professionals.length === 1
   const visibleSteps = ALL_STEPS.filter((s) => {
@@ -197,9 +230,13 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
     customerPhone: string
     notes?: string
   }) {
-    const updated = { ...booking, ...data }
-    setBooking(updated)
-    const mode = updated.serviceAnamneseMode
+    setBooking((b) => ({ ...b, ...data }))
+    setStep('identification')
+  }
+
+  function handleIdentified(_customerId: string, customerName: string) {
+    setBooking((b) => ({ ...b, identifiedCustomerName: customerName }))
+    const mode = booking.serviceAnamneseMode
     if (mode && mode !== 'NONE') {
       setStep('anamnese')
     } else {
@@ -269,6 +306,15 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
           initialName={booking.customerName}
           initialPhone={booking.customerPhone}
           initialNotes={booking.notes}
+        />
+      )}
+
+      {step === 'identification' && (
+        <IdentificationStep
+          tenantSlug={tenantData.slug}
+          onIdentified={handleIdentified}
+          onBack={() => setStep('personal')}
+          primaryColor={primaryColor}
         />
       )}
 

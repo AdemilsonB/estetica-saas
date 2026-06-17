@@ -1,0 +1,62 @@
+import { supabaseAdmin } from '@/integrations/supabase/admin'
+import { getSessionContext } from '@/shared/auth/session'
+import { DomainError, ValidationError } from '@/shared/errors'
+import { handleApiError } from '@/shared/http/handle-api-error'
+import { prisma } from '@/shared/database/prisma'
+
+const BUCKET = 'cover-images'
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp']
+const MAX_BYTES = 5 * 1024 * 1024 // 5MB
+
+async function ensureBucketExists() {
+  const { data: buckets } = await supabaseAdmin.storage.listBuckets()
+  if (buckets?.find((b) => b.id === BUCKET)) return
+  await supabaseAdmin.storage.createBucket(BUCKET, {
+    public: true,
+    fileSizeLimit: MAX_BYTES,
+    allowedMimeTypes: ALLOWED_TYPES,
+  })
+}
+
+export async function POST(req: Request) {
+  try {
+    const session = await getSessionContext(req)
+
+    const formData = await req.formData()
+    const file = formData.get('cover')
+
+    if (!(file instanceof File)) {
+      throw new ValidationError('Campo cover ausente ou inválido.')
+    }
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      throw new ValidationError('Formato não suportado. Use PNG, JPG ou WebP.')
+    }
+    if (file.size > MAX_BYTES) {
+      throw new ValidationError('Arquivo excede 5MB.')
+    }
+
+    await ensureBucketExists()
+
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
+    const path = `${session.tenantId}/cover.${ext}`
+
+    const { error } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .upload(path, buffer, { contentType: file.type, upsert: true })
+
+    if (error) throw new DomainError(`Upload falhou: ${error.message}`, 'STORAGE_ERROR', 502)
+
+    const { data } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path)
+
+    await prisma.tenant.update({
+      where: { id: session.tenantId },
+      data: { coverImageUrl: data.publicUrl },
+    })
+
+    return Response.json({ coverImageUrl: data.publicUrl }, { status: 201 })
+  } catch (error) {
+    return handleApiError(error)
+  }
+}

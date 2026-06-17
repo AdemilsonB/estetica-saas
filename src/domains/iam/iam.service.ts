@@ -186,7 +186,7 @@ export class IamService {
     tenantId: string,
     requesterId: string,
     targetId: string,
-    input: { name?: string; email?: string; avatarUrl?: string | null },
+    input: { name?: string; email?: string; avatarUrl?: string | null; bio?: string | null; showOnPublicPage?: boolean },
   ) {
     const requester = await iamRepository.findUserById(tenantId, requesterId)
     if (!requester) throw new UserNotFoundError()
@@ -279,9 +279,16 @@ export class IamService {
 
   async updateTenant(
     tenantId: string,
-    data: { name?: string; phone?: string | null; address?: string | null },
+    data: {
+      name?: string
+      phone?: string | null
+      address?: string | null
+      bio?: string | null
+      instagramUrl?: string | null
+      coverImageUrl?: string | null
+    },
   ) {
-    return iamRepository.updateTenant(tenantId, data);
+    return iamRepository.updateTenant(tenantId, data)
   }
 
   async getBusinessHours(tenantId: string) {

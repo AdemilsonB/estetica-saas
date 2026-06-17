@@ -24,7 +24,8 @@
       "Bash(gh issue *)",
       "Bash(gh repo *)",
       "Bash(npm list *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(npx prisma *)"
     ]
   }
 }

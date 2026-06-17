@@ -140,6 +140,9 @@ model Tenant {
   birthdayEnabled        Boolean                @default(false)
   birthdayMessage        String?
   birthdayGiftServiceId  String?
+  instagramUrl           String?
+  coverImageUrl          String?
+  bio                    String?
   isBlocked              Boolean                @default(false)
   blockedReason          String?
   schedulingPolicy       SchedulingPolicy?
@@ -255,6 +258,8 @@ model User {
   role                 UserRole              @default(PROFESSIONAL)
   permissions          String[]
   avatarUrl            String?
+  bio                  String?
+  showOnPublicPage     Boolean               @default(true)
   roleId               String?
   customRole           Role?                 @relation("UserCustomRole", fields: [roleId], references: [id])
   createdAt            DateTime              @default(now())
@@ -337,6 +342,7 @@ model Customer {
   consentDate   DateTime?
   consentOrigin String?
   birthDate     DateTime?
+  cpf           String?
   isVip         Boolean           @default(false)
   vipUpdatedAt  DateTime?
   isBlocked     Boolean           @default(false)
@@ -351,6 +357,7 @@ model Customer {
   @@index([tenantId])
   @@index([tenantId, phone])
   @@index([tenantId, birthDate])
+  @@index([tenantId, cpf])
 }
 
 model ServiceCategory {

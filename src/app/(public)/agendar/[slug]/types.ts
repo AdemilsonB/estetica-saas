@@ -85,6 +85,8 @@ export type BookingState = {
   customerPhone?: string
   notes?: string
   anamneseId?: string
+  customerId?: string
+  identifiedCustomerName?: string
 }
 
 export type BookingStep =
@@ -92,6 +94,7 @@ export type BookingStep =
   | 'professional'
   | 'datetime'
   | 'personal'
+  | 'identification'
   | 'anamnese'
   | 'confirmation'
   | 'success'

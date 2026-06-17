@@ -14,6 +14,10 @@ export class PublicBookingRepository {
         timezone: true,
         businessHours: true,
         evolutionConnected: true,
+        whatsappEnabled: true,
+        instagramUrl: true,
+        coverImageUrl: true,
+        bio: true,
         brandingConfig: {
           select: {
             logoUrl: true,
@@ -151,6 +155,38 @@ export class PublicBookingRepository {
           : [],
       ),
     }))
+  }
+  async findPublicTeam(tenantId: string) {
+    const members = await prisma.user.findMany({
+      where: {
+        tenantId,
+        showOnPublicPage: true,
+        role: { in: ['PROFESSIONAL', 'OWNER', 'MANAGER'] },
+      },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        avatarUrl: true,
+        bio: true,
+      },
+      orderBy: { name: 'asc' },
+    })
+    return members
+  }
+
+  async findPublicProducts(tenantId: string) {
+    return prisma.product.findMany({
+      where: { tenantId, active: true },
+      select: {
+        id: true,
+        name: true,
+        salePrice: true,
+        imageUrl: true,
+        category: { select: { name: true } },
+      },
+      orderBy: { name: 'asc' },
+    })
   }
 }
 
