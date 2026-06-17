@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -164,9 +165,14 @@ function LeftPanel({
             className="h-8 w-auto"
           />
         ) : (
-          <span className="text-xl font-extrabold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
-            Agendê
-          </span>
+          <Image
+            src="/brand/logo-horizontal.png"
+            alt="Agendê"
+            width={130}
+            height={32}
+            className="h-8 w-auto object-contain"
+            priority
+          />
         )}
       </div>
 
@@ -235,9 +241,14 @@ function RightPanel({
     <div className="flex w-full flex-col items-center justify-center bg-white p-8 lg:w-[55%]">
       <div className="w-full max-w-sm space-y-6">
         <div className="md:hidden flex items-center gap-2">
-          <span className="text-xl font-extrabold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
-            Agendê
-          </span>
+          <Image
+            src="/brand/logo-horizontal.png"
+            alt="Agendê"
+            width={130}
+            height={32}
+            className="h-8 w-auto object-contain"
+            priority
+          />
         </div>
 
         <Tabs defaultValue={defaultTab} className="w-full">

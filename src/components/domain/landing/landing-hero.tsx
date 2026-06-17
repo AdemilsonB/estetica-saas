@@ -14,7 +14,7 @@ export function LandingHero() {
       </div>
 
       {/* Headline */}
-      <h1 className="mx-auto max-w-3xl text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl md:text-5xl lg:text-6xl">
+      <h1 className="mx-auto max-w-3xl text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl md:text-4xl lg:text-5xl">
         Seu salão no{' '}
         <span className="bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
           piloto automático.
