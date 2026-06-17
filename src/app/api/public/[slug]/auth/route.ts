@@ -71,11 +71,13 @@ export async function POST(req: Request, context: RouteContext) {
     }
 
     const token = createPublicSession(customer.id, tenant.id, slug)
+    const isProduction = process.env.NODE_ENV === 'production'
+    const secureFlag = isProduction ? '; Secure' : ''
     return new Response(JSON.stringify({ id: customer.id, name: customer.name }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Set-Cookie': `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${MAX_AGE_SECONDS}`,
+        'Set-Cookie': `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Strict; Path=/${secureFlag}; Max-Age=${MAX_AGE_SECONDS}`,
       },
     })
   } catch (error) {

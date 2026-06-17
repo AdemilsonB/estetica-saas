@@ -1,7 +1,16 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 
-const SESSION_SECRET =
-  process.env.PUBLIC_SESSION_SECRET ?? 'dev-secret-change-in-production'
+function getSessionSecret(): string {
+  const secret = process.env.PUBLIC_SESSION_SECRET
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'PUBLIC_SESSION_SECRET não está configurado. Adicione essa variável de ambiente em produção.',
+    )
+  }
+  return secret ?? 'dev-secret-change-in-production'
+}
+
+const SESSION_SECRET = getSessionSecret()
 
 export const COOKIE_NAME = 'agende_pub_sess'
 export const MAX_AGE_SECONDS = 30 * 24 * 60 * 60 // 30 dias
