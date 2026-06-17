@@ -5,6 +5,12 @@ import { prisma } from '@/shared/database/prisma'
 import { publicBookingRepository } from '@/domains/scheduling/public-booking.repository'
 import { CustomerHistoryClient } from './customer-history-client'
 
+function maskCpf(cpf: string | null): string {
+  if (!cpf) return '—'
+  const d = cpf.replace(/\D/g, '')
+  return `***.***.${d.slice(6, 9)}-${d.slice(9, 11)}`
+}
+
 export default async function ClientePage({
   params,
 }: {
@@ -79,7 +85,7 @@ export default async function ClientePage({
       customer={{
         id: customer.id,
         name: customer.name,
-        cpf: customer.cpf,
+        cpf: maskCpf(customer.cpf),
         phone: customer.phone,
         email: customer.email,
         birthDate: customer.birthDate?.toISOString() ?? null,

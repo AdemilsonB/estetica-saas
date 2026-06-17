@@ -22,7 +22,7 @@ type AppointmentRow = {
 type Customer = {
   id: string
   name: string
-  cpf: string | null
+  cpf: string
   phone: string | null
   email: string | null
   birthDate: string | null
@@ -63,10 +63,6 @@ export function CustomerHistoryClient({
   const [email, setEmail] = useState(customer.email ?? '')
   const [saving, setSaving] = useState(false)
   const [page, setPage] = useState(0)
-
-  const maskCpf = customer.cpf
-    ? `***.***.${customer.cpf.slice(-5, -2)}-${customer.cpf.slice(-2)}`
-    : '—'
 
   const visibleHistory = history.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
   const totalPages = Math.ceil(history.length / PAGE_SIZE)
@@ -211,7 +207,7 @@ export function CustomerHistoryClient({
             <span className="text-muted-foreground">Nome:</span> {customer.name}
           </p>
           <p className="text-sm">
-            <span className="text-muted-foreground">CPF:</span> {maskCpf}
+            <span className="text-muted-foreground">CPF:</span> {customer.cpf}
           </p>
           {customer.birthDate && (
             <p className="text-sm">
