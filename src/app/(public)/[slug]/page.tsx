@@ -142,10 +142,14 @@ export default async function VitrinePage({
         accentColor={accent}
         phone={tenant.phone}
         whatsappEnabled={tenant.whatsappEnabled}
+        instagramUrl={tenant.instagramUrl}
         allowPublicBooking={tenant.allowPublicBooking}
         bookingUrl={bookingUrl}
         isOpen={isOpen}
         teamCount={team.length}
+        hasPackages={tenant.packages.length > 0}
+        hasPromotions={tenant.promotions.length > 0}
+        hasProducts={products.length > 0}
       />
 
       {/* Separador */}
