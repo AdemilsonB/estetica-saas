@@ -79,10 +79,13 @@ function isOpenNow(businessHours: unknown, timezone: string): boolean {
 
 export default async function BookingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ serviceId?: string; packageId?: string; promotionId?: string }>
 }) {
   const { slug } = await params
+  const sp = await searchParams
   const data = await fetchTenantData(slug)
   if (!data || !data.allowPublicBooking) notFound()
 
@@ -178,7 +181,11 @@ export default async function BookingPage({
       </div>
 
       <main className="mx-auto max-w-lg px-4 py-6 pb-24">
-        <BookingClient tenantData={data} />
+        <BookingClient
+          tenantData={data}
+          preSelectServiceId={sp.serviceId}
+          preSelectPackageId={sp.packageId}
+        />
       </main>
     </div>
   )

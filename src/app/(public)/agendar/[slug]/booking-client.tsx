@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type {
   BookingState,
   BookingStep,
@@ -65,7 +65,15 @@ function StepIndicator({
   )
 }
 
-export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) {
+export function BookingClient({
+  tenantData,
+  preSelectServiceId,
+  preSelectPackageId,
+}: {
+  tenantData: TenantPublicData
+  preSelectServiceId?: string
+  preSelectPackageId?: string
+}) {
   const [step, setStep] = useState<BookingStep>('service')
   const [booking, setBooking] = useState<BookingState>({})
   const [appointmentId, setAppointmentId] = useState<string | null>(null)
@@ -73,6 +81,28 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
     tenantData.professionals,
   )
   const [showServiceWarning, setShowServiceWarning] = useState(false)
+  const initializedRef = useRef(false)
+
+  useEffect(() => {
+    if (initializedRef.current) return
+    initializedRef.current = true
+
+    if (preSelectServiceId) {
+      const service = tenantData.services.find((s) => s.id === preSelectServiceId)
+      if (service) {
+        handleServiceSelect(service)
+        return
+      }
+    }
+    if (preSelectPackageId) {
+      const pkg = tenantData.packages.find((p) => p.id === preSelectPackageId)
+      if (pkg) {
+        handlePackageSelect(pkg)
+        return
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const singleProfessional = tenantData.professionals.length === 1
   const visibleSteps = ALL_STEPS.filter((s) => {
