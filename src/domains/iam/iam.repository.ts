@@ -289,6 +289,10 @@ export class IamRepository {
         slug: true,
         phone: true,
         address: true,
+        bio: true,
+        instagramUrl: true,
+        coverImageUrl: true,
+        whatsappEnabled: true,
         onboardingCompleted: true,
       },
     });
@@ -303,7 +307,14 @@ export class IamRepository {
 
   async updateTenant(
     tenantId: string,
-    data: { name?: string; phone?: string | null; address?: string | null },
+    data: {
+      name?: string
+      phone?: string | null
+      address?: string | null
+      bio?: string | null
+      instagramUrl?: string | null
+      coverImageUrl?: string | null
+    },
   ) {
     return prisma.tenant.update({
       where: { id: tenantId },
@@ -314,8 +325,11 @@ export class IamRepository {
         slug: true,
         phone: true,
         address: true,
+        bio: true,
+        instagramUrl: true,
+        coverImageUrl: true,
       },
-    });
+    })
   }
 
   static defaultBusinessHours(): Record<string, { open: string; close: string; active: boolean }> {

@@ -12,7 +12,10 @@ const updateTenantSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   phone: z.string().trim().max(30).nullable().optional(),
   address: z.string().trim().max(200).nullable().optional(),
-});
+  bio: z.string().trim().max(280).nullable().optional(),
+  instagramUrl: z.string().trim().url().max(200).nullable().optional(),
+  coverImageUrl: z.string().trim().url().max(500).nullable().optional(),
+})
 
 export async function GET(request: Request) {
   initializeDomainRuntime();

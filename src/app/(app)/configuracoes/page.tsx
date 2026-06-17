@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   Building2, Clock, Palette, Link as LinkIcon,
   Settings2, MessageCircle, Zap, CreditCard,
-  Sparkles, ClipboardList, Loader2, ExternalLink,
+  Sparkles, ClipboardList, Loader2, ExternalLink, Globe,
 } from 'lucide-react'
 import { SettingsGroup } from '@/components/domain/settings/settings-group'
 import { SettingsCard } from '@/components/domain/settings/settings-card'
@@ -20,6 +20,7 @@ import { NotificationHistory } from '@/components/domain/settings/notification-h
 import { WhatsAppAutomationsForm } from '@/components/domain/settings/whatsapp-automations-form'
 import { CardFeesForm } from '@/components/domain/settings/card-fees-form'
 import { BillingPlansContent } from '@/components/domain/billing/billing-plans-content'
+import { PublicPageForm } from '@/components/domain/settings/public-page-form'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
 import { Button } from '@/components/ui/button'
@@ -41,6 +42,14 @@ type BrandingConfig = {
 type BusinessInfo = {
   name?: string
   phone?: string
+}
+
+type TenantPublicInfo = {
+  bio: string | null
+  instagramUrl: string | null
+  coverImageUrl: string | null
+  phone: string | null
+  whatsappEnabled: boolean
 }
 
 function BrandingCardContent() {
@@ -80,6 +89,7 @@ export default function ConfiguracoesPage() {
   const { data: evolutionStatus } = useEvolutionStatus()
 
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null)
+  const [tenantPublicInfo, setTenantPublicInfo] = useState<TenantPublicInfo | null>(null)
 
   useEffect(() => {
     if (!isLoading && !can('configuracoes', 'view')) {
@@ -91,6 +101,13 @@ export default function ConfiguracoesPage() {
     fetch('/api/iam/business-info')
       .then((r) => r.json())
       .then((data) => setBusinessInfo(data as BusinessInfo))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/iam/tenant')
+      .then((r) => r.json())
+      .then((data) => setTenantPublicInfo(data as TenantPublicInfo))
       .catch(() => {})
   }, [])
 
@@ -178,6 +195,20 @@ export default function ConfiguracoesPage() {
             <p className="text-sm text-muted-foreground">
               Seu negócio ainda não possui um link público configurado.
             </p>
+          )}
+        </SettingsCard>
+
+        <SettingsCard
+          icon={Globe}
+          title="Página pública"
+          subtitle="Foto de capa, bio e redes sociais — aparecem na sua vitrine online"
+        >
+          {tenantPublicInfo ? (
+            <PublicPageForm initial={tenantPublicInfo} />
+          ) : (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            </div>
           )}
         </SettingsCard>
 
