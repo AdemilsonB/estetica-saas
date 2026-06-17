@@ -12,6 +12,7 @@ type Props = {
   onIdentified: (customerId: string, name: string) => void
   onBack: () => void
   primaryColor: string
+  gateMode?: boolean
 }
 
 function applyCpfMask(value: string): string {
@@ -29,7 +30,7 @@ function applyPhoneMask(value: string): string {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
 }
 
-export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryColor }: Props) {
+export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryColor, gateMode }: Props) {
   const [sessionName, setSessionName] = useState<string | null>(null)
   const [loadingSession, setLoadingSession] = useState(true)
   const [cpf, setCpf] = useState('')
@@ -120,13 +121,15 @@ export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryCo
   if (sessionName) {
     return (
       <div className="space-y-4">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 -ml-1 py-1 px-1 rounded"
-        >
-          <ChevronLeft className="size-4" />
-          Voltar
-        </button>
+        {!gateMode && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 -ml-1 py-1 px-1 rounded"
+          >
+            <ChevronLeft className="size-4" />
+            Voltar
+          </button>
+        )}
         <div className="rounded-2xl border bg-white p-5 space-y-4">
           <div>
             <p className="text-sm text-slate-500">Agendando para</p>
@@ -162,16 +165,22 @@ export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryCo
 
   return (
     <div className="space-y-4">
-      <button
-        onClick={onBack}
-        className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 -ml-1 py-1 px-1 rounded"
-      >
-        <ChevronLeft className="size-4" />
-        Voltar
-      </button>
+      {!gateMode && (
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 -ml-1 py-1 px-1 rounded"
+        >
+          <ChevronLeft className="size-4" />
+          Voltar
+        </button>
+      )}
       <div>
-        <h2 className="text-xl font-semibold text-slate-900">Quem vai ser atendido?</h2>
-        <p className="text-sm text-slate-500 mt-1">Identifique-se para continuar.</p>
+        <h2 className="text-xl font-semibold text-slate-900">
+          {gateMode ? 'Bem-vindo! Identifique-se para agendar.' : 'Quem vai ser atendido?'}
+        </h2>
+        <p className="text-sm text-slate-500 mt-1">
+          {gateMode ? 'Entre com sua conta ou cadastre-se.' : 'Identifique-se para continuar.'}
+        </p>
       </div>
 
       {error && (

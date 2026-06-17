@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { Loader2 } from 'lucide-react'
 import type {
   BookingState,
   BookingStep,
@@ -12,7 +13,6 @@ import type {
 import { ServiceStep, type PromotionServiceSelection } from '@/components/domain/booking/service-step'
 import { ProfessionalStep } from '@/components/domain/booking/professional-step'
 import { DateTimeStep } from '@/components/domain/booking/datetime-step'
-import { PersonalStep } from '@/components/domain/booking/personal-step'
 import { IdentificationStep } from '@/components/domain/booking/identification-step'
 import { ConfirmationStep } from '@/components/domain/booking/confirmation-step'
 import { BookingSuccess } from '@/components/domain/booking/booking-success'
@@ -22,8 +22,6 @@ const STEP_LABELS: Record<Exclude<BookingStep, 'success'>, string> = {
   service: 'Serviço',
   professional: 'Profissional',
   datetime: 'Data e hora',
-  personal: 'Seus dados',
-  identification: 'Identificação',
   anamnese: 'Ficha',
   confirmation: 'Confirmar',
 }
@@ -32,8 +30,6 @@ const ALL_STEPS: Exclude<BookingStep, 'success'>[] = [
   'service',
   'professional',
   'datetime',
-  'personal',
-  'identification',
   'anamnese',
   'confirmation',
 ]
@@ -77,6 +73,7 @@ export function BookingClient({
   preSelectServiceId?: string
   preSelectPackageId?: string
 }) {
+  const [authStatus, setAuthStatus] = useState<'checking' | 'unauthenticated' | 'authenticated'>('checking')
   const [step, setStep] = useState<BookingStep>('service')
   const [booking, setBooking] = useState<BookingState>({})
   const [appointmentId, setAppointmentId] = useState<string | null>(null)
@@ -86,7 +83,31 @@ export function BookingClient({
   const [showServiceWarning, setShowServiceWarning] = useState(false)
   const initializedRef = useRef(false)
 
+  const primaryColor = tenantData.branding?.primaryColor ?? '#7C3AED'
+  const maxAdvanceDays = 60
+
+  // Verificação de autenticação — primeira coisa a rodar
   useEffect(() => {
+    fetch(`/api/public/${tenantData.slug}/me`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { name?: string; phone?: string } | null) => {
+        if (data?.name) {
+          setBooking((b) => ({
+            ...b,
+            customerName: data.name,
+            customerPhone: data.phone ?? '',
+          }))
+          setAuthStatus('authenticated')
+        } else {
+          setAuthStatus('unauthenticated')
+        }
+      })
+      .catch(() => setAuthStatus('unauthenticated'))
+  }, [tenantData.slug])
+
+  // Pré-seleção via query params (roda após autenticação confirmada)
+  useEffect(() => {
+    if (authStatus !== 'authenticated') return
     if (initializedRef.current) return
     initializedRef.current = true
 
@@ -105,7 +126,7 @@ export function BookingClient({
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [authStatus])
 
   const singleProfessional = tenantData.professionals.length === 1
   const visibleSteps = ALL_STEPS.filter((s) => {
@@ -113,8 +134,28 @@ export function BookingClient({
     if (s === 'anamnese') return false
     return true
   })
-  const primaryColor = tenantData.branding?.primaryColor ?? '#7C3AED'
-  const maxAdvanceDays = 60
+
+  // Loading
+  if (authStatus === 'checking') {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="size-6 animate-spin text-slate-400" />
+      </div>
+    )
+  }
+
+  // Gate: cliente não autenticado — identificação antes da vitrine
+  if (authStatus === 'unauthenticated') {
+    return (
+      <IdentificationStep
+        tenantSlug={tenantData.slug}
+        onIdentified={() => { window.location.href = `/${tenantData.slug}` }}
+        onBack={() => {}}
+        primaryColor={primaryColor}
+        gateMode
+      />
+    )
+  }
 
   function handlePackageSelect(pkg: PublicPackage) {
     setBooking((b) => ({
@@ -126,7 +167,6 @@ export function BookingClient({
       servicePrice: `R$ ${Number(pkg.price).toFixed(2).replace('.', ',')}`,
       serviceName: pkg.name,
     }))
-    // Para pacotes, mostra todos os profissionais disponíveis
     setProfessionalsForService(tenantData.professionals)
     setShowServiceWarning(false)
     if (tenantData.professionals.length === 1) {
@@ -194,7 +234,6 @@ export function BookingClient({
       serviceAnamneseValidityDays: service.anamneseValidityDays,
     }))
 
-    // Filtra profissionais pelo serviço selecionado
     const linked = tenantData.professionals.filter((p) =>
       p.serviceIds.includes(service.id),
     )
@@ -222,20 +261,6 @@ export function BookingClient({
 
   function handleDateTimeSelect(startsAt: Date) {
     setBooking((b) => ({ ...b, startsAt }))
-    setStep('personal')
-  }
-
-  function handlePersonalData(data: {
-    customerName: string
-    customerPhone: string
-    notes?: string
-  }) {
-    setBooking((b) => ({ ...b, ...data }))
-    setStep('identification')
-  }
-
-  function handleIdentified(_customerId: string, customerName: string) {
-    setBooking((b) => ({ ...b, identifiedCustomerName: customerName }))
     const mode = booking.serviceAnamneseMode
     if (mode && mode !== 'NONE') {
       setStep('anamnese')
@@ -299,25 +324,6 @@ export function BookingClient({
         />
       )}
 
-      {step === 'personal' && (
-        <PersonalStep
-          onSubmit={handlePersonalData}
-          onBack={() => setStep('datetime')}
-          initialName={booking.customerName}
-          initialPhone={booking.customerPhone}
-          initialNotes={booking.notes}
-        />
-      )}
-
-      {step === 'identification' && (
-        <IdentificationStep
-          tenantSlug={tenantData.slug}
-          onIdentified={handleIdentified}
-          onBack={() => setStep('personal')}
-          primaryColor={primaryColor}
-        />
-      )}
-
       {step === 'anamnese' &&
         booking.customerPhone &&
         booking.serviceAnamneseMode &&
@@ -330,7 +336,7 @@ export function BookingClient({
             primaryColor={primaryColor}
             onComplete={handleAnamneseComplete}
             onSkip={() => setStep('confirmation')}
-            onBack={() => setStep('personal')}
+            onBack={() => setStep('datetime')}
           />
         )}
 
@@ -339,7 +345,7 @@ export function BookingClient({
           booking={booking}
           tenantSlug={tenantData.slug}
           onConfirm={handleConfirm}
-          onBack={() => setStep('personal')}
+          onBack={() => setStep('datetime')}
           primaryColor={primaryColor}
         />
       )}

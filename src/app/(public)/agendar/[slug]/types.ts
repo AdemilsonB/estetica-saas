@@ -93,8 +93,6 @@ export type BookingStep =
   | 'service'
   | 'professional'
   | 'datetime'
-  | 'personal'
-  | 'identification'
   | 'anamnese'
   | 'confirmation'
   | 'success'
