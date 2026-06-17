@@ -108,7 +108,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     }
 
     const updated = await prisma.customer.update({
-      where: { id: session.customerId },
+      where: { id: session.customerId, tenantId: tenant.id },
       data: parsed.data,
       select: { id: true, name: true, phone: true, email: true },
     })
