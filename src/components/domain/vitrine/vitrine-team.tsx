@@ -1,0 +1,53 @@
+// src/components/domain/vitrine/vitrine-team.tsx
+type TeamMember = {
+  id: string
+  name: string
+  role: string
+  avatarUrl?: string | null
+  bio?: string | null
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  OWNER: 'Proprietário',
+  MANAGER: 'Gerente',
+  PROFESSIONAL: 'Profissional',
+  RECEPTIONIST: 'Recepcionista',
+}
+
+export function VitrineTeam({ members }: { members: TeamMember[] }) {
+  if (members.length === 0) return null
+
+  return (
+    <section className="mx-auto max-w-3xl px-4 py-6">
+      <h2 className="mb-4 text-lg font-semibold">Nossa equipe</h2>
+      <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-x-visible">
+        {members.map((m) => (
+          <div
+            key={m.id}
+            className="flex min-w-[140px] shrink-0 flex-col items-center gap-2 rounded-2xl border bg-card p-4 text-center sm:min-w-0"
+          >
+            {m.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={m.avatarUrl}
+                alt={m.name}
+                className="size-16 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex size-16 items-center justify-center rounded-full bg-muted text-xl font-semibold">
+                {m.name[0]?.toUpperCase()}
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-medium leading-tight">{m.name}</p>
+              <p className="text-xs text-muted-foreground">{ROLE_LABELS[m.role] ?? m.role}</p>
+            </div>
+            {m.bio && (
+              <p className="line-clamp-2 text-xs text-muted-foreground">{m.bio}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
