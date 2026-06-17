@@ -73,7 +73,7 @@ export function VitrineHero({
   return (
     <div>
       {/* Banner */}
-      <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/7' }}>
+      <div className="relative h-44 w-full overflow-hidden sm:h-56">
         {heroImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={heroImage} alt="" className="h-full w-full object-cover" />

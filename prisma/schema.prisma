@@ -685,9 +685,10 @@ model Product {
   salePrice     Decimal  @db.Decimal(10, 2)
   stockQuantity Int      @default(0)
   lowStockAlert Int      @default(5)
-  active           Boolean  @default(true)
-  imageUrl         String?
-  catalogProductId String?
+  active              Boolean  @default(true)
+  availableForSale    Boolean  @default(false)
+  imageUrl            String?
+  catalogProductId    String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

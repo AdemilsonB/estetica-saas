@@ -52,7 +52,6 @@ function ServiceCard({
 
   return (
     <div className="flex gap-3 rounded-2xl border bg-card p-3">
-      {/* Thumbnail */}
       <div className="size-[72px] shrink-0 overflow-hidden rounded-xl bg-muted flex items-center justify-center">
         {service.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -62,7 +61,6 @@ function ServiceCard({
         )}
       </div>
 
-      {/* Conteúdo */}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-2">
           <p className="text-sm font-semibold leading-snug">{service.name}</p>
@@ -88,9 +86,7 @@ function ServiceCard({
 
         {service.description && (
           <div>
-            <p
-              className={`text-xs leading-relaxed text-muted-foreground ${descExpanded ? '' : 'line-clamp-2'}`}
-            >
+            <p className={`text-xs leading-relaxed text-muted-foreground ${descExpanded ? '' : 'line-clamp-2'}`}>
               {service.description}
             </p>
             {hasLongDesc && (
@@ -99,11 +95,7 @@ function ServiceCard({
                 className="mt-0.5 inline-flex items-center gap-0.5 text-[11px] font-medium"
                 style={{ color: primaryColor }}
               >
-                {descExpanded ? (
-                  <>Ver menos <ChevronUp className="size-3" /></>
-                ) : (
-                  <>Ver mais <ChevronDown className="size-3" /></>
-                )}
+                {descExpanded ? <>Ver menos <ChevronUp className="size-3" /></> : <>Ver mais <ChevronDown className="size-3" /></>}
               </button>
             )}
           </div>
@@ -121,10 +113,63 @@ function ServiceCard({
   )
 }
 
+function CategorySection({
+  name,
+  services,
+  bookingBaseUrl,
+  primaryColor,
+  showHeader,
+}: {
+  name: string
+  services: PublicService[]
+  bookingBaseUrl: string
+  primaryColor: string
+  showHeader: boolean
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="rounded-2xl border overflow-hidden">
+      {/* Cabeçalho clicável da categoria */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          {showHeader && (
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {name}
+            </span>
+          )}
+          <span className="text-xs text-muted-foreground">
+            {services.length} {services.length === 1 ? 'serviço' : 'serviços'}
+          </span>
+        </div>
+        <ChevronDown
+          className={`size-4 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {/* Conteúdo expansível */}
+      {open && (
+        <div className="border-t px-3 pb-3 pt-3 space-y-3">
+          {services.map((s) => (
+            <ServiceCard
+              key={s.id}
+              service={s}
+              bookingBaseUrl={bookingBaseUrl}
+              primaryColor={primaryColor}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function VitrineServicesList({ services, bookingBaseUrl, primaryColor }: Props) {
   if (services.length === 0) return null
 
-  // Agrupa por categoria
   const categoryOrder: string[] = []
   const grouped: Record<string, PublicService[]> = {}
   for (const s of services) {
@@ -136,28 +181,21 @@ export function VitrineServicesList({ services, bookingBaseUrl, primaryColor }: 
     grouped[cat].push(s)
   }
 
+  const hasMultipleCategories = categoryOrder.length > 1
+
   return (
     <section id="servicos" className="mx-auto max-w-3xl px-4 pt-8">
       <h2 className="mb-5 text-lg font-bold">Serviços</h2>
-      <div className="space-y-8">
+      <div className="space-y-2">
         {categoryOrder.map((cat) => (
-          <div key={cat}>
-            {categoryOrder.length > 1 && (
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {cat}
-              </h3>
-            )}
-            <div className="space-y-3">
-              {grouped[cat]!.map((s) => (
-                <ServiceCard
-                  key={s.id}
-                  service={s}
-                  bookingBaseUrl={bookingBaseUrl}
-                  primaryColor={primaryColor}
-                />
-              ))}
-            </div>
-          </div>
+          <CategorySection
+            key={cat}
+            name={cat}
+            services={grouped[cat]!}
+            bookingBaseUrl={bookingBaseUrl}
+            primaryColor={primaryColor}
+            showHeader={hasMultipleCategories}
+          />
         ))}
       </div>
     </section>
