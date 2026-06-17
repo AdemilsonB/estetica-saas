@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { notFound } from 'next/navigation'
 import { AtSign, MessageCircle } from 'lucide-react'
+import { HamburgerMenuButton } from '@/components/domain/vitrine/hamburger-menu-button'
 
 type TenantMeta = {
   name: string
@@ -51,29 +52,35 @@ export default async function SlugLayout({
 
   return (
     <div style={{ backgroundColor: bg, color: fg, minHeight: '100vh' }}>
-      {/* Header */}
       <header
         className="sticky top-0 z-40 border-b"
         style={{ backgroundColor: bg, borderColor: tenant.branding?.accentColor ?? '#e5e5e5' }}
       >
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-3xl items-center gap-2 px-3 py-2.5">
+          {/* Hambúrguer */}
+          <HamburgerMenuButton />
+
+          {/* Logo */}
           {tenant.branding?.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={tenant.branding.logoUrl}
               alt={tenant.name}
-              className="size-9 rounded-lg object-contain"
+              className="size-8 rounded-lg object-contain"
             />
           ) : (
             <div
-              className="flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white"
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
               style={{ backgroundColor: primary }}
             >
               {tenant.name[0]?.toUpperCase()}
             </div>
           )}
-          <span className="flex-1 truncate font-semibold text-sm">{tenant.name}</span>
-          <div className="flex items-center gap-2">
+
+          <span className="flex-1 truncate text-sm font-semibold">{tenant.name}</span>
+
+          {/* Links sociais */}
+          <div className="flex items-center gap-1">
             {tenant.instagramUrl && (
               <a
                 href={tenant.instagramUrl}

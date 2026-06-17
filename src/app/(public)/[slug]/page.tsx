@@ -1,8 +1,11 @@
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { VitrineBanner } from '@/components/domain/vitrine/vitrine-banner'
+import { VitrineHero } from '@/components/domain/vitrine/vitrine-hero'
+import { VitrineServicesList } from '@/components/domain/vitrine/vitrine-services-list'
+import { VitrinePackagesSection } from '@/components/domain/vitrine/vitrine-packages-section'
+import { VitrinePromotionsSection } from '@/components/domain/vitrine/vitrine-promotions-section'
+import { VitrineProductsSection } from '@/components/domain/vitrine/vitrine-products-section'
+import { PublicMenuDrawer } from '@/components/domain/vitrine/public-menu-drawer'
 import { VitrineTeam } from '@/components/domain/vitrine/vitrine-team'
-import { VitrineTabs } from '@/components/domain/vitrine/vitrine-tabs'
 
 type TenantData = {
   name: string
@@ -12,20 +15,70 @@ type TenantData = {
   bio?: string | null
   instagramUrl?: string | null
   coverImageUrl?: string | null
+  address?: string | null
+  segments: string[]
+  createdAt: string
   branding?: {
+    logoUrl?: string | null
+    bannerUrl?: string | null
     primaryColor?: string | null
     accentColor?: string | null
     backgroundColor?: string | null
     foregroundColor?: string | null
   } | null
-  services: object[]
-  packages: object[]
-  promotions: object[]
+  services: {
+    id: string; name: string; duration: number; price: number
+    priceType: 'FIXED' | 'STARTING_FROM' | 'RANGE' | 'ON_CONSULTATION'
+    priceMin?: number | null; priceMax?: number | null
+    imageUrl?: string | null; description?: string | null; categoryName?: string | null
+    anamneseMode: 'NONE' | 'OPTIONAL' | 'REQUIRED'
+  }[]
+  packages: {
+    id: string; name: string; description?: string | null; imageUrl?: string | null
+    price: number; duration: number; services: { id: string; name: string }[]
+  }[]
+  promotions: {
+    id: string; name: string; description?: string | null; imageUrl?: string | null
+    discountType: 'PERCENTAGE' | 'FIXED'; discountValue: number; endsAt?: string | null
+    services: { id: string; name: string; duration: number; originalPrice: number }[]
+  }[]
   allowPublicBooking: boolean
 }
 
-type TeamMember = { id: string; name: string; role: string; avatarUrl?: string | null; bio?: string | null }
-type Product = { id: string; name: string; salePrice: number; imageUrl?: string | null; categoryName?: string | null }
+type TeamMember = {
+  id: string; name: string; role: string; avatarUrl?: string | null
+  bio?: string | null; serviceIds?: string[]
+}
+type Product = {
+  id: string; name: string; salePrice: number; imageUrl?: string | null; categoryName?: string | null
+}
+
+type BusinessHourEntry = { open: string; close: string; active: boolean }
+type BusinessHoursMap = Record<string, BusinessHourEntry>
+
+function isOpenNow(businessHours: unknown, timezone: string): boolean {
+  if (!businessHours || typeof businessHours !== 'object') return true
+  try {
+    const hours = businessHours as BusinessHoursMap
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: '2-digit', minute: '2-digit', weekday: 'short', hour12: false,
+    })
+    const parts = formatter.formatToParts(new Date())
+    const weekdayShort = parts.find((p) => p.type === 'weekday')?.value
+    const hourStr = parts.find((p) => p.type === 'hour')?.value
+    const minuteStr = parts.find((p) => p.type === 'minute')?.value
+    if (!weekdayShort || !hourStr || !minuteStr) return true
+    const weekdayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+    const dayIndex = weekdayMap[weekdayShort]
+    if (dayIndex === undefined) return true
+    const dayConfig = hours[String(dayIndex)]
+    if (!dayConfig?.active) return false
+    const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return (h ?? 0) * 60 + (m ?? 0) }
+    const current = toMin(`${hourStr}:${minuteStr}`)
+    return current >= toMin(dayConfig.open) && current < toMin(dayConfig.close)
+  } catch { return true }
+}
 
 async function fetchAll(slug: string) {
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
@@ -36,7 +89,7 @@ async function fetchAll(slug: string) {
     fetch(`${base}/api/public/${encodeURIComponent(slug)}/products`, opts),
   ])
   if (!tenantRes.ok) return null
-  const tenant = (await tenantRes.json()) as TenantData
+  const tenant = (await tenantRes.json()) as TenantData & { businessHours?: unknown; timezone?: string }
   const team: TeamMember[] = teamRes.ok ? ((await teamRes.json()) as TeamMember[]) : []
   const products: Product[] = productsRes.ok ? ((await productsRes.json()) as Product[]) : []
   return { tenant, team, products }
@@ -55,37 +108,91 @@ export default async function VitrinePage({
   const primary = tenant.branding?.primaryColor ?? '#7C3AED'
   const accent = tenant.branding?.accentColor ?? '#c084fc'
   const bookingUrl = `/agendar/${slug}`
+  const isOpen = isOpenNow(tenant.businessHours, tenant.timezone ?? 'America/Sao_Paulo')
 
   return (
     <>
-      <VitrineBanner
-        coverImageUrl={tenant.coverImageUrl}
+      {/* Drawer — position: fixed, renderizado uma vez, ouve evento global */}
+      <PublicMenuDrawer
+        tenantName={tenant.name}
+        logoUrl={tenant.branding?.logoUrl}
         primaryColor={primary}
-        accentColor={accent}
-        bio={tenant.bio}
+        phone={tenant.phone}
+        whatsappEnabled={tenant.whatsappEnabled}
+        slug={slug}
+        bookingBaseUrl={bookingUrl}
+        services={tenant.services}
+        packages={tenant.packages}
+        promotions={tenant.promotions}
+        products={products}
+        team={team}
       />
 
-      <VitrineTeam members={team} />
+      {/* Hero com identidade do negócio */}
+      <VitrineHero
+        name={tenant.name}
+        bio={tenant.bio}
+        coverImageUrl={tenant.coverImageUrl}
+        bannerUrl={tenant.branding?.bannerUrl}
+        logoUrl={tenant.branding?.logoUrl}
+        segments={tenant.segments}
+        address={tenant.address}
+        createdAt={tenant.createdAt}
+        primaryColor={primary}
+        accentColor={accent}
+        phone={tenant.phone}
+        whatsappEnabled={tenant.whatsappEnabled}
+        allowPublicBooking={tenant.allowPublicBooking}
+        bookingUrl={bookingUrl}
+        isOpen={isOpen}
+        teamCount={team.length}
+      />
 
-      <VitrineTabs
-        services={tenant.services as Parameters<typeof VitrineTabs>[0]['services']}
-        packages={tenant.packages as Parameters<typeof VitrineTabs>[0]['packages']}
-        promotions={tenant.promotions as Parameters<typeof VitrineTabs>[0]['promotions']}
-        products={products}
+      {/* Separador */}
+      <div className="mx-auto mt-6 max-w-3xl px-4">
+        <hr className="border-border" />
+      </div>
+
+      {/* Serviços */}
+      <VitrineServicesList
+        services={tenant.services}
         bookingBaseUrl={bookingUrl}
         primaryColor={primary}
       />
 
+      {/* Pacotes */}
+      <VitrinePackagesSection
+        packages={tenant.packages}
+        bookingBaseUrl={bookingUrl}
+        primaryColor={primary}
+      />
+
+      {/* Promoções */}
+      <VitrinePromotionsSection
+        promotions={tenant.promotions}
+        bookingBaseUrl={bookingUrl}
+        primaryColor={primary}
+      />
+
+      {/* Equipe */}
+      <VitrineTeam members={team} id="equipe" />
+
+      {/* Produtos */}
+      <VitrineProductsSection products={products} primaryColor={primary} />
+
+      {/* Espaço para o CTA fixo mobile */}
+      {tenant.allowPublicBooking && <div className="h-24 sm:hidden" />}
+
       {/* CTA fixo mobile */}
       {tenant.allowPublicBooking && (
         <div className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:hidden">
-          <Link
+          <a
             href={bookingUrl}
             className="flex h-14 w-full items-center justify-center rounded-2xl text-base font-semibold text-white shadow-lg"
             style={{ backgroundColor: primary }}
           >
             Agendar agora
-          </Link>
+          </a>
         </div>
       )}
     </>

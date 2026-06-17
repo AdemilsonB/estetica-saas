@@ -1,4 +1,6 @@
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { BookingClient } from './booking-client'
 import type { TenantPublicData } from './types'
 
@@ -104,6 +106,26 @@ export default async function BookingPage({
   return (
     <div className="min-h-screen bg-[--booking-bg,#FAFAFA]">
       {brandingVars && <style>{`:root { ${brandingVars} }`}</style>}
+
+      {/* Barra de retorno */}
+      <div className="sticky top-0 z-50 flex items-center gap-2 border-b bg-white/95 px-3 py-2.5 backdrop-blur-sm">
+        <Link
+          href={`/${data.slug}`}
+          className="flex items-center gap-1.5 text-sm font-medium"
+          style={{ color: branding?.primaryColor ?? '#7C3AED' }}
+        >
+          <ArrowLeft className="size-4 shrink-0" />
+          <span className="truncate max-w-[200px]">{data.name}</span>
+        </Link>
+        {branding?.logoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={branding.logoUrl}
+            alt={data.name}
+            className="ml-auto size-7 shrink-0 rounded-lg object-contain"
+          />
+        )}
+      </div>
 
       {/* Hero compacto: banner do salão como fundo, info flutuando */}
       <div role="banner" aria-label={data.name} className="relative h-16 overflow-hidden">

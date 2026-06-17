@@ -14,12 +14,12 @@ const ROLE_LABELS: Record<string, string> = {
   RECEPTIONIST: 'Recepcionista',
 }
 
-export function VitrineTeam({ members }: { members: TeamMember[] }) {
+export function VitrineTeam({ members, id }: { members: TeamMember[]; id?: string }) {
   if (members.length === 0) return null
 
   return (
-    <section className="mx-auto max-w-3xl px-4 py-6">
-      <h2 className="mb-4 text-lg font-semibold">Nossa equipe</h2>
+    <section id={id} className="mx-auto max-w-3xl px-4 pt-8">
+      <h2 className="mb-5 text-lg font-bold">Nossa Equipe</h2>
       <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-x-visible">
         {members.map((m) => (
           <div
