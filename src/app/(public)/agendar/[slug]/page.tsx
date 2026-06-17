@@ -103,7 +103,7 @@ export default async function BookingPage({
       {brandingVars && <style>{`:root { ${brandingVars} }`}</style>}
 
       {/* Hero compacto: banner do salão como fundo, info flutuando */}
-      <div className="relative h-16 overflow-hidden">
+      <div role="banner" aria-label={data.name} className="relative h-16 overflow-hidden">
         {/* Camada 1: fundo — banner do tenant ou gradiente padrão */}
         {branding?.bannerUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -127,7 +127,8 @@ export default async function BookingPage({
         />
 
         {/* Camada 3: conteúdo flutuando */}
-        <div className="absolute inset-0 mx-auto flex max-w-lg items-center gap-3 px-4">
+        <div className="absolute inset-0 flex items-center px-4">
+          <div className="mx-auto flex w-full max-w-lg items-center gap-3">
           {/* Logo do salão */}
           {branding?.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -171,6 +172,7 @@ export default async function BookingPage({
               />
               {isOpen ? 'Aberto' : 'Fechado'}
             </span>
+          </div>
           </div>
         </div>
       </div>
