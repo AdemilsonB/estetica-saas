@@ -42,17 +42,11 @@ export async function PATCH(request: Request, { params }: Params) {
       return Response.json(user)
     }
 
-    if (body.bio !== undefined || body.showOnPublicPage !== undefined) {
-      const user = await iamService.updateMember(session.tenantId, session.userId, userId, {
-        bio: body.bio,
-        showOnPublicPage: body.showOnPublicPage,
-      })
-      return Response.json(user)
-    }
-
     const user = await iamService.updateMember(session.tenantId, session.userId, userId, {
       name: body.name,
       email: body.email,
+      bio: body.bio,
+      showOnPublicPage: body.showOnPublicPage,
     })
     return Response.json(user)
   } catch (error) {
