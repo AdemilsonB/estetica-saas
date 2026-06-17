@@ -16,6 +16,7 @@ export type TeamMember = {
   roleId: string | null
   roleName: string
   avatarUrl: string | null
+  bio: string | null
   services: MemberService[]
   createdAt: string
 }
@@ -85,11 +86,12 @@ async function updateMemberProfile(input: {
   userId: string
   name?: string
   email?: string
+  bio?: string | null
 }): Promise<TeamMember> {
   const res = await fetch(`/api/iam/users/${input.userId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: input.name, email: input.email }),
+    body: JSON.stringify({ name: input.name, email: input.email, bio: input.bio }),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))

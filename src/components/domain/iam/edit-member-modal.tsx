@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -44,6 +45,7 @@ export function EditMemberModal({ member, open, onClose }: Props) {
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [bio, setBio] = useState('')
   const [roleId, setRoleId] = useState('')
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -52,6 +54,7 @@ export function EditMemberModal({ member, open, onClose }: Props) {
     if (member) {
       setName(member.name)
       setEmail(member.email)
+      setBio(member.bio ?? '')
       setRoleId(member.roleId ?? '')
       setAvatarUrl(member.avatarUrl)
     }
@@ -71,9 +74,9 @@ export function EditMemberModal({ member, open, onClose }: Props) {
 
     const promises: Promise<unknown>[] = []
 
-    if (name !== member.name || email !== member.email) {
+    if (name !== member.name || email !== member.email || bio !== (member.bio ?? '')) {
       promises.push(
-        updateProfile.mutateAsync({ userId: member.id, name, email }).catch((err) => {
+        updateProfile.mutateAsync({ userId: member.id, name, email, bio: bio || null }).catch((err) => {
           throw new Error(`Perfil: ${err instanceof Error ? err.message : 'Erro'}`)
         }),
       )
@@ -153,6 +156,22 @@ export function EditMemberModal({ member, open, onClose }: Props) {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-bio">
+                Sobre mim{' '}
+                <span className="text-slate-400 font-normal">(opcional)</span>
+              </Label>
+              <Textarea
+                id="edit-bio"
+                placeholder="Uma breve descrição sobre você..."
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                maxLength={280}
+                rows={3}
+              />
+              <p className="text-xs text-slate-400 text-right">{bio.length}/280</p>
             </div>
 
             {!isOwnerTarget && (

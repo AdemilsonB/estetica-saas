@@ -198,6 +198,7 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
       roleId: null,
       roleName: '',
       avatarUrl: null,
+      bio: null,
       services: [],
       createdAt: '',
     } satisfies TeamMember),
