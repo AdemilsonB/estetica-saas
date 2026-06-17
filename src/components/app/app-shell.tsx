@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import React, { useState, type ReactNode } from 'react'
 import * as Icons from 'lucide-react'
@@ -139,14 +140,13 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
             className={cn('shrink-0 object-contain rounded-xl', isSmall ? 'size-9' : 'size-10')}
           />
         ) : (
-          <div
-            className={cn(
-              'shrink-0 inline-flex items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold',
-              isSmall ? 'size-9 text-sm' : 'size-10 text-base',
-            )}
-          >
-            {getInitials(businessName || 'E')}
-          </div>
+          <Image
+            src="/brand/logo-mark.png"
+            alt="Agendê"
+            width={40}
+            height={40}
+            className={cn('shrink-0 object-contain rounded-xl', isSmall ? 'size-9' : 'size-10')}
+          />
         )}
         {!isSmall && (
           <span className="truncate text-sm font-semibold text-foreground">
