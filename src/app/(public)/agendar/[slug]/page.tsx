@@ -134,11 +134,11 @@ export default async function BookingPage({
             <img
               src={branding.logoUrl}
               alt={data.name}
-              className="size-8.5 shrink-0 rounded-[9px] border-2 border-white/75 object-contain shadow-md"
+              className="size-[34px] shrink-0 rounded-[9px] border-2 border-white/75 object-contain shadow-md"
             />
           ) : (
             <div
-              className="flex size-8.5 shrink-0 items-center justify-center rounded-[9px] border-2 border-white/75 text-sm font-bold text-white shadow-md"
+              className="flex size-[34px] shrink-0 items-center justify-center rounded-[9px] border-2 border-white/75 text-sm font-bold text-white shadow-md"
               style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
             >
               {data.name[0]?.toUpperCase()}
