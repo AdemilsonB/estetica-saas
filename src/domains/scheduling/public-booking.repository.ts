@@ -61,6 +61,9 @@ export class PublicBookingRepository {
     })
     return services.map(({ category, ...rest }) => ({
       ...rest,
+      price: Number(rest.price),
+      priceMin: rest.priceMin != null ? Number(rest.priceMin) : null,
+      priceMax: rest.priceMax != null ? Number(rest.priceMax) : null,
       anamneseBlocks: rest.anamneseBlocks as string[],
       categoryName: category?.name ?? null,
     }))
