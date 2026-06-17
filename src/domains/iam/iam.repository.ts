@@ -95,6 +95,7 @@ export class IamRepository {
         role: true,
         roleId: true,
         avatarUrl: true,
+        showOnPublicPage: true,
         customRole: { select: { name: true } },
         createdAt: true,
         professionalServices: {
@@ -110,6 +111,7 @@ export class IamRepository {
       isOwner: u.role === "OWNER",
       roleId: u.roleId,
       avatarUrl: u.avatarUrl,
+      showOnPublicPage: u.showOnPublicPage,
       roleName: u.role === "OWNER" ? "Dono" : (u.customRole?.name ?? "Sem cargo"),
       createdAt: u.createdAt,
       services: u.professionalServices.map((ps) => ps.service),
@@ -218,7 +220,7 @@ export class IamRepository {
   async updateUser(
     tenantId: string,
     userId: string,
-    data: { name?: string; email?: string; avatarUrl?: string | null },
+    data: { name?: string; email?: string; avatarUrl?: string | null; bio?: string | null; showOnPublicPage?: boolean },
   ) {
     await prisma.user.updateMany({ where: { id: userId, tenantId }, data })
     return prisma.user.findFirstOrThrow({
@@ -229,6 +231,8 @@ export class IamRepository {
         email: true,
         role: true,
         avatarUrl: true,
+        bio: true,
+        showOnPublicPage: true,
         roleId: true,
         customRole: { select: { name: true } },
         createdAt: true,

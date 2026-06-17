@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   Building2, Clock, Palette, Link as LinkIcon,
   Settings2, MessageCircle, Zap, CreditCard,
-  Sparkles, ClipboardList, Loader2, ExternalLink, Globe,
+  Sparkles, ClipboardList, Loader2, ExternalLink, Globe, Eye,
 } from 'lucide-react'
 import { SettingsGroup } from '@/components/domain/settings/settings-group'
 import { SettingsCard } from '@/components/domain/settings/settings-card'
@@ -21,6 +21,7 @@ import { WhatsAppAutomationsForm } from '@/components/domain/settings/whatsapp-a
 import { CardFeesForm } from '@/components/domain/settings/card-fees-form'
 import { BillingPlansContent } from '@/components/domain/billing/billing-plans-content'
 import { PublicPageForm } from '@/components/domain/settings/public-page-form'
+import { TeamVisibilityList } from '@/components/domain/settings/team-visibility-list'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
 import { Button } from '@/components/ui/button'
@@ -210,6 +211,14 @@ export default function ConfiguracoesPage() {
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
             </div>
           )}
+        </SettingsCard>
+
+        <SettingsCard
+          icon={Eye}
+          title="Visibilidade da equipe"
+          subtitle="Controle quais profissionais aparecem na sua vitrine pública"
+        >
+          <TeamVisibilityList />
         </SettingsCard>
 
         <SettingsCard

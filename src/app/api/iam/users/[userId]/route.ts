@@ -10,9 +10,17 @@ const updateMemberSchema = z.object({
   roleId: z.string().min(1).optional(),
   name: z.string().min(1).max(120).optional(),
   email: z.string().email().optional(),
-}).refine((d) => d.roleId || d.name || d.email, {
-  message: 'Pelo menos um campo deve ser fornecido.',
-})
+  bio: z.string().max(280).nullable().optional(),
+  showOnPublicPage: z.boolean().optional(),
+}).refine(
+  (d) =>
+    d.roleId !== undefined ||
+    d.name !== undefined ||
+    d.email !== undefined ||
+    d.bio !== undefined ||
+    d.showOnPublicPage !== undefined,
+  { message: 'Pelo menos um campo deve ser fornecido.' },
+)
 
 type Params = { params: Promise<{ userId: string }> }
 
@@ -31,6 +39,14 @@ export async function PATCH(request: Request, { params }: Params) {
         userId,
         body.roleId,
       )
+      return Response.json(user)
+    }
+
+    if (body.bio !== undefined || body.showOnPublicPage !== undefined) {
+      const user = await iamService.updateMember(session.tenantId, session.userId, userId, {
+        bio: body.bio,
+        showOnPublicPage: body.showOnPublicPage,
+      })
       return Response.json(user)
     }
 

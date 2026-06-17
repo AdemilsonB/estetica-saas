@@ -186,7 +186,7 @@ export class IamService {
     tenantId: string,
     requesterId: string,
     targetId: string,
-    input: { name?: string; email?: string; avatarUrl?: string | null },
+    input: { name?: string; email?: string; avatarUrl?: string | null; bio?: string | null; showOnPublicPage?: boolean },
   ) {
     const requester = await iamRepository.findUserById(tenantId, requesterId)
     if (!requester) throw new UserNotFoundError()
