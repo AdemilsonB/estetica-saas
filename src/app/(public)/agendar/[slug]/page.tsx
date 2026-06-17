@@ -99,60 +99,83 @@ export default async function BookingPage({
   const isOpen = isOpenNow(data.businessHours, data.timezone)
 
   return (
-    <div className="min-h-screen bg-[--booking-bg,#fafafa]">
+    <div className="min-h-screen bg-[--booking-bg,#FAFAFA]">
       {brandingVars && <style>{`:root { ${brandingVars} }`}</style>}
 
-      {/* Header fixo — branding do salão */}
-      <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-3">
-        <div className="max-w-lg mx-auto flex items-center gap-3">
+      {/* Hero compacto: banner do salão como fundo, info flutuando */}
+      <div className="relative h-16 overflow-hidden">
+        {/* Camada 1: fundo — banner do tenant ou gradiente padrão */}
+        {branding?.bannerUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={branding.bannerUrl}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(135deg, #7C3AED, #DB2777)' }}
+          />
+        )}
+
+        {/* Camada 2: overlay escuro para garantir leitura */}
+        <div
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.45))' }}
+        />
+
+        {/* Camada 3: conteúdo flutuando */}
+        <div className="absolute inset-0 mx-auto flex max-w-lg items-center gap-3 px-4">
+          {/* Logo do salão */}
           {branding?.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={branding.logoUrl}
               alt={data.name}
-              className="h-9 w-9 rounded-lg object-contain border border-slate-100"
+              className="size-8.5 shrink-0 rounded-[9px] border-2 border-white/75 object-contain shadow-md"
             />
           ) : (
             <div
-              className="h-9 w-9 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0"
-              style={{ backgroundColor: branding?.primaryColor ?? '#191919' }}
+              className="flex size-8.5 shrink-0 items-center justify-center rounded-[9px] border-2 border-white/75 text-sm font-bold text-white shadow-md"
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
             >
               {data.name[0]?.toUpperCase()}
             </div>
           )}
-          <div className="min-w-0">
-            <h1 className="font-semibold text-slate-900 text-sm leading-tight truncate">
+
+          {/* Nome e endereço */}
+          <div className="min-w-0 flex-1">
+            <h1
+              className="truncate text-xs font-extrabold text-white"
+              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}
+            >
               {data.name}
             </h1>
             {data.address && (
-              <p className="text-xs text-slate-500 truncate">{data.address}</p>
+              <p
+                className="truncate text-[11px] text-white/80"
+                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}
+              >
+                {data.address}
+              </p>
             )}
           </div>
+
+          {/* Badge aberto/fechado */}
           <div className="ml-auto shrink-0">
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                isOpen ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'
-              }`}
-            >
+            <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-xs font-medium text-white">
               <span
-                className={`size-1.5 rounded-full ${isOpen ? 'bg-green-500' : 'bg-slate-400'}`}
+                className={`size-1.5 rounded-full ${isOpen ? 'bg-green-400' : 'bg-white/50'}`}
               />
               {isOpen ? 'Aberto' : 'Fechado'}
             </span>
           </div>
         </div>
-      </header>
+      </div>
 
-      {branding?.bannerUrl && (
-        <div className="w-full max-w-lg mx-auto">
-          <img
-            src={branding.bannerUrl}
-            alt={`Banner ${data.name}`}
-            className="w-full h-36 object-cover"
-          />
-        </div>
-      )}
-
-      <main className="max-w-lg mx-auto px-4 py-6 pb-24">
+      <main className="mx-auto max-w-lg px-4 py-6 pb-24">
         <BookingClient tenantData={data} />
       </main>
     </div>

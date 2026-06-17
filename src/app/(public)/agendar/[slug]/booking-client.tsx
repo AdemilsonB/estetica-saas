@@ -52,7 +52,7 @@ function StepIndicator({
           <div
             key={step}
             className={`h-1 flex-1 rounded-full transition-colors ${
-              index <= currentIndex ? 'bg-[--booking-primary,#191919]' : 'bg-slate-200'
+              index <= currentIndex ? 'bg-[--booking-primary,#7C3AED]' : 'bg-slate-200'
             }`}
           />
         ))}
@@ -80,7 +80,7 @@ export function BookingClient({ tenantData }: { tenantData: TenantPublicData }) 
     if (s === 'anamnese') return false
     return true
   })
-  const primaryColor = tenantData.branding?.primaryColor ?? '#191919'
+  const primaryColor = tenantData.branding?.primaryColor ?? '#7C3AED'
   const maxAdvanceDays = 60
 
   function handlePackageSelect(pkg: PublicPackage) {
