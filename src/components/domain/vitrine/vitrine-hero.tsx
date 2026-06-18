@@ -24,7 +24,6 @@ type Props = {
   name: string
   bio?: string | null
   coverImageUrl?: string | null
-  bannerUrl?: string | null
   logoUrl?: string | null
   segments: string[]
   address?: string | null
@@ -47,7 +46,6 @@ export function VitrineHero({
   name,
   bio,
   coverImageUrl,
-  bannerUrl,
   logoUrl,
   segments,
   address,
@@ -67,7 +65,7 @@ export function VitrineHero({
 }: Props) {
   const [bioExpanded, setBioExpanded] = useState(false)
 
-  const heroImage = coverImageUrl ?? bannerUrl
+  const heroImage = coverImageUrl
   const segmentLabel = segments[0] ? (SEGMENT_LABELS[segments[0]] ?? segments[0]) : null
   const whatsappUrl =
     whatsappEnabled && phone ? `https://wa.me/55${phone.replace(/\D/g, '')}` : null

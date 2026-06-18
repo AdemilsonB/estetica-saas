@@ -86,9 +86,7 @@ export default async function BookingPage({
   const primaryColor = branding?.primaryColor ?? '#7C3AED'
   const bgColor = branding?.backgroundColor ?? '#FAFAFA'
   const fgColor = branding?.foregroundColor ?? '#1a1a1a'
-  const bannerUrl = branding?.bannerUrl ?? null
   const logoUrl = branding?.logoUrl ?? null
-  const hasBanner = !!bannerUrl
   const hasLogo = !!logoUrl
 
   const brandingVars = [
@@ -128,86 +126,32 @@ export default async function BookingPage({
         </div>
       </div>
 
-      {/* Hero banner — só renderiza quando há banner configurado */}
-      {hasBanner && bannerUrl && (
-        <div className="relative h-36 overflow-hidden sm:h-48">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={bannerUrl}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.55))' }}
-          />
-          <div className="absolute inset-0 flex items-end px-4 pb-4">
-            <div className="mx-auto flex w-full max-w-2xl items-center gap-3">
-              {hasLogo && logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={logoUrl}
-                  alt={data.name}
-                  className="size-10 shrink-0 rounded-xl border-2 border-white/80 object-contain shadow-md"
-                />
-              ) : (
-                <div
-                  className="flex size-10 shrink-0 items-center justify-center rounded-xl border-2 border-white/80 text-sm font-bold text-white shadow-md"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
-                >
-                  {data.name[0]?.toUpperCase()}
-                </div>
-              )}
-              <div className="min-w-0">
-                <p
-                  className="text-sm font-semibold text-white"
-                  style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
-                >
-                  {data.name}
-                </p>
-                {data.address && (
-                  <p
-                    className="truncate text-xs text-white/80"
-                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}
-                  >
-                    {data.address}
-                  </p>
-                )}
-              </div>
+      {/* Info do estabelecimento abaixo do header */}
+      <div className="border-b bg-white/70 px-4 py-3">
+        <div className="mx-auto flex max-w-2xl items-center gap-3">
+          {hasLogo && logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt={data.name}
+              className="size-9 shrink-0 rounded-lg object-contain"
+            />
+          ) : (
+            <div
+              className="flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white"
+              style={{ backgroundColor: primaryColor }}
+            >
+              {data.name[0]?.toUpperCase()}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Info compacta quando não há banner */}
-      {!hasBanner && (
-        <div className="border-b bg-white/70 px-4 py-3">
-          <div className="mx-auto flex max-w-2xl items-center gap-3">
-            {hasLogo && logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={logoUrl}
-                alt={data.name}
-                className="size-9 shrink-0 rounded-lg object-contain"
-              />
-            ) : (
-              <div
-                className="flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white"
-                style={{ backgroundColor: primaryColor }}
-              >
-                {data.name[0]?.toUpperCase()}
-              </div>
+          )}
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">{data.name}</p>
+            {data.address && (
+              <p className="truncate text-xs opacity-60">{data.address}</p>
             )}
-            <div className="min-w-0">
-              <p className="text-sm font-semibold">{data.name}</p>
-              {data.address && (
-                <p className="truncate text-xs opacity-60">{data.address}</p>
-              )}
-            </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Conteúdo do agendamento */}
       <main className="mx-auto max-w-2xl px-4 py-6 pb-28">

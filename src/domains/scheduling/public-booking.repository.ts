@@ -23,7 +23,6 @@ export class PublicBookingRepository {
         brandingConfig: {
           select: {
             logoUrl: true,
-            bannerUrl: true,
             primaryColor: true,
             secondaryColor: true,
             accentColor: true,
