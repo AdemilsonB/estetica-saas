@@ -24,12 +24,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       >
         {/* Logo + badge ADMIN */}
         <div className="mb-6 flex items-center gap-2.5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/logo-mark.png"
-            alt="Agendê"
-            className="size-8 rounded-lg object-contain"
-          />
+          <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-pink-600 text-sm font-extrabold text-white">
+            A
+          </div>
           <span
             className="rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-wide"
             style={{ color: '#DB2777', backgroundColor: 'rgba(219,39,119,0.15)' }}

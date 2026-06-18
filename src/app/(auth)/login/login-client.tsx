@@ -7,7 +7,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
-import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -151,17 +150,10 @@ function LeftPanel({
   const isCustomBranding = branding.displayName !== "SaaS Estetica" && branding.displayName !== "Agendê";
 
   return (
-    <div className="hidden md:flex md:w-[45%] flex-col relative overflow-hidden p-12">
-      {/* Banner de fundo */}
-      <Image
-        src="/brand/banner-pagina-logins.png"
-        alt=""
-        fill
-        className="object-cover"
-        priority
-      />
-      {/* Overlay escuro para legibilidade */}
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-950/85 via-violet-900/75 to-pink-950/80" />
+    <div className="hidden md:flex md:w-[45%] flex-col relative overflow-hidden bg-gradient-to-br from-violet-50 to-pink-50 p-12">
+      {/* Blobs decorativos */}
+      <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-violet-200/40 blur-3xl" />
+      <div className="pointer-events-none absolute -left-16 bottom-0 h-64 w-64 rounded-full bg-pink-200/30 blur-3xl" />
 
       <div className="relative flex items-center gap-2">
         {isCustomBranding && branding.logoUrl ? (
@@ -172,33 +164,26 @@ function LeftPanel({
             className="h-8 w-auto"
           />
         ) : (
-          <div className="rounded-lg bg-white/15 px-3 py-1.5 backdrop-blur-sm">
-            <Image
-              src="/brand/logo-horizontal.png"
-              alt="Agendê"
-              width={130}
-              height={32}
-              className="h-7 w-auto object-contain"
-              priority
-            />
-          </div>
+          <span className="text-2xl font-extrabold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
+            Agendê
+          </span>
         )}
       </div>
 
       <div className="relative my-auto space-y-8">
         <div>
           {plan && (
-            <div className="mb-4 inline-block rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+            <div className="mb-4 inline-block rounded-full border border-violet-200 bg-white/70 px-3 py-1 text-xs font-semibold text-violet-700">
               ✓ {PLAN_LABEL[plan] ?? plan} selecionado
             </div>
           )}
-          <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-white">
+          <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-slate-900">
             Seu salão no{" "}
-            <span className="bg-gradient-to-r from-violet-300 to-pink-300 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
               piloto automático.
             </span>
           </h1>
-          <p className="mt-3 text-base leading-relaxed text-white/70">
+          <p className="mt-3 text-base leading-relaxed text-slate-500">
             Agenda, CRM, financeiro e IA em uma plataforma só.
           </p>
         </div>
@@ -207,25 +192,25 @@ function LeftPanel({
           {benefits.map((b) => (
             <div
               key={b.text}
-              className="flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-4 py-3 shadow-sm backdrop-blur-sm"
+              className="flex items-center gap-3 rounded-xl border border-violet-100 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm"
             >
               <span className="text-base">{b.icon}</span>
-              <span className="text-sm font-medium text-white">{b.text}</span>
+              <span className="text-sm font-medium text-slate-700">{b.text}</span>
             </div>
           ))}
         </div>
 
         {/* Mini mockup decorativo */}
-        <div className="rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm shadow-sm">
+        <div className="rounded-xl border border-violet-100 bg-white/60 p-4 backdrop-blur-sm shadow-sm">
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: "hoje", value: "47", color: "text-violet-300" },
-              { label: "faturado", value: "R$2.840", color: "text-pink-300" },
-              { label: "faltas evitadas", value: "3", color: "text-emerald-300" },
+              { label: "hoje", value: "47", color: "text-violet-600" },
+              { label: "faturado", value: "R$2.840", color: "text-pink-600" },
+              { label: "faltas evitadas", value: "3", color: "text-emerald-600" },
             ].map(({ label, value, color }) => (
-              <div key={label} className="rounded-lg border border-white/10 bg-white/10 p-2 text-center">
+              <div key={label} className="rounded-lg border border-slate-100 bg-white p-2 text-center">
                 <div className={`text-sm font-extrabold ${color}`}>{value}</div>
-                <div className="text-[10px] text-white/60">{label}</div>
+                <div className="text-[10px] text-slate-400">{label}</div>
               </div>
             ))}
           </div>
@@ -250,14 +235,9 @@ function RightPanel({
     <div className="flex w-full flex-col items-center justify-center bg-white p-8 lg:w-[55%]">
       <div className="w-full max-w-sm space-y-6">
         <div className="md:hidden flex items-center gap-2">
-          <Image
-            src="/brand/logo-horizontal.png"
-            alt="Agendê"
-            width={130}
-            height={32}
-            className="h-8 w-auto object-contain"
-            priority
-          />
+          <span className="text-2xl font-extrabold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
+            Agendê
+          </span>
         </div>
 
         <Tabs defaultValue={defaultTab} className="w-full">

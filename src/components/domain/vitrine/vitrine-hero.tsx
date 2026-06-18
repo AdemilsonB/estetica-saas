@@ -97,8 +97,12 @@ export function VitrineHero({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={heroImage} alt="" className="h-full w-full object-cover" />
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src="/brand/banner-principal.png" alt="" className="h-full w-full object-cover" />
+          <div
+            className="h-full w-full"
+            style={{
+              background: `linear-gradient(135deg, ${primaryColor} 0%, ${accentColor} 55%, ${primaryColor}cc 100%)`,
+            }}
+          />
         )}
 
         {/* Gradiente de legibilidade — escurece topo e base */}
