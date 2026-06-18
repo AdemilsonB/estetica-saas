@@ -20,7 +20,6 @@ type TenantData = {
   createdAt: string
   branding?: {
     logoUrl?: string | null
-    bannerUrl?: string | null
     primaryColor?: string | null
     accentColor?: string | null
     backgroundColor?: string | null
@@ -133,7 +132,6 @@ export default async function VitrinePage({
         name={tenant.name}
         bio={tenant.bio}
         coverImageUrl={tenant.coverImageUrl}
-        bannerUrl={tenant.branding?.bannerUrl}
         logoUrl={tenant.branding?.logoUrl}
         segments={tenant.segments}
         address={tenant.address}

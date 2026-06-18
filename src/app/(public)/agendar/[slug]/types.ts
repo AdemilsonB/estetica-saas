@@ -1,6 +1,5 @@
 export type TenantBranding = {
   logoUrl?: string | null
-  bannerUrl?: string | null
   primaryColor?: string | null
   backgroundColor?: string | null
   foregroundColor?: string | null

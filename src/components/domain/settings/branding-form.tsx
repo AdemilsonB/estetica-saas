@@ -11,7 +11,6 @@ import { hexToOklchStr } from '@/lib/branding/build-css-variables'
 
 type BrandingConfig = {
   logoUrl: string | null
-  bannerUrl: string | null
   primaryColor: string
   accentColor: string
   backgroundColor: string
@@ -26,7 +25,6 @@ type BrandingConfig = {
 type Props = {
   initial: {
     logoUrl: string | null
-    bannerUrl?: string | null
     primaryColor: string
     accentColor: string
     backgroundColor: string
@@ -164,7 +162,6 @@ export function BrandingForm({ initial }: Props) {
   const router = useRouter()
   const [config, setConfig] = useState<BrandingConfig>({
     logoUrl: initial.logoUrl,
-    bannerUrl: initial.bannerUrl ?? null,
     primaryColor: initial.primaryColor,
     accentColor: initial.accentColor,
     backgroundColor: initial.backgroundColor,
@@ -177,11 +174,8 @@ export function BrandingForm({ initial }: Props) {
   })
   const [logoPreview, setLogoPreview] = useState<string | null>(initial.logoUrl)
   const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null)
-  const [bannerPreview, setBannerPreview] = useState<string | null>(initial.bannerUrl ?? null)
-  const [pendingBannerFile, setPendingBannerFile] = useState<File | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const bannerInputRef = useRef<HTMLInputElement>(null)
 
   function update<K extends keyof BrandingConfig>(field: K, value: BrandingConfig[K]) {
     setConfig((prev) => ({ ...prev, [field]: value }))
@@ -206,29 +200,10 @@ export function BrandingForm({ initial }: Props) {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Arquivo excede 5MB.')
-      return
-    }
-    setPendingBannerFile(file)
-    setBannerPreview(URL.createObjectURL(file))
-  }
-
-  function removeBanner() {
-    setPendingBannerFile(null)
-    setBannerPreview(null)
-    setConfig((prev) => ({ ...prev, bannerUrl: null }))
-    if (bannerInputRef.current) bannerInputRef.current.value = ''
-  }
-
   async function handleSave() {
     setIsSaving(true)
     try {
       let logoUrl = config.logoUrl
-      let bannerUrl = config.bannerUrl
 
       if (pendingLogoFile) {
         const fd = new FormData()
@@ -239,26 +214,16 @@ export function BrandingForm({ initial }: Props) {
         logoUrl = uploaded
       }
 
-      if (pendingBannerFile) {
-        const fd = new FormData()
-        fd.append('banner', pendingBannerFile)
-        const uploadRes = await fetch('/api/iam/branding/banner', { method: 'POST', body: fd })
-        if (!uploadRes.ok) throw new Error('Falha no upload do banner.')
-        const { bannerUrl: uploaded } = (await uploadRes.json()) as { bannerUrl: string }
-        bannerUrl = uploaded
-      }
-
       const res = await fetch('/api/iam/branding', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...config, logoUrl, bannerUrl }),
+        body: JSON.stringify({ ...config, logoUrl }),
       })
 
       if (!res.ok) throw new Error('Falha ao salvar configurações.')
 
-      setConfig((prev) => ({ ...prev, logoUrl, bannerUrl }))
+      setConfig((prev) => ({ ...prev, logoUrl }))
       setPendingLogoFile(null)
-      setPendingBannerFile(null)
       toast.success('Configurações salvas com sucesso.')
       router.refresh()
     } catch {
@@ -310,47 +275,6 @@ export function BrandingForm({ initial }: Props) {
           <p className="text-xs text-slate-500">PNG, JPG ou SVG · máx 2MB · aparece no header da agenda online</p>
         </div>
 
-        {/* Banner */}
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-slate-700">Banner da agenda online</p>
-          {bannerPreview ? (
-            <div className="relative rounded-xl overflow-hidden border border-slate-200">
-              <img
-                src={bannerPreview}
-                alt="Banner"
-                className="w-full h-32 object-cover"
-              />
-              <button
-                onClick={removeBanner}
-                className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition-colors"
-                aria-label="Remover banner"
-              >
-                <X className="size-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => bannerInputRef.current?.click()}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 py-8 text-sm text-slate-500 hover:border-slate-400 hover:bg-slate-100 transition-colors"
-            >
-              <Upload className="size-4" />
-              Enviar banner
-            </button>
-          )}
-          {bannerPreview && (
-            <Button variant="outline" size="sm" onClick={() => bannerInputRef.current?.click()}>
-              Trocar banner
-            </Button>
-          )}
-          <input
-            ref={bannerInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="hidden"
-            onChange={handleBannerChange}
-          />
-          <p className="text-xs text-slate-500">PNG, JPG ou WebP · máx 5MB · exibido no topo da agenda online</p>
-        </div>
       </section>
 
       {/* Cores + Prévia lado a lado */}
