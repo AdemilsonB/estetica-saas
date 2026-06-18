@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import type {
   BookingState,
   BookingStep,
@@ -144,12 +145,39 @@ export function BookingClient({
     )
   }
 
-  // Gate: cliente não autenticado — identificação antes da vitrine
+  // Gate: cliente não autenticado — identificação antes do fluxo de agendamento
   if (authStatus === 'unauthenticated') {
     return (
       <IdentificationStep
         tenantSlug={tenantData.slug}
-        onIdentified={() => { window.location.href = `/${tenantData.slug}` }}
+        onIdentified={(id, name, isNew) => {
+          // Busca dados completos (incluindo telefone) para preencher o booking
+          fetch(`/api/public/${tenantData.slug}/me`)
+            .then((r) => (r.ok ? (r.json() as Promise<{ name?: string; phone?: string }>) : null))
+            .then((me) => {
+              const customerName = me?.name ?? name
+              setBooking((b) => ({
+                ...b,
+                customerName,
+                customerPhone: me?.phone ?? '',
+                customerId: id,
+              }))
+              setAuthStatus('authenticated')
+              if (isNew) {
+                toast.success(`Bem-vindo, ${customerName}! 🎉`, {
+                  description: 'Cadastro realizado. Agora escolha o serviço.',
+                })
+              } else {
+                toast.success(`Bem-vindo de volta, ${customerName}! 👋`, {
+                  description: 'Agora escolha o serviço que deseja agendar.',
+                })
+              }
+            })
+            .catch(() => {
+              setBooking((b) => ({ ...b, customerName: name, customerId: id }))
+              setAuthStatus('authenticated')
+            })
+        }}
         onBack={() => {}}
         primaryColor={primaryColor}
         gateMode

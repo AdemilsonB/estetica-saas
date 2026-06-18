@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 type Props = {
   tenantSlug: string
-  onIdentified: (customerId: string, name: string) => void
+  onIdentified: (customerId: string, name: string, isNew?: boolean) => void
   onBack: () => void
   primaryColor: string
   gateMode?: boolean
@@ -73,7 +73,7 @@ export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryCo
         setError(data.error?.message ?? 'Dados não encontrados')
         return
       }
-      onIdentified(data.id ?? '', data.name ?? '')
+      onIdentified(data.id ?? '', data.name ?? '', false)
     } catch {
       setError('Erro de conexão. Tente novamente.')
     } finally {
@@ -102,7 +102,7 @@ export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryCo
         setError(data.error?.message ?? 'Erro ao cadastrar')
         return
       }
-      onIdentified(data.id ?? '', data.name ?? newName)
+      onIdentified(data.id ?? '', data.name ?? newName, true)
     } catch {
       setError('Erro de conexão. Tente novamente.')
     } finally {
