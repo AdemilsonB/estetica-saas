@@ -42,7 +42,7 @@ export default function EntrarPage({ params }: { params: Promise<{ slug: string 
         }
         return
       }
-      router.replace(`/${slug}/cliente`)
+      router.replace(`/${slug}`)
     } catch {
       setError('Erro de conexão. Tente novamente.')
     } finally {
