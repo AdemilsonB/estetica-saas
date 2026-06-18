@@ -36,8 +36,6 @@ function isOpenNow(businessHours: unknown, timezone: string): boolean {
   try {
     const hours = businessHours as BusinessHoursMap
 
-    // Obter hora atual no timezone do tenant
-    const now = new Date()
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone,
       hour: '2-digit',
@@ -46,22 +44,15 @@ function isOpenNow(businessHours: unknown, timezone: string): boolean {
       hour12: false,
     })
 
-    const parts = formatter.formatToParts(now)
+    const parts = formatter.formatToParts(new Date())
     const weekdayShort = parts.find((p) => p.type === 'weekday')?.value
     const hourStr = parts.find((p) => p.type === 'hour')?.value
     const minuteStr = parts.find((p) => p.type === 'minute')?.value
 
     if (!weekdayShort || !hourStr || !minuteStr) return true
 
-    // Mapear abreviação en-US para índice 0-6 (domingo=0)
     const weekdayMap: Record<string, number> = {
-      Sun: 0,
-      Mon: 1,
-      Tue: 2,
-      Wed: 3,
-      Thu: 4,
-      Fri: 5,
-      Sat: 6,
+      Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
     }
     const dayIndex = weekdayMap[weekdayShort]
     if (dayIndex === undefined) return true
@@ -92,11 +83,18 @@ export default async function BookingPage({
   if (!data || !data.allowPublicBooking) notFound()
 
   const branding = data.branding
+  const primaryColor = branding?.primaryColor ?? '#7C3AED'
+  const bgColor = branding?.backgroundColor ?? '#FAFAFA'
+  const fgColor = branding?.foregroundColor ?? '#1a1a1a'
+  const bannerUrl = branding?.bannerUrl ?? null
+  const logoUrl = branding?.logoUrl ?? null
+  const hasBanner = !!bannerUrl
+  const hasLogo = !!logoUrl
+
   const brandingVars = [
     branding?.primaryColor ? `--booking-primary: ${branding.primaryColor};` : '',
-    branding?.backgroundColor ? `--booking-bg: ${branding.backgroundColor};` : '',
-    branding?.foregroundColor ? `--booking-fg: ${branding.foregroundColor};` : '',
     branding?.accentColor ? `--booking-accent: ${branding.accentColor};` : '',
+    branding?.foregroundColor ? `--booking-fg: ${branding.foregroundColor};` : '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -104,110 +102,123 @@ export default async function BookingPage({
   const isOpen = isOpenNow(data.businessHours, data.timezone)
 
   return (
-    <div className="min-h-screen bg-[--booking-bg,#FAFAFA]">
+    <div className="min-h-screen" style={{ backgroundColor: bgColor, color: fgColor }}>
       {brandingVars && <style>{`:root { ${brandingVars} }`}</style>}
 
-      {/* Barra de retorno */}
-      <div className="sticky top-0 z-50 flex items-center gap-2 border-b bg-white/95 px-3 py-2.5 backdrop-blur-sm">
+      {/* Barra de retorno — sem logo duplicada */}
+      <div className="sticky top-0 z-50 flex items-center gap-3 border-b bg-white/95 px-4 py-3 backdrop-blur-sm">
         <Link
           href={`/${data.slug}`}
-          className="flex items-center gap-1.5 text-sm font-medium"
-          style={{ color: branding?.primaryColor ?? '#7C3AED' }}
+          className="flex items-center gap-1.5 text-sm font-medium transition-opacity hover:opacity-70"
+          style={{ color: primaryColor }}
         >
           <ArrowLeft className="size-4 shrink-0" />
-          <span className="truncate max-w-[200px]">{data.name}</span>
+          <span className="max-w-[180px] truncate sm:max-w-xs">{data.name}</span>
         </Link>
-        {branding?.logoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={branding.logoUrl}
-            alt={data.name}
-            className="ml-auto size-7 shrink-0 rounded-lg object-contain"
-          />
-        )}
+
+        <div className="ml-auto shrink-0">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+              isOpen ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'
+            }`}
+          >
+            <span className={`size-1.5 rounded-full ${isOpen ? 'bg-green-500' : 'bg-slate-400'}`} />
+            {isOpen ? 'Aberto' : 'Fechado'}
+          </span>
+        </div>
       </div>
 
-      {/* Hero compacto: banner do salão como fundo, info flutuando */}
-      <div role="banner" aria-label={data.name} className="relative h-16 overflow-hidden">
-        {/* Camada 1: fundo — banner do tenant ou gradiente padrão */}
-        {branding?.bannerUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
+      {/* Hero banner — só renderiza quando há banner configurado */}
+      {hasBanner && bannerUrl && (
+        <div className="relative h-36 overflow-hidden sm:h-48">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={branding.bannerUrl}
+            src={bannerUrl}
             alt=""
             aria-hidden="true"
             className="absolute inset-0 h-full w-full object-cover"
           />
-        ) : (
           <div
             className="absolute inset-0"
-            style={{ background: 'linear-gradient(135deg, #7C3AED, #DB2777)' }}
+            style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.55))' }}
           />
-        )}
-
-        {/* Camada 2: overlay escuro para garantir leitura */}
-        <div
-          className="absolute inset-0"
-          style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.45))' }}
-        />
-
-        {/* Camada 3: conteúdo flutuando */}
-        <div className="absolute inset-0 flex items-center px-4">
-          <div className="mx-auto flex w-full max-w-lg items-center gap-3">
-          {/* Logo do salão */}
-          {branding?.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={branding.logoUrl}
-              alt={data.name}
-              className="size-[34px] shrink-0 rounded-[9px] border-2 border-white/75 object-contain shadow-md"
-            />
-          ) : (
-            <div
-              className="flex size-[34px] shrink-0 items-center justify-center rounded-[9px] border-2 border-white/75 text-sm font-bold text-white shadow-md"
-              style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
-            >
-              {data.name[0]?.toUpperCase()}
+          <div className="absolute inset-0 flex items-end px-4 pb-4">
+            <div className="mx-auto flex w-full max-w-2xl items-center gap-3">
+              {hasLogo && logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoUrl}
+                  alt={data.name}
+                  className="size-10 shrink-0 rounded-xl border-2 border-white/80 object-contain shadow-md"
+                />
+              ) : (
+                <div
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl border-2 border-white/80 text-sm font-bold text-white shadow-md"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+                >
+                  {data.name[0]?.toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p
+                  className="text-sm font-semibold text-white"
+                  style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
+                >
+                  {data.name}
+                </p>
+                {data.address && (
+                  <p
+                    className="truncate text-xs text-white/80"
+                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}
+                  >
+                    {data.address}
+                  </p>
+                )}
+              </div>
             </div>
-          )}
-
-          {/* Nome e endereço */}
-          <div className="min-w-0 flex-1">
-            <h1
-              className="truncate text-xs font-extrabold text-white"
-              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}
-            >
-              {data.name}
-            </h1>
-            {data.address && (
-              <p
-                className="truncate text-[11px] text-white/80"
-                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}
-              >
-                {data.address}
-              </p>
-            )}
-          </div>
-
-          {/* Badge aberto/fechado */}
-          <div className="ml-auto shrink-0">
-            <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-xs font-medium text-white">
-              <span
-                className={`size-1.5 rounded-full ${isOpen ? 'bg-green-400' : 'bg-white/50'}`}
-              />
-              {isOpen ? 'Aberto' : 'Fechado'}
-            </span>
-          </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <main className="mx-auto max-w-lg px-4 py-6 pb-24">
-        <BookingClient
-          tenantData={data}
-          preSelectServiceId={sp.serviceId}
-          preSelectPackageId={sp.packageId}
-        />
+      {/* Info compacta quando não há banner */}
+      {!hasBanner && (
+        <div className="border-b bg-white/70 px-4 py-3">
+          <div className="mx-auto flex max-w-2xl items-center gap-3">
+            {hasLogo && logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl}
+                alt={data.name}
+                className="size-9 shrink-0 rounded-lg object-contain"
+              />
+            ) : (
+              <div
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {data.name[0]?.toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">{data.name}</p>
+              {data.address && (
+                <p className="truncate text-xs opacity-60">{data.address}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Conteúdo do agendamento */}
+      <main className="mx-auto max-w-2xl px-4 py-6 pb-28">
+        {/* Card em desktop, layout plano em mobile */}
+        <div className="sm:rounded-2xl sm:border sm:border-slate-200/80 sm:bg-white sm:p-6 sm:shadow-sm">
+          <BookingClient
+            tenantData={data}
+            preSelectServiceId={sp.serviceId}
+            preSelectPackageId={sp.packageId}
+          />
+        </div>
       </main>
     </div>
   )
