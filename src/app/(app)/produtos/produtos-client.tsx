@@ -18,6 +18,7 @@ import { useStockMovements, type StockMovement } from '@/hooks/inventory/use-sto
 import { ProductsTable } from '@/components/domain/inventory/ProductsTable'
 import { CategoryManagerModal } from '@/components/domain/inventory/CategoryManagerModal'
 import { ProductFormModal } from '@/components/domain/inventory/ProductFormModal'
+import { AdjustStockModal } from '@/components/domain/inventory/AdjustStockModal'
 import { StockPurchaseModal } from '@/components/domain/inventory/StockPurchaseModal'
 import { StockSaleModal } from '@/components/domain/inventory/StockSaleModal'
 import { StockMovementsTable } from '@/components/domain/inventory/StockMovementsTable'
@@ -41,6 +42,7 @@ export function ProdutosClient() {
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false)
   const [saleModalOpen, setSaleModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [adjustingProduct, setAdjustingProduct] = useState<Product | null>(null)
 
   const PAGE_SIZE = 10
   const { data: productsData, isLoading: loadingProducts } = useProducts({
@@ -58,11 +60,8 @@ export function ProdutosClient() {
   const purchases: StockMovement[] = purchasesData?.data ?? []
   const sales: StockMovement[] = salesData?.data ?? []
 
-  const totalStock = products.reduce((acc, p) => acc + p.stockQuantity, 0)
-  const totalPatrimony = products.reduce(
-    (acc, p) => acc + Number(p.salePrice) * p.stockQuantity,
-    0,
-  )
+  const totalStock = productsData?.totalStock ?? 0
+  const totalPatrimony = productsData?.totalPatrimony ?? 0
 
   async function handleDelete(product: TableProduct) {
     if (!confirm(`Remover "${product.name}" do catálogo?`)) return
@@ -78,6 +77,11 @@ export function ProdutosClient() {
     const full = products.find((p) => p.id === product.id) ?? null
     setEditingProduct(full)
     setProductModalOpen(true)
+  }
+
+  function handleAdjustStock(product: TableProduct) {
+    const full = products.find((p) => p.id === product.id) ?? null
+    setAdjustingProduct(full)
   }
 
   return (
@@ -157,7 +161,7 @@ export function ProdutosClient() {
             <div className="py-12 text-center text-sm text-muted-foreground">Carregando...</div>
           ) : (
             <>
-              <ProductsTable products={products} onEdit={handleEdit} onDelete={handleDelete} />
+              <ProductsTable products={products} onEdit={handleEdit} onDelete={handleDelete} onAdjustStock={handleAdjustStock} />
               {productsData && productsData.total > 0 && (() => {
                 const totalPages = Math.ceil(productsData.total / PAGE_SIZE)
                 return (
@@ -195,6 +199,11 @@ export function ProdutosClient() {
         </TabsContent>
       </Tabs>
 
+      <AdjustStockModal
+        open={!!adjustingProduct}
+        onClose={() => setAdjustingProduct(null)}
+        product={adjustingProduct}
+      />
       <CategoryManagerModal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} />
       <ProductFormModal
         open={productModalOpen}

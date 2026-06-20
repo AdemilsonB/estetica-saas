@@ -171,8 +171,8 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         body: JSON.stringify({ targetQuantity: qty }),
       })
       if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as { error?: string }
-        throw new Error(body?.error ?? 'Erro ao ajustar estoque')
+        const body = await res.json().catch(() => ({})) as { error?: { message?: string } }
+        throw new Error(body?.error?.message ?? 'Erro ao ajustar estoque')
       }
       toast.success(`Estoque ajustado para ${qty} unidades`)
       setAdjustTarget('')
@@ -300,8 +300,21 @@ export function ProductFormModal({ open, onClose, product }: Props) {
 
           {isEditing && product?.stockQuantity !== undefined && (
             <div className="space-y-2">
-              <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-                Estoque atual: <strong className="text-foreground">{product.stockQuantity}</strong> unidades
+              <div className="rounded-lg border bg-muted/30 px-3 py-2.5 text-sm space-y-1">
+                <div className="text-muted-foreground">
+                  Estoque atual:{' '}
+                  <strong className="text-foreground">{product.stockQuantity} unidade(s)</strong>
+                </div>
+                <div className="text-muted-foreground">
+                  Valor em estoque:{' '}
+                  <strong className="text-foreground">
+                    {(Number(product.salePrice) * product.stockQuantity).toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                    })}
+                  </strong>
+                  <span className="ml-1 text-xs">(preço de venda × qtd)</span>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="prod-adjust">Ajustar estoque para (unidades)</Label>

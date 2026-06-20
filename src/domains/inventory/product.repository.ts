@@ -58,10 +58,15 @@ export class ProductRepository {
 
     const filtered = lowStock ? all.filter(p => p.stockQuantity <= p.lowStockAlert) : all
     const total = filtered.length
+    const totalStock = filtered.reduce((acc, p) => acc + p.stockQuantity, 0)
+    const totalPatrimony = filtered.reduce(
+      (acc, p) => acc + Number(p.salePrice) * p.stockQuantity,
+      0,
+    )
     const skip = (page - 1) * pageSize
     const data = filtered.slice(skip, skip + pageSize)
 
-    return { data, total, page, pageSize }
+    return { data, total, page, pageSize, totalStock, totalPatrimony }
   }
 
   async create(tenantId: string, input: CreateProductInput) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, SlidersHorizontal } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
@@ -19,6 +19,7 @@ type Props = {
   products: Product[]
   onEdit: (product: Product) => void
   onDelete: (product: Product) => void
+  onAdjustStock: (product: Product) => void
 }
 
 function formatCurrency(value: string | number) {
@@ -28,7 +29,7 @@ function formatCurrency(value: string | number) {
   })
 }
 
-export function ProductsTable({ products, onEdit, onDelete }: Props) {
+export function ProductsTable({ products, onEdit, onDelete, onAdjustStock }: Props) {
   if (products.length === 0) {
     return (
       <div className="py-12 text-center text-sm text-muted-foreground">
@@ -39,13 +40,12 @@ export function ProductsTable({ products, onEdit, onDelete }: Props) {
 
   return (
     <div className="rounded-lg border border-border/50 overflow-hidden">
-      {/* Cabeçalho */}
+      {/* Cabeçalho desktop */}
       <div className="hidden sm:grid grid-cols-12 bg-accent/30 gap-4 p-4 text-sm font-semibold text-muted-foreground border-b border-border/50">
-        <div className="col-span-3">Produto</div>
-        <div className="col-span-2">Categoria</div>
+        <div className="col-span-4">Produto</div>
+        <div className="col-span-3">Categoria</div>
         <div className="col-span-2 text-right">Preço de Venda</div>
         <div className="col-span-2 text-right">Estoque</div>
-        <div className="col-span-2 text-right">Patrimônio</div>
         <div className="col-span-1" />
       </div>
 
@@ -53,11 +53,10 @@ export function ProductsTable({ products, onEdit, onDelete }: Props) {
       <div className="divide-y divide-border/50">
         {products.map((product) => {
           const isLowStock = product.stockQuantity <= product.lowStockAlert
-          const patrimony = (Number(product.salePrice) || 0) * product.stockQuantity
           return (
             <div key={product.id} className="p-4">
               {/* Mobile Card */}
-              <div className="sm:hidden space-y-2 mb-3">
+              <div className="sm:hidden space-y-2">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-semibold text-slate-950">{product.name}</p>
@@ -66,6 +65,15 @@ export function ProductsTable({ products, onEdit, onDelete }: Props) {
                     </p>
                   </div>
                   <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-muted-foreground"
+                      onClick={() => onAdjustStock(product)}
+                      title="Ajustar estoque"
+                    >
+                      <SlidersHorizontal className="size-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -84,41 +92,36 @@ export function ProductsTable({ products, onEdit, onDelete }: Props) {
                     </Button>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <p className="text-muted-foreground">Preço</p>
-                    <p className="font-semibold">
-                      {formatCurrency(product.salePrice)}
-                    </p>
+                    <p className="font-semibold">{formatCurrency(product.salePrice)}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Estoque</p>
-                    <Badge
-                      variant="secondary"
-                      className={
-                        isLowStock
-                          ? 'bg-orange-100 text-orange-700 text-xs'
-                          : 'bg-emerald-100 text-emerald-700 text-xs'
-                      }
-                    >
-                      {product.stockQuantity}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Patrimônio</p>
-                    <p className="font-semibold">
-                      {formatCurrency(patrimony)}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold">{product.stockQuantity}</span>
+                      <Badge
+                        variant="secondary"
+                        className={
+                          isLowStock
+                            ? 'bg-orange-100 text-orange-700 text-xs'
+                            : 'bg-emerald-100 text-emerald-700 text-xs'
+                        }
+                      >
+                        {isLowStock ? 'POUCO' : 'OK'}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Desktop Row */}
               <div className="hidden sm:grid grid-cols-12 gap-4 items-center text-sm">
-                <div className="col-span-3 font-semibold text-slate-950">
+                <div className="col-span-4 font-semibold text-slate-950">
                   {product.name}
                 </div>
-                <div className="col-span-2 text-muted-foreground">
+                <div className="col-span-3 text-muted-foreground">
                   {product.category?.name ?? '—'}
                 </div>
                 <div className="col-span-2 text-right font-medium">
@@ -139,10 +142,16 @@ export function ProductsTable({ products, onEdit, onDelete }: Props) {
                     </Badge>
                   </div>
                 </div>
-                <div className="col-span-2 text-right font-medium">
-                  {formatCurrency(patrimony)}
-                </div>
                 <div className="col-span-1 flex items-center justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => onAdjustStock(product)}
+                    title="Ajustar estoque"
+                  >
+                    <SlidersHorizontal className="size-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"

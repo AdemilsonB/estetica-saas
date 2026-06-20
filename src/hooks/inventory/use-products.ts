@@ -21,6 +21,8 @@ export type ProductsResponse = {
   total: number
   page: number
   pageSize: number
+  totalStock: number
+  totalPatrimony: number
 }
 
 export type CreateProductInput = {
@@ -189,6 +191,35 @@ export function useRecordSale(productId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (input: RecordSaleInput) => recordSale({ ...input, productId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] })
+    },
+  })
+}
+
+async function adjustStock({
+  productId,
+  targetQuantity,
+}: {
+  productId: string
+  targetQuantity: number
+}): Promise<void> {
+  const res = await fetch(`/api/products/${productId}/adjust`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ targetQuantity }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error((err as { message?: string }).message ?? 'Falha ao ajustar estoque')
+  }
+}
+
+export function useAdjustStock() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: adjustStock,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] })
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] })
