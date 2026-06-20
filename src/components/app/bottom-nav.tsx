@@ -44,10 +44,11 @@ export function BottomNav({ onNewAppointment }: BottomNavProps) {
     <>
       <nav
         aria-label="Navegação principal mobile"
-        className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-border/50 bg-background/95 backdrop-blur md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around bg-background md:hidden"
         style={{
-          height: 'calc(68px + env(safe-area-inset-bottom))',
+          height: 'calc(72px + env(safe-area-inset-bottom))',
           paddingBottom: 'env(safe-area-inset-bottom)',
+          boxShadow: '0 -4px 24px rgba(0,0,0,0.10), 0 -1px 0 rgba(0,0,0,0.04)',
         }}
       >
         {NAV_ITEMS.map((item) => {
@@ -70,26 +71,21 @@ export function BottomNav({ onNewAppointment }: BottomNavProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                'relative flex flex-col items-center gap-1 px-3 py-2 text-[10px] font-medium',
-                isActive ? 'text-primary' : 'text-muted-foreground',
+                'relative flex flex-col items-center gap-1 px-3 py-2 text-[11px] font-medium',
+                isActive ? 'text-primary font-semibold' : 'text-muted-foreground',
               )}
             >
-              <Icon
-                className={cn('size-5', isActive && 'fill-primary/15')}
-                style={
-                  isActive
-                    ? { filter: 'drop-shadow(0 0 5px rgba(124,58,237,0.35))' }
-                    : { filter: 'drop-shadow(0 0 3px rgba(124,58,237,0.15))' }
-                }
-              />
-              <span>{item.label}</span>
               {isActive && (
                 <span
                   aria-hidden="true"
-                  className="absolute bottom-0 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full"
+                  className="absolute top-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full"
                   style={{ background: 'linear-gradient(to right, #7C3AED, #DB2777)' }}
                 />
               )}
+              <Icon
+                className={cn('size-6', isActive && 'fill-primary/10')}
+              />
+              <span>{item.label}</span>
             </Link>
           )
         })}
@@ -110,14 +106,14 @@ export function BottomNav({ onNewAppointment }: BottomNavProps) {
             <img
               src={user.avatarUrl}
               alt={user?.name ?? 'Perfil'}
-              className="size-6 rounded-full object-cover"
+              className="size-7 rounded-full object-cover"
             />
           ) : (
-            <div className="size-6 rounded-full bg-primary/15 text-[9px] font-bold text-primary inline-flex items-center justify-center">
+            <div className="size-7 rounded-full bg-primary/15 text-[10px] font-bold text-primary inline-flex items-center justify-center border border-primary/20">
               {getInitials(user?.name ?? 'U')}
             </div>
           )}
-          <span className="text-[10px] font-medium text-muted-foreground">Perfil</span>
+          <span className="text-[11px] font-medium text-muted-foreground">Perfil</span>
         </button>
       </nav>
 
