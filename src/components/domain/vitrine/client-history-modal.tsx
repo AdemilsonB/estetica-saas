@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type HistoryEntry = {
   id: string
@@ -197,6 +198,14 @@ export function ClientHistoryModal({ open, onOpenChange, slug, primaryColor }: P
         {loading && (
           <div className="flex items-center justify-center py-10">
             <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {/* Carregando Timeline após login */}
+        {!loading && isLoggedIn === true && history === null && (
+          <div className="p-6 space-y-3">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-40 w-full rounded-lg" />
           </div>
         )}
 
