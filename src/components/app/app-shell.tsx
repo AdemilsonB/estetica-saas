@@ -206,7 +206,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
 
   function SidebarContent({ showLabel, onNavigate }: { showLabel: boolean; onNavigate?: () => void }) {
     return (
-      <TooltipProvider delayDuration={300}>
+      <div>
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className={cn('flex items-center border-b border-border/50 py-4', showLabel ? 'px-4 justify-between' : 'px-3 justify-center')}>
@@ -361,11 +361,12 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
             )}
           </div>
         </div>
-      </TooltipProvider>
+      </div>
     )
   }
 
   return (
+    <TooltipProvider delayDuration={300}>
     <div className="min-h-screen bg-background text-foreground">
       {/* Header mobile — visível apenas em < md */}
       <MobileHeader
@@ -412,5 +413,6 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
         onClose={() => setNewAppointmentOpen(false)}
       />
     </div>
+    </TooltipProvider>
   )
 }
