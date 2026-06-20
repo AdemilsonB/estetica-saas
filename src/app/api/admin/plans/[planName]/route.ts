@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PlanName } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { getAdminContext } from '@/shared/auth/admin-context'
 import { handleApiError } from '@/shared/http/handle-api-error'
@@ -6,6 +7,12 @@ import { validateInput } from '@/shared/http/validate-input'
 import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 
 type Params = { params: Promise<{ planName: string }> }
+
+const VALID_PLANS = Object.values(PlanName)
+
+function isPlanName(value: string): value is PlanName {
+  return VALID_PLANS.includes(value as PlanName)
+}
 
 const updatePlanSchema = z.object({
   displayName:   z.string().min(1).max(50).optional(),
@@ -21,9 +28,12 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     await getAdminContext(request)
     const { planName } = await params
+    if (!isPlanName(planName)) {
+      return Response.json({ error: 'Plano inválido' }, { status: 400 })
+    }
     const input = await validateInput(request, updatePlanSchema)
     const plan = await prisma.plan.update({
-      where: { name: planName as any },
+      where: { name: planName },
       data: input,
     })
     return Response.json(plan)

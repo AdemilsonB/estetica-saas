@@ -147,14 +147,14 @@ export function DashboardMetrics() {
               ))}
             </div>
           ) : (
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+            <div className="flex flex-wrap gap-2">
               {STATUS_ORDER.map((status) => {
                 const cfg = STATUS_CONFIG[status]
                 const count = data?.byStatus[status] ?? 0
                 return (
                   <span
                     key={status}
-                    className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-full px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-medium ${cfg.color}`}
+                    className={`inline-flex items-center gap-1 sm:gap-2 rounded-full px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-medium ${cfg.color}`}
                   >
                     <span className="font-semibold">{count}</span>
                     {cfg.label}
