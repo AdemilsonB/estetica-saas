@@ -129,7 +129,7 @@ export function useTeamMembers() {
   return useQuery({
     queryKey: ['team-members'],
     queryFn: fetchTeamMembers,
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -138,7 +138,7 @@ export function useProfessionalsByService(serviceId: string | null) {
     queryKey: ['professionals-by-service', serviceId],
     queryFn: () => fetchProfessionalsByService(serviceId!),
     enabled: !!serviceId,
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -146,7 +146,7 @@ export function useTeamInvites() {
   return useQuery({
     queryKey: ['team-invites'],
     queryFn: fetchInvites,
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60 * 1000,
   })
 }
 

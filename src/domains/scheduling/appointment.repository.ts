@@ -28,9 +28,9 @@ export class AppointmentRepository {
           : {}),
       },
       include: {
-        customer: true,
-        professional: true,
-        service: true,
+        customer: { select: { id: true, name: true, phone: true, notes: true } },
+        professional: { select: { id: true, name: true } },
+        service: { select: { id: true, name: true, duration: true } },
       },
       orderBy: { startsAt: "asc" },
     });

@@ -57,7 +57,7 @@ async function deleteRole(id: string): Promise<void> {
 }
 
 export function useRoles() {
-  return useQuery({ queryKey: ['roles'], queryFn: fetchRoles, staleTime: 30 * 1000 })
+  return useQuery({ queryKey: ['roles'], queryFn: fetchRoles, staleTime: 5 * 60 * 1000 })
 }
 
 export function useCreateRole() {
