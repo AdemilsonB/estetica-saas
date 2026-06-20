@@ -131,6 +131,7 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
           onSuccess: async () => {
             try { await saveTemplate(service.id) } catch { /* ignore */ }
             setSavingTemplate(false)
+            toast.success('Serviço atualizado com sucesso')
             onClose()
           },
           onError: () => {
@@ -146,6 +147,7 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
           onSuccess: async (created) => {
             try { await saveTemplate(created.id) } catch { /* ignore */ }
             setSavingTemplate(false)
+            toast.success('Serviço criado com sucesso')
             onClose()
           },
           onError: () => {

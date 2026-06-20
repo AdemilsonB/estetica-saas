@@ -321,56 +321,91 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
           )}
         </div>
       ) : viewMode === 'day' && canViewAll && selectedProfessionalIds.length > 1 ? (
-        <div className="overflow-x-auto">
-          <div className="inline-flex min-w-full flex-col">
-            {/* cabeçalho com nome dos profissionais */}
-            <div className="mb-3 flex">
-              <div className="w-14 shrink-0" />
-              {byProfessional.map(({ professional }) => (
-                <div key={professional.id} className="min-w-[240px] flex-1 px-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
-                      {professional.name.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="truncate text-sm font-medium text-slate-700">
-                      {professional.name}
-                    </span>
+        <>
+          {/* Mobile: lista vertical por profissional */}
+          <div className="flex flex-col gap-6 md:hidden">
+            {byProfessional.map(({ professional, appointments: profAppts }) => (
+              <div key={professional.id}>
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
+                    {professional.name.charAt(0).toUpperCase()}
                   </div>
-                </div>
-              ))}
-            </div>
-            {/* linhas por horário */}
-            {allColumnHours.map((hour) => (
-              <div key={hour} className="flex items-start">
-                <div className="sticky left-0 z-10 w-14 shrink-0 bg-background pt-1">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    {hour}
+                  <span className="text-sm font-semibold text-slate-700">
+                    {professional.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    ({profAppts.length} agendamento{profAppts.length !== 1 ? 's' : ''})
                   </span>
                 </div>
-                {byProfessional.map(({ professional, appointments: profAppts }) => {
-                  const appts = profAppts.filter((a) => toHour(a) === hour)
-                  return (
-                    <div
-                      key={professional.id}
-                      className="min-w-[240px] flex-1 space-y-2 px-1 pb-2"
-                    >
-                      {appts.map((appt) => (
-                        <AppointmentCard
-                          key={appt.id}
-                          appointment={appt}
-                          onClick={handleCardClick}
-                          onReschedule={handleReschedule}
-                          onConfirm={handleConfirmInline}
-                          onPay={handlePayInline}
-                        />
-                      ))}
-                    </div>
-                  )
-                })}
+                {profAppts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground pl-10">Sem agendamentos</p>
+                ) : (
+                  <div className="space-y-2">
+                    {profAppts.map((appt) => (
+                      <AppointmentCard
+                        key={appt.id}
+                        appointment={appt}
+                        onClick={handleCardClick}
+                        onReschedule={handleReschedule}
+                        onConfirm={handleConfirmInline}
+                        onPay={handlePayInline}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
-        </div>
+          {/* Desktop: colunas side-by-side (layout original) */}
+          <div className="hidden overflow-x-auto md:block">
+            <div className="inline-flex min-w-full flex-col">
+              <div className="mb-3 flex">
+                <div className="w-14 shrink-0" />
+                {byProfessional.map(({ professional }) => (
+                  <div key={professional.id} className="min-w-60 flex-1 px-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
+                        {professional.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="truncate text-sm font-medium text-slate-700">
+                        {professional.name}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {allColumnHours.map((hour) => (
+                <div key={hour} className="flex items-start">
+                  <div className="sticky left-0 z-10 w-14 shrink-0 bg-background pt-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      {hour}
+                    </span>
+                  </div>
+                  {byProfessional.map(({ professional, appointments: profAppts }) => {
+                    const appts = profAppts.filter((a) => toHour(a) === hour)
+                    return (
+                      <div
+                        key={professional.id}
+                        className="min-w-60 flex-1 space-y-2 px-1 pb-2"
+                      >
+                        {appts.map((appt) => (
+                          <AppointmentCard
+                            key={appt.id}
+                            appointment={appt}
+                            onClick={handleCardClick}
+                            onReschedule={handleReschedule}
+                            onConfirm={handleConfirmInline}
+                            onPay={handlePayInline}
+                          />
+                        ))}
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
       ) : viewMode === 'day' ? (
         <div className="space-y-6">
           {hours.map((hour) => (

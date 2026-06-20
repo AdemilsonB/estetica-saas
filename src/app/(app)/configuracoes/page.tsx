@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { toast } from 'sonner'
 import {
   Building2, Clock, Palette, Link as LinkIcon,
   Settings2, MessageCircle, Zap, CreditCard,
@@ -61,7 +62,9 @@ function BrandingCardContent() {
     fetch('/api/iam/branding')
       .then((r) => r.json())
       .then((data) => setConfig(data as BrandingConfig))
-      .catch(() => {})
+      .catch(() => {
+        toast.error('Erro ao carregar configurações de identidade visual')
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -102,14 +105,18 @@ export default function ConfiguracoesPage() {
     fetch('/api/iam/business-info')
       .then((r) => r.json())
       .then((data) => setBusinessInfo(data as BusinessInfo))
-      .catch(() => {})
+      .catch(() => {
+        toast.error('Erro ao carregar informações do negócio')
+      })
   }, [])
 
   useEffect(() => {
     fetch('/api/iam/tenant')
       .then((r) => r.json())
       .then((data) => setTenantPublicInfo(data as TenantPublicInfo))
-      .catch(() => {})
+      .catch(() => {
+        toast.error('Erro ao carregar configurações da página pública')
+      })
   }, [])
 
   const businessInfoComplete =

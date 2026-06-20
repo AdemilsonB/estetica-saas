@@ -9,7 +9,7 @@ import type { Transaction } from '@/hooks/financial/use-transactions'
 const CATEGORY_BADGE: Record<string, { label: string; className: string }> = {
   'Serviço':               { label: 'Serviço',   className: 'bg-slate-100 text-slate-600' },
   'Venda de Produto':      { label: 'Venda',     className: 'bg-slate-100 text-slate-600' },
-  'Compra de Estoque':     { label: 'Compra',    className: 'bg-gray-100 text-gray-600' },
+  'Compra de Estoque':     { label: 'Compra',    className: 'bg-slate-100 text-slate-600' },
   'Insumo de Atendimento': { label: 'Insumo',    className: 'bg-purple-50 text-purple-700' },
   'Despesa Variável':      { label: 'Variável',  className: 'bg-orange-50 text-orange-700' },
   'Despesa Fixa':          { label: 'Fixo',      className: 'bg-blue-50 text-blue-700' },

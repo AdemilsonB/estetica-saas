@@ -78,7 +78,7 @@ export function FilterBar({ filters, onChange }: Props) {
               : 'Sem visita'}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-52 p-3" align="start">
+        <PopoverContent className="w-52 p-3 max-h-[80vh] overflow-y-auto" align="start">
           <Label className="text-xs font-medium">Sem visita há (dias)</Label>
           <div className="mt-2 flex gap-2">
             <Input
@@ -87,11 +87,11 @@ export function FilterBar({ filters, onChange }: Props) {
               placeholder="ex: 30"
               value={noVisitInput}
               onChange={(e) => setNoVisitInput(e.target.value)}
-              className="h-8 text-sm"
+              className="h-10 sm:h-8 text-sm"
             />
             <Button
               size="sm"
-              className="h-8 px-3"
+              className="h-10 sm:h-8 px-3"
               onClick={() => {
                 const v = parseInt(noVisitInput)
                 if (!isNaN(v) && v > 0)
@@ -117,7 +117,7 @@ export function FilterBar({ filters, onChange }: Props) {
               : 'Ticket mín'}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-52 p-3" align="start">
+        <PopoverContent className="w-52 p-3 max-h-[80vh] overflow-y-auto" align="start">
           <Label className="text-xs font-medium">Ticket médio mínimo (R$)</Label>
           <div className="mt-2 flex gap-2">
             <Input
@@ -126,11 +126,11 @@ export function FilterBar({ filters, onChange }: Props) {
               placeholder="ex: 100"
               value={ticketInput}
               onChange={(e) => setTicketInput(e.target.value)}
-              className="h-8 text-sm"
+              className="h-10 sm:h-8 text-sm"
             />
             <Button
               size="sm"
-              className="h-8 px-3"
+              className="h-10 sm:h-8 px-3"
               onClick={() => {
                 const v = parseFloat(ticketInput)
                 if (!isNaN(v) && v >= 0)

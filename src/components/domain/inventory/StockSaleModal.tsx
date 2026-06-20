@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ComboboxField } from '@/components/ui/combobox-field'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useProducts } from '@/hooks/inventory/use-products'
 
 type Props = {
@@ -22,7 +23,7 @@ type Props = {
 
 export function StockSaleModal({ open, onClose }: Props) {
   const queryClient = useQueryClient()
-  const { data: productsResponse } = useProducts({ pageSize: 100 })
+  const { data: productsResponse, isLoading: productsLoading } = useProducts({ pageSize: 100 })
   const products = productsResponse?.data ?? []
 
   const [productId, setProductId] = useState('')
@@ -111,18 +112,22 @@ export function StockSaleModal({ open, onClose }: Props) {
             <Label>
               Produto <span className="text-rose-500">*</span>
             </Label>
-            <ComboboxField
-              options={products.map((p) => ({
-                value: p.id,
-                label: p.name
-                  + (p.category ? ` · ${p.category.name}` : '')
-                  + ` · ${p.stockQuantity} em estoque`,
-              }))}
-              value={productId || undefined}
-              onChange={(v) => setProductId(v ?? '')}
-              placeholder="Selecionar produto..."
-              searchPlaceholder="Buscar produto..."
-            />
+            {productsLoading ? (
+              <Skeleton className="h-10 w-full rounded-lg" />
+            ) : (
+              <ComboboxField
+                options={products.map((p) => ({
+                  value: p.id,
+                  label: p.name
+                    + (p.category ? ` · ${p.category.name}` : '')
+                    + ` · ${p.stockQuantity} em estoque`,
+                }))}
+                value={productId || undefined}
+                onChange={(v) => setProductId(v ?? '')}
+                placeholder="Selecionar produto..."
+                searchPlaceholder="Buscar produto..."
+              />
+            )}
             {selectedProduct && (
               <p className="text-xs text-slate-500">
                 Estoque disponível:{' '}

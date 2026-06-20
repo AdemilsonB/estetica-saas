@@ -302,7 +302,7 @@ export function CatalogGrid({
         placeholder="Buscar..."
         value={searchInput}
         onChange={e => setSearchInput(e.target.value)}
-        className="max-w-sm"
+        className="w-full sm:max-w-sm"
       />
 
       {/* Conteúdo principal */}

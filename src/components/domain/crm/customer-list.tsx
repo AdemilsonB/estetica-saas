@@ -114,6 +114,11 @@ export function CustomerList() {
         </div>
       ) : (
         <>
+          {data.data.length > 0 && (
+            <p className="text-xs text-muted-foreground mb-2">
+              {data.data.length} cliente{data.data.length !== 1 ? 's' : ''} encontrado{data.data.length !== 1 ? 's' : ''}
+            </p>
+          )}
           <div className="space-y-3">
             {data.data.map((customer) => (
               <CustomerCard key={customer.id} customer={customer} />

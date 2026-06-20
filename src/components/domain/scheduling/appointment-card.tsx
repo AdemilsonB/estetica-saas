@@ -2,6 +2,11 @@
 import { Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { Appointment, AppointmentStatus } from '@/hooks/scheduling/use-appointments'
 
 const STATUS_CONFIG: Record<
@@ -81,16 +86,20 @@ export function AppointmentCard({ appointment, onClick, onReschedule, onConfirm,
       </button>
 
       {canReschedule && onReschedule && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onReschedule(appointment)
-          }}
-          title="Remarcar"
-          className="absolute right-3 bottom-3 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-        >
-          <Pencil className="size-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onReschedule(appointment)
+              }}
+              className="absolute right-3 bottom-3 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            >
+              <Pencil className="size-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Remarcar</TooltipContent>
+        </Tooltip>
       )}
 
       {/* Quick actions — visíveis apenas em mobile (sm:hidden) */}
@@ -103,7 +112,7 @@ export function AppointmentCard({ appointment, onClick, onReschedule, onConfirm,
             {showConfirm && (
               <button
                 onClick={(e) => { e.stopPropagation(); onConfirm?.(appointment) }}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 transition min-h-11"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 transition min-h-11"
               >
                 <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -114,7 +123,7 @@ export function AppointmentCard({ appointment, onClick, onReschedule, onConfirm,
             {showPay && (
               <button
                 onClick={(e) => { e.stopPropagation(); onPay?.(appointment) }}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition min-h-11"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition min-h-11"
               >
                 <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

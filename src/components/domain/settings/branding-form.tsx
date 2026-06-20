@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Loader2, Upload, X } from 'lucide-react'
@@ -177,6 +177,12 @@ export function BrandingForm({ initial }: Props) {
   const [isSaving, setIsSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    return () => {
+      if (logoPreview && logoPreview.startsWith('blob:')) URL.revokeObjectURL(logoPreview)
+    }
+  }, [logoPreview])
+
   function update<K extends keyof BrandingConfig>(field: K, value: BrandingConfig[K]) {
     setConfig((prev) => ({ ...prev, [field]: value }))
     applyPreview(field, value as string)
@@ -190,7 +196,11 @@ export function BrandingForm({ initial }: Props) {
       return
     }
     setPendingLogoFile(file)
-    setLogoPreview(URL.createObjectURL(file))
+    const objectUrl = URL.createObjectURL(file)
+    setLogoPreview((prev) => {
+      if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev)
+      return objectUrl
+    })
   }
 
   function removeLogo() {

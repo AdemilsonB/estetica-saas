@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { type TeamMember } from '@/hooks/iam/use-team'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { EditMemberModal } from './edit-member-modal'
@@ -70,15 +71,20 @@ export function TeamMemberCard({ member, canManage }: Props) {
           )}
 
           {canEdit && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 text-slate-400 hover:text-slate-700"
-              onClick={() => setEditOpen(true)}
-              title="Editar membro"
-            >
-              <Pencil className="size-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 text-slate-400 hover:text-slate-700"
+                  onClick={() => setEditOpen(true)}
+                  aria-label="Editar membro"
+                >
+                  <Pencil className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Editar membro</TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>

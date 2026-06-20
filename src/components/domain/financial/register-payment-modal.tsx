@@ -224,7 +224,6 @@ export function RegisterPaymentModal({ appointment, open, onClose }: Props) {
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={handleCourtesy}
               disabled={markCourtesy.isPending || checkout.isPending}
             >

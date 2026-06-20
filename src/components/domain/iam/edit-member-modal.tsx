@@ -161,7 +161,7 @@ export function EditMemberModal({ member, open, onClose }: Props) {
             <div className="space-y-1.5">
               <Label htmlFor="edit-bio">
                 Sobre mim{' '}
-                <span className="text-slate-400 font-normal">(opcional)</span>
+                <span className="text-xs font-normal text-muted-foreground">(opcional)</span>
               </Label>
               <Textarea
                 id="edit-bio"

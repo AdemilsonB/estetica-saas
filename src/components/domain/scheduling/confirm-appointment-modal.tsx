@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useUpdateAppointmentStatus } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import type { SugestaoPreco } from '@/domains/crm/price-suggestion'
@@ -53,7 +54,7 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
   const queryClient = useQueryClient()
   const updateStatus = useUpdateAppointmentStatus()
 
-  const { data: anamneseData } = useQuery<AnamneseData | null>({
+  const { data: anamneseData, isLoading: anamneseLoading } = useQuery<AnamneseData | null>({
     queryKey: ['appointment-anamnese', appointment.id],
     queryFn: async () => {
       const res = await fetch(`/api/scheduling/appointments/${appointment.id}/anamnese`)
@@ -111,11 +112,15 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
             <p className="text-slate-500">
               {appointment.service.name} · {appointment.professional.name}
             </p>
-            {suggestedPrice !== null && suggestedPrice !== Number(appointment.price) && (
-              <p className="text-xs text-amber-700">
-                Sugestão da ficha: {formatCurrency(suggestedPrice)}
-              </p>
-            )}
+            {anamneseLoading ? (
+              <Skeleton className="h-20 w-full rounded-lg" />
+            ) : anamneseData ? (
+              suggestedPrice !== null && suggestedPrice !== Number(appointment.price) && (
+                <p className="text-xs text-amber-700">
+                  Sugestão da ficha: {formatCurrency(suggestedPrice)}
+                </p>
+              )
+            ) : null}
           </div>
 
           <div className="space-y-1.5">

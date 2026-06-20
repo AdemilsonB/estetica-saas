@@ -107,7 +107,7 @@ export function BillingPlansContent() {
     }
   }, [searchParams, router, queryClient])
 
-  if (statusLoading || plansLoading || syncing) return <div className="h-64 animate-pulse rounded-lg bg-muted" />
+  if (statusLoading || plansLoading || syncing) return <div className="min-h-48 animate-pulse rounded-lg bg-muted" aria-busy="true" aria-label="Carregando planos de assinatura..." />
   if (!data || !plansData) return null
 
   const { plans } = plansData
