@@ -116,7 +116,7 @@ export function CustomerList() {
         <>
           {data.data.length > 0 && (
             <p className="text-xs text-muted-foreground mb-2">
-              {data.data.length} cliente{data.data.length !== 1 ? 's' : ''} encontrado{data.data.length !== 1 ? 's' : ''}
+              {data.total} cliente{data.total !== 1 ? 's' : ''} encontrado{data.total !== 1 ? 's' : ''}
             </p>
           )}
           <div className="space-y-3">
