@@ -1,12 +1,12 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-
-export const metadata = { title: 'Serviços · Estética SaaS' }
 import { ServiceCatalog } from '@/components/domain/services/service-catalog'
 import { PackageCatalog } from '@/components/domain/services/package-catalog'
 import { PromotionCatalog } from '@/components/domain/services/promotion-catalog'
 import { CategoryCatalog } from '@/components/domain/services/category-catalog'
 import { DiscountTypesManager } from '@/components/domain/settings/discount-types-manager'
 import { CommissionsGrid } from '@/components/domain/settings/commissions-grid'
+
+export const metadata = { title: 'Serviços · Estética SaaS' }
 
 export default function ServicosPage() {
   return (
