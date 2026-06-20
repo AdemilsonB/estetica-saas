@@ -1,6 +1,6 @@
-'use client'
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
+export const metadata = { title: 'Serviços · Estética SaaS' }
 import { ServiceCatalog } from '@/components/domain/services/service-catalog'
 import { PackageCatalog } from '@/components/domain/services/package-catalog'
 import { PromotionCatalog } from '@/components/domain/services/promotion-catalog'
