@@ -39,7 +39,9 @@ export function PublicPageForm({ initial }: Props) {
       setCoverImageUrl(data.coverImageUrl)
       toast.success('Foto de capa atualizada')
     } catch {
-      toast.error('Falha no upload da foto de capa')
+      toast.error('Falha no upload. Tente novamente.')
+      // resetar o input para permitir nova tentativa
+      if (fileRef.current) fileRef.current.value = ''
     } finally {
       setUploading(false)
     }

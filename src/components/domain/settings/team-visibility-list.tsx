@@ -22,7 +22,9 @@ export function TeamVisibilityList() {
     fetch('/api/iam/users')
       .then((r) => r.json())
       .then((data) => setMembers(data as Member[]))
-      .catch(() => {})
+      .catch(() => {
+        toast.error('Erro ao atualizar visibilidade do membro')
+      })
       .finally(() => setLoading(false))
   }, [])
 

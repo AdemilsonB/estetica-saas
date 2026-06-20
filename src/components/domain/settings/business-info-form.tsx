@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -28,7 +29,13 @@ export function BusinessInfoForm() {
     e.preventDefault()
     mutate(
       { name: name.trim() || undefined, phone: phone.trim() || null, address: address.trim() || null },
-      { onSuccess: () => router.refresh() },
+      {
+        onSuccess: () => {
+          toast.success('Informações salvas com sucesso')
+          router.refresh()
+        },
+        onError: () => toast.error('Erro ao salvar informações'),
+      },
     )
   }
 

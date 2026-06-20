@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { MessageCircle, Lock, Send, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -104,7 +105,13 @@ export function WhatsAppSettingsForm() {
           <Button
             variant={isEnabled ? "destructive" : "default"}
             size="sm"
-            onClick={() => mutate({ whatsappEnabled: !isEnabled })}
+            onClick={() => mutate(
+              { whatsappEnabled: !isEnabled },
+              {
+                onSuccess: () => toast.success(isEnabled ? 'WhatsApp desativado' : 'WhatsApp ativado'),
+                onError: () => toast.error('Erro ao atualizar configuração'),
+              }
+            )}
             disabled={isPending}
           >
             {isEnabled ? "Desativar" : "Ativar"}
@@ -153,7 +160,10 @@ export function WhatsAppSettingsForm() {
               <Label>Quando enviar o lembrete</Label>
               <Select
                 value={String(data?.reminderLeadHours ?? 24)}
-                onValueChange={(v) => mutate({ reminderLeadHours: parseInt(v) })}
+                onValueChange={(v) => mutate(
+                  { reminderLeadHours: parseInt(v) },
+                  { onError: () => toast.error('Erro ao salvar configuração') }
+                )}
                 disabled={isPending}
               >
                 <SelectTrigger className="w-full sm:w-64">
@@ -172,7 +182,10 @@ export function WhatsAppSettingsForm() {
                 <Label>Não enviar antes de</Label>
                 <Select
                   value={String(data?.reminderWindowStart ?? 7)}
-                  onValueChange={(v) => mutate({ reminderWindowStart: parseInt(v) })}
+                  onValueChange={(v) => mutate(
+                    { reminderWindowStart: parseInt(v) },
+                    { onError: () => toast.error('Erro ao salvar configuração') }
+                  )}
                   disabled={isPending}
                 >
                   <SelectTrigger>
@@ -190,7 +203,10 @@ export function WhatsAppSettingsForm() {
                 <Label>Não enviar depois de</Label>
                 <Select
                   value={String(data?.reminderWindowEnd ?? 22)}
-                  onValueChange={(v) => mutate({ reminderWindowEnd: parseInt(v) })}
+                  onValueChange={(v) => mutate(
+                    { reminderWindowEnd: parseInt(v) },
+                    { onError: () => toast.error('Erro ao salvar configuração') }
+                  )}
                   disabled={isPending}
                 >
                   <SelectTrigger>
@@ -218,7 +234,10 @@ export function WhatsAppSettingsForm() {
         <Label htmlFor="timezone">Fuso horário do negócio</Label>
         <Select
           value={data?.timezone ?? "America/Sao_Paulo"}
-          onValueChange={(v) => mutate({ timezone: v })}
+          onValueChange={(v) => mutate(
+            { timezone: v },
+            { onError: () => toast.error('Erro ao salvar configuração') }
+          )}
           disabled={isPending}
         >
           <SelectTrigger id="timezone" className="w-full sm:w-72">
