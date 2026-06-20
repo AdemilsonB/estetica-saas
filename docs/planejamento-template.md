@@ -1,3 +1,6 @@
+> ⚠️ Arquivo de referência histórica. Não é instrução ativa para Claude Code.
+> Mantido para consulta. Não atualizar.
+
 # PLANEJAMENTO.md — Orquestrador de demandas
 
 > **Onde fica:** `.claude/PLANEJAMENTO.md`
