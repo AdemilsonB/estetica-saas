@@ -15,14 +15,14 @@ Adicionar navegação por swipe horizontal entre as 4 páginas principais do app
 ## 2. Ciclo de swipe
 
 ```
-← [/agenda] ↔ [/servicos] ↔ [/clientes] ↔ [/equipe] →
-      0              1              2             3
+← [/agenda] ↔ [/servicos] ↔ [/clientes] ↔ [/equipe] ↔ [/configuracoes] →
+      0              1              2             3               4
 ```
 
-- Swipe **esquerda**: avança no ciclo (Agenda → Serviços → … → Equipe)
-- Swipe **direita**: recua no ciclo (Equipe → Clientes → … → Agenda)
+- Swipe **esquerda**: avança no ciclo (Agenda → Serviços → … → Configurações)
+- Swipe **direita**: recua no ciclo (Configurações → Equipe → … → Agenda)
 - Na borda esquerda (`/agenda`): swipe direita ignorado
-- Na borda direita (`/equipe`): swipe esquerda ignorado
+- Na borda direita (`/configuracoes`): swipe esquerda ignorado
 
 ---
 
@@ -33,25 +33,25 @@ Adicionar navegação por swipe horizontal entre as 4 páginas principais do app
 | `/agenda` | ✅ ciclo | avança para `/servicos` |
 | `/servicos` | ✅ ciclo | recua para `/agenda` / avança para `/clientes` |
 | `/clientes` | ✅ ciclo | recua para `/servicos` / avança para `/equipe` |
-| `/equipe` | ✅ ciclo | recua para `/clientes` |
+| `/equipe` | ✅ ciclo | recua para `/clientes` / avança para `/configuracoes` |
+| `/configuracoes` | ✅ ciclo | recua para `/equipe` |
 | `/clientes/[id]` | ✅ back | swipe direita → `router.back()` |
 | `/dashboard` | ❌ | sem swipe |
 | `/financeiro` | ❌ | sem swipe |
 | `/financeiro/cobrancas` | ❌ | sem swipe |
 | `/financeiro/despesas` | ❌ | sem swipe |
 | `/financeiro/transacoes` | ❌ | sem swipe |
+| `/configuracoes/catalogo` | ❌ | sem swipe |
+| `/configuracoes/planos` | ❌ | sem swipe |
 | `/relatorios` | ❌ | sem swipe |
 | `/relatorios/agendamentos` | ❌ | sem swipe |
 | `/relatorios/clientes` | ❌ | sem swipe |
 | `/relatorios/financeiro` | ❌ | sem swipe |
 | `/relatorios/profissionais` | ❌ | sem swipe |
-| `/configuracoes` | ❌ | sem swipe |
-| `/configuracoes/catalogo` | ❌ | sem swipe |
-| `/configuracoes/planos` | ❌ | sem swipe |
 | `/produtos` | ❌ | sem swipe |
 | `/onboarding/catalogo` | ❌ | sem swipe |
 
-> **Regra de detecção de sub-rota:** se `pathname` não corresponde exatamente a uma das 4 rotas do ciclo, o swipe do ciclo é desativado. Para `/clientes/[id]` especificamente, swipe direita chama `router.back()`.
+> **Regra de detecção de sub-rota:** se `pathname` não corresponde exatamente a uma das 5 rotas do ciclo, o swipe do ciclo é desativado. Sub-rotas de `/configuracoes` (ex: `/configuracoes/planos`) são distintas de `/configuracoes` e ficam fora do ciclo. Para `/clientes/[id]` especificamente, swipe direita chama `router.back()`.
 
 ---
 
@@ -73,7 +73,7 @@ Adicionar navegação por swipe horizontal entre as 4 páginas principais do app
 
 **Constantes:**
 ```ts
-const SWIPE_ROUTES = ['/agenda', '/servicos', '/clientes', '/equipe'] as const
+const SWIPE_ROUTES = ['/agenda', '/servicos', '/clientes', '/equipe', '/configuracoes'] as const
 const DRAG_THRESHOLD = 80      // px de offset para disparar navegação
 const VELOCITY_THRESHOLD = 500 // px/s de velocidade para disparar navegação
 ```
@@ -141,13 +141,13 @@ useEffect(() => {
 **Lógica:**
 ```ts
 // Rotas que mostram hambúrguer (modo principal)
-const MAIN_ROUTES = ['/agenda', '/servicos', '/clientes', '/equipe',
-                     '/dashboard', '/financeiro', '/relatorios',
-                     '/configuracoes', '/produtos', '/onboarding']
+// Inclui raízes do ciclo + raízes de outras seções acessíveis via sidebar
+const MAIN_ROUTES = ['/agenda', '/servicos', '/clientes', '/equipe', '/configuracoes',
+                     '/dashboard', '/financeiro', '/relatorios', '/produtos', '/onboarding']
 
-const isMainRoute = MAIN_ROUTES.some(r => pathname === r || 
-  (r !== '/clientes' && pathname.startsWith(r + '/')))
-  // exceção: /clientes/[id] é sub-rota → mostra Voltar
+const isMainRoute = MAIN_ROUTES.some(r => pathname === r ||
+  (r !== '/clientes' && r !== '/configuracoes' && pathname.startsWith(r + '/')))
+  // exceções: /clientes/[id] e /configuracoes/[sub] → mostram Voltar
 ```
 
 **Modo principal** (comportamento atual, preservado):
