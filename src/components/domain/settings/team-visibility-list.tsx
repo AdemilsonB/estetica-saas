@@ -23,7 +23,7 @@ export function TeamVisibilityList() {
       .then((r) => r.json())
       .then((data) => setMembers(data as Member[]))
       .catch(() => {
-        toast.error('Erro ao atualizar visibilidade do membro')
+        toast.error('Erro ao carregar lista de membros')
       })
       .finally(() => setLoading(false))
   }, [])
