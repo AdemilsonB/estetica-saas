@@ -84,3 +84,29 @@ Formato: data, contexto, decisão, consequências.
 - Eventos síncronos em memória — suficiente para MVP
 - Sem persistência de eventos (jobs assíncronos vão para pg-boss)
 - Migração para RabbitMQ/Redis Pub-Sub é substituição do event bus, não reescrita de domínios
+
+---
+
+## ADR-006 — Reestruturação de agents e skills (2026-06-20)
+
+**Data**: 2026-06-20
+**Status**: Aceito
+
+**Contexto**: Diagnóstico identificou ~38k tokens por sessão de feature completa, schema Prisma embedado no `agent-database.md` estava desatualizado (Fase 5 vs. estado real), tabela de domínios em 3 versões conflitantes (CLAUDE.md / CODEX.md / project-state.md), e ausência de pipeline para correções pontuais (hotfix), forçando o pipeline completo (~28k tokens) para bugs simples.
+
+**Decisão**:
+1. Criar `agent-hotfix.md` — pipeline reduzido (~13k tokens) para bugs pontuais
+2. Criar `agent-mobile.md` — checklist mobile-first obrigatório após todo frontend
+3. Tornar `agent-documentation.md` condicional — BUGFIX só atualiza `project-state.md`
+4. Remover schema embedado do `agent-database.md` — referencia `prisma/schema.prisma` como fonte única
+5. Restringir critérios de acionamento do `agent-architect.md` — evitar invocações desnecessárias
+6. Consolidar tabela de status em `CLAUDE.md` como fonte única de verdade
+7. Arquivar `PLANEJAMENTO.md` em `docs/planejamento-template.md` (arquivo de referência histórica)
+8. `AGENTS.md` simplificado — mantém apenas fluxo visual + links para cada skill
+
+**Consequências**:
+- Hotfix: ~13k tokens (-66% vs. pipeline completo)
+- Feature nova: ~28k tokens (-26% vs. ~38k anterior)
+- Schema sempre atualizado — sem risco de modelagem baseada em schema obsoleto
+- `CLAUDE.md` é a fonte canônica de status de domínios
+- Worktrees ativos precisam de merge manual: CLAUDE.md, AGENTS.md, orchestrator.md, agent-database.md, agent-documentation.md, agent-architect.md, settings.json; novos arquivos (agent-hotfix.md, agent-mobile.md) precisam ser copiados

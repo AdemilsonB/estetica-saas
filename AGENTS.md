@@ -13,33 +13,47 @@ Ideia do usuário
       ↓
 agent-onboarding   ← explora intenção, propõe abordagens, estrutura brief
       ↓
-orchestrator       ← executa o brief com o pipeline correto de skills
+orchestrator       ← decide pipeline (hotfix / feature / arquitetural)
       ↓
-[database] → [backend] → [frontend] → [testing + security] → [review] → [documentation]
+[database] → [backend] → [frontend] + [mobile] → [testing + security] → [review] → [documentation]
       ↓
 PR aberta e mergeada na main
 ```
 
 Só acione o orchestrator diretamente (sem onboarding) se:
-- É um bug com arquivo + comportamento + erro exatos descritos
+- É um bug com arquivo + comportamento + erro exatos descritos → usar `agent-hotfix`
 - É uma mudança pontual e cirúrgica com escopo inequívoco
 
 ---
 
 ## Skills disponíveis
 
+> Ver `CLAUDE.md` — seção "Sistema de Skills" para regras de uso.
+
 | Skill | Arquivo | Quando usar |
 |---|---|---|
 | **Onboarding** | `.claude/skills/agent-onboarding.md` | **Primeiro passo** — toda ideia nova passa aqui |
-| **Orchestrator** | `.claude/skills/orchestrator.md` | Executa o brief estruturado pelo Onboarding |
+| **Orchestrator** | `.claude/skills/orchestrator.md` | Coordena o pipeline pós-brief |
+| **Hotfix** | `.claude/skills/agent-hotfix.md` | Bugs pontuais em produção — pipeline reduzido (~13k tokens) |
 | **Database** | `.claude/skills/agent-database.md` | Schema Prisma, migrations, RLS |
 | **Backend** | `.claude/skills/agent-backend.md` | Services, repos, API Routes, Zod schemas |
 | **Frontend** | `.claude/skills/agent-frontend.md` | Pages, components, hooks de UI |
+| **Mobile** | `.claude/skills/agent-mobile.md` | Checklist mobile-first — obrigatório após todo frontend |
 | **Testing** | `.claude/skills/agent-testing.md` | Vitest, testes unit + integração |
 | **Security** | `.claude/skills/agent-security.md` | Auditoria OWASP, tenancy, rate limiting |
 | **Review** | `.claude/skills/agent-review.md` | Gate de build final, aprovação de PR |
 | **Documentation** | `.claude/skills/agent-documentation.md` | Atualiza docs após cada feature |
-| **Arquiteto** | `.claude/skills/agent-architect.md` | Decisões arquiteturais novas |
+| **Arquiteto** | `.claude/skills/agent-architect.md` | Decisões arquiteturais novas sem precedente em decisions.md |
+
+---
+
+## Pipelines disponíveis
+
+| Tipo | Skills | Custo estimado |
+|---|---|---|
+| Hotfix / Bugfix | `agent-hotfix` → `agent-mobile`? → `agent-review` | ~13k tokens |
+| Feature nova | onboarding → orchestrator → database? → backend → frontend + mobile → testing + security → review → documentation | ~28k tokens |
+| Decisão arquitetural | `agent-architect` → `decisions.md` | ~4k tokens |
 
 ---
 
@@ -57,6 +71,7 @@ Só acione o orchestrator diretamente (sem onboarding) se:
 | `agent-database` | `npx prisma validate && npx prisma generate` |
 | `agent-backend` | `npx tsc --noEmit` sem erros na área modificada |
 | `agent-frontend` | `npx tsc --noEmit` sem erros de tipo |
+| `agent-mobile` | Checklist mobile completo — sem item não verificado |
 | `agent-testing` | `npx vitest run` — todos passando |
 | `agent-security` | Nenhum item CRÍTICO em aberto |
 | `agent-review` | `npx tsc --noEmit` + `npx vitest run` — projeto inteiro verde |

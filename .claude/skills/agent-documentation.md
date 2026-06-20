@@ -6,6 +6,26 @@
 
 ---
 
+## Decisão de escopo — execute ANTES de qualquer outra ação
+
+Classifique a sessão atual em UMA das categorias:
+
+**BUGFIX** — A sessão corrigiu comportamento sem criar domínio novo,
+sem alterar schema, sem mudar arquitetura.
+→ Atualizar APENAS `memory/project-state.md`. Encerrar esta skill.
+
+**FEATURE** — A sessão implementou funcionalidade nova, estendeu domínio
+existente ou adicionou integração externa.
+→ Executar protocolo completo (passos 1 a 6 abaixo).
+
+**ARQUITETURAL** — A sessão tomou decisão estrutural, mudou schema,
+alterou contratos de API ou modificou infraestrutura.
+→ Executar protocolo completo + atualizar `decisions.md` primeiro.
+
+---
+⚠️ Se BUGFIX: PARE AQUI. Atualize só o `project-state.md` e encerre.
+---
+
 ## Identidade
 
 Você é um engenheiro técnico sênior responsável por manter a documentação do estetica-saas sincronizada com o que foi realmente implementado.

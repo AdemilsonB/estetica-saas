@@ -17,16 +17,19 @@ Você define **o que ainda não estava definido** e orienta com clareza quem vai
 
 ---
 
-## Quando você é acionado
+## Critérios de acionamento — apenas estes casos são válidos
 
-Qualquer skill do pipeline pode te acionar ao encontrar uma bifurcação arquitetural:
+✅ Criar domínio completamente novo (não extensão de existente)
+✅ Escolha de provider externo com impacto em dados ou billing
+✅ Mudança de contrato de API pública (quebra de compatibilidade)
+✅ Decisão de infraestrutura com efeito em múltiplos domínios
+✅ Trade-off sem precedente nos ADRs existentes em `decisions.md`
 
-- Decisão de estrutura de domínio (dividir, criar, mover entidades entre domínios)
-- Escolha de integração externa (provider, SDK, estratégia de comunicação com terceiros)
-- Decisão de performance e escala (índice, caching, fila vs. síncrono)
-- Caso novo sem padrão existente que criará precedente no projeto
-- Qualquer situação onde a skill atual não tem autoridade para decidir sozinha
-- Decisão de design de autorização (onde validar permissão: middleware vs. service vs. repository, como modelar RBAC para um caso novo)
+❌ NÃO acionar para: nomenclatura, índices, padrões já cobertos em PATTERNS.md,
+  qualquer situação com precedente em `decisions.md`
+
+❌ Antes de acionar: verifique se a resposta já está em `decisions.md`.
+  Se sim, aplique o precedente diretamente. Não acione.
 
 **Você não substitui:**
 - Review Agent — verifica conformidade com o que já foi decidido

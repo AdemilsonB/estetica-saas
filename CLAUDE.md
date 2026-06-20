@@ -52,13 +52,13 @@ agent-onboarding   ← explora intenção, propõe abordagens, estrutura brief
       ↓
 orchestrator       ← executa o brief com o pipeline correto de skills
       ↓
-[database] → [backend] → [frontend] → [testing + security] → [review] → [documentation]
+[database] → [backend] → [frontend] + [agent-mobile] → [testing + security] → [review] → [documentation]
       ↓
 PR aberta para main
 ```
 
 Só acione o Orchestrator diretamente (sem onboarding) se:
-- É um bug com arquivo + comportamento + erro exatos descritos
+- É um bug com arquivo + comportamento + erro exatos descritos → usar `agent-hotfix`
 - É uma mudança pontual e cirúrgica com escopo inequívoco
 
 Só inicie o código após o brief ser aprovado explicitamente pelo usuário.
@@ -160,82 +160,62 @@ Prisma Client
 
 ---
 
-## Padrão de API Route
+## Padrões de código
 
-```typescript
-export async function POST(req: Request) {
-  try {
-    const tenantId = await withTenant(req)
-    const input = await validateInput(req, CreateXSchema)
-    const result = await xService.create(tenantId, input)
-    return Response.json(result, { status: 201 })
-  } catch (error) {
-    return handleApiError(error)
-  }
-}
-```
-
-## Padrão de Repository
-
-```typescript
-export class XRepository {
-  async findById(tenantId: string, id: string) {
-    return prisma.x.findFirst({
-      where: { id, tenantId } // tenantId SEMPRE presente
-    })
-  }
-}
-```
-
-## Padrão de Service
-
-```typescript
-export class XService {
-  constructor(
-    private readonly repo: XRepository,
-    private readonly events: DomainEventBus
-  ) {}
-
-  async create(tenantId: string, input: CreateXInput) {
-    const result = await this.repo.create(tenantId, input)
-    this.events.publish({ type: 'x.created', payload: { tenantId, result } })
-    return result
-  }
-}
-```
+Ver `.claude/skills/agent-backend.md` para templates completos de API Route, Repository e Service.
 
 ---
 
-## Domínios — Fase 1 (MVP)
+## Contexto Mobile-First
 
-| Domínio       | Status              | Backend                                             | Frontend                  |
-| ------------- | ------------------- | --------------------------------------------------- | ------------------------- |
-| IAM           | 🟡 parcial           | session, RBAC, permissões ✅                         | login, onboarding ❌       |
-| CRM           | 🟢 backend completo  | repository, service, API (busca + paginação) ✅      | UI ❌                      |
-| Scheduling    | 🟢 backend completo  | repository, service, availability, API (filtros) ✅  | UI ❌                      |
-| Financial     | 🟢 backend completo  | repository, service, API (filtros + paginação) ✅    | UI ❌                      |
-| Notifications | 🟡 parcial           | subscriptions de eventos ✅                          | WhatsApp provider stub ⚠️ |
-| Billing       | 🔴 stub Fase 2       | tipos + DOMAIN.md criados                           | —                         |
-| Automation    | 🔴 stub Fase 2       | tipos + DOMAIN.md criados                           | —                         |
+A maioria dos usuários finais do Agendê acessa via dispositivo móvel.
+
+- Usuários finais: mobile (> 70% do tráfego)
+- Gestores / Admins: desktop
+
+Todo desenvolvimento de UI deve seguir mobile-first:
+- Breakpoints: base (mobile) → md: (tablet) → lg: (desktop)
+- Checklist completo: ver `.claude/skills/agent-mobile.md`
+- `agent-mobile` é invocado automaticamente antes de toda entrega de frontend
+
+Nunca entregar componente de UI sem passar pelo checklist do `agent-mobile`.
+
+---
+
+## Status dos domínios (2026-06-20)
+
+| Domínio | Backend | Frontend | Observação |
+|---------|---------|----------|------------|
+| IAM | ✅ | ✅ | Cargos dinâmicos, RBAC, edição completa de membros, foto, vínculo de serviços |
+| CRM | ✅ | ✅ | Filtros avançados, badge VIP, anamnese digital |
+| Scheduling | ✅ | ✅ | Agenda semanal, slots, filtro profissional, quick actions mobile |
+| Financial | ✅ | ✅ | Checkout, despesas, comissões, taxas, estornos |
+| Notifications | ✅ | ✅ | Evolution API primário (WhatsApp), email fallback via Resend, 6 templates |
+| Dashboard | ✅ | ✅ | Métricas + polling 30s |
+| Reports | ✅ | ✅ | 4 relatórios + filtros + CSV |
+| Settings | ✅ | ✅ | Cargos, Meu Link (QR Code, WhatsApp, Instagram) |
+| Serviços | ✅ | ✅ | 3 abas: Serviços, Pacotes, Promoções; anamnese por serviço |
+| Produtos/Estoque | ✅ | ✅ | Catálogo, movimentação, reflexo financeiro |
+| Branding | ✅ | ✅ | 6 tokens warm, logo |
+| Billing (Stripe) | ✅ | ✅ | FeatureGuard, startTrial, Checkout/Portal/Webhook, planos dinâmicos do DB |
+| Auth/Onboarding | ✅ | ✅ | Fluxo completo com plano pré-selecionado, signup enriquecido |
+| Vitrine pública | ✅ | ✅ | SSR com revalidate 5min, banner, bio, equipe, tabs serviços/pacotes/promoções |
+| Portal do cliente | ✅ | ✅ | Login por CPF+nascimento, próximo agendamento, histórico, edição de perfil |
+| PWA | ✅ | ✅ | Manifest + SW restrito a assets estáticos + ícones |
+| Automation | stub | — | Fase 2 |
 
 ## Próximo passo crítico
 
-Frontend — sem ele não há produto. Ordem recomendada:
-1. Shell de navegação (sidebar desktop + bottom nav mobile)
-2. IAM: login + registro de tenant
-3. Scheduling: agenda semanal (tela principal)
-4. CRM: listagem de clientes
-5. Financial: resumo do dia
+Produção e escala:
+1. Configurar `PUBLIC_SESSION_SECRET` no Vercel (obrigatório para o portal do cliente)
+2. Fase 2 — Automation: regras de pós-atendimento, campanhas de reengajamento
+3. Relatórios avançados com filtros por profissional + exportação agendada
 
 ---
 
 ## Workflow de branches e commits
 
-- Branch dedicada por feature/fix — nunca committar direto em `main`
-- Nomenclatura: `feat/`, `fix/`, `refactor/`, `chore/`, `hotfix/`
-- Commits seguem Conventional Commits em PT-BR: `feat(escopo): descrição em português`
-- Pull Request para `main` ao concluir — com checklist abaixo
-- Ver `.claude/BRANCHING.md` para o fluxo completo
+Ver `.claude/BRANCHING.md` (fonte canônica).
 
 ---
 
@@ -249,6 +229,7 @@ Frontend — sem ele não há produto. Ordem recomendada:
 - [ ] API Route com `getSessionContext()` e validação Zod
 - [ ] Erros tipados para todos os casos de falha
 - [ ] Componente com loading state, error state e empty state
+- [ ] Checklist mobile-first do `agent-mobile` executado
 - [ ] Sem `any` no TypeScript
 - [ ] Testes escritos: service (80%), repository (60%), API route (70%)
 - [ ] `npx tsc --noEmit` — zero erros
@@ -264,28 +245,12 @@ Frontend — sem ele não há produto. Ordem recomendada:
 O projeto usa **Claude Code Skills** para orquestração de desenvolvimento.
 Cada skill é um agente especializado com responsabilidade exclusiva e gate de verificação obrigatório.
 
-**Ponto de entrada para qualquer tarefa:**
-Use a skill `.claude/skills/orchestrator.md` — ela analisa a tarefa, monta o pipeline correto e coordena as skills especializadas.
-
-### Skills disponíveis
-
-| Skill | Arquivo | Quando usar |
-|---|---|---|
-| **Onboarding** | `.claude/skills/agent-onboarding.md` | **Primeiro passo** — toda ideia nova passa aqui |
-| **Orchestrator** | `.claude/skills/orchestrator.md` | Executa o brief estruturado pelo Onboarding |
-| **Database** | `.claude/skills/agent-database.md` | Schema Prisma, migrations, RLS |
-| **Backend** | `.claude/skills/agent-backend.md` | Services, repos, API Routes, Zod schemas |
-| **Frontend** | `.claude/skills/agent-frontend.md` | Pages, components, hooks de UI |
-| **Testing** | `.claude/skills/agent-testing.md` | Vitest setup, testes unit + integração |
-| **Security** | `.claude/skills/agent-security.md` | Auditoria OWASP, tenancy, rate limiting |
-| **Review** | `.claude/skills/agent-review.md` | Gate de build final, aprovação de PR |
-| **Documentation** | `.claude/skills/agent-documentation.md` | Atualiza docs após cada feature que muda domínios ou arquitetura |
-| **Arquiteto** | `.claude/skills/agent-architect.md` | Decisões arquiteturais novas — acionado por qualquer skill quando não há precedente definido |
+**Ponto de entrada:** ver `AGENTS.md` para lista completa de skills e fluxo de invocação.
 
 ### Fluxo padrão de desenvolvimento
 
 ```
-Onboarding → Orchestrator → Database? → Backend → Frontend → Testing + Security → Review → Documentation → PR
+Onboarding → Orchestrator → Database? → Backend → Frontend + Mobile → Testing + Security → Review → Documentation → PR
 ```
 
 Testing e Security podem rodar em paralelo após o código estar escrito.
@@ -311,8 +276,8 @@ src/shared/test/
 
 ## Arquivos de contexto complementares
 
-- `.claude/AGENTS.md` — mapa de agents (referência humana)
-- `.claude/BRANCHING.md` — workflow de branches, commits e PRs
+- `AGENTS.md` — mapa de agents e lista completa de skills
+- `.claude/BRANCHING.md` — workflow de branches, commits e PRs (fonte canônica)
 - `.context/PATTERNS.md` — padrões detalhados de código
 - `.context/CONVENTIONS.md` — naming conventions
 - `docs/decisions.md` — decisões arquiteturais (ADRs)

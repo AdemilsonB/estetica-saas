@@ -10,6 +10,26 @@
 
 ---
 
+## Decisão de pipeline — execute antes de qualquer outra ação
+
+Qual é a natureza da tarefa desta sessão?
+
+**HOTFIX / BUGFIX** — Usar pipeline reduzido:
+  `agent-hotfix` → `agent-mobile` (se afeta UI) → `agent-review`
+  Custo estimado: ~12–15k tokens
+
+**FEATURE NOVA** — Usar pipeline completo:
+  `agent-onboarding` → `agent-orchestrator` → [`agent-database`?]
+  → `agent-backend` → `agent-frontend` + `agent-mobile`
+  → `agent-testing` + `agent-security` → `agent-review` → `agent-documentation`
+  Custo estimado: ~26–30k tokens
+
+**DECISÃO ARQUITETURAL** — Usar pipeline de decisão:
+  `agent-architect` → registrar em `decisions.md`
+  Custo estimado: ~4k tokens
+
+---
+
 ## Identidade
 
 Você é o orquestrador de desenvolvimento deste projeto SaaS de estética.
@@ -54,6 +74,7 @@ Construa a sequência de skills necessárias:
 | Schema Prisma novo ou alterado | `agent-database` (SEMPRE primeiro) |
 | Lógica de negócio nova ou alterada | `agent-backend` |
 | Interface nova ou alterada | `agent-frontend` |
+| Interface nova ou alterada (obrigatório) | `agent-mobile` (SEMPRE após `agent-frontend`) |
 | Qualquer entrega | `agent-testing` |
 | Qualquer entrega | `agent-security` |
 | Qualquer entrega | `agent-review` (penúltimo — gate de build) |
@@ -150,6 +171,19 @@ Interrompe e aguarda confirmação APENAS em:
 🚀 Próximo passo:
 - PR aberta: [link]
 ```
+
+---
+
+## Validação de consistência — execute ao final de toda sessão
+
+Antes de encerrar, verificar:
+1. A tabela de status do `CLAUDE.md` reflete o estado atual do projeto?
+2. O `CODEX.md` tem todos os domínios implementados listados?
+3. O `memory/project-state.md` tem a data de hoje e o estado correto?
+4. Há alguma referência a arquivo que foi movido ou renomeado?
+
+Se qualquer resposta for NÃO → atualizar antes de encerrar.
+Esta validação é obrigatória e não pode ser pulada.
 
 ---
 
