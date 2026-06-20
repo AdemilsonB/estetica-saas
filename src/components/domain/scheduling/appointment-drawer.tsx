@@ -16,6 +16,16 @@ import { Badge } from '@/components/ui/badge'
 import { useUpdateAppointmentStatus } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import { cn } from '@/lib/utils'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { CancelAppointmentModal } from './cancel-appointment-modal'
 import { ConfirmAppointmentModal } from './confirm-appointment-modal'
 import { AppointmentProductsSection } from '@/components/domain/inventory/AppointmentProductsSection'
@@ -58,6 +68,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
   const updateStatus = useUpdateAppointmentStatus()
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+  const [noShowModalOpen, setNoShowModalOpen] = useState(false)
 
   function handleStatus(status: 'CONFIRMED' | 'COMPLETED' | 'NO_SHOW') {
     if (!appointment) return
@@ -206,7 +217,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                   <Button
                     variant="outline"
                     className="flex-1 border-orange-200 text-orange-700 hover:bg-orange-50"
-                    onClick={() => handleStatus('NO_SHOW')}
+                    onClick={() => setNoShowModalOpen(true)}
                     disabled={updateStatus.isPending}
                   >
                     Não compareceu
@@ -225,6 +236,26 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
           </div>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={noShowModalOpen} onOpenChange={setNoShowModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Registrar não comparecimento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O agendamento será marcado como não compareceu. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleStatus('NO_SHOW')}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <CancelAppointmentModal
         appointment={appointment}
