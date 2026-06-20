@@ -32,7 +32,7 @@ export function useGetMemberServices(userId: string | null) {
     queryKey: ['member-services', userId],
     queryFn: () => fetchMemberServices(userId!),
     enabled: !!userId,
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000,
   })
 }
 

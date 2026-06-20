@@ -24,6 +24,6 @@ export function useDashboardMetrics() {
     queryKey: ['dashboard-metrics'],
     queryFn: fetchMetrics,
     refetchInterval: 30_000,
-    staleTime: 20_000,
+    staleTime: 30_000,
   })
 }
