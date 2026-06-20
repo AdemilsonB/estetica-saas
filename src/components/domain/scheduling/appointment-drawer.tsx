@@ -198,7 +198,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
               <div className="space-y-2">
                 {appointment.status === 'SCHEDULED' && (
                   <Button
-                    className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                    className="w-full"
                     onClick={() => setConfirmModalOpen(true)}
                   >
                     Confirmar presença
@@ -206,7 +206,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                 )}
                 {['SCHEDULED', 'CONFIRMED'].includes(appointment.status) && (
                   <Button
-                    className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+                    className="w-full bg-green-600 text-white hover:bg-green-700"
                     onClick={() => handleStatus('COMPLETED')}
                     disabled={updateStatus.isPending}
                   >
@@ -216,15 +216,15 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    className="flex-1 border-orange-200 text-orange-700 hover:bg-orange-50"
+                    className="flex-1 border-amber-200 text-amber-700 hover:bg-amber-50"
                     onClick={() => setNoShowModalOpen(true)}
                     disabled={updateStatus.isPending}
                   >
                     Não compareceu
                   </Button>
                   <Button
-                    variant="outline"
-                    className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
+                    variant="destructive"
+                    className="flex-1"
                     onClick={() => setCancelModalOpen(true)}
                     disabled={updateStatus.isPending}
                   >
