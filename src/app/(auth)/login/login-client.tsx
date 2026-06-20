@@ -435,11 +435,15 @@ function SignupFormComponent({
 
     if (!res.ok) {
       const body = await res.json();
-      const msg = body.error ?? "";
+      const msg = (body.error ?? "") as string;
       if (msg === "email_taken") {
         toast.error("Este email já possui uma conta. Faça login.");
+      } else if (msg.includes("password") || msg.includes("senha")) {
+        toast.error("Senha inválida. Use pelo menos 6 caracteres.");
+      } else if (msg.includes("email") || msg.includes("invalid")) {
+        toast.error("Email inválido. Verifique o endereço digitado.");
       } else {
-        toast.error(msg || "Erro ao criar conta.");
+        toast.error(msg || "Erro ao criar conta. Tente novamente.");
       }
       return;
     }
@@ -623,9 +627,9 @@ function SignupFormComponent({
 
       <p className="text-center text-xs text-muted-foreground">
         Ao criar uma conta, você concorda com nossos{" "}
-        <a href="#" className="underline hover:text-foreground">Termos de Uso</a>{" "}
+        <span className="underline cursor-default text-muted-foreground">Termos de Uso</span>{" "}
         e{" "}
-        <a href="#" className="underline hover:text-foreground">Política de Privacidade</a>.
+        <span className="underline cursor-default text-muted-foreground">Política de Privacidade</span>.
       </p>
     </form>
   );

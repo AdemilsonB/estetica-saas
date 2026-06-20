@@ -451,7 +451,7 @@ function OnboardingContent() {
                     type="color"
                     value={primaryColor}
                     onChange={(e) => setPrimaryColor(e.target.value)}
-                    className="h-8 w-8 cursor-pointer rounded border border-slate-200"
+                    className="h-11 w-11 sm:h-8 sm:w-8 cursor-pointer rounded-lg border-0 bg-transparent p-0"
                   />
                   <Label className="text-sm text-slate-700">Cor principal</Label>
                   <span className="font-mono text-xs text-slate-500">{primaryColor}</span>
@@ -462,7 +462,7 @@ function OnboardingContent() {
                     type="color"
                     value={backgroundColor}
                     onChange={(e) => setBackgroundColor(e.target.value)}
-                    className="h-8 w-8 cursor-pointer rounded border border-slate-200"
+                    className="h-11 w-11 sm:h-8 sm:w-8 cursor-pointer rounded-lg border-0 bg-transparent p-0"
                   />
                   <Label className="text-sm text-slate-700">Cor de fundo</Label>
                   <span className="font-mono text-xs text-slate-500">{backgroundColor}</span>
