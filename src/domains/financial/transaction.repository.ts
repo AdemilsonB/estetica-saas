@@ -35,7 +35,6 @@ export class TransactionRepository {
     const [data, total] = await Promise.all([
       prisma.transaction.findMany({
         where,
-        include: { appointment: true },
         orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
         skip,
         take: pageSize,
