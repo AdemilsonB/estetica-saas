@@ -30,7 +30,7 @@ export async function middleware(request: NextRequest) {
 
   const isAuthRoute = AUTH_ROUTES.includes(pathname);
   const isTokenRoute = TOKEN_ROUTES.includes(pathname);
-  const isOnboarding = pathname === "/onboarding";
+  const isOnboarding = pathname === "/onboarding" || pathname.startsWith("/onboarding/");
   const isAdminRoute = pathname.startsWith("/admin");
   const isProtectedApp = PROTECTED_APP_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(p + "/"),
