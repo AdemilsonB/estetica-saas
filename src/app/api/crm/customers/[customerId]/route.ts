@@ -41,3 +41,17 @@ export async function PATCH(request: Request, context: RouteContext) {
     return handleApiError(error);
   }
 }
+
+export async function DELETE(request: Request, context: RouteContext) {
+  initializeDomainRuntime();
+
+  try {
+    const session = await getSessionContext(request);
+    ensurePermission(session, PERMISSIONS.customers.delete);
+    const { customerId } = await context.params;
+    await customerService.delete(session.tenantId, customerId);
+    return new Response(null, { status: 204 });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}

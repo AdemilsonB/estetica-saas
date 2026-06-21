@@ -13,6 +13,7 @@ export type Customer = {
   isBlocked: boolean
   blockedReason: string | null
   blockedAt: string | null
+  deletedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -117,6 +118,48 @@ export function useUpdateCustomer() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] })
       queryClient.invalidateQueries({ queryKey: ['customer'] })
+    },
+  })
+}
+
+async function deleteCustomer(id: string): Promise<void> {
+  const res = await fetch(`/api/crm/customers/${id}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(
+      (err as { error?: { message?: string } }).error?.message ?? 'Falha ao arquivar cliente',
+    )
+  }
+}
+
+async function restoreCustomer(id: string): Promise<Customer> {
+  const res = await fetch(`/api/crm/customers/${id}/restore`, { method: 'POST' })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(
+      (err as { error?: { message?: string } }).error?.message ?? 'Falha ao restaurar cliente',
+    )
+  }
+  return res.json()
+}
+
+export function useDeleteCustomer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteCustomer,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
+    },
+  })
+}
+
+export function useRestoreCustomer(customerId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => restoreCustomer(customerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customer', customerId] })
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
     },
   })
 }

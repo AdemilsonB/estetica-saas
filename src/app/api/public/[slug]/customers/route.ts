@@ -22,6 +22,10 @@ function normalizeCpf(cpf: string): string {
   return cpf.replace(/\D/g, '')
 }
 
+function normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, '')
+}
+
 type RouteContext = { params: Promise<{ slug: string }> }
 
 export async function POST(req: Request, context: RouteContext) {
@@ -54,30 +58,48 @@ export async function POST(req: Request, context: RouteContext) {
     const tenant = await publicBookingRepository.findTenantBySlug(slug)
 
     const cpf = normalizeCpf(parsed.data.cpf)
+    const phone = normalizePhone(parsed.data.phone)
     const birthDate = new Date(parsed.data.birthDate)
 
-    // Verifica se já existe Customer com mesmo CPF no tenant
-    const existing = await prisma.customer.findFirst({
-      where: { tenantId: tenant.id, cpf },
+    const updateData = {
+      name: parsed.data.name,
+      phone,
+      email: parsed.data.email,
+      birthDate,
+      cpf,
+      consentGiven: true,
+      consentDate: new Date(),
+      consentOrigin: 'public_booking',
+      deletedAt: null, // reativar cliente arquivado que se recadastra
+    }
+
+    // Busca por CPF primeiro (identificador mais confiável) — ignora arquivados
+    let existing = await prisma.customer.findFirst({
+      where: { tenantId: tenant.id, cpf, deletedAt: null },
       select: { id: true, name: true },
     })
 
-    const customer =
-      existing ??
-      (await prisma.customer.create({
-        data: {
-          tenantId: tenant.id,
-          name: parsed.data.name,
-          cpf,
-          phone: parsed.data.phone,
-          email: parsed.data.email,
-          birthDate,
-          consentGiven: true,
-          consentDate: new Date(),
-          consentOrigin: 'public_booking',
-        },
+    // Fallback: busca por telefone normalizado — ignora arquivados
+    if (!existing) {
+      existing = await prisma.customer.findFirst({
+        where: { tenantId: tenant.id, phone, deletedAt: null },
         select: { id: true, name: true },
-      }))
+      })
+    }
+
+    const customer = existing
+      ? await prisma.customer.update({
+          where: { id: existing.id },
+          data: updateData,
+          select: { id: true, name: true },
+        })
+      : await prisma.customer.create({
+          data: {
+            tenantId: tenant.id,
+            ...updateData,
+          },
+          select: { id: true, name: true },
+        })
 
     const token = createPublicSession(customer.id, tenant.id, slug)
     const isProduction = process.env.NODE_ENV === 'production'

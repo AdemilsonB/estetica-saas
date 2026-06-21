@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { CustomerCard } from './customer-card'
 import { CreateCustomerModal } from './create-customer-modal'
 import { FilterBar } from './filter-bar'
+import { ImportContactsButton } from './import-contacts-button'
 import { useCustomers, type CustomerListParams } from '@/hooks/crm/use-customers'
 import { usePermissions } from '@/hooks/use-permissions'
 
@@ -65,13 +66,16 @@ export function CustomerList() {
           />
         </div>
         {can('clientes', 'create') && (
-          <Button
-            onClick={() => setCreateOpen(true)}
-            className="shrink-0 rounded-full bg-slate-950 text-white hover:bg-slate-800"
-          >
-            <Plus className="size-4" />
-            <span className="hidden sm:inline">Novo cliente</span>
-          </Button>
+          <>
+            <ImportContactsButton />
+            <Button
+              onClick={() => setCreateOpen(true)}
+              className="shrink-0 rounded-full bg-slate-950 text-white hover:bg-slate-800"
+            >
+              <Plus className="size-4" />
+              <span className="hidden sm:inline">Novo cliente</span>
+            </Button>
+          </>
         )}
       </div>
 

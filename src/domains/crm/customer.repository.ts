@@ -34,6 +34,7 @@ export class CustomerRepository {
       const rows = await prisma.$queryRaw<{ id: string }[]>`
         SELECT id FROM "Customer"
         WHERE "tenantId" = ${tenantId}
+        AND "deletedAt" IS NULL
         AND "birthDate" IS NOT NULL
         AND EXTRACT(MONTH FROM "birthDate") = ${birthdayMonth}
       `;
@@ -44,6 +45,7 @@ export class CustomerRepository {
       const rows = await prisma.$queryRaw<{ id: string }[]>`
         SELECT c.id FROM "Customer" c
         WHERE c."tenantId" = ${tenantId}
+        AND c."deletedAt" IS NULL
         AND NOT EXISTS (
           SELECT 1 FROM "Appointment" a
           WHERE a."customerId" = c.id
@@ -96,6 +98,7 @@ export class CustomerRepository {
 
     const where: Prisma.CustomerWhereInput = {
       tenantId,
+      deletedAt: null,
       ...(complexIds !== null && { id: { in: complexIds } }),
       ...(onlyVip && { isVip: true }),
       ...(search && {
@@ -122,20 +125,26 @@ export class CustomerRepository {
 
   async findById(tenantId: string, customerId: string) {
     return prisma.customer.findFirst({
+      where: { id: customerId, tenantId, deletedAt: null },
+    });
+  }
+
+  async findDeletedById(tenantId: string, customerId: string) {
+    return prisma.customer.findFirst({
       where: { id: customerId, tenantId },
     });
   }
 
   async findByPhone(tenantId: string, phone: string) {
     return prisma.customer.findFirst({
-      where: { tenantId, phone },
+      where: { tenantId, phone, deletedAt: null },
     });
   }
 
   async findByPhones(tenantId: string, phones: string[]): Promise<Customer[]> {
     if (phones.length === 0) return [];
     return prisma.customer.findMany({
-      where: { tenantId, phone: { in: phones } },
+      where: { tenantId, phone: { in: phones }, deletedAt: null },
     });
   }
 
@@ -154,17 +163,31 @@ export class CustomerRepository {
     data: Prisma.CustomerUpdateInput,
   ) {
     await prisma.customer.updateMany({
-      where: { id: customerId, tenantId },
+      where: { id: customerId, tenantId, deletedAt: null },
       data,
     });
     return prisma.customer.findFirstOrThrow({
+      where: { id: customerId, tenantId, deletedAt: null },
+    });
+  }
+
+  async softDelete(tenantId: string, customerId: string): Promise<Customer> {
+    return prisma.customer.update({
+      where: { id: customerId, tenantId, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  async restore(tenantId: string, customerId: string): Promise<Customer> {
+    return prisma.customer.update({
       where: { id: customerId, tenantId },
+      data: { deletedAt: null },
     });
   }
 
   async findWithAppointments(tenantId: string, customerId: string) {
     return prisma.customer.findFirst({
-      where: { id: customerId, tenantId },
+      where: { id: customerId, tenantId, deletedAt: null },
       include: {
         appointments: {
           include: {
@@ -180,7 +203,7 @@ export class CustomerRepository {
 
   async findByIdWithStats(tenantId: string, customerId: string) {
     return prisma.customer.findFirst({
-      where: { id: customerId, tenantId },
+      where: { id: customerId, tenantId, deletedAt: null },
       include: {
         appointments: {
           include: {
@@ -201,12 +224,12 @@ export class CustomerRepository {
 
   async findOrCreateByPhone(tenantId: string, phone: string, name: string) {
     const existing = await prisma.customer.findFirst({
-      where: { tenantId, phone },
+      where: { tenantId, phone, deletedAt: null },
     });
     if (existing) {
       if (existing.name === 'Cliente' && name !== 'Cliente') {
         return prisma.customer.update({
-          where: { id: existing.id },
+          where: { id: existing.id, tenantId },
           data: { name },
         });
       }

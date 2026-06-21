@@ -1,3 +1,5 @@
+import type { Customer } from "@prisma/client";
+
 import { eventBus } from "@/shared/events/event-bus";
 import { ConflictError, CustomerNotFoundError } from "@/shared/errors";
 
@@ -75,6 +77,31 @@ export class CustomerService {
       ...rest,
       noShowCount: _count.appointments,
     };
+  }
+
+  async delete(tenantId: string, customerId: string): Promise<void> {
+    const customer = await customerRepository.findById(tenantId, customerId);
+    if (!customer) {
+      throw new CustomerNotFoundError();
+    }
+    await customerRepository.softDelete(tenantId, customerId);
+    eventBus.publish({
+      type: "crm.customer.deleted",
+      payload: { tenantId, customerId },
+    });
+  }
+
+  async restore(tenantId: string, customerId: string): Promise<Customer> {
+    const customer = await customerRepository.findDeletedById(tenantId, customerId);
+    if (!customer) {
+      throw new CustomerNotFoundError();
+    }
+    const restored = await customerRepository.restore(tenantId, customerId);
+    eventBus.publish({
+      type: "crm.customer.restored",
+      payload: { tenantId, customer: restored },
+    });
+    return restored;
   }
 }
 
