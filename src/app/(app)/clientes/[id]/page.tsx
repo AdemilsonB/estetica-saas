@@ -3,7 +3,7 @@
 
 import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, ArrowLeft, ShieldOff, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ShieldOff, ShieldCheck, Archive, ArchiveRestore } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,6 +24,7 @@ import { AnamneseSheet } from '@/components/domain/crm/anamnese-sheet'
 import { EditCustomerModal } from '@/components/domain/crm/edit-customer-modal'
 import { useCustomer } from '@/hooks/crm/use-customer'
 import { useBlockCustomer } from '@/hooks/crm/use-block-customer'
+import { useRestoreCustomer } from '@/hooks/crm/use-customers'
 
 export default function CustomerProfilePage({
   params,
@@ -41,10 +42,19 @@ export default function CustomerProfilePage({
   const [unblockDialogOpen, setUnblockDialogOpen] = useState(false)
   const [blockReason, setBlockReason] = useState('')
   const { block, unblock, isBlocking, isUnblocking } = useBlockCustomer(id)
+  const { mutate: restore, isPending: isRestoring } = useRestoreCustomer(id)
 
   useEffect(() => {
     if (customer) setNotes(customer.notes ?? '')
   }, [customer])
+
+  function handleRestore() {
+    restore(undefined, {
+      onSuccess: () => toast.success('Cliente restaurado'),
+      onError: (err) =>
+        toast.error(err instanceof Error ? err.message : 'Erro ao restaurar'),
+    })
+  }
 
   function handleConfirmBlock() {
     block(
@@ -127,6 +137,29 @@ export default function CustomerProfilePage({
       </div>
 
       <CustomerProfileHeader customer={customer} />
+
+      {/* Banner de arquivado */}
+      {customer.deletedAt && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <Archive className="mt-0.5 size-5 shrink-0 text-amber-500" />
+          <div className="flex-1 space-y-1">
+            <p className="text-sm font-medium text-amber-800">Cliente arquivado</p>
+            <p className="text-xs text-amber-600">
+              Este cliente não aparece na lista. Restaure para reativá-lo.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRestore}
+            disabled={isRestoring}
+            className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-100"
+          >
+            <ArchiveRestore className="mr-1.5 size-4" />
+            {isRestoring ? 'Restaurando...' : 'Restaurar'}
+          </Button>
+        </div>
+      )}
 
       {/* Banner de bloqueio */}
       {customer.isBlocked && (
