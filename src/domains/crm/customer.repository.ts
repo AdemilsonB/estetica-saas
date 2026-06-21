@@ -173,7 +173,7 @@ export class CustomerRepository {
 
   async softDelete(tenantId: string, customerId: string): Promise<Customer> {
     return prisma.customer.update({
-      where: { id: customerId, tenantId },
+      where: { id: customerId, tenantId, deletedAt: null },
       data: { deletedAt: new Date() },
     });
   }

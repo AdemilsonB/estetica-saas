@@ -60,7 +60,7 @@ describe('CustomerRepository — soft delete', () => {
 
     expect(prismaMock.customer.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: CUSTOMER_ID, tenantId: TENANT_ID },
+        where: { id: CUSTOMER_ID, tenantId: TENANT_ID, deletedAt: null },
         data: expect.objectContaining({ deletedAt: expect.any(Date) }),
       }),
     )
