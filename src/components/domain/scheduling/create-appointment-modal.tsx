@@ -36,6 +36,8 @@ type Props = {
   open: boolean
   onClose: () => void
   defaultDate?: string
+  defaultCustomerId?: string
+  defaultCustomerName?: string
 }
 
 function toDateInput(d: Date): string {
@@ -72,7 +74,7 @@ function renderConfirmTemplate(params: {
     .replace('{profissional}', params.profissional)
 }
 
-export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
+export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCustomerId, defaultCustomerName }: Props) {
   const { data: currentUser } = useCurrentUser()
   const { can } = usePermissions()
   const { data: services = [] } = useServices()
@@ -114,6 +116,12 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
   }, [defaultDate])
 
   useEffect(() => {
+    if (defaultCustomerId) {
+      setCustomerId(defaultCustomerId)
+    }
+  }, [defaultCustomerId])
+
+  useEffect(() => {
     setSelectedTime('')
     setCustomTime('')
   }, [professionalId, date, serviceId])
@@ -127,30 +135,32 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
   useEffect(() => {
     if (!customerId || !serviceId || !date || !selectedTime || !professionalId) return
 
-    const customer = customers.find((c) => c.id === customerId)
+    const customerName = defaultCustomerName
+      ? defaultCustomerName.split(' ')[0]
+      : customers.find((c) => c.id === customerId)?.name.split(' ')[0]
     const service = services.find((s) => s.id === serviceId)
     const professional = teamMembers.find((m) => m.id === professionalId)
-    if (!customer || !service || !professional) return
+    if (!customerName || !service || !professional) return
 
     setNotificationMessage(
       renderConfirmTemplate({
-        nome: customer.name.split(' ')[0],
+        nome: customerName,
         serviço: service.name,
         data: formatDateLabel(date),
         hora: formatHour(selectedTime),
         profissional: professional.name.split(' ')[0],
       }),
     )
-  }, [customerId, serviceId, date, selectedTime, professionalId, customers, services, teamMembers])
+  }, [customerId, serviceId, date, selectedTime, professionalId, customers, services, teamMembers, defaultCustomerName])
 
   function handleClose() {
     setProfessionalId(canManage ? '' : (currentUser?.id ?? ''))
     setServiceId('')
-    setDate(toDateInput(new Date()))
+    setDate(defaultDate ?? toDateInput(new Date()))
     setSelectedTime('')
     setCustomTime('')
     setCustomerSearch('')
-    setCustomerId('')
+    setCustomerId(defaultCustomerId ?? '')
     setAllowOverlap(false)
     setNotificationMessage('')
     onClose()
@@ -184,7 +194,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
   }
 
   const activeServices = services.filter((s) => s.active)
-  const selectedCustomer = customers.find((c) => c.id === customerId)
+  const selectedCustomer = defaultCustomerId ? null : customers.find((c) => c.id === customerId)
   const allEligible = teamMembers.filter((m) =>
     ['OWNER', 'MANAGER', 'PROFESSIONAL'].includes(m.role),
   )
@@ -344,39 +354,47 @@ export function CreateAppointmentModal({ open, onClose, defaultDate }: Props) {
           {/* 5. Cliente */}
           <div className="space-y-2">
             <Label>Cliente</Label>
-            <Input
-              placeholder="Buscar por nome ou telefone..."
-              value={selectedCustomer ? selectedCustomer.name : customerSearch}
-              onChange={(e) => {
-                setCustomerSearch(e.target.value)
-                setCustomerId('')
-              }}
-            />
-            {customerSearch.length >= 2 && !customerId && (
-              <div className="rounded-xl border bg-white shadow-sm max-h-40 overflow-y-auto">
-                {searchingCustomers ? (
-                  <p className="p-3 text-sm text-slate-500">Buscando...</p>
-                ) : customers.length === 0 ? (
-                  <p className="p-3 text-sm text-slate-500">Nenhum cliente encontrado</p>
-                ) : (
-                  customers.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => {
-                        setCustomerId(c.id)
-                        setCustomerSearch(c.name)
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-rose-50"
-                    >
-                      <span className="font-medium">{c.name}</span>
-                      {c.phone && (
-                        <span className="ml-2 text-slate-400">{c.phone}</span>
-                      )}
-                    </button>
-                  ))
-                )}
+            {defaultCustomerId ? (
+              <div className="flex h-9 w-full items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+                {defaultCustomerName ?? 'Cliente selecionado'}
               </div>
+            ) : (
+              <>
+                <Input
+                  placeholder="Buscar por nome ou telefone..."
+                  value={selectedCustomer ? selectedCustomer.name : customerSearch}
+                  onChange={(e) => {
+                    setCustomerSearch(e.target.value)
+                    setCustomerId('')
+                  }}
+                />
+                {customerSearch.length >= 2 && !customerId && (
+                  <div className="rounded-xl border bg-white shadow-sm max-h-40 overflow-y-auto">
+                    {searchingCustomers ? (
+                      <p className="p-3 text-sm text-slate-500">Buscando...</p>
+                    ) : customers.length === 0 ? (
+                      <p className="p-3 text-sm text-slate-500">Nenhum cliente encontrado</p>
+                    ) : (
+                      customers.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => {
+                            setCustomerId(c.id)
+                            setCustomerSearch(c.name)
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-rose-50"
+                        >
+                          <span className="font-medium">{c.name}</span>
+                          {c.phone && (
+                            <span className="ml-2 text-slate-400">{c.phone}</span>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
 

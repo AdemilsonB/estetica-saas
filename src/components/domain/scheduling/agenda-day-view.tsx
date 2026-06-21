@@ -9,11 +9,10 @@ import { AppointmentCard } from './appointment-card'
 import { AppointmentDrawer } from './appointment-drawer'
 import { CreateAppointmentModal } from './create-appointment-modal'
 import { RegisterPaymentModal } from '@/components/domain/financial/register-payment-modal'
-import { RescheduleModal } from './reschedule-modal'
+import { ConfirmAppointmentModal } from './confirm-appointment-modal'
 import { AgendaWeekStrip } from './agenda-week-strip'
-import { useAppointments, useUpdateAppointmentStatus } from '@/hooks/scheduling/use-appointments'
+import { useAppointments } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
-import { toast } from 'sonner'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { useTeamMembers } from '@/hooks/iam/use-team'
@@ -100,20 +99,11 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [paymentAppointment, setPaymentAppointment] = useState<Appointment | null>(null)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
-  const [reschedulingAppointment, setReschedulingAppointment] =
-    useState<Appointment | null>(null)
-  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false)
+  const [confirmModalAppointment, setConfirmModalAppointment] = useState<Appointment | null>(null)
   const { can } = usePermissions()
-  const updateStatus = useUpdateAppointmentStatus()
 
   function handleConfirmInline(appt: Appointment) {
-    updateStatus.mutate(
-      { id: appt.id, status: 'CONFIRMED' },
-      {
-        onSuccess: () => toast.success('Agendamento confirmado'),
-        onError: () => toast.error('Erro ao confirmar agendamento'),
-      },
-    )
+    setConfirmModalAppointment(appt)
   }
 
   function handlePayInline(appt: Appointment) {
@@ -212,11 +202,6 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
   function handleCardClick(appt: Appointment) {
     setSelectedAppointment(appt)
     setDrawerOpen(true)
-  }
-
-  function handleReschedule(appt: Appointment) {
-    setReschedulingAppointment(appt)
-    setRescheduleModalOpen(true)
   }
 
   return (
@@ -328,7 +313,7 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
             <div className="mb-2 flex">
               <div className="w-10 sm:w-14 shrink-0" />
               {byProfessional.map(({ professional }) => (
-                <div key={professional.id} className="min-w-37.5 sm:min-w-60 flex-1 px-1 sm:px-2">
+                <div key={professional.id} className="min-w-44 sm:min-w-60 flex-1 px-1 sm:px-2">
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <div className="flex size-6 sm:size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] sm:text-xs font-semibold text-slate-600">
                       {professional.name.charAt(0).toUpperCase()}
@@ -353,15 +338,13 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
                   return (
                     <div
                       key={professional.id}
-                      className="min-w-37.5 sm:min-w-60 flex-1 space-y-1.5 px-1 pb-2"
+                      className="min-w-44 sm:min-w-60 flex-1 space-y-1.5 px-1 pb-2"
                     >
                       {appts.map((appt) => (
                         <AppointmentCard
                           key={appt.id}
                           appointment={appt}
-                          onClick={handleCardClick}
-                          onReschedule={handleReschedule}
-                          onConfirm={handleConfirmInline}
+                          onClick={handleCardClick}                          onConfirm={handleConfirmInline}
                           onPay={handlePayInline}
                         />
                       ))}
@@ -385,7 +368,6 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
                     key={appt.id}
                     appointment={appt}
                     onClick={handleCardClick}
-                    onReschedule={handleReschedule}
                     onConfirm={handleConfirmInline}
                     onPay={handlePayInline}
                   />
@@ -411,7 +393,6 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
                     key={appt.id}
                     appointment={appt}
                     onClick={handleCardClick}
-                    onReschedule={handleReschedule}
                     onConfirm={handleConfirmInline}
                     onPay={handlePayInline}
                   />
@@ -449,14 +430,13 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
         }}
       />
 
-      <RescheduleModal
-        appointment={reschedulingAppointment}
-        open={rescheduleModalOpen}
-        onClose={() => {
-          setRescheduleModalOpen(false)
-          setReschedulingAppointment(null)
-        }}
-      />
+      {confirmModalAppointment && (
+        <ConfirmAppointmentModal
+          appointment={confirmModalAppointment}
+          open={!!confirmModalAppointment}
+          onClose={() => setConfirmModalAppointment(null)}
+        />
+      )}
 
       {/* FAB — novo agendamento, mobile only */}
       {can('agenda', 'create') && (

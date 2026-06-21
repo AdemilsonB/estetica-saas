@@ -1,11 +1,15 @@
 // src/components/domain/scheduling/agenda-week-strip.tsx
 'use client'
 
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState } from 'react'
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { useAppointments } from '@/hooks/scheduling/use-appointments'
 import { cn } from '@/lib/utils'
+import { ptBR } from 'react-day-picker/locale'
 
 function startOfWeek(d: Date) {
   const r = new Date(d)
@@ -21,6 +25,7 @@ type Props = {
 }
 
 export function AgendaWeekStrip({ selectedDate, onSelectDate }: Props) {
+  const [calendarOpen, setCalendarOpen] = useState(false)
   const monday = startOfWeek(selectedDate)
   const sunday = new Date(monday)
   sunday.setDate(monday.getDate() + 6)
@@ -58,6 +63,34 @@ export function AgendaWeekStrip({ selectedDate, onSelectDate }: Props) {
 
   return (
     <div className="flex items-center gap-2">
+      {/* Botão de calendário toggle */}
+      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className={cn('rounded-full shrink-0', calendarOpen && 'bg-slate-100')}
+            aria-label="Abrir calendário"
+          >
+            <CalendarDays className="size-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={(d) => {
+              if (d) {
+                onSelectDate(d)
+                setCalendarOpen(false)
+              }
+            }}
+            locale={ptBR}
+            autoFocus
+          />
+        </PopoverContent>
+      </Popover>
+
       <Button variant="outline" size="icon" onClick={prevWeek} className="rounded-full shrink-0">
         <ChevronLeft className="size-4" />
       </Button>

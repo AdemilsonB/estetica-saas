@@ -3,7 +3,7 @@
 
 import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, ArrowLeft, ShieldOff, ShieldCheck, Archive, ArchiveRestore } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, CalendarPlus, ShieldOff, ShieldCheck, Archive, ArchiveRestore } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -22,6 +22,7 @@ import { CustomerProfileHeader } from '@/components/domain/crm/customer-profile-
 import { AppointmentHistory } from '@/components/domain/crm/appointment-history'
 import { AnamneseSheet } from '@/components/domain/crm/anamnese-sheet'
 import { EditCustomerModal } from '@/components/domain/crm/edit-customer-modal'
+import { CreateAppointmentModal } from '@/components/domain/scheduling/create-appointment-modal'
 import { useCustomer } from '@/hooks/crm/use-customer'
 import { useBlockCustomer } from '@/hooks/crm/use-block-customer'
 import { useRestoreCustomer } from '@/hooks/crm/use-customers'
@@ -37,6 +38,7 @@ export default function CustomerProfilePage({
   const [notes, setNotes] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [scheduleOpen, setScheduleOpen] = useState(false)
   const [anamneseOpen, setAnamneseOpen] = useState(false)
   const [blockDialogOpen, setBlockDialogOpen] = useState(false)
   const [unblockDialogOpen, setUnblockDialogOpen] = useState(false)
@@ -127,13 +129,23 @@ export default function CustomerProfilePage({
           <ArrowLeft className="size-4" />
           Voltar
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setEditOpen(true)}
-        >
-          Editar dados
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setScheduleOpen(true)}
+          >
+            <CalendarPlus className="mr-1.5 size-4" />
+            Agendar Horário
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEditOpen(true)}
+          >
+            Editar dados
+          </Button>
+        </div>
       </div>
 
       <CustomerProfileHeader customer={customer} />
@@ -268,6 +280,13 @@ export default function CustomerProfilePage({
         open={editOpen}
         onClose={() => setEditOpen(false)}
         customer={customer}
+      />
+
+      <CreateAppointmentModal
+        open={scheduleOpen}
+        onClose={() => setScheduleOpen(false)}
+        defaultCustomerId={id}
+        defaultCustomerName={customer.name}
       />
 
       {/* Dialog de bloqueio */}
