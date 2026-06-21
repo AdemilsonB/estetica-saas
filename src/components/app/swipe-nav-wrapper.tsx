@@ -14,7 +14,7 @@ const variants = {
   exit: (dir: number) => ({ x: dir < 0 ? '-100%' : '100%' }),
 }
 
-const transition = { type: 'spring', damping: 30, stiffness: 300 }
+const transition = { type: 'spring', damping: 30, stiffness: 300 } as const
 
 interface SwipeNavWrapperProps {
   children: React.ReactNode
