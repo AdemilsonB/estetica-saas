@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils'
 import type { NavSection } from '@/shared/permissions/nav-registry'
 import { BottomNav } from '@/components/app/bottom-nav'
 import { MobileHeader } from '@/components/app/mobile-header'
+import { SwipeNavWrapper } from '@/components/app/swipe-nav-wrapper'
 import { CreateAppointmentModal } from '@/components/domain/scheduling/create-appointment-modal'
 
 function getInitials(name: string): string {
@@ -388,9 +389,11 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
 
         {/* Área principal */}
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          <div className="flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-6 xl:px-8 xl:py-8">
-            {children}
-          </div>
+          <SwipeNavWrapper>
+            <div className="flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-6 xl:px-8 xl:py-8">
+              {children}
+            </div>
+          </SwipeNavWrapper>
         </div>
       </div>
 
