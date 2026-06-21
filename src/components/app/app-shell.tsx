@@ -368,7 +368,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
 
   return (
     <TooltipProvider delayDuration={300}>
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* Header mobile — visível apenas em < md */}
       <MobileHeader
         logoUrl={logoUrl}
