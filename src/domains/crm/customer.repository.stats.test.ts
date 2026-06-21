@@ -34,7 +34,7 @@ describe('CustomerRepository.findByIdWithStats', () => {
     expect(result!._count.appointments).toBe(2)
     expect(prismaMock.customer.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: CUSTOMER_ID, tenantId: TENANT_ID },
+        where: { id: CUSTOMER_ID, tenantId: TENANT_ID, deletedAt: null },
       }),
     )
   })

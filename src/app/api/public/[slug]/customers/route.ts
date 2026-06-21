@@ -70,18 +70,19 @@ export async function POST(req: Request, context: RouteContext) {
       consentGiven: true,
       consentDate: new Date(),
       consentOrigin: 'public_booking',
+      deletedAt: null, // reativar cliente arquivado que se recadastra
     }
 
-    // Busca por CPF primeiro (identificador mais confiável)
+    // Busca por CPF primeiro (identificador mais confiável) — ignora arquivados
     let existing = await prisma.customer.findFirst({
-      where: { tenantId: tenant.id, cpf },
+      where: { tenantId: tenant.id, cpf, deletedAt: null },
       select: { id: true, name: true },
     })
 
-    // Fallback: busca por telefone normalizado
+    // Fallback: busca por telefone normalizado — ignora arquivados
     if (!existing) {
       existing = await prisma.customer.findFirst({
-        where: { tenantId: tenant.id, phone },
+        where: { tenantId: tenant.id, phone, deletedAt: null },
         select: { id: true, name: true },
       })
     }

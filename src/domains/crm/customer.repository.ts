@@ -167,7 +167,7 @@ export class CustomerRepository {
       data,
     });
     return prisma.customer.findFirstOrThrow({
-      where: { id: customerId, tenantId },
+      where: { id: customerId, tenantId, deletedAt: null },
     });
   }
 
