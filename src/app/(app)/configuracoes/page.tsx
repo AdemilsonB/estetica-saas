@@ -41,12 +41,8 @@ type BrandingConfig = {
   [key: string]: unknown
 }
 
-type BusinessInfo = {
-  name?: string
-  phone?: string
-}
-
 type TenantPublicInfo = {
+  name: string
   bio: string | null
   instagramUrl: string | null
   coverImageUrl: string | null
@@ -92,7 +88,6 @@ export default function ConfiguracoesPage() {
   const router = useRouter()
   const { data: evolutionStatus } = useEvolutionStatus()
 
-  const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null)
   const [tenantPublicInfo, setTenantPublicInfo] = useState<TenantPublicInfo | null>(null)
 
   useEffect(() => {
@@ -102,27 +97,18 @@ export default function ConfiguracoesPage() {
   }, [isLoading, can, router])
 
   useEffect(() => {
-    fetch('/api/iam/business-info')
-      .then((r) => r.json())
-      .then((data) => setBusinessInfo(data as BusinessInfo))
-      .catch(() => {
-        toast.error('Erro ao carregar informações do negócio')
-      })
-  }, [])
-
-  useEffect(() => {
     fetch('/api/iam/tenant')
       .then((r) => r.json())
       .then((data) => setTenantPublicInfo(data as TenantPublicInfo))
       .catch(() => {
-        toast.error('Erro ao carregar configurações da página pública')
+        toast.error('Erro ao carregar configurações do negócio')
       })
   }, [])
 
   const businessInfoComplete =
-    businessInfo !== null &&
-    Boolean(businessInfo.name?.trim()) &&
-    Boolean(businessInfo.phone?.trim())
+    tenantPublicInfo !== null &&
+    Boolean(tenantPublicInfo.name?.trim()) &&
+    Boolean(tenantPublicInfo.phone?.trim())
 
   const whatsappConnected = evolutionStatus?.connected === true
 
@@ -154,7 +140,7 @@ export default function ConfiguracoesPage() {
           title="Dados do negócio"
           subtitle="Nome, telefone e endereço do seu estabelecimento"
           statusBadge={
-            businessInfo === null
+            tenantPublicInfo === null
               ? undefined
               : businessInfoComplete
               ? { label: '✓ Completo', variant: 'ok' }
