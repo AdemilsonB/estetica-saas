@@ -1,12 +1,6 @@
 // src/components/domain/scheduling/appointment-card.tsx
-import { Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import type { Appointment, AppointmentStatus } from '@/hooks/scheduling/use-appointments'
 
 const STATUS_CONFIG: Record<
@@ -40,8 +34,6 @@ const STATUS_CONFIG: Record<
   },
 }
 
-const RESCHEDULABLE_STATUSES: AppointmentStatus[] = ['SCHEDULED', 'CONFIRMED']
-
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', {
     hour: '2-digit',
@@ -52,14 +44,12 @@ function formatTime(iso: string) {
 type Props = {
   appointment: Appointment
   onClick: (appointment: Appointment) => void
-  onReschedule?: (appointment: Appointment) => void
   onConfirm?: (appointment: Appointment) => void
   onPay?: (appointment: Appointment) => void
 }
 
-export function AppointmentCard({ appointment, onClick, onReschedule, onConfirm, onPay }: Props) {
+export function AppointmentCard({ appointment, onClick, onConfirm, onPay }: Props) {
   const config = STATUS_CONFIG[appointment.status]
-  const canReschedule = RESCHEDULABLE_STATUSES.includes(appointment.status)
 
   return (
     <div className={cn('relative w-full rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md', config.cardClass)}>
@@ -85,49 +75,26 @@ export function AppointmentCard({ appointment, onClick, onReschedule, onConfirm,
         </p>
       </button>
 
-      {canReschedule && onReschedule && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onReschedule(appointment)
-              }}
-              className="absolute right-3 bottom-3 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-            >
-              <Pencil className="size-4" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>Remarcar</TooltipContent>
-        </Tooltip>
-      )}
-
       {/* Quick actions — visíveis apenas em mobile (sm:hidden) */}
       {(() => {
         const showConfirm = !!onConfirm && appointment.status === 'SCHEDULED'
         const showPay = !!onPay && (appointment.status === 'CONFIRMED' || appointment.status === 'SCHEDULED')
         if (!showConfirm && !showPay) return null
         return (
-          <div className="mt-3 flex gap-2 sm:hidden border-t border-slate-100 pt-3">
+          <div className="mt-3 flex flex-col gap-2 sm:hidden border-t border-slate-100 pt-3">
             {showConfirm && (
               <button
                 onClick={(e) => { e.stopPropagation(); onConfirm?.(appointment) }}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 transition min-h-11"
+                className="flex w-full items-center justify-center rounded-xl bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 transition min-h-11"
               >
-                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
                 Confirmar
               </button>
             )}
             {showPay && (
               <button
                 onClick={(e) => { e.stopPropagation(); onPay?.(appointment) }}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition min-h-11"
+                className="flex w-full items-center justify-center rounded-xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition min-h-11"
               >
-                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
                 Fechar pagamento
               </button>
             )}
