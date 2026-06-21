@@ -57,6 +57,14 @@ export type DomainEvent =
       payload: { tenantId: string; customer: Customer };
     }
   | {
+      type: "crm.customer.deleted";
+      payload: { tenantId: string; customerId: string };
+    }
+  | {
+      type: "crm.customer.restored";
+      payload: { tenantId: string; customer: Customer };
+    }
+  | {
       type: "scheduling.appointment.created";
       payload: AppointmentEventPayload;
     }
