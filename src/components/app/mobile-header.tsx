@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Menu } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { ChevronLeft, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface MobileHeaderProps {
@@ -14,18 +15,51 @@ function getInitials(name: string) {
   return name.split(' ').slice(0, 2).map(n => n[0]?.toUpperCase() ?? '').join('')
 }
 
+const MAIN_ROUTES = [
+  '/agenda',
+  '/servicos',
+  '/clientes',
+  '/equipe',
+  '/configuracoes',
+  '/dashboard',
+  '/financeiro',
+  '/relatorios',
+  '/produtos',
+  '/onboarding',
+]
+
 export function MobileHeader({ logoUrl, businessName, onOpenSidebar }: MobileHeaderProps) {
+  const pathname = usePathname()
+  const router = useRouter()
+
+  const isMainRoute = MAIN_ROUTES.some(
+    r =>
+      pathname === r ||
+      (r !== '/clientes' && r !== '/configuracoes' && pathname.startsWith(r + '/'))
+  )
+
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border/50 bg-background/95 px-4 backdrop-blur md:hidden">
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onOpenSidebar}
-        aria-label="Abrir menu lateral"
-        className="text-muted-foreground"
-      >
-        <Menu className="size-5" />
-      </Button>
+      {isMainRoute ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onOpenSidebar}
+          aria-label="Abrir menu lateral"
+          className="text-muted-foreground"
+        >
+          <Menu className="size-5" />
+        </Button>
+      ) : (
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1 text-primary"
+          aria-label="Voltar"
+        >
+          <ChevronLeft className="size-5" />
+          <span className="text-sm font-medium">Voltar</span>
+        </button>
+      )}
 
       <Link
         href="/dashboard"
