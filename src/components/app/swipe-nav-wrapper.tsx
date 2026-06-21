@@ -5,18 +5,25 @@ import { usePathname, useRouter } from 'next/navigation'
 import { motion, useMotionValue, animate } from 'framer-motion'
 import { useQueryClient } from '@tanstack/react-query'
 
-const SWIPE_ROUTES = ['/agenda', '/servicos', '/clientes', '/equipe', '/configuracoes'] as const
+const SWIPE_ROUTES = ['/dashboard', '/agenda', '/servicos', '/clientes', '/equipe', '/configuracoes'] as const
 const DRAG_THRESHOLD = 80
 const VELOCITY_THRESHOLD = 500
 
-// Spring de saída/entrada rápido — igual ao feel nativo do iOS
-const SPRING = { type: 'spring', damping: 28, stiffness: 380, restDelta: 0.5 } as const
+// Spring de entrada — snappy, feel nativo iOS
+const SPRING = { type: 'spring', damping: 32, stiffness: 450, restDelta: 0.5 } as const
 // Spring de retorno suave quando o threshold não foi atingido
 const SPRING_BACK = { type: 'spring', damping: 26, stiffness: 300 } as const
 
-// Pré-aquece o cache do TanStack Query para a rota destino antes do swipe completar
+// Pré-aquece o cache do TanStack Query para as rotas adjacentes
 function prefetchRouteData(route: string, qc: ReturnType<typeof useQueryClient>) {
   switch (route) {
+    case '/dashboard':
+      qc.prefetchQuery({
+        queryKey: ['dashboard-metrics'],
+        queryFn: () => fetch('/api/dashboard/metrics').then(r => r.json()),
+        staleTime: 30 * 1000,
+      })
+      break
     case '/servicos':
       qc.prefetchQuery({
         queryKey: ['services'],
@@ -125,19 +132,17 @@ export function SwipeNavWrapper({ children }: { children: React.ReactNode }) {
     if (animRef.current) { animRef.current.stop(); animRef.current = null }
   }
 
-  // Anima a página atual para fora e navega ao completar
+  // Inicia navegação imediatamente em paralelo com a animação de saída.
+  // Assim o Next.js já começa a carregar a rota enquanto a tela atual sai,
+  // eliminando o delay que existia quando navegávamos apenas após a animação terminar.
   function navigateTo(delta: number, doNav: () => void) {
     dirRef.current = delta
     isSwipeNavRef.current = true
     stopAnim()
     const W = window.innerWidth
     const targetX = delta > 0 ? -W : W
-    const anim = animate(x, targetX, SPRING)
-    animRef.current = anim
-    // .then() só dispara se a animação completar (stop() previne isso)
-    anim.then(() => {
-      if (isSwipeNavRef.current) doNav()
-    })
+    doNav()
+    animRef.current = animate(x, targetX, SPRING)
   }
 
   if (!isMobile) return <>{children}</>
