@@ -348,6 +348,7 @@ model Customer {
   isBlocked     Boolean           @default(false)
   blockedReason String?
   blockedAt     DateTime?
+  deletedAt     DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -358,6 +359,7 @@ model Customer {
   @@index([tenantId, phone])
   @@index([tenantId, birthDate])
   @@index([tenantId, cpf])
+  @@index([tenantId, deletedAt])
 }
 
 model ServiceCategory {

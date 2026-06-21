@@ -14,6 +14,7 @@ export const PERMISSIONS = {
     view:   'customers:view',
     create: 'customers:create',
     edit:   'customers:edit',
+    delete: 'customers:delete',
   },
   financial: {
     view:   'financial:view',
@@ -39,6 +40,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   [UserRole.MANAGER]: [
     PERMISSIONS.appointments.view, PERMISSIONS.appointments.create, PERMISSIONS.appointments.edit,
     PERMISSIONS.customers.view, PERMISSIONS.customers.create, PERMISSIONS.customers.edit,
+    PERMISSIONS.customers.delete,
     PERMISSIONS.financial.view, PERMISSIONS.services.view, PERMISSIONS.services.manage,
     PERMISSIONS.users.view, PERMISSIONS.settings.view, PERMISSIONS.settings.manage,
   ],
@@ -61,6 +63,7 @@ const LEGACY_PERMISSION_MAP: Record<string, { key: string; action: string }[]> =
   'customers:view':      [{ key: 'clientes',      action: 'view'   }],
   'customers:create':    [{ key: 'clientes',      action: 'create' }],
   'customers:edit':      [{ key: 'clientes',      action: 'edit'   }],
+  'customers:delete':    [{ key: 'clientes',      action: 'delete' }],
   'financial:view':      [{ key: 'financeiro',    action: 'view'   }],
   'financial:manage':    [{ key: 'financeiro',    action: 'edit'   }],
   'services:view':       [{ key: 'servicos',      action: 'view'   }],
