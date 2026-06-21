@@ -229,7 +229,7 @@ export class CustomerRepository {
     if (existing) {
       if (existing.name === 'Cliente' && name !== 'Cliente') {
         return prisma.customer.update({
-          where: { id: existing.id },
+          where: { id: existing.id, tenantId },
           data: { name },
         });
       }
