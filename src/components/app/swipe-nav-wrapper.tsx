@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, useMotionValue, animate } from 'framer-motion'
+import { useQueryClient } from '@tanstack/react-query'
 
 const SWIPE_ROUTES = ['/agenda', '/servicos', '/clientes', '/equipe', '/configuracoes'] as const
 const DRAG_THRESHOLD = 80
@@ -13,9 +14,58 @@ const SPRING = { type: 'spring', damping: 28, stiffness: 380, restDelta: 0.5 } a
 // Spring de retorno suave quando o threshold não foi atingido
 const SPRING_BACK = { type: 'spring', damping: 26, stiffness: 300 } as const
 
+// Pré-aquece o cache do TanStack Query para a rota destino antes do swipe completar
+function prefetchRouteData(route: string, qc: ReturnType<typeof useQueryClient>) {
+  switch (route) {
+    case '/servicos':
+      qc.prefetchQuery({
+        queryKey: ['services'],
+        queryFn: () => fetch('/api/scheduling/services').then(r => r.json()),
+        staleTime: 5 * 60 * 1000,
+      })
+      break
+    case '/equipe':
+      qc.prefetchQuery({
+        queryKey: ['team-members'],
+        queryFn: () => fetch('/api/iam/users').then(r => r.json()),
+        staleTime: 5 * 60 * 1000,
+      })
+      break
+    case '/clientes':
+      // key match: useCustomers({ search: undefined, page: 1 }) → hash {"page":1}
+      qc.prefetchQuery({
+        queryKey: ['customers', { page: 1 }],
+        queryFn: () => fetch('/api/crm/customers?page=1').then(r => r.json()),
+        staleTime: 30 * 1000,
+      })
+      break
+    case '/agenda': {
+      const start = new Date(); start.setHours(0, 0, 0, 0)
+      const end = new Date(); end.setHours(23, 59, 59, 999)
+      const from = start.toISOString()
+      const to = end.toISOString()
+      // key match: useAppointments({ from, to }) sem professionalId → hash {"from":X,"to":Y}
+      qc.prefetchQuery({
+        queryKey: ['appointments', { from, to }],
+        queryFn: () =>
+          fetch(`/api/scheduling/appointments?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`).then(r => r.json()),
+        staleTime: 30 * 1000,
+      })
+      // Agenda também usa team-members para o filtro de profissional
+      qc.prefetchQuery({
+        queryKey: ['team-members'],
+        queryFn: () => fetch('/api/iam/users').then(r => r.json()),
+        staleTime: 5 * 60 * 1000,
+      })
+      break
+    }
+  }
+}
+
 export function SwipeNavWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [isMobile, setIsMobile] = useState(false)
 
   // MotionValue controla posição X da página (persiste entre navegações)
@@ -62,12 +112,14 @@ export function SwipeNavWrapper({ children }: { children: React.ReactNode }) {
   const isInCycle = cycleIndex !== -1
   const isClientDetail = pathname.startsWith('/clientes/') && pathname !== '/clientes'
 
-  // Pré-carrega rotas adjacentes para transição instantânea
+  // Pré-carrega JS (router.prefetch) e dados (queryClient) das rotas adjacentes
   useEffect(() => {
     if (!isInCycle) return
-    if (cycleIndex > 0) router.prefetch(SWIPE_ROUTES[cycleIndex - 1])
-    if (cycleIndex < SWIPE_ROUTES.length - 1) router.prefetch(SWIPE_ROUTES[cycleIndex + 1])
-  }, [cycleIndex, isInCycle, router])
+    const prev = SWIPE_ROUTES[cycleIndex - 1]
+    const next = SWIPE_ROUTES[cycleIndex + 1]
+    if (prev) { router.prefetch(prev); prefetchRouteData(prev, queryClient) }
+    if (next) { router.prefetch(next); prefetchRouteData(next, queryClient) }
+  }, [cycleIndex, isInCycle, router, queryClient])
 
   function stopAnim() {
     if (animRef.current) { animRef.current.stop(); animRef.current = null }
