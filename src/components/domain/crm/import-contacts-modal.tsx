@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef } from 'react'
-import { Upload, Users, CheckCircle2, Loader2 } from 'lucide-react'
+import { Upload, Users, CheckCircle2, Loader2, Smartphone } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -69,19 +69,55 @@ export function ImportContactsModal({ open, onClose }: Props) {
                 </div>
               </Button>
             ) : (
-              <Button
-                onClick={() => fileRef.current?.click()}
-                className="w-full justify-start gap-3 h-14 rounded-2xl border border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
-                variant="outline"
-              >
-                <Upload className="size-5 text-slate-500" />
-                <div className="text-left">
-                  <p className="text-sm font-medium">Importar arquivo .vcf</p>
-                  <p className="text-xs text-slate-500">
-                    No iPhone: Contatos → Exportar → Todos os contatos
+              <div className="space-y-3">
+                {/* Guia passo a passo para iPhone */}
+                <div className="rounded-xl border border-amber-100 bg-amber-50 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="size-4 text-amber-600 shrink-0" />
+                    <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">
+                      Como exportar do iPhone
+                    </p>
+                  </div>
+                  <ol className="space-y-2.5">
+                    <li className="flex gap-2.5 text-sm text-amber-900">
+                      <span className="flex-none w-4 font-bold text-amber-500">1.</span>
+                      <span>Abra o app <strong>Contatos</strong> no iPhone</span>
+                    </li>
+                    <li className="flex gap-2.5 text-sm text-amber-900">
+                      <span className="flex-none w-4 font-bold text-amber-500">2.</span>
+                      <span>
+                        Toque em um contato → role até o final →{' '}
+                        <strong>"Compartilhar Contato"</strong>
+                      </span>
+                    </li>
+                    <li className="flex gap-2.5 text-sm text-amber-900">
+                      <span className="flex-none w-4 font-bold text-amber-500">3.</span>
+                      <span>
+                        Escolha <strong>"Salvar em Arquivos"</strong> ou envie o <strong>.vcf</strong>{' '}
+                        para si mesmo
+                      </span>
+                    </li>
+                    <li className="flex gap-2.5 text-sm text-amber-900">
+                      <span className="flex-none w-4 font-bold text-amber-500">4.</span>
+                      <span>Volte aqui e selecione o arquivo abaixo</span>
+                    </li>
+                  </ol>
+                  <p className="text-xs text-amber-600 border-t border-amber-100 pt-2 mt-1">
+                    Para exportar <strong>todos</strong> os contatos de uma vez: acesse{' '}
+                    <strong>icloud.com</strong> no computador → Contatos → ⚙️ →{' '}
+                    <strong>Exportar vCard</strong>
                   </p>
                 </div>
-              </Button>
+
+                <Button
+                  onClick={() => fileRef.current?.click()}
+                  className="w-full justify-start gap-3 h-12 rounded-2xl border border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
+                  variant="outline"
+                >
+                  <Upload className="size-4 text-slate-500" />
+                  <span className="text-sm font-medium">Selecionar arquivo .vcf</span>
+                </Button>
+              </div>
             )}
 
             <input
