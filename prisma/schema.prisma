@@ -284,7 +284,6 @@ model Subscription {
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
   cancelledAt        DateTime?
-  externalId         String?
   stripeCustomerId   String?            @unique
   stripeSubId        String?            @unique
   stripePriceId      String?

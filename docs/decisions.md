@@ -124,10 +124,10 @@ Formato: data, contexto, decisão, consequências.
 1. Adicionar 22 índices aditivos (migration `20260622014940_add_missing_fk_and_composite_indexes`) — toda FK sem índice correspondente, mais `Appointment.[tenantId,customerId]`, `Appointment.[tenantId,status]` e `Transaction.[tenantId,professionalId]` pedidos explicitamente na issue.
 2. Não aplicar índice parcial por status — Prisma não representa `WHERE` em `@@index`; aplicar via SQL bruto criaria schema drift na próxima `migrate dev`. Proposta documentada em `docs/auditoria-banco-dados-2026-06.md` para aplicação manual futura.
 3. Corrigir 2 N+1 reais encontrados em jobs de fila (`subscription-expiry-warnings.ts`, `recurring-expense.ts`) — nenhum N+1 encontrado nos repositories principais.
-4. Não remover `Subscription.externalId` (campo confirmado sem uso em todo o `src/`) — segue protocolo de migration destrutiva, fica documentado como candidato pendente de confirmação explícita do usuário.
+4. `Subscription.externalId` (campo confirmado sem uso em todo o `src/` e em 0 de 15 linhas no banco) — documentado como candidato a remoção e, após confirmação explícita do usuário, removido via migration dedicada (`20260622021203_remove_unused_subscription_external_id`, branch `chore/remove-subscription-external-id`). Era um placeholder de "ID no Asaas/Stripe" do schema inicial de planos (27/05/2026), substituído pelos campos tipados `stripeCustomerId`/`stripeSubId`/`stripePriceId` quando a integração Stripe foi implementada (07/06/2026) e nunca limpo depois.
 
 **Consequências**:
 - Queries por `customerId`, `status`, `professionalId` (Transaction), e todas as FKs antes sem índice passam a usar index scan em vez de seq scan.
 - `PromotionItem` (que não tinha nenhum índice) passa a ter as 3 FKs indexadas.
 - Relatório completo de achados em `docs/auditoria-banco-dados-2026-06.md` — inclui análise de reaproveitamento de schema.
-- Pendência: remoção de `Subscription.externalId` aguardando decisão humana (coluna pode ter dados em produção).
+- `Subscription.externalId` removido — sem impacto, campo nunca foi lido/escrito por código nem tinha dado em nenhuma linha.
