@@ -6,6 +6,7 @@ import { ensurePermission, PERMISSIONS } from "@/shared/auth/permissions";
 import { handleApiError } from "@/shared/http/handle-api-error";
 import { env } from "@/shared/config/env";
 import { evolutionProvider } from "@/domains/notifications/providers/evolution.provider";
+import { createEvolutionWebhookToken } from "@/shared/auth/evolution-webhook-token";
 import { ValidationError } from "@/shared/errors";
 
 export async function POST(request: Request) {
@@ -17,6 +18,9 @@ export async function POST(request: Request) {
 
     if (!env.EVOLUTION_API_URL) {
       throw new ValidationError("Evolution API não está configurada neste servidor.");
+    }
+    if (!env.EVOLUTION_WEBHOOK_SECRET) {
+      throw new ValidationError("EVOLUTION_WEBHOOK_SECRET não configurada neste servidor.");
     }
 
     const tenant = await prisma.tenant.findFirst({
@@ -34,15 +38,19 @@ export async function POST(request: Request) {
     const instanceName = session.tenantId;
     const { qrCode } = await evolutionProvider.createInstance(instanceName);
 
+    // Token derivado do tenantId — a Evolution não assina seus webhooks, então a
+    // autenticação vai embutida na própria URL registrada (ver evolution-webhook-token.ts)
+    const webhookToken = createEvolutionWebhookToken(instanceName);
+
     // Configura webhook para receber atualizações de conexão
-    const webhookUrl = `${process.env.APP_URL}/api/webhooks/evolution/connection`;
+    const webhookUrl = `${process.env.APP_URL}/api/webhooks/evolution/connection?token=${webhookToken}`;
     await evolutionProvider.configureWebhook(instanceName, webhookUrl).catch((err: unknown) => {
       // Webhook é best-effort — instância funcionará mas precisará de polling manual
       console.warn("[Evolution] Falha ao configurar webhook:", err instanceof Error ? err.message : "erro desconhecido");
     });
 
     // Configura webhook para mensagens inbound (chatbot)
-    const messagesWebhookUrl = `${process.env.APP_URL}/api/webhooks/evolution/messages`;
+    const messagesWebhookUrl = `${process.env.APP_URL}/api/webhooks/evolution/messages?token=${webhookToken}`;
     await evolutionProvider.configureMessagesWebhook(instanceName, messagesWebhookUrl).catch((err: unknown) => {
       console.warn("[Evolution] Falha ao configurar webhook de mensagens:", err instanceof Error ? err.message : "erro desconhecido");
     });
