@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
-import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { ServicePickerWithCategories, type PickerService } from '../service-picker-with-categories'
 
 const categories = [
@@ -16,37 +16,50 @@ const services: PickerService[] = [
   { id: 's4', name: 'Consultoria de imagem', duration: 30, price: '50', categoryId: null },
 ]
 
-beforeAll(() => {
-  window.HTMLElement.prototype.scrollIntoView = vi.fn()
-})
-
 describe('ServicePickerWithCategories', () => {
   afterEach(() => cleanup())
 
-  it('agrupa serviços em seções por categoria e mostra "Outros" para sem categoria', () => {
+  it('mostra todos os serviços num único carrossel quando "Todos" está ativo', () => {
     render(
       <ServicePickerWithCategories services={services} categories={categories} onSelect={() => {}} />,
     )
-    expect(screen.getByRole('heading', { name: 'Alisamento' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Corte' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Outros' })).toBeInTheDocument()
+    expect(screen.getByText('Alisamento + Hidratação')).toBeInTheDocument()
+    expect(screen.getByText('Selagem')).toBeInTheDocument()
+    expect(screen.getByText('Corte Feminino')).toBeInTheDocument()
     expect(screen.getByText('Consultoria de imagem')).toBeInTheDocument()
   })
 
-  it('exibe os chips "Todos" + categorias quando não há busca ativa', () => {
-    render(
-      <ServicePickerWithCategories services={services} categories={categories} onSelect={() => {}} />,
-    )
-    expect(screen.getByRole('button', { name: 'Todos' })).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: 'Alisamento' }).length).toBeGreaterThan(0)
-  })
-
-  it('clicar num chip de categoria rola até a seção correspondente', () => {
+  it('mostra apenas os serviços da categoria selecionada ao clicar num chip', () => {
     render(
       <ServicePickerWithCategories services={services} categories={categories} onSelect={() => {}} />,
     )
     fireEvent.click(screen.getByRole('button', { name: 'Corte' }))
-    expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled()
+
+    expect(screen.getByText('Corte Feminino')).toBeInTheDocument()
+    expect(screen.queryByText('Alisamento + Hidratação')).not.toBeInTheDocument()
+    expect(screen.queryByText('Selagem')).not.toBeInTheDocument()
+    expect(screen.queryByText('Consultoria de imagem')).not.toBeInTheDocument()
+  })
+
+  it('chip "Outros" mostra apenas serviços sem categoria', () => {
+    render(
+      <ServicePickerWithCategories services={services} categories={categories} onSelect={() => {}} />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Outros' }))
+
+    expect(screen.getByText('Consultoria de imagem')).toBeInTheDocument()
+    expect(screen.queryByText('Corte Feminino')).not.toBeInTheDocument()
+  })
+
+  it('voltar para "Todos" depois de filtrar mostra todos de novo', () => {
+    render(
+      <ServicePickerWithCategories services={services} categories={categories} onSelect={() => {}} />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Corte' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Todos' }))
+
+    expect(screen.getByText('Alisamento + Hidratação')).toBeInTheDocument()
+    expect(screen.getByText('Corte Feminino')).toBeInTheDocument()
   })
 
   it('ao digitar na busca, esconde os chips e filtra por nome (ignorando acentos/caixa)', () => {
