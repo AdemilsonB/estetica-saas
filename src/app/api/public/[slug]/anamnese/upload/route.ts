@@ -1,6 +1,7 @@
 import { publicBookingRepository } from '@/domains/scheduling/public-booking.repository'
 import { supabaseAdmin } from '@/integrations/supabase/admin'
 import { handleApiError } from '@/shared/http/handle-api-error'
+import { checkRateLimit } from '@/shared/rate-limit/public-rate-limit'
 
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const MAX_SIZE = 5 * 1024 * 1024
@@ -10,6 +11,21 @@ export async function POST(
   context: { params: Promise<{ slug: string }> },
 ) {
   try {
+    const ip =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+    const ipLimit = await checkRateLimit({
+      ip,
+      action: 'anamnese_upload',
+      maxPerWindow: 10,
+      windowMs: 15 * 60 * 1000,
+    })
+    if (!ipLimit.allowed) {
+      return Response.json(
+        { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Muitas tentativas. Aguarde 15 minutos.' } },
+        { status: 429 },
+      )
+    }
+
     const { slug } = await context.params
     const tenant = await publicBookingRepository.findTenantBySlug(slug)
 
