@@ -5,7 +5,75 @@ const AUTH_ROUTES = ["/login", "/forgot-password"];
 const TOKEN_ROUTES = ["/reset-password", "/callback"];
 
 // Rotas públicas com prefixo explícito — sem autenticação Supabase
-const PUBLIC_PREFIXES = ["/agendar/", "/api/public/", "/planos", "/avaliar/", "/anamnese/"];
+const PUBLIC_PREFIXES = [
+  "/agendar/",
+  "/planos",
+  "/avaliar/",
+  "/anamnese/",
+  // API — intencionalmente públicas ou com mecanismo de auth próprio (não Supabase cookie):
+  "/api/public/", // booking público, anamnese, portal do cliente
+  "/api/webhooks/", // Stripe/Evolution/Twilio — cada um valida sua própria assinatura/token
+  "/api/admin/", // backoffice — Bearer ADMIN_API_SECRET via getAdminContext, não cookie
+  "/api/auth/signup", // criação de conta — precede qualquer sessão
+  "/api/dev/", // utilitários de desenvolvimento, gated por NODE_ENV no próprio handler
+  "/api/billing/plans", // lista de planos públicos (vitrine/landing)
+  "/api/billing/stripe/webhook", // assinatura Stripe própria
+  "/api/iam/tenant-branding", // branding por slug, consumido por páginas públicas
+];
+
+// Defesa em profundidade: nenhuma outra rota /api/* deve passar sem sessão Supabase —
+// cada route.ts continua responsável pelo getSessionContext + escopo de tenantId; este
+// gate só impede que uma rota nova esqueça de chamá-lo e fique 100% exposta.
+function hasDevHeaderSession(request: NextRequest): boolean {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    request.headers.get("x-auth-mode") === "headers" &&
+    Boolean(request.headers.get("x-tenant-id")) &&
+    Boolean(request.headers.get("x-user-id")) &&
+    Boolean(request.headers.get("x-user-role"))
+  );
+}
+
+async function requireApiSession(request: NextRequest): Promise<NextResponse> {
+  if (hasDevHeaderSession(request)) {
+    return NextResponse.next({ request });
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Sem env vars não há como validar — mesma postura de fallback do restante do middleware
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return NextResponse.next({ request });
+  }
+
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll() {},
+    },
+  });
+
+  try {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) {
+      return unauthorizedApiResponse();
+    }
+  } catch {
+    return unauthorizedApiResponse();
+  }
+
+  return NextResponse.next({ request });
+}
+
+function unauthorizedApiResponse(): NextResponse {
+  return NextResponse.json(
+    { error: { code: "UNAUTHORIZED", message: "Sessão ausente." } },
+    { status: 401 },
+  );
+}
 
 // Rotas app que requerem autenticação Supabase (tenant operador)
 const PROTECTED_APP_PREFIXES = [
@@ -26,6 +94,11 @@ export async function middleware(request: NextRequest) {
   // Rotas públicas com prefixo — passam direto
   if (PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     return NextResponse.next({ request });
+  }
+
+  // Qualquer outra rota /api/* exige sessão Supabase — defesa em profundidade
+  if (pathname.startsWith("/api/")) {
+    return requireApiSession(request);
   }
 
   const isAuthRoute = AUTH_ROUTES.includes(pathname);
@@ -135,6 +208,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.json|icons/|api/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.json|icons/).*)",
   ],
 };

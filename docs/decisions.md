@@ -131,3 +131,26 @@ Formato: data, contexto, decisão, consequências.
 - `PromotionItem` (que não tinha nenhum índice) passa a ter as 3 FKs indexadas.
 - Relatório completo de achados em `docs/auditoria-banco-dados-2026-06.md` — inclui análise de reaproveitamento de schema.
 - `Subscription.externalId` removido — sem impacto, campo nunca foi lido/escrito por código nem tinha dado em nenhuma linha.
+
+---
+
+## ADR-008 — Defesa em profundidade para rotas de API no middleware (issue #145)
+
+**Data**: 2026-06-22
+**Status**: Aceito
+
+**Contexto**: Auditoria de QA (#123) encontrou que `config.matcher` do `middleware.ts` excluía `api/.*` por completo — nenhuma rota de API passava pelo middleware, então toda a proteção de tenant dependia 100% de cada `route.ts` chamar `getSessionContext`/`getAdminContext` manualmente, sem nenhuma rede de segurança central. Não havia vazamento ativo confirmado, mas o modelo era frágil a regressão silenciosa: bastava uma rota nova esquecer essa chamada.
+
+**Decisão**: Middleware passa a cobrir `/api/*` com um gate mínimo — "existe sessão Supabase" — deny-by-default, com allowlist explícita do que é público ou usa mecanismo de auth próprio:
+- `/api/public/*` (booking público), `/api/webhooks/*` (assinatura própria por provider), `/api/admin/*` (Bearer `ADMIN_API_SECRET` via `getAdminContext`, não cookie), `/api/auth/signup`, `/api/dev/*`, `/api/billing/plans`, `/api/billing/stripe/webhook`, `/api/iam/tenant-branding`.
+- Todo o resto exige `supabase.auth.getUser()` válido (ou o bypass de dev via `x-auth-mode: headers`, já existente em `session.ts`, replicado aqui para não quebrar o fluxo de teste manual local).
+
+O gate **não substitui** `getSessionContext`/tenant scoping — cada route.ts continua responsável pela autorização real (role, permissões, `tenantId`). É só a segunda camada que impede uma rota nova exposta por omissão.
+
+**Alternativas consideradas**:
+- Tornar o matcher mais granular por domínio (`/api/iam/*`, `/api/financial/*`, etc., como sugerido originalmente na issue) — descartado por adicionar manutenção (toda rota nova de domínio protegido exigiria lembrar de incluir o prefixo) sem ganho real sobre o deny-by-default com allowlist do que é público (lista mais curta e estável).
+
+**Consequências**:
+- Toda chamada a uma rota protegida agora faz uma verificação de sessão Supabase extra no middleware, além da que o próprio route.ts já fazia — custo de latência aceito como trade-off de defesa em profundidade.
+- Mapeadas as 153 rotas existentes em `src/app/api` por mecanismo de auth antes da mudança, para garantir que a allowlist não quebrasse webhooks, admin ou onboarding.
+- Achados fora do escopo desta issue, não corrigidos aqui: `POST /api/auth/signup` não tem `try/catch`/`handleApiError` e retorna 500 em vez de 422 para payload invalido (bug pré-existente, encontrado durante o smoke test).
