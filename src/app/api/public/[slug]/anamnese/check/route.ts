@@ -2,6 +2,7 @@ import { publicBookingRepository } from '@/domains/scheduling/public-booking.rep
 import { anamneseService } from '@/domains/crm/anamnese.service'
 import { handleApiError } from '@/shared/http/handle-api-error'
 import { prisma } from '@/shared/database/prisma'
+import { checkRateLimit } from '@/shared/rate-limit/public-rate-limit'
 
 export async function GET(
   req: Request,
@@ -15,6 +16,19 @@ export async function GET(
 
     if (!phone) {
       return Response.json({ error: 'phone é obrigatório' }, { status: 400 })
+    }
+
+    const ip =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+    const [ipLimit, phoneLimit] = await Promise.all([
+      checkRateLimit({ ip, action: 'anamnese_check', maxPerWindow: 5, windowMs: 15 * 60 * 1000 }),
+      checkRateLimit({ phone, action: 'anamnese_check', maxPerWindow: 5, windowMs: 15 * 60 * 1000 }),
+    ])
+    if (!ipLimit.allowed || !phoneLimit.allowed) {
+      return Response.json(
+        { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Muitas tentativas. Aguarde 15 minutos.' } },
+        { status: 429 },
+      )
     }
 
     const tenant = await publicBookingRepository.findTenantBySlug(slug)
