@@ -214,9 +214,9 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
           <DialogTitle>Novo agendamento</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="min-w-0 space-y-5">
           {/* 1. Serviço — sempre primeiro */}
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <Label>Serviço</Label>
             <ServicePickerWithCategories
               services={activeServices}
