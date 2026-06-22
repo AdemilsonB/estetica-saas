@@ -141,7 +141,7 @@ export function ServicePickerWithCategories({ services, categories, selectedId, 
       </div>
 
       {!isSearching && chips.length > 1 && (
-        <div className="flex min-w-0 gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex min-w-0 touch-pan-x gap-2 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {chips.map((chip) => (
             <button
               key={chip.id ?? 'all'}
@@ -167,7 +167,7 @@ export function ServicePickerWithCategories({ services, categories, selectedId, 
             : 'Nenhum serviço disponível.'}
         </p>
       ) : (
-        <div className="flex min-w-0 gap-3 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex min-w-0 touch-pan-x gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {visibleServices.map((service) => renderCard(service))}
         </div>
       )}
