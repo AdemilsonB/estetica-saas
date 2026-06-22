@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/database/prisma";
+import { isValidEvolutionWebhookToken } from "@/shared/auth/evolution-webhook-token";
 
 const STATE_MAP: Record<string, string> = {
   open:       "CONNECTED",
@@ -15,6 +16,12 @@ export async function POST(request: Request) {
     }
 
     const instanceName: string = body.instance ?? body.data?.instance ?? "";
+    const token = new URL(request.url).searchParams.get("token") ?? "";
+
+    if (!isValidEvolutionWebhookToken(instanceName, token)) {
+      return new Response(null, { status: 401 });
+    }
+
     const rawState: string = body.data?.state ?? "close";
     const newStatus = STATE_MAP[rawState] ?? "DISCONNECTED";
 

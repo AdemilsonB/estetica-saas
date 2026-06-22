@@ -1,8 +1,8 @@
-import { createHmac } from 'crypto'
 import { prisma } from '@/shared/database/prisma'
 import { env } from '@/shared/config/env'
 import { classifyIntent } from '@/domains/notifications/chatbot/intent-classifier'
 import { evolutionProvider } from '@/domains/notifications/providers/evolution.provider'
+import { isValidEvolutionWebhookToken } from '@/shared/auth/evolution-webhook-token'
 
 type EvolutionMessageEvent = {
   event: string
@@ -52,17 +52,6 @@ function isWithinBusinessHours(businessHours: BusinessHours | null, timezone: st
 }
 
 async function parseBody(request: Request): Promise<EvolutionMessageEvent | null> {
-  if (env.EVOLUTION_WEBHOOK_SECRET) {
-    const signature = request.headers.get('x-evolution-signature') ?? ''
-    const body = await request.text()
-    const expected = createHmac('sha256', env.EVOLUTION_WEBHOOK_SECRET).update(body).digest('hex')
-    if (signature !== expected) return null
-    try {
-      return JSON.parse(body) as EvolutionMessageEvent
-    } catch {
-      return null
-    }
-  }
   try {
     return (await request.json()) as EvolutionMessageEvent
   } catch {
@@ -73,6 +62,11 @@ async function parseBody(request: Request): Promise<EvolutionMessageEvent | null
 export async function POST(request: Request): Promise<Response> {
   const event = await parseBody(request)
   if (!event) return new Response(null, { status: 401 })
+
+  const token = new URL(request.url).searchParams.get('token') ?? ''
+  if (!isValidEvolutionWebhookToken(event.instance, token)) {
+    return new Response(null, { status: 401 })
+  }
 
   if (event.event !== 'messages.upsert') return new Response(null, { status: 200 })
   if (event.data.key.fromMe) return new Response(null, { status: 200 })
