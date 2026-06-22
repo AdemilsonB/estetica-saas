@@ -139,6 +139,13 @@ export type DomainEvent =
       };
     }
   | {
+      type: "scheduling.appointment.payment_refunded";
+      payload: {
+        tenantId: string;
+        appointmentId: string;
+      };
+    }
+  | {
       type: "product.sold";
       payload: {
         tenantId: string;

@@ -56,6 +56,16 @@ export class TransactionRepository {
       },
     });
   }
+
+  async findByAppointmentId(
+    tenantId: string,
+    appointmentId: string,
+    filters: { type?: TransactionType; category?: string } = {},
+  ): Promise<Transaction[]> {
+    return prisma.transaction.findMany({
+      where: { tenantId, appointmentId, ...filters },
+    });
+  }
 }
 
 export const transactionRepository = new TransactionRepository();

@@ -7,6 +7,7 @@ export const FINANCIAL_CATEGORIES = {
   FIXED_EXPENSE:   'Despesa Fixa',
   VARIABLE:        'Despesa Variável',
   SUPPLY_REVERSAL: 'Estorno de Insumo',
+  SERVICE_REVERSAL: 'Estorno de Serviço',
 } as const
 
 export type FinancialCategory = typeof FINANCIAL_CATEGORIES[keyof typeof FINANCIAL_CATEGORIES]

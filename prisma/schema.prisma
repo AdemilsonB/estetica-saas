@@ -49,6 +49,7 @@ enum AppointmentPaymentStatus {
   PAID
   COURTESY
   DEBT
+  REFUNDED
 }
 
 enum PaymentMethod {

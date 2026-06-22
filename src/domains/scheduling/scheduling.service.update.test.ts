@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { AppointmentStatus } from "@prisma/client";
+import { AppointmentStatus, AppointmentPaymentStatus } from "@prisma/client";
 import { prismaMock } from "@/shared/test/prisma-mock";
 import { eventBus } from "@/shared/events/event-bus";
 import { SchedulingService } from "./scheduling.service";
-import { AppointmentNotFoundError, AppointmentAlreadyCancelledError, SlotUnavailableError } from "@/shared/errors";
+import {
+  AppointmentNotFoundError,
+  AppointmentAlreadyCancelledError,
+  RefundNotAllowedError,
+  SlotUnavailableError,
+} from "@/shared/errors";
 
 vi.mock("@/shared/database/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/shared/events/event-bus", () => ({
@@ -247,5 +252,68 @@ describe("SchedulingService.updateAppointmentStatus — guarda de estado termina
       AppointmentStatus.CANCELLED,
       undefined,
     );
+  });
+});
+
+describe("SchedulingService.refundPayment (#154)", () => {
+  let service: SchedulingService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    service = new SchedulingService();
+  });
+
+  it("lança AppointmentNotFoundError quando agendamento não existe", async () => {
+    vi.mocked(appointmentRepository.findById).mockResolvedValue(null);
+
+    await expect(service.refundPayment("tenant-1", "appt-999")).rejects.toThrow(
+      AppointmentNotFoundError,
+    );
+  });
+
+  it("lança RefundNotAllowedError quando o agendamento não está cancelado", async () => {
+    vi.mocked(appointmentRepository.findById).mockResolvedValue({
+      ...mockAppointment,
+      status: AppointmentStatus.SCHEDULED,
+      paymentStatus: AppointmentPaymentStatus.PAID,
+    } as any);
+
+    await expect(service.refundPayment("tenant-1", "appt-1")).rejects.toThrow(
+      RefundNotAllowedError,
+    );
+    expect(prismaMock.appointment.update).not.toHaveBeenCalled();
+    expect(eventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it("lança RefundNotAllowedError quando o agendamento não está pago", async () => {
+    vi.mocked(appointmentRepository.findById).mockResolvedValue({
+      ...mockAppointment,
+      status: AppointmentStatus.CANCELLED,
+      paymentStatus: AppointmentPaymentStatus.PENDING,
+    } as any);
+
+    await expect(service.refundPayment("tenant-1", "appt-1")).rejects.toThrow(
+      RefundNotAllowedError,
+    );
+    expect(prismaMock.appointment.update).not.toHaveBeenCalled();
+  });
+
+  it("marca paymentStatus REFUNDED e publica payment_refunded quando cancelado e pago", async () => {
+    vi.mocked(appointmentRepository.findById).mockResolvedValue({
+      ...mockAppointment,
+      status: AppointmentStatus.CANCELLED,
+      paymentStatus: AppointmentPaymentStatus.PAID,
+    } as any);
+
+    await service.refundPayment("tenant-1", "appt-1");
+
+    expect(prismaMock.appointment.update).toHaveBeenCalledWith({
+      where: { id: "appt-1" },
+      data: { paymentStatus: AppointmentPaymentStatus.REFUNDED },
+    });
+    expect(eventBus.publish).toHaveBeenCalledWith({
+      type: "scheduling.appointment.payment_refunded",
+      payload: { tenantId: "tenant-1", appointmentId: "appt-1" },
+    });
   });
 });

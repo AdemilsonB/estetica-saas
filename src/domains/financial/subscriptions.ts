@@ -60,6 +60,51 @@ export function registerFinancialSubscriptions() {
     });
   });
 
+  eventBus.subscribe("scheduling.appointment.payment_refunded", async (payload) => {
+    const originalTransactions = await transactionRepository.findByAppointmentId(
+      payload.tenantId,
+      payload.appointmentId,
+      { type: TransactionType.INCOME, category: FINANCIAL_CATEGORIES.SERVICE },
+    );
+    if (originalTransactions.length === 0) return;
+
+    const totalAmount = originalTransactions.reduce((s, t) => s + Number(t.amount), 0);
+    const totalNetAmount = originalTransactions.reduce(
+      (s, t) => s + Number(t.netAmount ?? t.amount),
+      0,
+    );
+    const totalCommission = originalTransactions.reduce(
+      (s, t) => s + Number(t.commissionAmount ?? 0),
+      0,
+    );
+    const professionalId = originalTransactions.find((t) => t.professionalId)?.professionalId;
+
+    const appt = await prisma.appointment.findUnique({
+      where: { id: payload.appointmentId },
+      select: {
+        service: { select: { name: true } },
+        customer: { select: { name: true } },
+      },
+    });
+    const serviceName = appt?.service?.name ?? "Serviço";
+    const customerName = appt?.customer?.name ?? "";
+    const description = customerName
+      ? `Estorno: ${serviceName} — ${customerName}`
+      : `Estorno: ${serviceName}`;
+
+    await transactionRepository.create(payload.tenantId, {
+      appointmentId: payload.appointmentId,
+      type: TransactionType.INCOME,
+      category: FINANCIAL_CATEGORIES.SERVICE_REVERSAL,
+      description,
+      amount: new Prisma.Decimal(-totalAmount),
+      netAmount: new Prisma.Decimal(-totalNetAmount),
+      paidAt: new Date(),
+      commissionAmount: totalCommission > 0 ? new Prisma.Decimal(-totalCommission) : undefined,
+      professionalId: totalCommission > 0 ? professionalId : undefined,
+    });
+  });
+
   eventBus.subscribe("product.sold", async (payload) => {
     await transactionRepository.create(payload.tenantId, {
       type: TransactionType.INCOME,

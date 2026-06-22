@@ -8,7 +8,7 @@ export type AppointmentStatus =
   | 'CANCELLED'
   | 'NO_SHOW'
 
-export type AppointmentPaymentStatus = 'PENDING' | 'PAID' | 'COURTESY' | 'DEBT'
+export type AppointmentPaymentStatus = 'PENDING' | 'PAID' | 'COURTESY' | 'DEBT' | 'REFUNDED'
 
 export type Appointment = {
   id: string
@@ -152,6 +152,26 @@ export function useRescheduleAppointment() {
   return useMutation({
     mutationFn: ({ id, ...data }: { id: string } & UpdateAppointmentInput) =>
       rescheduleAppointment(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] })
+    },
+  })
+}
+
+async function refundAppointment(id: string): Promise<void> {
+  const res = await fetch(`/api/scheduling/appointments/${id}/refund`, {
+    method: 'POST',
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message ?? 'Falha ao registrar estorno')
+  }
+}
+
+export function useRefundAppointment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: refundAppointment,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] })
     },

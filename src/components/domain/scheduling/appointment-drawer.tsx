@@ -23,7 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useUpdateAppointmentStatus, useRescheduleAppointment } from '@/hooks/scheduling/use-appointments'
+import {
+  useUpdateAppointmentStatus,
+  useRescheduleAppointment,
+  useRefundAppointment,
+} from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import { useAvailableSlots } from '@/hooks/scheduling/use-availability'
 import { useTeamMembers } from '@/hooks/iam/use-team'
@@ -94,9 +98,11 @@ type Props = {
 
 export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: Props) {
   const updateStatus = useUpdateAppointmentStatus()
+  const refundAppointment = useRefundAppointment()
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const [noShowModalOpen, setNoShowModalOpen] = useState(false)
+  const [refundModalOpen, setRefundModalOpen] = useState(false)
 
   const [isEditing, setIsEditing] = useState(false)
   const [editProfessionalId, setEditProfessionalId] = useState('')
@@ -195,6 +201,20 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
         },
       },
     )
+  }
+
+  function handleRefund() {
+    if (!appointment) return
+    refundAppointment.mutate(appointment.id, {
+      onSuccess: () => {
+        toast.success('Estorno registrado no financeiro')
+        setRefundModalOpen(false)
+        onClose()
+      },
+      onError: (err) => {
+        toast.error(err instanceof Error ? err.message : 'Erro ao registrar estorno')
+      },
+    })
   }
 
   const originalProfessionalId = appointment?.professionalId ?? ''
@@ -461,6 +481,16 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                     </div>
                   </div>
                 )}
+
+                {appointment.status === 'CANCELLED' && appointment.paymentStatus === 'PAID' && (
+                  <Button
+                    variant="outline"
+                    className="w-full border-amber-200 text-amber-700 hover:bg-amber-50"
+                    onClick={() => setRefundModalOpen(true)}
+                  >
+                    Confirmar estorno
+                  </Button>
+                )}
               </>
             )}
           </div>
@@ -482,6 +512,25 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
               className="bg-orange-600 hover:bg-orange-700"
             >
               Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={refundModalOpen} onOpenChange={setRefundModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar estorno?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Use esta opção só depois de devolver o valor ao cliente (na maquininha, PIX ou
+              dinheiro). O sistema vai registrar o estorno no financeiro — isso reduz a receita e
+              a comissão já contabilizadas para este atendimento. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRefund} className="bg-amber-600 hover:bg-amber-700">
+              Confirmar estorno
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
