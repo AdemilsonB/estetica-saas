@@ -5,6 +5,7 @@ import {
   Prisma,
   PriceType,
   AnamneseMode,
+  type Appointment,
 } from "@prisma/client";
 
 import { prisma } from "@/shared/database/prisma";
@@ -16,6 +17,7 @@ import {
   CustomerNotFoundError,
   ProfessionalNotFoundError,
   ServiceNotFoundError,
+  SlotUnavailableError,
 } from "@/shared/errors";
 import {
   scheduleAppointmentReminder,
@@ -106,26 +108,48 @@ export class SchedulingService {
     const startsAt = new Date(input.startsAt);
     const endsAt = new Date(startsAt.getTime() + service.duration * 60 * 1000);
 
-    if (!input.allowOverlap) {
-      await availabilityService.ensureSlotAvailable(
-        tenantId,
-        input.professionalId,
-        startsAt,
-        endsAt,
-      );
-    }
+    // Check (overlap) + create na mesma transação Serializable — duas requisições
+    // concorrentes para o mesmo profissional/horário não podem mais passar ambas
+    // pelo check antes de qualquer uma criar (double-booking). Postgres aborta uma
+    // delas com P2034 (write conflict) quando detecta a corrida.
+    let appointment: Appointment;
+    try {
+      appointment = await prisma.$transaction(
+        async (tx) => {
+          if (!input.allowOverlap) {
+            await availabilityService.ensureSlotAvailable(
+              tenantId,
+              input.professionalId,
+              startsAt,
+              endsAt,
+              tx,
+            );
+          }
 
-    const appointment = await appointmentRepository.create(tenantId, {
-      customerId: input.customerId,
-      professionalId: input.professionalId,
-      serviceId: input.serviceId,
-      startsAt,
-      endsAt,
-      notes: input.notes,
-      price: new Prisma.Decimal(service.price),
-      createdByUserId: userId,
-      allowOverlap: input.allowOverlap ?? false,
-    });
+          return appointmentRepository.create(
+            tenantId,
+            {
+              customerId: input.customerId,
+              professionalId: input.professionalId,
+              serviceId: input.serviceId,
+              startsAt,
+              endsAt,
+              notes: input.notes,
+              price: new Prisma.Decimal(service.price),
+              createdByUserId: userId,
+              allowOverlap: input.allowOverlap ?? false,
+            },
+            tx,
+          );
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+        throw new SlotUnavailableError();
+      }
+      throw error;
+    }
 
     const appointmentDetails = await appointmentRepository.findById(
       tenantId,
