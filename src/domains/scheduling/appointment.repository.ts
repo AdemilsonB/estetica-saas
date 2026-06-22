@@ -53,8 +53,9 @@ export class AppointmentRepository {
     startsAt: Date,
     endsAt: Date,
     excludeId?: string,
+    client: Prisma.TransactionClient | typeof prisma = prisma,
   ) {
-    return prisma.appointment.findFirst({
+    return client.appointment.findFirst({
       where: {
         tenantId,
         professionalId,
@@ -75,8 +76,9 @@ export class AppointmentRepository {
   async create(
     tenantId: string,
     data: Omit<Prisma.AppointmentUncheckedCreateInput, "tenantId">,
+    client: Prisma.TransactionClient | typeof prisma = prisma,
   ): Promise<Appointment> {
-    return prisma.appointment.create({
+    return client.appointment.create({
       data: {
         ...data,
         tenantId,

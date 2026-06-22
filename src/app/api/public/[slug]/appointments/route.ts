@@ -5,11 +5,14 @@ import { prisma } from '@/shared/database/prisma'
 import {
   CustomerBlockedError,
   PublicBookingDisabledError,
+  SlotUnavailableError,
   ValidationError,
 } from '@/shared/errors/domain-error'
 import { handleApiError } from '@/shared/http/handle-api-error'
 import { checkRateLimit } from '@/shared/rate-limit/public-rate-limit'
 import { customerRepository } from '@/domains/crm/customer.repository'
+import { appointmentRepository } from '@/domains/scheduling/appointment.repository'
+import { availabilityService } from '@/domains/scheduling/availability.service'
 import { publicBookingRepository } from '@/domains/scheduling/public-booking.repository'
 import { schedulingPolicyService } from '@/domains/scheduling/scheduling-policy.service'
 import { schedulingService } from '@/domains/scheduling/scheduling.service'
@@ -180,21 +183,43 @@ export async function POST(req: Request, context: RouteContext) {
       const startsAtDate = new Date(input.startsAt)
       const endsAt = new Date(startsAtDate.getTime() + foundPkg.duration * 60 * 1000)
 
-      appointment = await prisma.appointment.create({
-        data: {
-          tenantId: tenant.id,
-          customerId: customer.id,
-          professionalId,
-          packageId: input.packageId,
-          promotionId: input.promotionId ?? null,
-          startsAt: startsAtDate,
-          endsAt,
-          notes: input.notes,
-          price: new Prisma.Decimal(foundPkg.price),
-          createdByUserId: owner.id,
-        },
-        select: { id: true, startsAt: true },
-      })
+      // Check (overlap) + create na mesma transação Serializable — mesma defesa contra
+      // double-booking aplicada em schedulingService.createAppointment (issue #138).
+      try {
+        appointment = await prisma.$transaction(
+          async (tx) => {
+            await availabilityService.ensureSlotAvailable(
+              tenant.id,
+              professionalId,
+              startsAtDate,
+              endsAt,
+              tx,
+            )
+
+            return appointmentRepository.create(
+              tenant.id,
+              {
+                customerId: customer.id,
+                professionalId,
+                packageId: input.packageId,
+                promotionId: input.promotionId ?? null,
+                startsAt: startsAtDate,
+                endsAt,
+                notes: input.notes,
+                price: new Prisma.Decimal(foundPkg.price),
+                createdByUserId: owner.id,
+              },
+              tx,
+            )
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        )
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+          throw new SlotUnavailableError()
+        }
+        throw error
+      }
 
       if (input.anamneseId) {
         await prisma.appointment.update({

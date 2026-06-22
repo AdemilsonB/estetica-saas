@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+
 import { prisma } from "@/shared/database/prisma";
 import { SlotUnavailableError } from "@/shared/errors";
 import { IamRepository } from "@/domains/iam/iam.repository";
@@ -26,12 +28,15 @@ export class AvailabilityService {
     professionalId: string,
     startsAt: Date,
     endsAt: Date,
+    client: Prisma.TransactionClient | typeof prisma = prisma,
   ) {
     const overlapping = await appointmentRepository.findOverlappingForProfessional(
       tenantId,
       professionalId,
       startsAt,
       endsAt,
+      undefined,
+      client,
     );
     if (overlapping) {
       throw new SlotUnavailableError();
@@ -44,6 +49,7 @@ export class AvailabilityService {
     startsAt: Date,
     endsAt: Date,
     excludeAppointmentId: string,
+    client: Prisma.TransactionClient | typeof prisma = prisma,
   ) {
     const overlapping = await appointmentRepository.findOverlappingForProfessional(
       tenantId,
@@ -51,6 +57,7 @@ export class AvailabilityService {
       startsAt,
       endsAt,
       excludeAppointmentId,
+      client,
     );
     if (overlapping) {
       throw new SlotUnavailableError();
