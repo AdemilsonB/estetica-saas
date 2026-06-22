@@ -86,10 +86,12 @@ Dois problemas reais encontrados e corrigidos:
 
 ## 3. Reaproveitamento de schema
 
-### 3.1 Campo sem uso aparente
+### 3.1 Campo sem uso aparente — removido
 
-- **`Subscription.externalId`** (`prisma/schema.prisma`) — `String?`, nunca lido nem escrito em nenhum ponto do `src/`. Os campos realmente usados para integração com gateway de pagamento são `stripeCustomerId`, `stripeSubId` e `stripePriceId`. Candidato a remoção.
-  - **Não removido nesta sessão** — segue o protocolo de migration destrutiva (`agent-database.md`): remover coluna com possível dado existente exige confirmação explícita antes do `DROP COLUMN`. Recomendação: confirmar com o usuário e remover em uma migration dedicada.
+- **`Subscription.externalId`** (`prisma/schema.prisma`) — `String?`, nunca lido nem escrito em nenhum ponto do `src/`. Confirmado também no banco: 0 de 15 subscriptions tinham o campo preenchido.
+  - **Origem:** criado em `bff795e` (27/05/2026, schema inicial de planos) como campo agnóstico de gateway — o design doc da época (`docs/superpowers/specs/2026-05-27-planos-feature-gating-design.md:95`) comenta `// ID no Asaas/Stripe (fase 3)`, ou seja, era um placeholder para quando o gateway de pagamento (Asaas ou Stripe) fosse decidido.
+  - Quando a integração Stripe foi implementada (`3df1c4c`, 07/06/2026), a equipe optou por campos tipados e específicos (`stripeCustomerId`, `stripeSubId`, `stripePriceId`) em vez do campo genérico, que ficou como resíduo.
+  - **Removido em `chore/remove-subscription-external-id`** (migration `20260622021203_remove_unused_subscription_external_id`) — confirmado com o usuário antes do `DROP COLUMN`, conforme protocolo de migration destrutiva.
 
 ### 3.2 Campos write-only (escritos, nunca lidos) — manter, mas vale nota
 
@@ -109,4 +111,4 @@ Os demais campos investigados como suspeitos de subutilização (`Tenant.evoluti
 
 - [x] Nenhuma query frequente sem índice adequado — 22 índices novos cobrindo todas as FKs sem suporte e os 4 compostos aplicáveis pedidos na issue.
 - [x] Sem N+1 identificado nos repositories principais — confirmado limpo; 2 N+1 reais encontrados em jobs de fila e corrigidos.
-- [x] Schema documentado com análise de reaproveitamento — este documento + ADR em `docs/decisions.md`.
+- [x] Schema documentado com análise de reaproveitamento — este documento + ADR em `docs/decisions.md`. `Subscription.externalId` removido após confirmação do usuário.
