@@ -78,7 +78,6 @@ export function AdjustStockModal({ open, onClose, product }: Props) {
               placeholder={String(current)}
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              autoFocus
             />
             {diff !== null && (
               <p className={`text-xs ${diff === 0 ? 'text-muted-foreground' : diff > 0 ? 'text-emerald-600' : 'text-orange-600'}`}>

@@ -126,6 +126,25 @@ describe('IamRepository.setUserServices', () => {
   })
 })
 
+describe('IamRepository.findAllUsers', () => {
+  let repo: IamRepository
+  beforeEach(() => { repo = new IamRepository() })
+
+  it('ordena membros da equipe por nome (asc)', async () => {
+    prismaMock.user.findMany.mockResolvedValue([
+      { id: USER_ID, name: 'Ana', email: 'ana@test.com', role: 'PROFESSIONAL',
+        roleId: null, avatarUrl: null, showOnPublicPage: true, customRole: null,
+        createdAt: new Date(), professionalServices: [] },
+    ] as any)
+
+    await repo.findAllUsers(TENANT_ID)
+
+    expect(prismaMock.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { name: 'asc' } }),
+    )
+  })
+})
+
 describe('IamRepository.findProfessionalsByService', () => {
   let repo: IamRepository
   beforeEach(() => { repo = new IamRepository() })

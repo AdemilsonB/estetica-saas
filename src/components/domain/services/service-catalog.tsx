@@ -5,18 +5,32 @@ import { Edit2, Plus, Power } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useActivateService, useDeactivateService, useServices, type Service } from '@/hooks/scheduling/use-services'
+import { useServiceCategories } from '@/hooks/scheduling/use-service-categories'
 import { ServiceFormModal } from './service-form-modal'
 
 const PAGE_SIZE = 10
 
 export function ServiceCatalog() {
   const { data: services, isLoading, isError, refetch } = useServices()
+  const { data: categories = [] } = useServiceCategories()
   const { mutate: deactivate } = useDeactivateService()
   const { mutate: activate } = useActivateService()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingService, setEditingService] = useState<Service | undefined>()
   const [page, setPage] = useState(1)
+  const [categoryFilter, setCategoryFilter] = useState<string | undefined>()
+
+  const filteredServices = services?.filter(
+    (service) => !categoryFilter || service.categoryId === categoryFilter,
+  )
 
   function handleEdit(service: Service) {
     setEditingService(service)
@@ -61,15 +75,37 @@ export function ServiceCatalog() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          {services?.length ?? 0} serviço(s) cadastrado(s)
+          {filteredServices?.length ?? 0} serviço(s) cadastrado(s)
         </p>
         <Button onClick={handleCreate} size="sm" className="gap-2">
           <Plus className="size-4" />
           Novo serviço
         </Button>
       </div>
+
+      {services && services.length > 0 && (
+        <Select
+          value={categoryFilter ?? 'all'}
+          onValueChange={(v) => {
+            setCategoryFilter(v === 'all' ? undefined : v)
+            setPage(1)
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-52">
+            <SelectValue placeholder="Todas categorias" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas categorias</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat.id} value={cat.id}>
+                {cat.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
       {services?.length === 0 && (
         <div className="rounded-2xl border border-dashed border-border px-6 py-10 text-center">
@@ -80,12 +116,18 @@ export function ServiceCatalog() {
         </div>
       )}
 
-      {services && services.length > 0 && (
+      {services && services.length > 0 && filteredServices?.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-border px-6 py-10 text-center">
+          <p className="text-sm text-muted-foreground">Nenhum serviço encontrado nesta categoria.</p>
+        </div>
+      )}
+
+      {filteredServices && filteredServices.length > 0 && (
         <>
           <div className="space-y-2">
             {(() => {
-              const totalPages = Math.ceil(services.length / PAGE_SIZE)
-              const pageItems = services.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+              const totalPages = Math.ceil(filteredServices.length / PAGE_SIZE)
+              const pageItems = filteredServices.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
               return pageItems.map((service) => (
                 <div
                   key={service.id}
@@ -154,7 +196,7 @@ export function ServiceCatalog() {
           </div>
 
           {(() => {
-            const totalPages = Math.ceil(services.length / PAGE_SIZE)
+            const totalPages = Math.ceil(filteredServices.length / PAGE_SIZE)
             return totalPages > 1 && (
               <div className="flex items-center justify-between mt-4">
                 <p className="text-sm text-muted-foreground">
