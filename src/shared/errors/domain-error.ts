@@ -66,6 +66,12 @@ export class AppointmentAlreadyCancelledError extends DomainError {
   }
 }
 
+export class RefundNotAllowedError extends DomainError {
+  constructor(message = "Estorno não permitido para este agendamento.") {
+    super(message, "REFUND_NOT_ALLOWED", 422);
+  }
+}
+
 export class ServiceNotFoundError extends DomainError {
   constructor() {
     super("Servico nao encontrado.", "SERVICE_NOT_FOUND", 404);

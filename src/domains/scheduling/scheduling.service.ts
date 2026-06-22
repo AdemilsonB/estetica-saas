@@ -16,6 +16,7 @@ import {
   CustomerBlockedError,
   CustomerNotFoundError,
   ProfessionalNotFoundError,
+  RefundNotAllowedError,
   ServiceNotFoundError,
   SlotUnavailableError,
 } from "@/shared/errors";
@@ -421,6 +422,28 @@ export class SchedulingService {
     await prisma.appointment.update({
       where: { id: appointmentId },
       data: { paymentStatus: AppointmentPaymentStatus.DEBT },
+    });
+  }
+
+  async refundPayment(tenantId: string, appointmentId: string) {
+    const appointment = await appointmentRepository.findById(tenantId, appointmentId);
+    if (!appointment) throw new AppointmentNotFoundError();
+
+    if (appointment.status !== AppointmentStatus.CANCELLED) {
+      throw new RefundNotAllowedError("Só é possível estornar agendamentos cancelados.");
+    }
+    if (appointment.paymentStatus !== AppointmentPaymentStatus.PAID) {
+      throw new RefundNotAllowedError("Este agendamento não está marcado como pago.");
+    }
+
+    await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: { paymentStatus: AppointmentPaymentStatus.REFUNDED },
+    });
+
+    eventBus.publish({
+      type: "scheduling.appointment.payment_refunded",
+      payload: { tenantId, appointmentId },
     });
   }
 
