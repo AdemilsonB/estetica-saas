@@ -154,3 +154,27 @@ O gate **não substitui** `getSessionContext`/tenant scoping — cada route.ts c
 - Toda chamada a uma rota protegida agora faz uma verificação de sessão Supabase extra no middleware, além da que o próprio route.ts já fazia — custo de latência aceito como trade-off de defesa em profundidade.
 - Mapeadas as 153 rotas existentes em `src/app/api` por mecanismo de auth antes da mudança, para garantir que a allowlist não quebrasse webhooks, admin ou onboarding.
 - Achados fora do escopo desta issue, não corrigidos aqui: `POST /api/auth/signup` não tem `try/catch`/`handleApiError` e retorna 500 em vez de 422 para payload invalido (bug pré-existente, encontrado durante o smoke test).
+
+---
+
+## ADR-009 — Estorno de receita como ação manual, separada do cancelamento (issue #154)
+
+**Data**: 2026-06-22
+**Status**: Aceito
+
+**Contexto**: Issue #142 (auditoria de QA #123) encontrou que cancelar um agendamento com `paymentStatus = PAID` não reflete nada no financeiro — a `Transaction` de receita criada por `markPayment` continua registrada como se o atendimento tivesse acontecido. O hotfix de #142 (PR #153) só adicionou um aviso ao operador no modal de cancelamento; o reflexo financeiro foi propositalmente deixado fora do hotfix e movido para esta issue.
+
+**Investigação prévia**: o pagamento do cliente final acontece **fora do sistema** (maquininha, PIX, dinheiro no balcão) — não há gateway de pagamento integrado ao checkout de agendamento (o Stripe deste projeto cobra a assinatura SaaS do salão, não o cliente final). Logo, "estorno" aqui nunca é devolver dinheiro real — é manter o financeiro consistente com uma devolução que o operador já fez (ou não) na vida real.
+
+**Decisão**: Estorno é uma ação **explícita e manual**, separada do cancelamento — não automática.
+
+1. Cancelar um agendamento `PAID` continua só cancelando (aviso já implementado em #142/PR #153) — não cria nenhuma `Transaction` automaticamente.
+2. Um botão "Confirmar estorno" passa a aparecer no agendamento cancelado com `paymentStatus = PAID`. Só ao confirmar, o sistema registra uma `Transaction` `INCOME` com `amount`/`netAmount`/`commissionAmount` **negativos**, mesma categoria `SERVICE`, vinculada ao `appointmentId` original.
+3. Nenhuma mudança necessária em `reports.service.ts` nem `src/app/api/financial/summary/route.ts` — `grossRevenue`/`netRevenue`/`commissions` já são somas simples sobre transações `INCOME`; uma entrada negativa se ajusta sozinha, sem precisar de filtro por categoria (diferente do lado de despesa, que usa `isReversal`/`SUPPLY_REVERSAL`).
+
+**Alternativa rejeitada — estorno automático no momento do cancelamento**: cancelamento e devolução de dinheiro não são a mesma coisa na vida real — um salão pode cancelar e reter o valor (política de não-reembolso) ou devolver dias depois. Criar a `Transaction` negativa automaticamente no instante do cancelamento faria o sistema assumir que o dinheiro voltou quando isso não é garantido — um erro de contabilidade pior do que não fazer nada.
+
+**Consequências**:
+- `getProfessionalsReport` (`reports.service.ts:208`) soma receita por `appointmentId` via `appointment.transactions` — uma entrada negativa no mesmo `appointmentId` neutraliza corretamente sem mudança de código.
+- `byGroup` em `getFinancialReport` (`reports.service.ts:74`) incrementa `quantidade` por transação, não por agendamento — um agendamento estornado contará como 2 ocorrências (pagamento + estorno) no agrupamento por serviço/profissional, com `receita` líquida correta. Limitação conhecida, aceitável; revisar se incomodar na prática.
+- `src/domains/financial/DOMAIN.md` está desatualizado (cita evento `scheduling.appointment.completed`, que não existe; o real é `scheduling.appointment.paid`) — corrigir numa sessão de documentação separada, fora do escopo desta ADR.
