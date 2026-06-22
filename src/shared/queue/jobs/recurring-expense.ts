@@ -13,18 +13,10 @@ export async function handleRecurringExpense(_jobs: Job<Record<string, never>>[]
     where: { active: true, nextDueDate: { lte: now } },
   });
 
-  for (const expense of due) {
-    await prisma.transaction.create({
-      data: {
-        tenantId: expense.tenantId,
-        type: TransactionType.EXPENSE,
-        category: expense.category,
-        description: expense.description,
-        amount: expense.amount,
-        paidAt: new Date(),
-      },
-    });
+  if (due.length === 0) return;
 
+  const paidAt = new Date();
+  const operations = due.flatMap((expense) => {
     const next = new Date(expense.nextDueDate);
     if (expense.recurrenceType === "MONTHLY") {
       next.setMonth(next.getMonth() + 1);
@@ -32,11 +24,25 @@ export async function handleRecurringExpense(_jobs: Job<Record<string, never>>[]
       next.setDate(next.getDate() + 7);
     }
 
-    await prisma.recurringExpense.update({
-      where: { id: expense.id },
-      data: { nextDueDate: next },
-    });
-  }
+    return [
+      prisma.transaction.create({
+        data: {
+          tenantId: expense.tenantId,
+          type: TransactionType.EXPENSE,
+          category: expense.category,
+          description: expense.description,
+          amount: expense.amount,
+          paidAt,
+        },
+      }),
+      prisma.recurringExpense.update({
+        where: { id: expense.id },
+        data: { nextDueDate: next },
+      }),
+    ];
+  });
+
+  await prisma.$transaction(operations);
 }
 
 export async function registerRecurringExpenseJob(boss: PgBoss): Promise<void> {
