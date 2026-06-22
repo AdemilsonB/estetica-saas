@@ -110,3 +110,24 @@ Formato: data, contexto, decisão, consequências.
 - Schema sempre atualizado — sem risco de modelagem baseada em schema obsoleto
 - `CLAUDE.md` é a fonte canônica de status de domínios
 - Worktrees ativos precisam de merge manual: CLAUDE.md, AGENTS.md, orchestrator.md, agent-database.md, agent-documentation.md, agent-architect.md, settings.json; novos arquivos (agent-hotfix.md, agent-mobile.md) precisam ser copiados
+
+---
+
+## ADR-007 — Auditoria de índices e N+1 (issue #122)
+
+**Data**: 2026-06-21
+**Status**: Aceito
+
+**Contexto**: Issue #122 pediu auditoria completa de `prisma/schema.prisma` contra FKs sem índice, N+1 nos repositories de `scheduling`/`financial`/`crm`/`notifications`, e reaproveitamento de campos antes de criar colunas novas.
+
+**Decisão**:
+1. Adicionar 22 índices aditivos (migration `20260622014940_add_missing_fk_and_composite_indexes`) — toda FK sem índice correspondente, mais `Appointment.[tenantId,customerId]`, `Appointment.[tenantId,status]` e `Transaction.[tenantId,professionalId]` pedidos explicitamente na issue.
+2. Não aplicar índice parcial por status — Prisma não representa `WHERE` em `@@index`; aplicar via SQL bruto criaria schema drift na próxima `migrate dev`. Proposta documentada em `docs/auditoria-banco-dados-2026-06.md` para aplicação manual futura.
+3. Corrigir 2 N+1 reais encontrados em jobs de fila (`subscription-expiry-warnings.ts`, `recurring-expense.ts`) — nenhum N+1 encontrado nos repositories principais.
+4. Não remover `Subscription.externalId` (campo confirmado sem uso em todo o `src/`) — segue protocolo de migration destrutiva, fica documentado como candidato pendente de confirmação explícita do usuário.
+
+**Consequências**:
+- Queries por `customerId`, `status`, `professionalId` (Transaction), e todas as FKs antes sem índice passam a usar index scan em vez de seq scan.
+- `PromotionItem` (que não tinha nenhum índice) passa a ter as 3 FKs indexadas.
+- Relatório completo de achados em `docs/auditoria-banco-dados-2026-06.md` — inclui análise de reaproveitamento de schema.
+- Pendência: remoção de `Subscription.externalId` aguardando decisão humana (coluna pode ter dados em produção).

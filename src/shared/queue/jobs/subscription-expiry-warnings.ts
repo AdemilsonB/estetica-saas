@@ -25,7 +25,7 @@ export async function handleSubscriptionExpiryWarnings(
           evolutionInstanceId: true,
           users: {
             where: { role: 'OWNER' },
-            select: { id: true },
+            select: { id: true, email: true },
             take: 1,
           },
         },
@@ -68,11 +68,7 @@ export async function handleSubscriptionExpiryWarnings(
       where: {
         tenantId: sub.tenantId,
         // Encontrar o cliente com mesmo email do owner
-        email: {
-          in: await prisma.user
-            .findMany({ where: { id: ownerUser.id }, select: { email: true } })
-            .then(users => users.map(u => u.email)),
-        },
+        email: ownerUser.email,
       },
       select: { id: true, phone: true, name: true },
     })
