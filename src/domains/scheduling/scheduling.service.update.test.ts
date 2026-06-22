@@ -200,3 +200,52 @@ describe("SchedulingService.updateAppointmentStatus com confirmedPrice", () => {
     );
   });
 });
+
+describe("SchedulingService.updateAppointmentStatus — guarda de estado terminal (#141)", () => {
+  let service: SchedulingService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    service = new SchedulingService();
+  });
+
+  it.each([AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED, AppointmentStatus.NO_SHOW])(
+    "lança AppointmentAlreadyCancelledError ao tentar mudar status de um agendamento %s",
+    async (terminalStatus) => {
+      vi.mocked(appointmentRepository.findById).mockResolvedValueOnce({
+        ...mockAppointment,
+        status: terminalStatus,
+      } as any);
+
+      await expect(
+        service.updateAppointmentStatus("tenant-1", "appt-1", {
+          status: AppointmentStatus.CANCELLED,
+        }),
+      ).rejects.toThrow(AppointmentAlreadyCancelledError);
+
+      expect(appointmentRepository.updateStatus).not.toHaveBeenCalled();
+      expect(eventBus.publish).not.toHaveBeenCalled();
+    },
+  );
+
+  it("permite cancelar um agendamento SCHEDULED normalmente", async () => {
+    vi.mocked(appointmentRepository.findById)
+      .mockResolvedValueOnce({ ...mockAppointment, status: AppointmentStatus.SCHEDULED } as any)
+      .mockResolvedValueOnce({ ...mockAppointment, status: AppointmentStatus.CANCELLED } as any);
+    vi.mocked(appointmentRepository.updateStatus).mockResolvedValue({
+      ...mockAppointment,
+      status: AppointmentStatus.CANCELLED,
+    } as any);
+
+    await service.updateAppointmentStatus("tenant-1", "appt-1", {
+      status: AppointmentStatus.CANCELLED,
+    });
+
+    expect(appointmentRepository.updateStatus).toHaveBeenCalledWith(
+      "tenant-1",
+      "appt-1",
+      AppointmentStatus.CANCELLED,
+      undefined,
+    );
+  });
+});

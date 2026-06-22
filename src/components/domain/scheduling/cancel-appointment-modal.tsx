@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import { AlertTriangle } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -46,6 +47,8 @@ export function CancelAppointmentModal({ appointment, open, onClose }: Props) {
 
   if (!appointment) return null
 
+  const isPaid = appointment.paymentStatus === 'PAID'
+
   function handleConfirm() {
     if (!appointment) return
     updateStatus.mutate(
@@ -76,6 +79,16 @@ export function CancelAppointmentModal({ appointment, open, onClose }: Props) {
             </p>
             <p className="text-xs text-slate-500 mt-0.5">{appointment.service.name}</p>
           </div>
+
+          {isPaid && (
+            <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+              <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+              <p>
+                Este atendimento já foi pago. O cancelamento <strong>não estorna o valor automaticamente</strong> —
+                trate o estorno manualmente no financeiro.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label>Mensagem enviada ao cliente via WhatsApp</Label>
