@@ -188,6 +188,15 @@ export class SchedulingService {
       throw new AppointmentNotFoundError();
     }
 
+    const terminalStatuses: AppointmentStatus[] = [
+      AppointmentStatus.CANCELLED,
+      AppointmentStatus.COMPLETED,
+      AppointmentStatus.NO_SHOW,
+    ];
+    if (terminalStatuses.includes(current.status)) {
+      throw new AppointmentAlreadyCancelledError();
+    }
+
     await appointmentRepository.updateStatus(
       tenantId,
       appointmentId,
