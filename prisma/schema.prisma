@@ -272,6 +272,7 @@ model User {
 
   @@unique([tenantId, email])
   @@index([tenantId])
+  @@index([roleId])
 }
 
 model Subscription {
@@ -448,6 +449,11 @@ model Appointment {
   @@index([tenantId])
   @@index([tenantId, startsAt])
   @@index([tenantId, professionalId, startsAt])
+  @@index([tenantId, customerId])
+  @@index([tenantId, status])
+  @@index([serviceId])
+  @@index([createdByUserId])
+  @@index([discountTypeId])
   @@index([packageId])
   @@index([promotionId])
 }
@@ -476,6 +482,8 @@ model Transaction {
 
   @@index([tenantId])
   @@index([tenantId, paidAt])
+  @@index([tenantId, professionalId])
+  @@index([appointmentId])
 }
 
 model NotificationLog {
@@ -497,6 +505,8 @@ model NotificationLog {
 
   @@index([tenantId])
   @@index([tenantId, channel, status])
+  @@index([appointmentId])
+  @@index([customerId])
 }
 
 model WhatsAppAutoReplyLog {
@@ -619,6 +629,7 @@ model ServicePackageItem {
   serviceId String
 
   @@unique([packageId, serviceId])
+  @@index([serviceId])
 }
 
 model Promotion {
@@ -649,6 +660,10 @@ model PromotionItem {
   serviceId   String?
   package     ServicePackage? @relation(fields: [packageId], references: [id])
   packageId   String?
+
+  @@index([promotionId])
+  @@index([serviceId])
+  @@index([packageId])
 }
 
 model PlatformSettings {
@@ -726,6 +741,8 @@ model StockMovement {
   @@index([tenantId])
   @@index([tenantId, productId])
   @@index([tenantId, type, createdAt])
+  @@index([appointmentId])
+  @@index([createdByUserId])
 }
 
 model AppointmentProduct {
@@ -742,6 +759,7 @@ model AppointmentProduct {
   @@unique([appointmentId, productId])
   @@index([tenantId])
   @@index([appointmentId])
+  @@index([productId])
 }
 
 model ServiceProduct {
@@ -757,6 +775,7 @@ model ServiceProduct {
 
   @@unique([serviceId, productId])
   @@index([tenantId])
+  @@index([productId])
 }
 
 model SchedulingPolicy {
@@ -886,6 +905,7 @@ model CatalogService {
   updatedAt         DateTime                @updatedAt
 
   @@index([active])
+  @@index([categoryId])
 }
 
 model CatalogProduct {
@@ -905,4 +925,5 @@ model CatalogProduct {
   updatedAt      DateTime                @updatedAt
 
   @@index([active])
+  @@index([categoryId])
 }
