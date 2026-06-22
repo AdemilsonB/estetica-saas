@@ -87,7 +87,7 @@ export class IamRepository {
   async findAllUsers(tenantId: string) {
     const users = await prisma.user.findMany({
       where: { tenantId },
-      orderBy: { createdAt: "asc" },
+      orderBy: { name: "asc" },
       select: {
         id: true,
         name: true,
