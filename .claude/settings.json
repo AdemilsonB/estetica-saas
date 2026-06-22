@@ -18,7 +18,6 @@
       "Bash(npx prisma studio:*)"
     ],
     "deny": [
-      "Bash(git push:*)",
       "Bash(git push --force:*)",
       "Bash(git reset --hard:*)",
       "Bash(rm -rf:*)",
