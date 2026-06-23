@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
 import { Flame, Filter, Timer } from 'lucide-react'
 import { useVitrineInteraction } from './vitrine-interaction-context'
 import {
@@ -70,8 +69,8 @@ function Countdown({ endsAt }: { endsAt: string }) {
   }, [endsAt])
 
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700">
-      <Timer className="size-3" />
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-orange-600">
+      <Timer className="size-2.5" />
       {remaining}
     </span>
   )
@@ -87,16 +86,17 @@ function PromotionCard({
   primaryColor: string
 }) {
   const { openDetail } = useVitrineInteraction()
+  const first = promo.services[0]
+  const finalPrice = first ? calcFinalPrice(first.originalPrice, promo.discountType, promo.discountValue) : null
 
   function handleOpenDetail() {
-    const first = promo.services[0]
     openDetail({
       kind: 'promotion',
       id: promo.id,
       name: promo.name,
       imageUrl: promo.imageUrl,
       description: promo.description,
-      priceLabel: first ? `R$ ${calcFinalPrice(first.originalPrice, promo.discountType, promo.discountValue).toFixed(2)}` : badgeLabel(promo),
+      priceLabel: finalPrice != null ? `R$ ${finalPrice.toFixed(2)}` : badgeLabel(promo),
       originalPriceLabel: first ? `R$ ${first.originalPrice.toFixed(2)}` : null,
       badge: badgeLabel(promo),
       includedNames: promo.services.map((s) => s.name),
@@ -106,69 +106,34 @@ function PromotionCard({
   }
 
   return (
-    <div className="rounded-2xl bg-card shadow-sm overflow-hidden">
-      <div className="flex gap-3 p-3">
-        <button
-          onClick={handleOpenDetail}
-          className="size-[72px] shrink-0 overflow-hidden rounded-xl bg-muted flex items-center justify-center"
-          aria-label={`Ver detalhes de ${promo.name}`}
-        >
+    <div className="relative w-32 shrink-0 overflow-hidden rounded-2xl bg-card shadow-sm sm:w-36">
+      <button onClick={handleOpenDetail} className="flex w-full flex-col text-left" aria-label={`Ver detalhes de ${promo.name}`}>
+        <div className="flex h-24 w-full items-center justify-center overflow-hidden bg-muted">
           {promo.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={promo.imageUrl} alt={promo.name} className="h-full w-full object-cover" />
           ) : (
             <span className="text-2xl">🎉</span>
           )}
-        </button>
-
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <div className="flex items-start justify-between gap-1">
-            <button onClick={handleOpenDetail} className="text-left text-sm font-semibold leading-snug">
-              {promo.name}
-            </button>
-            <span
-              className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold text-white"
-              style={{ backgroundColor: primaryColor }}
-            >
-              {badgeLabel(promo)}
-            </span>
-          </div>
-
-          {promo.description && (
-            <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{promo.description}</p>
-          )}
-
-          {promo.services.length > 0 && (
-            <div className="mt-1 space-y-0.5">
-              {promo.services.slice(0, 3).map((s) => {
-                const final = calcFinalPrice(s.originalPrice, promo.discountType, promo.discountValue)
-                return (
-                  <p key={s.id} className="text-xs text-muted-foreground">
-                    {s.name}:{' '}
-                    <span className="line-through">R$ {s.originalPrice.toFixed(2)}</span>
-                    {' → '}
-                    <span className="font-semibold" style={{ color: primaryColor }}>
-                      R$ {final.toFixed(2)}
-                    </span>
-                  </p>
-                )
-              })}
-            </div>
-          )}
-
-          <div className="mt-1.5 flex items-center justify-between gap-2">
-            {promo.endsAt && <Countdown endsAt={promo.endsAt} />}
-            {!promo.endsAt && <span className="text-[10px] text-muted-foreground">Tempo limitado</span>}
-            <Link
-              href={bookingBaseUrl}
-              className="inline-flex h-8 items-center justify-center rounded-full px-4 text-xs font-semibold text-white"
-              style={{ backgroundColor: primaryColor }}
-            >
-              Aproveitar
-            </Link>
-          </div>
         </div>
-      </div>
+        <div className="flex flex-1 flex-col gap-1 p-2.5">
+          <p className="text-xs font-semibold leading-snug line-clamp-2">{promo.name}</p>
+          {promo.endsAt ? <Countdown endsAt={promo.endsAt} /> : (
+            <span className="text-[10px] text-muted-foreground">Tempo limitado</span>
+          )}
+        </div>
+      </button>
+
+      <span
+        className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[9px] font-bold text-white"
+        style={{ backgroundColor: primaryColor }}
+      >
+        {badgeLabel(promo)}
+      </span>
+
+      <p className="px-2.5 pb-2.5 text-xs font-bold" style={{ color: primaryColor }}>
+        {finalPrice != null ? `R$ ${finalPrice.toFixed(2)}` : badgeLabel(promo)}
+      </p>
     </div>
   )
 }
@@ -188,7 +153,7 @@ export function VitrinePromotionsSection({ promotions, bookingBaseUrl, primaryCo
 
   return (
     <section id="promocoes" className="mx-auto max-w-3xl px-4 pt-8">
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-lg font-bold">
           <Flame className="size-5 text-orange-500" />
           Promoções
@@ -215,14 +180,9 @@ export function VitrinePromotionsSection({ promotions, bookingBaseUrl, primaryCo
           Nenhuma promoção encontrada com esse filtro.
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="flex min-w-0 touch-pan-x gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {filtered.map((promo) => (
-            <PromotionCard
-              key={promo.id}
-              promo={promo}
-              bookingBaseUrl={bookingBaseUrl}
-              primaryColor={primaryColor}
-            />
+            <PromotionCard key={promo.id} promo={promo} bookingBaseUrl={bookingBaseUrl} primaryColor={primaryColor} />
           ))}
         </div>
       )}
