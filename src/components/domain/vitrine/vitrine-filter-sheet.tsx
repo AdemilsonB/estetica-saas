@@ -166,7 +166,7 @@ export function VitrineFilterSheet({
               onApply(draft)
               onOpenChange(false)
             }}
-            className="flex h-11 flex-1 items-center justify-center rounded-2xl text-sm font-semibold text-white"
+            className="flex h-11 flex-1 items-center justify-center rounded-full text-sm font-semibold text-white"
             style={{ backgroundColor: primaryColor }}
           >
             Aplicar{countActiveFilters(draft) > 0 ? ` (${countActiveFilters(draft)})` : ''}

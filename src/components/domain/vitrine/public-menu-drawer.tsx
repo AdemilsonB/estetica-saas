@@ -457,7 +457,7 @@ export function PublicMenuDrawer({
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold text-white"
                 style={{ backgroundColor: '#25D366' }}
               >
                 <WhatsAppIcon className="size-4" />

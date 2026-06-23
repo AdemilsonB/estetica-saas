@@ -19,7 +19,7 @@ export function VitrineProductsSection({ products, primaryColor }: Props) {
       <h2 className="mb-5 text-lg font-bold">Produtos</h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {products.map((p) => (
-          <div key={p.id} className="rounded-2xl border bg-card overflow-hidden">
+          <div key={p.id} className="rounded-2xl bg-card shadow-sm overflow-hidden">
             <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
               {p.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
