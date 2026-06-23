@@ -246,13 +246,16 @@ export function PublicMenuDrawer({
               className="mx-4 mt-3 flex items-center gap-2.5 rounded-2xl p-2.5"
               style={{ backgroundColor: `${primaryColor}14` }}
             >
-              <div
-                className="flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
-                style={{ backgroundColor: primaryColor }}
-              >
-                {clientName[0]?.toUpperCase()}
-              </div>
-              <p className="min-w-0 flex-1 truncate text-xs font-semibold">Olá, {clientName.split(' ')[0]}</p>
+              <a href={`/${slug}/cliente`} className="flex min-w-0 flex-1 items-center gap-2.5">
+                <div
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  {clientName[0]?.toUpperCase()}
+                </div>
+                <span className="min-w-0 flex-1 truncate text-xs font-semibold">Olá, {clientName.split(' ')[0]}</span>
+                <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+              </a>
               <button
                 onClick={handleLogout}
                 aria-label="Sair"
