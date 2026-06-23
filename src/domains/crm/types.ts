@@ -36,3 +36,10 @@ export const updateCustomerSchema = createCustomerSchema.partial().refine(
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
 
+export const toggleFavoriteSchema = z.object({
+  kind: z.enum(["service", "package"]),
+  itemId: z.string().min(1),
+});
+
+export type ToggleFavoriteInput = z.infer<typeof toggleFavoriteSchema>;
+
