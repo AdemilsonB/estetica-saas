@@ -57,18 +57,15 @@ function ServiceCard({
   service,
   bookingBaseUrl,
   primaryColor,
-  isFavorite,
-  onToggleFavorite,
 }: {
   service: PublicService
   bookingBaseUrl: string
   primaryColor: string
-  isFavorite: boolean
-  onToggleFavorite: () => void
 }) {
   const [descExpanded, setDescExpanded] = useState(false)
   const hasLongDesc = (service.description?.length ?? 0) > 100
-  const { openDetail } = useVitrineInteraction()
+  const { openDetail, isFavorited, toggleFavorite } = useVitrineInteraction()
+  const isFavorite = isFavorited('service', service.id)
 
   function handleOpenDetail() {
     openDetail({
@@ -115,7 +112,7 @@ function ServiceCard({
               </span>
             )}
             <button
-              onClick={onToggleFavorite}
+              onClick={() => toggleFavorite('service', service.id)}
               aria-label={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
               className="flex size-9 items-center justify-center rounded-full"
             >
@@ -170,16 +167,12 @@ function CategorySection({
   bookingBaseUrl,
   primaryColor,
   showHeader,
-  favorites,
-  onToggleFavorite,
 }: {
   name: string
   services: PublicService[]
   bookingBaseUrl: string
   primaryColor: string
   showHeader: boolean
-  favorites: Set<string>
-  onToggleFavorite: (id: string) => void
 }) {
   const [open, setOpen] = useState(false)
 
@@ -208,8 +201,6 @@ function CategorySection({
               service={s}
               bookingBaseUrl={bookingBaseUrl}
               primaryColor={primaryColor}
-              isFavorite={favorites.has(s.id)}
-              onToggleFavorite={() => onToggleFavorite(s.id)}
             />
           ))}
         </div>
@@ -221,16 +212,6 @@ function CategorySection({
 export function VitrineServicesList({ services, bookingBaseUrl, primaryColor, team = [] }: Props) {
   const [filter, setFilter] = useState<VitrineFilterState>(EMPTY_FILTER_STATE)
   const [filterOpen, setFilterOpen] = useState(false)
-  const [favorites, setFavorites] = useState<Set<string>>(new Set())
-
-  function toggleFavorite(id: string) {
-    setFavorites((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
 
   const categoryOptions = useMemo(() => {
     const names = new Set(services.map((s) => s.categoryName ?? 'Outros'))
@@ -305,8 +286,6 @@ export function VitrineServicesList({ services, bookingBaseUrl, primaryColor, te
               bookingBaseUrl={bookingBaseUrl}
               primaryColor={primaryColor}
               showHeader={hasMultipleCategories}
-              favorites={favorites}
-              onToggleFavorite={toggleFavorite}
             />
           ))}
         </div>

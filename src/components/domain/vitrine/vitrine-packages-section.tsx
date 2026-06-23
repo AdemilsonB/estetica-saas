@@ -39,16 +39,13 @@ function PackageCard({
   pkg,
   bookingBaseUrl,
   primaryColor,
-  isFavorite,
-  onToggleFavorite,
 }: {
   pkg: PublicPackage
   bookingBaseUrl: string
   primaryColor: string
-  isFavorite: boolean
-  onToggleFavorite: () => void
 }) {
-  const { openDetail } = useVitrineInteraction()
+  const { openDetail, isFavorited, toggleFavorite } = useVitrineInteraction()
+  const isFavorite = isFavorited('package', pkg.id)
 
   function handleOpenDetail() {
     openDetail({
@@ -87,7 +84,7 @@ function PackageCard({
               {pkg.name}
             </button>
             <button
-              onClick={onToggleFavorite}
+              onClick={() => toggleFavorite('package', pkg.id)}
               aria-label={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
               className="flex size-9 shrink-0 items-center justify-center rounded-full"
             >
@@ -139,16 +136,6 @@ function PackageCard({
 export function VitrinePackagesSection({ packages, bookingBaseUrl, primaryColor }: Props) {
   const [filter, setFilter] = useState<VitrineFilterState>(EMPTY_FILTER_STATE)
   const [filterOpen, setFilterOpen] = useState(false)
-  const [favorites, setFavorites] = useState<Set<string>>(new Set())
-
-  function toggleFavorite(id: string) {
-    setFavorites((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
 
   const filtered = useMemo(
     () => packages.filter((p) => matchesPriceRange(p.price, filter.priceRange)),
@@ -192,8 +179,6 @@ export function VitrinePackagesSection({ packages, bookingBaseUrl, primaryColor 
               pkg={pkg}
               bookingBaseUrl={bookingBaseUrl}
               primaryColor={primaryColor}
-              isFavorite={favorites.has(pkg.id)}
-              onToggleFavorite={() => toggleFavorite(pkg.id)}
             />
           ))}
         </div>

@@ -19,6 +19,8 @@ export function makeCustomer(overrides: Partial<Customer> = {}): Customer {
     isBlocked: false,
     blockedReason: null,
     blockedAt: null,
+    favoriteServiceIds: [],
+    favoritePackageIds: [],
     deletedAt: null,
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),

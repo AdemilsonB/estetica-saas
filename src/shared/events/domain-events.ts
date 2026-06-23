@@ -65,6 +65,16 @@ export type DomainEvent =
       payload: { tenantId: string; customer: Customer };
     }
   | {
+      type: "crm.customer.favorite_toggled";
+      payload: {
+        tenantId: string;
+        customerId: string;
+        kind: "service" | "package";
+        itemId: string;
+        favorited: boolean;
+      };
+    }
+  | {
       type: "scheduling.appointment.created";
       payload: AppointmentEventPayload;
     }

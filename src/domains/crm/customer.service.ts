@@ -103,6 +103,39 @@ export class CustomerService {
     });
     return restored;
   }
+
+  async getFavorites(tenantId: string, customerId: string) {
+    const customer = await customerRepository.findById(tenantId, customerId);
+    if (!customer) throw new CustomerNotFoundError();
+    return {
+      favoriteServiceIds: customer.favoriteServiceIds,
+      favoritePackageIds: customer.favoritePackageIds,
+    };
+  }
+
+  async toggleFavorite(
+    tenantId: string,
+    customerId: string,
+    kind: "service" | "package",
+    itemId: string,
+  ): Promise<{ favorited: boolean }> {
+    const customer = await customerRepository.findById(tenantId, customerId);
+    if (!customer) throw new CustomerNotFoundError();
+
+    const field = kind === "service" ? "favoriteServiceIds" : "favoritePackageIds";
+    const current = customer[field];
+    const alreadyFavorited = current.includes(itemId);
+    const next = alreadyFavorited ? current.filter((id) => id !== itemId) : [...current, itemId];
+
+    await customerRepository.update(tenantId, customerId, { [field]: next });
+
+    eventBus.publish({
+      type: "crm.customer.favorite_toggled",
+      payload: { tenantId, customerId, kind, itemId, favorited: !alreadyFavorited },
+    });
+
+    return { favorited: !alreadyFavorited };
+  }
 }
 
 export const customerService = new CustomerService();
