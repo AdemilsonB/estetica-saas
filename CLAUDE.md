@@ -182,7 +182,7 @@ Nunca entregar componente de UI sem passar pelo checklist do `agent-mobile`.
 
 ---
 
-## Status dos domínios (2026-06-20)
+## Status dos domínios (2026-06-23)
 
 | Domínio | Backend | Frontend | Observação |
 |---------|---------|----------|------------|
@@ -199,7 +199,7 @@ Nunca entregar componente de UI sem passar pelo checklist do `agent-mobile`.
 | Branding | ✅ | ✅ | 6 tokens warm, logo |
 | Billing (Stripe) | ✅ | ✅ | FeatureGuard, startTrial, Checkout/Portal/Webhook, planos dinâmicos do DB |
 | Auth/Onboarding | ✅ | ✅ | Fluxo completo com plano pré-selecionado, signup enriquecido |
-| Vitrine pública | ✅ | ✅ | SSR com revalidate 5min, banner, bio, equipe, tabs serviços/pacotes/promoções |
+| Vitrine pública | ✅ | ✅ | SSR com revalidate 5min; modal de detalhe (serviço/pacote/promoção), perfil do profissional, filtro por categoria/profissional/preço, próximo horário livre, repetir último agendamento, favoritar serviços/pacotes (persistido), selo "Verificado" para negócio novo |
 | Portal do cliente | ✅ | ✅ | Login por CPF+nascimento, próximo agendamento, histórico, edição de perfil |
 | PWA | ✅ | ✅ | Manifest + SW restrito a assets estáticos + ícones |
 | Automation | stub | — | Fase 2 |
