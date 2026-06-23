@@ -4,11 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { MessageCircle, LogOut, CalendarDays } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
 
 type AppointmentRow = {
   id: string
@@ -37,15 +37,12 @@ type Props = {
   primaryColor: string
 }
 
-const STATUS_LABELS: Record<
-  string,
-  { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
-> = {
-  SCHEDULED: { label: 'Agendado', variant: 'default' },
-  CONFIRMED: { label: 'Confirmado', variant: 'default' },
-  COMPLETED: { label: 'Concluído', variant: 'secondary' },
-  CANCELLED: { label: 'Cancelado', variant: 'destructive' },
-  NO_SHOW: { label: 'Não compareceu', variant: 'outline' },
+const STATUS_LABELS: Record<string, { label: string; tone: 'primary' | 'red' }> = {
+  SCHEDULED: { label: 'Agendado', tone: 'primary' },
+  CONFIRMED: { label: 'Confirmado', tone: 'primary' },
+  COMPLETED: { label: 'Concluído', tone: 'primary' },
+  CANCELLED: { label: 'Cancelado', tone: 'red' },
+  NO_SHOW: { label: 'Não compareceu', tone: 'red' },
 }
 
 const PAGE_SIZE = 10
@@ -96,148 +93,186 @@ export function CustomerHistoryClient({
   const firstUpcoming = upcoming[0]
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-24 pt-6 space-y-6">
-      {/* Saudação */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Olá, {customer.name} 👋</h1>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <LogOut className="size-4" />
-          Sair
-        </button>
+    <div className="pb-24">
+      {/* Header com identidade do negócio */}
+      <div
+        className="px-4 pt-6 pb-8 text-white"
+        style={{ backgroundImage: `linear-gradient(135deg, ${primaryColor}, #A855F7)` }}
+      >
+        <div className="mx-auto flex max-w-lg items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white/40 bg-white/20 text-base font-bold">
+              {customer.name[0]?.toUpperCase()}
+            </div>
+            <h1 className="text-base font-bold leading-tight">Olá, {customer.name} 👋</h1>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="-m-2 flex items-center gap-1.5 p-2 text-xs font-medium text-white/80 hover:text-white"
+          >
+            <LogOut className="size-4" />
+            Sair
+          </button>
+        </div>
       </div>
 
-      <Link
-        href={`/agendar/${slug}`}
-        className="flex h-12 w-full items-center justify-center rounded-2xl text-sm font-semibold text-white"
-        style={{ backgroundColor: primaryColor }}
-      >
-        Novo agendamento
-      </Link>
+      <div className="-mt-5 mx-auto max-w-lg space-y-6 px-4">
+        <Link
+          href={`/agendar/${slug}`}
+          className="flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold text-white shadow-lg"
+          style={{ backgroundColor: primaryColor }}
+        >
+          Novo agendamento
+        </Link>
 
-      {/* Próximo agendamento */}
-      {firstUpcoming && (
-        <div className="rounded-2xl border bg-card p-4 space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Próximo agendamento
-          </p>
-          <p className="font-medium">{firstUpcoming.serviceName}</p>
-          <p className="text-sm text-muted-foreground">
-            {new Date(firstUpcoming.startsAt).toLocaleString('pt-BR', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </p>
-          <p className="text-sm text-muted-foreground">{firstUpcoming.professionalName}</p>
-          {whatsappUrl && (
-            <a
-              href={`${whatsappUrl}?text=Olá! Gostaria de falar sobre meu agendamento.`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-green-600 hover:underline"
-            >
-              <MessageCircle className="size-4" />
-              Falar pelo WhatsApp
-            </a>
-          )}
-        </div>
-      )}
-
-      {/* Histórico */}
-      {history.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Histórico
-          </p>
-          {visibleHistory.map((a) => {
-            const s = STATUS_LABELS[a.status] ?? { label: a.status, variant: 'outline' as const }
-            return (
-              <div key={a.id} className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3">
-                <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{a.serviceName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(a.startsAt).toLocaleDateString('pt-BR')} · {a.professionalName}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  <Badge variant={s.variant} className="text-xs">
-                    {s.label}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">R$ {a.price.toFixed(2)}</span>
-                </div>
+        {/* Próximo agendamento */}
+        {firstUpcoming && (
+          <div className="rounded-2xl bg-card p-4 shadow-sm space-y-2">
+            <div className="flex items-center gap-2">
+              <div
+                className="flex size-7 items-center justify-center rounded-full"
+                style={{ backgroundColor: `${primaryColor}1A` }}
+              >
+                <CalendarDays className="size-3.5" style={{ color: primaryColor }} />
               </div>
-            )
-          })}
-          {totalPages > 1 && (
-            <div className="flex justify-center gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 0}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Anterior
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages - 1}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Próxima
-              </Button>
+              <p className="text-xs font-bold uppercase tracking-wide" style={{ color: primaryColor }}>
+                Próximo agendamento
+              </p>
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Meus dados */}
-      <div className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Meus dados
-        </p>
-        <div className="rounded-xl border bg-card px-4 py-3 space-y-1">
-          <p className="text-sm">
-            <span className="text-muted-foreground">Nome:</span> {customer.name}
-          </p>
-          <p className="text-sm">
-            <span className="text-muted-foreground">CPF:</span> {customer.cpf}
-          </p>
-          {customer.birthDate && (
-            <p className="text-sm">
-              <span className="text-muted-foreground">Nascimento:</span>{' '}
-              {new Date(customer.birthDate).toLocaleDateString('pt-BR')}
+            <p className="font-medium">{firstUpcoming.serviceName}</p>
+            <p className="text-sm text-muted-foreground">
+              {new Date(firstUpcoming.startsAt).toLocaleString('pt-BR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
             </p>
-          )}
+            <p className="text-sm text-muted-foreground">{firstUpcoming.professionalName}</p>
+            {whatsappUrl && (
+              <a
+                href={`${whatsappUrl}?text=Olá! Gostaria de falar sobre meu agendamento.`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-green-600 hover:underline"
+              >
+                <MessageCircle className="size-4" />
+                Falar pelo WhatsApp
+              </a>
+            )}
+          </div>
+        )}
+
+        {/* Histórico */}
+        {history.length > 0 && (
+          <div className="space-y-2">
+            <p className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: primaryColor }}>
+              Histórico
+            </p>
+            {visibleHistory.map((a) => {
+              const s = STATUS_LABELS[a.status] ?? { label: a.status, tone: 'primary' as const }
+              const isRed = s.tone === 'red'
+              return (
+                <div key={a.id} className="flex items-center gap-3 rounded-xl bg-card px-4 py-3 shadow-sm">
+                  <div
+                    className={cn(
+                      'flex size-8 shrink-0 items-center justify-center rounded-full',
+                      isRed && 'bg-red-50',
+                    )}
+                    style={isRed ? undefined : { backgroundColor: `${primaryColor}1A` }}
+                  >
+                    <CalendarDays
+                      className={cn('size-4', isRed && 'text-red-500')}
+                      style={isRed ? undefined : { color: primaryColor }}
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{a.serviceName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(a.startsAt).toLocaleDateString('pt-BR')} · {a.professionalName}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <span
+                      className={cn(
+                        'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                        isRed && 'bg-red-50 text-red-500',
+                      )}
+                      style={isRed ? undefined : { backgroundColor: `${primaryColor}1A`, color: primaryColor }}
+                    >
+                      {s.label}
+                    </span>
+                    <span className="text-xs text-muted-foreground">R$ {a.price.toFixed(2)}</span>
+                  </div>
+                </div>
+              )
+            })}
+            {totalPages > 1 && (
+              <div className="flex justify-center gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Próxima
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Meus dados */}
+        <div className="space-y-3">
+          <p className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: primaryColor }}>
+            Meus dados
+          </p>
+          <div className="rounded-2xl bg-card px-4 py-3 shadow-sm space-y-1">
+            <p className="text-sm">
+              <span className="text-muted-foreground">Nome:</span> {customer.name}
+            </p>
+            <p className="text-sm">
+              <span className="text-muted-foreground">CPF:</span> {customer.cpf}
+            </p>
+            {customer.birthDate && (
+              <p className="text-sm">
+                <span className="text-muted-foreground">Nascimento:</span>{' '}
+                {new Date(customer.birthDate).toLocaleDateString('pt-BR')}
+              </p>
+            )}
+          </div>
+          <form onSubmit={handleSave} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-phone">Telefone</Label>
+              <Input
+                id="edit-phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-email">E-mail</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <Button type="submit" variant="outline" size="sm" disabled={saving}>
+              {saving ? 'Salvando...' : 'Atualizar dados'}
+            </Button>
+          </form>
         </div>
-        <form onSubmit={handleSave} className="space-y-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="edit-phone">Telefone</Label>
-            <Input
-              id="edit-phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="edit-email">E-mail</Label>
-            <Input
-              id="edit-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <Button type="submit" variant="outline" size="sm" disabled={saving}>
-            {saving ? 'Salvando...' : 'Atualizar dados'}
-          </Button>
-        </form>
       </div>
     </div>
   )
