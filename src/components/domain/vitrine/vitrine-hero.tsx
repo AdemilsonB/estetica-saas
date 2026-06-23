@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { MapPin, Clock, MessageCircle, Users, AtSign, Menu } from 'lucide-react'
+import { MapPin, Clock, Users, Menu } from 'lucide-react'
+import { InstagramIcon, WhatsAppIcon, VerifiedIcon } from './vitrine-icons'
+import { VitrineRebookBand } from './vitrine-rebook-band'
 
 const SEGMENT_LABELS: Record<string, string> = {
   HAIR_SALON: 'Salão de Beleza',
@@ -11,16 +13,23 @@ const SEGMENT_LABELS: Record<string, string> = {
   AESTHETICS: 'Estética',
 }
 
+const NEW_BUSINESS_THRESHOLD_DAYS = 90
+
+function isNewBusiness(createdAt: string): boolean {
+  const days = (Date.now() - new Date(createdAt).getTime()) / 86_400_000
+  return days < NEW_BUSINESS_THRESHOLD_DAYS
+}
+
 function businessAge(createdAt: string): string {
   const ms = Date.now() - new Date(createdAt).getTime()
   const years = Math.floor(ms / (365.25 * 24 * 60 * 60 * 1000))
   const months = Math.floor(ms / (30.44 * 24 * 60 * 60 * 1000))
   if (years >= 1) return `${years} ${years === 1 ? 'ano' : 'anos'} no mercado`
-  if (months >= 1) return `${months} ${months === 1 ? 'mês' : 'meses'} no mercado`
-  return 'Novo no mercado'
+  return `${months} ${months === 1 ? 'mês' : 'meses'} no mercado`
 }
 
 type Props = {
+  slug: string
   name: string
   bio?: string | null
   coverImageUrl?: string | null
@@ -43,6 +52,7 @@ type Props = {
 }
 
 export function VitrineHero({
+  slug,
   name,
   bio,
   coverImageUrl,
@@ -139,7 +149,7 @@ export function VitrineHero({
                   aria-label="Instagram"
                   className="flex size-9 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm transition-colors hover:bg-white/25"
                 >
-                  <AtSign className="size-4 text-white" />
+                  <InstagramIcon className="size-4 text-white" />
                 </a>
               )}
               {whatsappUrl && (
@@ -150,7 +160,7 @@ export function VitrineHero({
                   aria-label="WhatsApp"
                   className="flex size-9 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm transition-colors hover:bg-white/25"
                 >
-                  <MessageCircle className="size-4 text-white" />
+                  <WhatsAppIcon className="size-4 text-white" />
                 </a>
               )}
             </div>
@@ -202,7 +212,7 @@ export function VitrineHero({
                 aria-label="Instagram"
                 className="flex size-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
               >
-                <AtSign className="size-4 text-muted-foreground" />
+                <InstagramIcon className="size-4 text-muted-foreground" />
               </a>
             )}
             {whatsappUrl && (
@@ -213,7 +223,7 @@ export function VitrineHero({
                 aria-label="WhatsApp"
                 className="flex size-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
               >
-                <MessageCircle className="size-4 text-green-500" />
+                <WhatsAppIcon className="size-4 text-green-500" />
               </a>
             )}
           </div>
@@ -239,10 +249,20 @@ export function VitrineHero({
         )}
 
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Clock className="size-3.5 shrink-0" />
-            {businessAge(createdAt)}
-          </span>
+          {isNewBusiness(createdAt) ? (
+            <span
+              className="flex items-center gap-1 font-medium"
+              style={{ color: primaryColor }}
+            >
+              <VerifiedIcon className="size-3.5 shrink-0" />
+              Verificado pelo Agendê
+            </span>
+          ) : (
+            <span className="flex items-center gap-1">
+              <Clock className="size-3.5 shrink-0" />
+              {businessAge(createdAt)}
+            </span>
+          )}
           {address && (
             <span className="flex items-center gap-1">
               <MapPin className="size-3.5 shrink-0" />
@@ -256,6 +276,8 @@ export function VitrineHero({
             </span>
           )}
         </div>
+
+        <VitrineRebookBand slug={slug} bookingUrl={bookingUrl} primaryColor={primaryColor} />
 
         {bio && (
           <div className="mt-4">
@@ -293,7 +315,7 @@ export function VitrineHero({
               rel="noopener noreferrer"
               className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border text-sm font-medium"
             >
-              <MessageCircle className="size-4 text-green-500" />
+              <WhatsAppIcon className="size-4 text-green-500" />
               WhatsApp
             </a>
           )}

@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MessageCircle, History, ChevronDown, ChevronRight } from 'lucide-react'
+import { History, ChevronDown, ChevronRight, LogOut } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { ClientHistoryModal } from './client-history-modal'
+import { WhatsAppIcon } from './vitrine-icons'
 
 type PublicService = {
   id: string
@@ -155,12 +156,26 @@ export function PublicMenuDrawer({
 }: Props) {
   const [open, setOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [clientName, setClientName] = useState<string | null>(null)
 
   useEffect(() => {
     const handler = () => setOpen(true)
     window.addEventListener('open-public-menu', handler)
     return () => window.removeEventListener('open-public-menu', handler)
   }, [])
+
+  useEffect(() => {
+    fetch(`/api/public/${encodeURIComponent(slug)}/me`, { credentials: 'include' })
+      .then((res) => (res.ok ? (res.json() as Promise<{ name: string }>) : null))
+      .then((data) => setClientName(data?.name ?? null))
+      .catch(() => setClientName(null))
+  }, [slug])
+
+  async function handleLogout() {
+    await fetch(`/api/public/${encodeURIComponent(slug)}/auth/logout`, { method: 'POST' })
+    setClientName(null)
+    window.location.reload()
+  }
 
   const whatsappUrl =
     whatsappEnabled && phone
@@ -209,6 +224,39 @@ export function PublicMenuDrawer({
             )}
             <SheetTitle className="text-sm font-semibold leading-tight">{tenantName}</SheetTitle>
           </SheetHeader>
+
+          {/* Identidade do cliente logado */}
+          {clientName ? (
+            <div
+              className="mx-4 mt-3 flex items-center gap-2.5 rounded-2xl p-2.5"
+              style={{ backgroundColor: `${primaryColor}14` }}
+            >
+              <div
+                className="flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {clientName[0]?.toUpperCase()}
+              </div>
+              <p className="min-w-0 flex-1 truncate text-xs font-semibold">Olá, {clientName.split(' ')[0]}</p>
+              <button
+                onClick={handleLogout}
+                aria-label="Sair"
+                className="flex shrink-0 items-center gap-1 text-[11px] font-semibold"
+                style={{ color: primaryColor }}
+              >
+                <LogOut className="size-3" />
+                Sair
+              </button>
+            </div>
+          ) : (
+            <a
+              href={`/${slug}/entrar`}
+              className="mx-4 mt-3 flex items-center justify-center rounded-2xl p-2.5 text-xs font-semibold"
+              style={{ backgroundColor: `${primaryColor}14`, color: primaryColor }}
+            >
+              Entrar para ver histórico e favoritos
+            </a>
+          )}
 
           {/* Conteúdo */}
           <div className="flex-1 overflow-y-auto">
@@ -363,7 +411,7 @@ export function PublicMenuDrawer({
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white"
                 style={{ backgroundColor: '#25D366' }}
               >
-                <MessageCircle className="size-4" />
+                <WhatsAppIcon className="size-4" />
                 Falar no WhatsApp
               </a>
             </div>
