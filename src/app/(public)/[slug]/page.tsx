@@ -6,6 +6,10 @@ import { VitrinePromotionsSection } from '@/components/domain/vitrine/vitrine-pr
 import { VitrineProductsSection } from '@/components/domain/vitrine/vitrine-products-section'
 import { PublicMenuDrawer } from '@/components/domain/vitrine/public-menu-drawer'
 import { VitrineTeam } from '@/components/domain/vitrine/vitrine-team'
+import { WhatsAppIcon } from '@/components/domain/vitrine/vitrine-icons'
+import { VitrineStatsBar } from '@/components/domain/vitrine/vitrine-stats-bar'
+import { VitrineLocationBlock } from '@/components/domain/vitrine/vitrine-location-block'
+import { VitrineInteractionProvider } from '@/components/domain/vitrine/vitrine-interaction-context'
 
 type TenantData = {
   name: string
@@ -109,6 +113,14 @@ export default async function VitrinePage({
   const bookingUrl = `/agendar/${slug}`
   const isOpen = isOpenNow(tenant.businessHours, tenant.timezone ?? 'America/Sao_Paulo')
 
+  const bookableServices = tenant.services.filter((s) => s.priceType !== 'ON_CONSULTATION')
+  const servicePrices = bookableServices.map((s) => (s.priceType === 'RANGE' ? s.priceMin ?? s.price : s.price))
+  const minPrice = servicePrices.length > 0 ? Math.min(...servicePrices) : null
+  const avgDuration =
+    tenant.services.length > 0
+      ? tenant.services.reduce((sum, s) => sum + s.duration, 0) / tenant.services.length
+      : null
+
   return (
     <>
       {/* Drawer — position: fixed, renderizado uma vez, ouve evento global */}
@@ -129,6 +141,7 @@ export default async function VitrinePage({
 
       {/* Hero com identidade do negócio */}
       <VitrineHero
+        slug={slug}
         name={tenant.name}
         bio={tenant.bio}
         coverImageUrl={tenant.coverImageUrl}
@@ -150,34 +163,52 @@ export default async function VitrinePage({
         hasProducts={products.length > 0}
       />
 
+      {/* Stats bar + localização */}
+      <VitrineStatsBar
+        servicesCount={tenant.services.length}
+        minPrice={minPrice}
+        avgDurationMinutes={avgDuration}
+        teamCount={team.length}
+      />
+      {tenant.address && <VitrineLocationBlock address={tenant.address} primaryColor={primary} />}
+
       {/* Separador */}
       <div className="mx-auto mt-6 max-w-3xl px-4">
         <hr className="border-border" />
       </div>
 
-      {/* Serviços */}
-      <VitrineServicesList
+      <VitrineInteractionProvider
+        slug={slug}
+        primaryColor={primary}
+        bookingBaseUrl={bookingUrl}
+        team={team}
         services={tenant.services}
-        bookingBaseUrl={bookingUrl}
-        primaryColor={primary}
-      />
+      >
+        {/* Serviços */}
+        <VitrineServicesList
+          services={tenant.services}
+          bookingBaseUrl={bookingUrl}
+          primaryColor={primary}
+          team={team}
+        />
 
-      {/* Pacotes */}
-      <VitrinePackagesSection
-        packages={tenant.packages}
-        bookingBaseUrl={bookingUrl}
-        primaryColor={primary}
-      />
+        {/* Pacotes */}
+        <VitrinePackagesSection
+          packages={tenant.packages}
+          bookingBaseUrl={bookingUrl}
+          primaryColor={primary}
+        />
 
-      {/* Promoções */}
-      <VitrinePromotionsSection
-        promotions={tenant.promotions}
-        bookingBaseUrl={bookingUrl}
-        primaryColor={primary}
-      />
+        {/* Promoções */}
+        <VitrinePromotionsSection
+          promotions={tenant.promotions}
+          bookingBaseUrl={bookingUrl}
+          primaryColor={primary}
+        />
 
-      {/* Equipe */}
-      <VitrineTeam members={team} id="equipe" />
+        {/* Equipe */}
+        <VitrineTeam members={team} id="equipe" />
+      </VitrineInteractionProvider>
 
       {/* Produtos */}
       <VitrineProductsSection products={products} primaryColor={primary} />
@@ -185,16 +216,28 @@ export default async function VitrinePage({
       {/* Espaço para o CTA fixo mobile */}
       {tenant.allowPublicBooking && <div className="h-24 sm:hidden" />}
 
-      {/* CTA fixo mobile */}
+      {/* CTA fixo mobile — Agendar + WhatsApp consolidados num único bloco */}
       {tenant.allowPublicBooking && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex gap-2 p-4 sm:hidden">
           <a
             href={bookingUrl}
-            className="flex h-14 w-full items-center justify-center rounded-2xl text-base font-semibold text-white shadow-lg"
+            className="flex h-14 flex-1 items-center justify-center rounded-2xl text-base font-semibold text-white shadow-lg"
             style={{ backgroundColor: primary }}
           >
             Agendar agora
           </a>
+          {tenant.whatsappEnabled && tenant.phone && (
+            <a
+              href={`https://wa.me/55${tenant.phone.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="WhatsApp"
+              className="flex size-14 shrink-0 items-center justify-center rounded-2xl shadow-lg"
+              style={{ backgroundColor: '#25D366' }}
+            >
+              <WhatsAppIcon className="size-6 text-white" />
+            </a>
+          )}
         </div>
       )}
     </>
