@@ -17,6 +17,7 @@ type FavoriteKind = 'service' | 'package'
 
 type ContextValue = {
   openDetail: (data: VitrineDetailData) => void
+  openProfessional: (professionalId: string) => void
   isFavorited: (kind: FavoriteKind, itemId: string) => boolean
   toggleFavorite: (kind: FavoriteKind, itemId: string) => void
 }
@@ -116,7 +117,9 @@ export function VitrineInteractionProvider({
   }, [professionalId, teamById, serviceNameById])
 
   return (
-    <VitrineInteractionContext.Provider value={{ openDetail: setDetail, isFavorited, toggleFavorite }}>
+    <VitrineInteractionContext.Provider
+      value={{ openDetail: setDetail, openProfessional: setProfessionalId, isFavorited, toggleFavorite }}
+    >
       {children}
       <VitrineDetailSheet
         data={detail}
