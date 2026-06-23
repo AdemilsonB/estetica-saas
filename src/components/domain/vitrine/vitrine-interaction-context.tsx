@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { VitrineDetailSheet, type VitrineDetailData } from './vitrine-detail-sheet'
 import { VitrineProfessionalSheet } from './vitrine-professional-sheet'
 
@@ -13,9 +13,12 @@ type TeamMember = {
   serviceIds?: string[]
 }
 type ServiceLite = { id: string; name: string }
+type FavoriteKind = 'service' | 'package'
 
 type ContextValue = {
   openDetail: (data: VitrineDetailData) => void
+  isFavorited: (kind: FavoriteKind, itemId: string) => boolean
+  toggleFavorite: (kind: FavoriteKind, itemId: string) => void
 }
 
 const VitrineInteractionContext = createContext<ContextValue | null>(null)
@@ -45,6 +48,50 @@ export function VitrineInteractionProvider({
 }: Props) {
   const [detail, setDetail] = useState<VitrineDetailData | null>(null)
   const [professionalId, setProfessionalId] = useState<string | null>(null)
+  const [favoriteServiceIds, setFavoriteServiceIds] = useState<Set<string>>(new Set())
+  const [favoritePackageIds, setFavoritePackageIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    fetch(`/api/public/${encodeURIComponent(slug)}/favorites`, { credentials: 'include' })
+      .then((res) =>
+        res.ok ? (res.json() as Promise<{ favoriteServiceIds: string[]; favoritePackageIds: string[] }>) : null,
+      )
+      .then((data) => {
+        if (!data) return
+        setFavoriteServiceIds(new Set(data.favoriteServiceIds))
+        setFavoritePackageIds(new Set(data.favoritePackageIds))
+      })
+      .catch(() => {})
+  }, [slug])
+
+  function isFavorited(kind: FavoriteKind, itemId: string): boolean {
+    return kind === 'service' ? favoriteServiceIds.has(itemId) : favoritePackageIds.has(itemId)
+  }
+
+  function toggleFavorite(kind: FavoriteKind, itemId: string) {
+    const set = kind === 'service' ? favoriteServiceIds : favoritePackageIds
+    const setter = kind === 'service' ? setFavoriteServiceIds : setFavoritePackageIds
+    const wasFavorited = set.has(itemId)
+
+    const optimistic = new Set(set)
+    if (wasFavorited) optimistic.delete(itemId)
+    else optimistic.add(itemId)
+    setter(optimistic)
+
+    fetch(`/api/public/${encodeURIComponent(slug)}/favorites`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind, itemId }),
+    }).then((res) => {
+      if (res.status === 401) {
+        setter(set)
+        window.location.href = `/${slug}/entrar`
+        return
+      }
+      if (!res.ok) setter(set)
+    }).catch(() => setter(set))
+  }
 
   const serviceNameById = useMemo(() => new Map(services.map((s) => [s.id, s.name])), [services])
   const teamById = useMemo(() => new Map(team.map((m) => [m.id, m])), [team])
@@ -69,7 +116,7 @@ export function VitrineInteractionProvider({
   }, [professionalId, teamById, serviceNameById])
 
   return (
-    <VitrineInteractionContext.Provider value={{ openDetail: setDetail }}>
+    <VitrineInteractionContext.Provider value={{ openDetail: setDetail, isFavorited, toggleFavorite }}>
       {children}
       <VitrineDetailSheet
         data={detail}

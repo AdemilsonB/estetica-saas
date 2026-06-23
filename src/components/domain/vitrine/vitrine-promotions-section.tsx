@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Flame, Heart, Filter, Timer } from 'lucide-react'
+import { Flame, Filter, Timer } from 'lucide-react'
 import { useVitrineInteraction } from './vitrine-interaction-context'
 import {
   VitrineFilterSheet,
@@ -81,14 +81,10 @@ function PromotionCard({
   promo,
   bookingBaseUrl,
   primaryColor,
-  isFavorite,
-  onToggleFavorite,
 }: {
   promo: PublicPromotion
   bookingBaseUrl: string
   primaryColor: string
-  isFavorite: boolean
-  onToggleFavorite: () => void
 }) {
   const { openDetail } = useVitrineInteraction()
 
@@ -130,24 +126,12 @@ function PromotionCard({
             <button onClick={handleOpenDetail} className="text-left text-sm font-semibold leading-snug">
               {promo.name}
             </button>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <span
-                className="rounded-full px-2 py-0.5 text-[11px] font-bold text-white"
-                style={{ backgroundColor: primaryColor }}
-              >
-                {badgeLabel(promo)}
-              </span>
-              <button
-                onClick={onToggleFavorite}
-                aria-label={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
-                className="flex size-9 items-center justify-center rounded-full"
-              >
-                <Heart
-                  className="size-4"
-                  style={{ fill: isFavorite ? '#e0436b' : 'none', stroke: isFavorite ? '#e0436b' : '#b94a6c' }}
-                />
-              </button>
-            </div>
+            <span
+              className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold text-white"
+              style={{ backgroundColor: primaryColor }}
+            >
+              {badgeLabel(promo)}
+            </span>
           </div>
 
           {promo.description && (
@@ -192,16 +176,6 @@ function PromotionCard({
 export function VitrinePromotionsSection({ promotions, bookingBaseUrl, primaryColor }: Props) {
   const [filter, setFilter] = useState<VitrineFilterState>(EMPTY_FILTER_STATE)
   const [filterOpen, setFilterOpen] = useState(false)
-  const [favorites, setFavorites] = useState<Set<string>>(new Set())
-
-  function toggleFavorite(id: string) {
-    setFavorites((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
 
   const filtered = useMemo(
     () => promotions.filter((p) => matchesPriceRange(minFinalPrice(p), filter.priceRange)),
@@ -248,8 +222,6 @@ export function VitrinePromotionsSection({ promotions, bookingBaseUrl, primaryCo
               promo={promo}
               bookingBaseUrl={bookingBaseUrl}
               primaryColor={primaryColor}
-              isFavorite={favorites.has(promo.id)}
-              onToggleFavorite={() => toggleFavorite(promo.id)}
             />
           ))}
         </div>

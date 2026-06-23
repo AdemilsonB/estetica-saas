@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { History, ChevronDown, ChevronRight, LogOut } from 'lucide-react'
+import { History, ChevronDown, ChevronRight, LogOut, Heart } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { ClientHistoryModal } from './client-history-modal'
 import { WhatsAppIcon } from './vitrine-icons'
@@ -157,6 +157,8 @@ export function PublicMenuDrawer({
   const [open, setOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [clientName, setClientName] = useState<string | null>(null)
+  const [favoriteServiceIds, setFavoriteServiceIds] = useState<string[]>([])
+  const [favoritePackageIds, setFavoritePackageIds] = useState<string[]>([])
 
   useEffect(() => {
     const handler = () => setOpen(true)
@@ -169,7 +171,20 @@ export function PublicMenuDrawer({
       .then((res) => (res.ok ? (res.json() as Promise<{ name: string }>) : null))
       .then((data) => setClientName(data?.name ?? null))
       .catch(() => setClientName(null))
+
+    fetch(`/api/public/${encodeURIComponent(slug)}/favorites`, { credentials: 'include' })
+      .then((res) =>
+        res.ok ? (res.json() as Promise<{ favoriteServiceIds: string[]; favoritePackageIds: string[] }>) : null,
+      )
+      .then((data) => {
+        setFavoriteServiceIds(data?.favoriteServiceIds ?? [])
+        setFavoritePackageIds(data?.favoritePackageIds ?? [])
+      })
+      .catch(() => {})
   }, [slug])
+
+  const favoriteServices = services.filter((s) => favoriteServiceIds.includes(s.id))
+  const favoritePackages = packages.filter((p) => favoritePackageIds.includes(p.id))
 
   async function handleLogout() {
     await fetch(`/api/public/${encodeURIComponent(slug)}/auth/logout`, { method: 'POST' })
@@ -260,6 +275,40 @@ export function PublicMenuDrawer({
 
           {/* Conteúdo */}
           <div className="flex-1 overflow-y-auto">
+
+            {/* Meus Favoritos */}
+            {clientName && favoriteServices.length + favoritePackages.length > 0 && (
+              <DrawerSection title={`Meus Favoritos (${favoriteServices.length + favoritePackages.length})`} defaultOpen={false}>
+                <div className="px-4 space-y-1">
+                  {favoriteServices.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => navigate(`?serviceId=${s.id}`)}
+                      className="flex w-full items-center gap-2 rounded-lg py-2.5 text-left hover:bg-muted/50 px-2 -mx-2"
+                    >
+                      <Heart className="size-3.5 shrink-0" style={{ fill: '#e0436b', stroke: '#e0436b' }} />
+                      <p className="min-w-0 flex-1 truncate text-sm font-medium">{s.name}</p>
+                      <span className="shrink-0 text-xs font-semibold" style={{ color: primaryColor }}>
+                        {formatPrice(s)}
+                      </span>
+                    </button>
+                  ))}
+                  {favoritePackages.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => navigate(`?packageId=${p.id}`)}
+                      className="flex w-full items-center gap-2 rounded-lg py-2.5 text-left hover:bg-muted/50 px-2 -mx-2"
+                    >
+                      <Heart className="size-3.5 shrink-0" style={{ fill: '#e0436b', stroke: '#e0436b' }} />
+                      <p className="min-w-0 flex-1 truncate text-sm font-medium">{p.name}</p>
+                      <span className="shrink-0 text-xs font-semibold" style={{ color: primaryColor }}>
+                        R$ {p.price.toFixed(2)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </DrawerSection>
+            )}
 
             {/* Serviços — fechado por padrão, subcategorias também fechadas */}
             {services.length > 0 && (
