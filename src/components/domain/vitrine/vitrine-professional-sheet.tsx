@@ -89,7 +89,7 @@ export function VitrineProfessionalSheet({ professional, primaryColor, bookingBa
             <div className="sticky bottom-0 mt-4 border-t bg-popover p-4">
               <a
                 href={`${bookingBaseUrl}?professionalId=${professional.id}`}
-                className="flex h-12 w-full items-center justify-center rounded-2xl text-sm font-semibold text-white"
+                className="flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold text-white"
                 style={{ backgroundColor: primaryColor }}
               >
                 Agendar com {professional.name.split(' ')[0]}

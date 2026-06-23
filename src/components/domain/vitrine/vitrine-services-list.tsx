@@ -81,7 +81,7 @@ function ServiceCard({
   }
 
   return (
-    <div className="flex gap-3 rounded-2xl border bg-card p-3">
+    <div className="flex gap-3 rounded-2xl bg-card p-3 shadow-sm">
       <button
         onClick={handleOpenDetail}
         className="relative size-[72px] shrink-0 overflow-hidden rounded-xl bg-muted flex items-center justify-center"
@@ -151,7 +151,7 @@ function ServiceCard({
 
         <a
           href={`${bookingBaseUrl}?serviceId=${service.id}`}
-          className="mt-1.5 inline-flex h-8 w-full items-center justify-center rounded-xl text-xs font-semibold text-white"
+          className="mt-1.5 inline-flex h-8 w-full items-center justify-center rounded-full text-xs font-semibold text-white"
           style={{ backgroundColor: primaryColor }}
         >
           Agendar
@@ -177,7 +177,7 @@ function CategorySection({
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="rounded-2xl border overflow-hidden">
+    <div className="rounded-2xl shadow-sm overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted/40 transition-colors"
@@ -273,7 +273,7 @@ export function VitrineServicesList({ services, bookingBaseUrl, primaryColor, te
       </div>
 
       {filteredServices.length === 0 ? (
-        <p className="rounded-2xl border bg-card p-6 text-center text-sm text-muted-foreground">
+        <p className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground shadow-sm">
           Nenhum serviço encontrado com esse filtro.
         </p>
       ) : (

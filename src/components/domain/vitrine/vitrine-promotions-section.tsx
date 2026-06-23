@@ -106,7 +106,7 @@ function PromotionCard({
   }
 
   return (
-    <div className="rounded-2xl border bg-card overflow-hidden">
+    <div className="rounded-2xl bg-card shadow-sm overflow-hidden">
       <div className="flex gap-3 p-3">
         <button
           onClick={handleOpenDetail}
@@ -161,7 +161,7 @@ function PromotionCard({
             {!promo.endsAt && <span className="text-[10px] text-muted-foreground">Tempo limitado</span>}
             <Link
               href={bookingBaseUrl}
-              className="inline-flex h-8 items-center justify-center rounded-xl px-4 text-xs font-semibold text-white"
+              className="inline-flex h-8 items-center justify-center rounded-full px-4 text-xs font-semibold text-white"
               style={{ backgroundColor: primaryColor }}
             >
               Aproveitar
@@ -211,7 +211,7 @@ export function VitrinePromotionsSection({ promotions, bookingBaseUrl, primaryCo
       </div>
 
       {filtered.length === 0 ? (
-        <p className="rounded-2xl border bg-card p-6 text-center text-sm text-muted-foreground">
+        <p className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground shadow-sm">
           Nenhuma promoção encontrada com esse filtro.
         </p>
       ) : (

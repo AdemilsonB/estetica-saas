@@ -221,7 +221,7 @@ export default async function VitrinePage({
         <div className="fixed bottom-0 left-0 right-0 z-50 flex gap-2 p-4 sm:hidden">
           <a
             href={bookingUrl}
-            className="flex h-14 flex-1 items-center justify-center rounded-2xl text-base font-semibold text-white shadow-lg"
+            className="flex h-14 flex-1 items-center justify-center rounded-full text-base font-semibold text-white shadow-lg"
             style={{ backgroundColor: primary }}
           >
             Agendar agora
@@ -232,7 +232,7 @@ export default async function VitrinePage({
               target="_blank"
               rel="noopener noreferrer"
               aria-label="WhatsApp"
-              className="flex size-14 shrink-0 items-center justify-center rounded-2xl shadow-lg"
+              className="flex size-14 shrink-0 items-center justify-center rounded-full shadow-lg"
               style={{ backgroundColor: '#25D366' }}
             >
               <WhatsAppIcon className="size-6 text-white" />

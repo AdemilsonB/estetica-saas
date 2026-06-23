@@ -302,7 +302,7 @@ export function VitrineHero({
           {allowPublicBooking && (
             <Link
               href={bookingUrl}
-              className="flex h-12 flex-1 items-center justify-center rounded-2xl text-sm font-semibold text-white shadow-sm"
+              className="flex h-12 flex-1 items-center justify-center rounded-full text-sm font-semibold text-white shadow-sm"
               style={{ backgroundColor: primaryColor }}
             >
               Agendar agora
@@ -313,7 +313,7 @@ export function VitrineHero({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border text-sm font-medium"
+              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border text-sm font-medium"
             >
               <WhatsAppIcon className="size-4 text-green-500" />
               WhatsApp

@@ -24,7 +24,7 @@ export function VitrineTeam({ members, id }: { members: TeamMember[]; id?: strin
         {members.map((m) => (
           <div
             key={m.id}
-            className="flex min-w-[140px] shrink-0 flex-col items-center gap-2 rounded-2xl border bg-card p-4 text-center sm:min-w-0"
+            className="flex min-w-[140px] shrink-0 flex-col items-center gap-2 rounded-2xl bg-card p-4 text-center shadow-sm sm:min-w-0"
           >
             {m.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element

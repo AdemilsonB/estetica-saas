@@ -63,7 +63,7 @@ function PackageCard({
   }
 
   return (
-    <div className="rounded-2xl border bg-card overflow-hidden">
+    <div className="rounded-2xl bg-card shadow-sm overflow-hidden">
       <div className="flex gap-3 p-3">
         <button
           onClick={handleOpenDetail}
@@ -122,7 +122,7 @@ function PackageCard({
 
           <Link
             href={`${bookingBaseUrl}?packageId=${pkg.id}`}
-            className="mt-1.5 inline-flex h-8 w-full items-center justify-center rounded-xl text-xs font-semibold text-white"
+            className="mt-1.5 inline-flex h-8 w-full items-center justify-center rounded-full text-xs font-semibold text-white"
             style={{ backgroundColor: primaryColor }}
           >
             Agendar pacote
@@ -168,7 +168,7 @@ export function VitrinePackagesSection({ packages, bookingBaseUrl, primaryColor 
       </div>
 
       {filtered.length === 0 ? (
-        <p className="rounded-2xl border bg-card p-6 text-center text-sm text-muted-foreground">
+        <p className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground shadow-sm">
           Nenhum pacote encontrado com esse filtro.
         </p>
       ) : (
