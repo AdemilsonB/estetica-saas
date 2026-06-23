@@ -69,7 +69,7 @@ export function VitrineProfessionalSheet({ professional, primaryColor, bookingBa
               {professional.specialtyNames.length > 0 && (
                 <div className="mt-4">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                    Especialidades
+                    Serviços
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {professional.specialtyNames.map((n) => (

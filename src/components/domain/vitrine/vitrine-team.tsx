@@ -1,4 +1,7 @@
-// src/components/domain/vitrine/vitrine-team.tsx
+'use client'
+
+import { useVitrineInteraction } from './vitrine-interaction-context'
+
 type TeamMember = {
   id: string
   name: string
@@ -15,6 +18,8 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 export function VitrineTeam({ members, id }: { members: TeamMember[]; id?: string }) {
+  const { openProfessional } = useVitrineInteraction()
+
   if (members.length === 0) return null
 
   return (
@@ -22,8 +27,11 @@ export function VitrineTeam({ members, id }: { members: TeamMember[]; id?: strin
       <h2 className="mb-5 text-lg font-bold">Nossa Equipe</h2>
       <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-x-visible">
         {members.map((m) => (
-          <div
+          <button
             key={m.id}
+            type="button"
+            onClick={() => openProfessional(m.id)}
+            aria-label={`Ver perfil de ${m.name}`}
             className="flex min-w-[140px] shrink-0 flex-col items-center gap-2 rounded-2xl bg-card p-4 text-center shadow-sm sm:min-w-0"
           >
             {m.avatarUrl ? (
@@ -45,7 +53,7 @@ export function VitrineTeam({ members, id }: { members: TeamMember[]; id?: strin
             {m.bio && (
               <p className="line-clamp-2 text-xs text-muted-foreground">{m.bio}</p>
             )}
-          </div>
+          </button>
         ))}
       </div>
     </section>
