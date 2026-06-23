@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
-import { Clock, Filter, Heart } from 'lucide-react'
+import { Filter, Heart } from 'lucide-react'
+import { formatDuration } from '@/lib/format-duration'
 import { useVitrineInteraction } from './vitrine-interaction-context'
 import {
   VitrineFilterSheet,
@@ -26,13 +26,6 @@ type Props = {
   packages: PublicPackage[]
   bookingBaseUrl: string
   primaryColor: string
-}
-
-function formatDuration(min: number): string {
-  if (min < 60) return `${min}min`
-  const h = Math.floor(min / 60)
-  const m = min % 60
-  return m > 0 ? `${h}h${m}min` : `${h}h`
 }
 
 function PackageCard({
@@ -63,72 +56,36 @@ function PackageCard({
   }
 
   return (
-    <div className="rounded-2xl bg-card shadow-sm overflow-hidden">
-      <div className="flex gap-3 p-3">
-        <button
-          onClick={handleOpenDetail}
-          className="size-[72px] shrink-0 overflow-hidden rounded-xl bg-muted flex items-center justify-center"
-          aria-label={`Ver detalhes de ${pkg.name}`}
-        >
+    <div className="relative w-32 shrink-0 overflow-hidden rounded-2xl bg-card shadow-sm sm:w-36">
+      <button onClick={handleOpenDetail} className="flex w-full flex-col text-left" aria-label={`Ver detalhes de ${pkg.name}`}>
+        <div className="flex h-24 w-full items-center justify-center overflow-hidden bg-muted">
           {pkg.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={pkg.imageUrl} alt={pkg.name} className="h-full w-full object-cover" />
           ) : (
             <span className="text-2xl">📦</span>
           )}
-        </button>
-
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <div className="flex items-start justify-between gap-2">
-            <button onClick={handleOpenDetail} className="text-left text-sm font-semibold leading-snug">
-              {pkg.name}
-            </button>
-            <button
-              onClick={() => toggleFavorite('package', pkg.id)}
-              aria-label={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
-              className="flex size-9 shrink-0 items-center justify-center rounded-full"
-            >
-              <Heart
-                className="size-4"
-                style={{ fill: isFavorite ? '#e0436b' : 'none', stroke: isFavorite ? '#e0436b' : '#b94a6c' }}
-              />
-            </button>
-          </div>
-          <p className="text-xs">
-            <span className="font-medium" style={{ color: primaryColor }}>
-              R$ {pkg.price.toFixed(2)}
-            </span>
-            {pkg.duration > 0 && (
-              <span className="text-muted-foreground">
-                {' · '}
-                <Clock className="inline size-3" /> {formatDuration(pkg.duration)}
-              </span>
-            )}
-          </p>
-
-          {pkg.description && (
-            <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{pkg.description}</p>
-          )}
-
-          {pkg.services.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-1">
-              {pkg.services.map((s) => (
-                <span key={s.id} className="rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  {s.name}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <Link
-            href={`${bookingBaseUrl}?packageId=${pkg.id}`}
-            className="mt-1.5 inline-flex h-8 w-full items-center justify-center rounded-full text-xs font-semibold text-white"
-            style={{ backgroundColor: primaryColor }}
-          >
-            Agendar pacote
-          </Link>
         </div>
-      </div>
+        <div className="flex flex-1 flex-col gap-1 p-2.5">
+          <p className="text-xs font-semibold leading-snug line-clamp-2">{pkg.name}</p>
+          {pkg.duration > 0 && <p className="text-[11px] text-muted-foreground">{formatDuration(pkg.duration)}</p>}
+        </div>
+      </button>
+
+      <button
+        onClick={() => toggleFavorite('package', pkg.id)}
+        aria-label={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
+        className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-background/90"
+      >
+        <Heart
+          className="size-3.5"
+          style={{ fill: isFavorite ? '#e0436b' : 'none', stroke: isFavorite ? '#e0436b' : '#b94a6c' }}
+        />
+      </button>
+
+      <p className="px-2.5 pb-2.5 text-xs font-bold" style={{ color: primaryColor }}>
+        R$ {pkg.price.toFixed(2)}
+      </p>
     </div>
   )
 }
@@ -148,7 +105,7 @@ export function VitrinePackagesSection({ packages, bookingBaseUrl, primaryColor 
 
   return (
     <section id="pacotes" className="mx-auto max-w-3xl px-4 pt-8">
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold">Pacotes</h2>
         <button
           onClick={() => setFilterOpen(true)}
@@ -172,14 +129,9 @@ export function VitrinePackagesSection({ packages, bookingBaseUrl, primaryColor 
           Nenhum pacote encontrado com esse filtro.
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="flex min-w-0 touch-pan-x gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {filtered.map((pkg) => (
-            <PackageCard
-              key={pkg.id}
-              pkg={pkg}
-              bookingBaseUrl={bookingBaseUrl}
-              primaryColor={primaryColor}
-            />
+            <PackageCard key={pkg.id} pkg={pkg} bookingBaseUrl={bookingBaseUrl} primaryColor={primaryColor} />
           ))}
         </div>
       )}
