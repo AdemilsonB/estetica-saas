@@ -1,39 +1,6 @@
 import { prisma } from '@/shared/database/prisma'
 import { PricingToggle } from '@/components/domain/billing/pricing-toggle'
 
-const PLAN_FEATURES: Record<string, string[]> = {
-  FREE: [
-    'Até 2 profissionais',
-    'Até 50 agendamentos/mês',
-    'Agenda e CRM básico',
-    'Relatórios básicos',
-  ],
-  STARTER: [
-    'Até 5 profissionais',
-    'Até 300 agendamentos/mês',
-    'WhatsApp automático',
-    'Página de agendamento pública',
-    'Relatórios completos + CSV',
-    'Estoque de produtos',
-  ],
-  PRO: [
-    'Até 20 profissionais',
-    'Até 2.000 agendamentos/mês',
-    'WhatsApp premium (chatbot, aniversário)',
-    'Tudo do Starter',
-    'Relatórios avançados',
-    'Múltiplas unidades (3)',
-  ],
-  ENTERPRISE: [
-    'Profissionais ilimitados',
-    'Agendamentos ilimitados',
-    'WhatsApp ilimitado',
-    'Multi-unidade ilimitado',
-    'Suporte prioritário',
-    'Tudo do Pro',
-  ],
-}
-
 async function getPlans() {
   return prisma.plan.findMany({
     where: { isActive: true },
@@ -49,7 +16,9 @@ export default async function PlansPage() {
     displayName: p.displayName,
     price: Number(p.price),
     description: p.description,
-    features: PLAN_FEATURES[p.name] ?? [],
+    // Benefícios vêm do que o admin configurou em Plan.description (1 por linha) —
+    // mesma fonte usada no onboarding, nunca uma lista hardcoded no frontend.
+    features: p.description ? p.description.split('\n').map(l => l.trim()).filter(Boolean) : [],
     isPopular: p.name === 'PRO',
   }))
 

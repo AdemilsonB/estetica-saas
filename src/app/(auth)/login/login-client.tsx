@@ -224,6 +224,12 @@ function LeftPanel({
 
 // ─── Right panel ───────────────────────────────────────────────────────────
 
+const MOBILE_BENEFIT_CHIPS = [
+  { icon: "📅", text: "Agenda inteligente" },
+  { icon: "👥", text: "CRM completo" },
+  { icon: "💰", text: "Financeiro" },
+];
+
 function RightPanel({
   router,
   plan,
@@ -234,38 +240,72 @@ function RightPanel({
   defaultTab: string;
 }) {
   return (
-    <div className="flex w-full flex-col items-center justify-center bg-white p-8 lg:w-[55%]">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="md:hidden flex items-center gap-2">
-          <span className="text-2xl font-extrabold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
-            Agendê
-          </span>
+    <div className="flex w-full flex-col items-center bg-white md:justify-center md:p-8 lg:w-[55%]">
+      <div className="w-full max-w-sm">
+        {/* Cabeçalho — visível apenas no mobile, o LeftPanel cobre isso no desktop */}
+        <div className="md:hidden relative overflow-hidden bg-gradient-to-br from-violet-50 to-pink-50 px-6 pt-6 pb-5">
+          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-200/40 blur-2xl" />
+
+          <div className="relative flex items-center gap-2">
+            <span className="text-xl font-extrabold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
+              Agendê
+            </span>
+          </div>
+
+          <h1 className="relative mt-3 text-lg font-extrabold leading-snug text-slate-900">
+            Seu salão no{" "}
+            <span className="bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
+              piloto automático.
+            </span>
+          </h1>
+          <p className="relative mt-1 text-xs text-slate-500">
+            Agenda, CRM e financeiro numa plataforma só.
+          </p>
+
+          {plan && (
+            <div className="relative mt-3 inline-flex items-center gap-1 rounded-full border border-violet-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-violet-700">
+              ✓ {PLAN_LABEL[plan] ?? plan} selecionado
+            </div>
+          )}
+
+          <div className="relative mt-3 flex gap-2 overflow-x-auto pb-1">
+            {MOBILE_BENEFIT_CHIPS.map((b) => (
+              <div
+                key={b.text}
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-violet-100 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-slate-700"
+              >
+                {b.icon} {b.text}
+              </div>
+            ))}
+          </div>
         </div>
 
-        <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-slate-100">
-            <TabsTrigger
-              value="login"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md"
-            >
-              Entrar
-            </TabsTrigger>
-            <TabsTrigger
-              value="signup"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md"
-            >
-              Criar conta
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-6 px-6 pt-6 pb-8 md:px-0 md:pt-0 md:pb-0">
+          <Tabs defaultValue={defaultTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-slate-100">
+              <TabsTrigger
+                value="login"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+              >
+                Entrar
+              </TabsTrigger>
+              <TabsTrigger
+                value="signup"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+              >
+                Criar conta
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="login" className="mt-6">
-            <LoginForm router={router} />
-          </TabsContent>
+            <TabsContent value="login" className="mt-6">
+              <LoginForm router={router} />
+            </TabsContent>
 
-          <TabsContent value="signup" className="mt-6">
-            <SignupFormComponent router={router} plan={plan} />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="signup" className="mt-6">
+              <SignupFormComponent router={router} plan={plan} />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
