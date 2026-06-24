@@ -319,7 +319,7 @@ export class XService {
 | Reports | ✅ | ✅ | 4 relatórios + filtros + CSV |
 | Serviços | ✅ | ✅ | Categorias, imagens em retrato 4:5 com editor de enquadramento, picker visual |
 | Produtos/Estoque | ✅ | ✅ | Catálogo, movimentação, reflexo financeiro, imagem com editor de enquadramento |
-| Billing (Stripe) | ✅ | ✅ | Checkout, Portal, Webhook, planos dinâmicos do DB |
+| Billing (Stripe) | ✅ | ✅ | Checkout, Portal, Webhook, planos dinâmicos do DB; plano FREE não é mais vendido — trial/assinatura expirada bloqueia o painel (tela de assinatura) em vez de rebaixar para FREE |
 | Automation | stub | — | Fase 2 |
 
 > Padrão de imagens: ver seção "Padrão de imagens" em `CLAUDE.md` —

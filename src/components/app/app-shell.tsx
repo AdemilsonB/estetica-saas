@@ -50,10 +50,6 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
   const { canAccess, user, isLoading } = usePermissions()
   const { data: billingStatus } = useBillingStatus()
   const { data: planNavSections, isLoading: navSectionsLoading } = useNavSections()
-  const [upgradeCardDismissed, setUpgradeCardDismissed] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return sessionStorage.getItem('upgrade-card-dismissed') === '1'
-  })
   const { data: evolutionStatus, isLoading: evolutionLoading } = useEvolutionStatus()
   const whatsappPending = !evolutionLoading && evolutionStatus?.connected === false
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -310,33 +306,6 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-
-                {billingStatus?.plan === 'FREE' && billingStatus?.status !== 'TRIALING' && !upgradeCardDismissed && (
-                  <div className="rounded-xl bg-linear-to-br from-violet-600 to-purple-600 p-3 text-white">
-                    <div className="flex items-start justify-between gap-1">
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold leading-tight"><span aria-hidden="true">🚀</span> Desbloqueie mais recursos</p>
-                        <p className="mt-0.5 text-[10px] leading-tight opacity-80">WhatsApp, relatórios e muito mais</p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          sessionStorage.setItem('upgrade-card-dismissed', '1')
-                          setUpgradeCardDismissed(true)
-                        }}
-                        className="shrink-0 text-[12px] text-white/60 transition hover:text-white"
-                        aria-label="Dispensar"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <Link
-                      href="/configuracoes/planos"
-                      className="mt-2 block w-full rounded-lg bg-white py-1.5 text-center text-[11px] font-bold text-violet-700 transition hover:bg-white/90"
-                    >
-                      Ver planos →
-                    </Link>
-                  </div>
-                )}
 
                 <button
                   onClick={handleLogout}

@@ -141,7 +141,8 @@ export async function POST(req: Request) {
           }
         }
         if (!tenantId) break
-        await billingService.changePlan(tenantId, PlanName.FREE, SubscriptionStatus.CANCELLED, 'stripe-webhook', 'subscription_deleted')
+        const cancelledSub = await billingRepository.getSubscription(tenantId)
+        await billingService.changePlan(tenantId, cancelledSub?.plan ?? PlanName.STARTER, SubscriptionStatus.CANCELLED, 'stripe-webhook', 'subscription_deleted')
         break
       }
 

@@ -7,17 +7,6 @@ import { prisma } from "@/shared/database/prisma";
 import { billingRepository } from "./billing.repository";
 
 export class BillingService {
-  async startFree(tenantId: string) {
-    const now = new Date()
-    return billingRepository.createSubscription({
-      tenantId,
-      plan: PlanName.FREE,
-      status: SubscriptionStatus.ACTIVE,
-      currentPeriodStart: now,
-      currentPeriodEnd: new Date('2099-12-31'),
-    })
-  }
-
   async startTrial(tenantId: string) {
     return this.startTrialForPlan(tenantId, PlanName.STARTER)
   }
@@ -100,7 +89,7 @@ export class BillingService {
 
     const expiredTrials = await billingRepository.findExpiredTrials(now);
     for (const sub of expiredTrials) {
-      await this.changePlan(sub.tenantId, PlanName.FREE, SubscriptionStatus.EXPIRED, "system", "trial_expired");
+      await this.changePlan(sub.tenantId, sub.plan, SubscriptionStatus.EXPIRED, "system", "trial_expired");
       eventBus.publish({ type: "billing.trial.expired", payload: { tenantId: sub.tenantId } });
     }
 
