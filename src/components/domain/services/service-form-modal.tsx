@@ -12,6 +12,7 @@ import { ComboboxField } from '@/components/ui/combobox-field'
 import { Separator } from '@/components/ui/separator'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { ImageUploadField } from '@/components/ui/image-upload-field'
+import type { CropValues } from '@/components/domain/shared/image-crop-editor'
 import { useCreateService, useUpdateService, type Service } from '@/hooks/scheduling/use-services'
 import { ServiceAnamneseConfig } from './service-anamnese-config'
 import { useServiceCategories } from '@/hooks/scheduling/use-service-categories'
@@ -36,6 +37,7 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [description, setDescription] = useState('')
   const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [crop, setCrop] = useState<CropValues | null>(null)
   const [priceType, setPriceType] = useState<'FIXED' | 'STARTING_FROM'>('FIXED')
   const [price, setPrice] = useState('')
   const [priceMax, setPriceMax] = useState('')
@@ -55,6 +57,11 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
       setCategoryId(service.categoryId ?? null)
       setDescription(service.description ?? '')
       setImageUrl(service.imageUrl ?? null)
+      setCrop(
+        service.imageCropX != null && service.imageCropY != null && service.imageCropZoom != null
+          ? { cropX: service.imageCropX, cropY: service.imageCropY, cropZoom: service.imageCropZoom }
+          : null,
+      )
       setPriceType(service.priceType === 'STARTING_FROM' ? 'STARTING_FROM' : 'FIXED')
       setPrice(Number(service.price).toFixed(2))
       setPriceMax(service.priceMax ? Number(service.priceMax).toFixed(2) : '')
@@ -75,6 +82,7 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
       setCategoryId(null)
       setDescription('')
       setImageUrl(null)
+      setCrop(null)
       setPriceType('FIXED')
       setPrice('')
       setPriceMax('')
@@ -117,6 +125,9 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
       description: description.trim() || null,
       categoryId: categoryId || null,
       imageUrl,
+      imageCropX: crop?.cropX ?? null,
+      imageCropY: crop?.cropY ?? null,
+      imageCropZoom: crop?.cropZoom ?? null,
       anamneseMode,
       anamneseBlocks: anamneseMode !== 'NONE' ? ['capilar'] : [],
       anamneseValidityDays,
@@ -236,6 +247,9 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
               entityId={service.id}
               value={imageUrl}
               onChange={setImageUrl}
+              cropShape="portrait"
+              crop={crop}
+              onCropChange={setCrop}
               label="Imagem do serviço"
               savePromptMessage="Salve o serviço primeiro para adicionar uma imagem."
             />

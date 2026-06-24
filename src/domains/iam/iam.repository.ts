@@ -95,6 +95,9 @@ export class IamRepository {
         role: true,
         roleId: true,
         avatarUrl: true,
+        avatarCropX: true,
+        avatarCropY: true,
+        avatarCropZoom: true,
         showOnPublicPage: true,
         customRole: { select: { name: true } },
         createdAt: true,
@@ -111,6 +114,9 @@ export class IamRepository {
       isOwner: u.role === "OWNER",
       roleId: u.roleId,
       avatarUrl: u.avatarUrl,
+      avatarCropX: u.avatarCropX,
+      avatarCropY: u.avatarCropY,
+      avatarCropZoom: u.avatarCropZoom,
       showOnPublicPage: u.showOnPublicPage,
       roleName: u.role === "OWNER" ? "Dono" : (u.customRole?.name ?? "Sem cargo"),
       createdAt: u.createdAt,
@@ -220,7 +226,16 @@ export class IamRepository {
   async updateUser(
     tenantId: string,
     userId: string,
-    data: { name?: string; email?: string; avatarUrl?: string | null; bio?: string | null; showOnPublicPage?: boolean },
+    data: {
+      name?: string
+      email?: string
+      avatarUrl?: string | null
+      avatarCropX?: number | null
+      avatarCropY?: number | null
+      avatarCropZoom?: number | null
+      bio?: string | null
+      showOnPublicPage?: boolean
+    },
   ) {
     await prisma.user.updateMany({ where: { id: userId, tenantId }, data })
     return prisma.user.findFirstOrThrow({
@@ -231,6 +246,9 @@ export class IamRepository {
         email: true,
         role: true,
         avatarUrl: true,
+        avatarCropX: true,
+        avatarCropY: true,
+        avatarCropZoom: true,
         bio: true,
         showOnPublicPage: true,
         roleId: true,
@@ -276,6 +294,9 @@ export class IamRepository {
         email: true,
         role: true,
         avatarUrl: true,
+        avatarCropX: true,
+        avatarCropY: true,
+        avatarCropZoom: true,
         roleId: true,
         customRole: { select: { name: true } },
         createdAt: true,

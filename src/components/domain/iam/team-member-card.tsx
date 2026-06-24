@@ -5,6 +5,7 @@ import { Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 import { type TeamMember } from '@/hooks/iam/use-team'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { EditMemberModal } from './edit-member-modal'
@@ -27,17 +28,16 @@ export function TeamMemberCard({ member, canManage }: Props) {
     <>
       <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4">
         <div className="shrink-0">
-          {member.avatarUrl ? (
-            <img
-              src={member.avatarUrl}
-              alt={member.name}
-              className="size-10 rounded-full object-cover border border-slate-200"
-            />
-          ) : (
-            <div className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700">
-              {initials}
-            </div>
-          )}
+          <EntityImage
+            src={member.avatarUrl}
+            alt={member.name}
+            shape="circle"
+            cropX={member.avatarCropX}
+            cropY={member.avatarCropY}
+            cropZoom={member.avatarCropZoom}
+            className="size-10 border border-slate-200"
+            fallback={<span className="text-sm font-semibold text-slate-700">{initials}</span>}
+          />
         </div>
 
         <div className="min-w-0 flex-1">

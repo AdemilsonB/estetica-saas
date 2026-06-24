@@ -15,6 +15,9 @@ export async function GET(
         name: p.name,
         salePrice: Number(p.salePrice),
         imageUrl: p.imageUrl,
+        imageCropX: p.imageCropX,
+        imageCropY: p.imageCropY,
+        imageCropZoom: p.imageCropZoom,
         categoryName: p.category?.name ?? null,
       })),
     )

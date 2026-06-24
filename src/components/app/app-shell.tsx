@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useBillingStatus } from '@/hooks/billing/use-billing-status'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 import { useNavSections } from '@/hooks/iam/use-nav-sections'
 import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
 import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
@@ -84,20 +85,21 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
 
   function UserAvatar({ size = 'md' }: { size?: 'md' | 'sm' }) {
     const dim = size === 'sm' ? 'size-9' : 'size-[34px]'
-    if (user?.avatarUrl) {
-      return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={user.avatarUrl}
-          alt={user.name}
-          className={cn(dim, 'shrink-0 rounded-xl object-cover')}
-        />
-      )
-    }
     return (
-      <div className={cn(dim, 'inline-flex shrink-0 items-center justify-center rounded-xl bg-primary/15 text-xs font-bold text-primary')}>
-        {getInitials(user?.name ?? 'U')}
-      </div>
+      <EntityImage
+        src={user?.avatarUrl}
+        alt={user?.name ?? 'Usuário'}
+        shape="circle"
+        cropX={user?.avatarCropX}
+        cropY={user?.avatarCropY}
+        cropZoom={user?.avatarCropZoom}
+        className={cn(dim, 'shrink-0 rounded-xl')}
+        fallback={
+          <div className="flex size-full items-center justify-center bg-primary/15 text-xs font-bold text-primary">
+            {getInitials(user?.name ?? 'U')}
+          </div>
+        }
+      />
     )
   }
 

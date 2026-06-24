@@ -95,6 +95,9 @@ export class ProductRepository {
         ...(input.salePrice !== undefined && { salePrice: new Prisma.Decimal(input.salePrice) }),
         ...(input.lowStockAlert !== undefined && { lowStockAlert: input.lowStockAlert }),
         ...(input.imageUrl !== undefined && { imageUrl: input.imageUrl }),
+        ...(input.imageCropX !== undefined && { imageCropX: input.imageCropX }),
+        ...(input.imageCropY !== undefined && { imageCropY: input.imageCropY }),
+        ...(input.imageCropZoom !== undefined && { imageCropZoom: input.imageCropZoom }),
       },
     })
     return prisma.product.findFirst({ where: { id, tenantId }, include: { category: true } })

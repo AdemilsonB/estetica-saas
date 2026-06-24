@@ -1,22 +1,38 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { ImageIcon, X } from 'lucide-react'
+import { ImageIcon, Pencil, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Label } from '@/components/ui/label'
+import { EntityImage } from '@/components/domain/shared/entity-image'
+import { ImageCropEditor, type CropValues } from '@/components/domain/shared/image-crop-editor'
 
 type Props = {
   entityType: 'services' | 'packages' | 'promotions' | 'products'
   entityId: string | null
   value: string | null
   onChange: (url: string | null) => void
+  cropShape: 'portrait' | 'square'
+  crop: CropValues | null
+  onCropChange: (crop: CropValues | null) => void
   label?: string
   savePromptMessage?: string
 }
 
-export function ImageUploadField({ entityType, entityId, value, onChange, label = 'Imagem', savePromptMessage }: Props) {
+export function ImageUploadField({
+  entityType,
+  entityId,
+  value,
+  onChange,
+  cropShape,
+  crop,
+  onCropChange,
+  label = 'Imagem',
+  savePromptMessage,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [editorOpen, setEditorOpen] = useState(false)
 
   async function handleFile(file: File) {
     if (file.size > 5 * 1024 * 1024) {
@@ -40,6 +56,8 @@ export function ImageUploadField({ entityType, entityId, value, onChange, label 
       }
       const { url } = await res.json()
       onChange(url)
+      onCropChange(null)
+      setEditorOpen(true)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao fazer upload.')
     } finally {
@@ -51,9 +69,16 @@ export function ImageUploadField({ entityType, entityId, value, onChange, label 
     <div className="space-y-2">
       <Label>{label}</Label>
       {value ? (
-        <div className="relative w-full h-36 rounded-xl overflow-hidden border border-border">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt="preview" className="w-full h-full object-cover" />
+        <div className="relative w-full max-w-56">
+          <EntityImage
+            src={value}
+            alt="preview"
+            shape={cropShape}
+            cropX={crop?.cropX}
+            cropY={crop?.cropY}
+            cropZoom={crop?.cropZoom}
+            className="w-full border border-border"
+          />
           <button
             type="button"
             onClick={() => onChange(null)}
@@ -61,6 +86,14 @@ export function ImageUploadField({ entityType, entityId, value, onChange, label 
             aria-label="Remover imagem"
           >
             <X className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditorOpen(true)}
+            className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1.5 text-xs text-white hover:bg-black/80"
+          >
+            <Pencil className="size-3" />
+            Ajustar
           </button>
         </div>
       ) : (
@@ -86,6 +119,20 @@ export function ImageUploadField({ entityType, entityId, value, onChange, label 
           e.target.value = ''
         }}
       />
+
+      {value && (
+        <ImageCropEditor
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
+          imageUrl={value}
+          shape={cropShape}
+          initial={crop}
+          onSave={(v) => {
+            onCropChange(v)
+            setEditorOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }

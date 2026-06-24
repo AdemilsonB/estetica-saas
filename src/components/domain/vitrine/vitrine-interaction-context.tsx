@@ -9,6 +9,9 @@ type TeamMember = {
   name: string
   role: string
   avatarUrl?: string | null
+  avatarCropX?: number | null
+  avatarCropY?: number | null
+  avatarCropZoom?: number | null
   bio?: string | null
   serviceIds?: string[]
 }

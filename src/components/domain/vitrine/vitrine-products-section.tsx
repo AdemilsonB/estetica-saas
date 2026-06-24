@@ -1,8 +1,13 @@
+import { EntityImage } from '@/components/domain/shared/entity-image'
+
 type PublicProduct = {
   id: string
   name: string
   salePrice: number
   imageUrl?: string | null
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
   categoryName?: string | null
 }
 
@@ -20,14 +25,16 @@ export function VitrineProductsSection({ products, primaryColor }: Props) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {products.map((p) => (
           <div key={p.id} className="rounded-2xl bg-card shadow-sm overflow-hidden">
-            <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
-              {p.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-3xl">🧴</span>
-              )}
-            </div>
+            <EntityImage
+              src={p.imageUrl}
+              alt={p.name}
+              shape="square"
+              cropX={p.imageCropX}
+              cropY={p.imageCropY}
+              cropZoom={p.imageCropZoom}
+              className="w-full rounded-none"
+              fallback={<span className="text-3xl">🧴</span>}
+            />
             <div className="p-3">
               {p.categoryName && (
                 <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">

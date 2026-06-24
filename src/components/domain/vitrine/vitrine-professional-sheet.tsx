@@ -1,6 +1,7 @@
 'use client'
 
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 
 const ROLE_LABELS: Record<string, string> = {
   OWNER: 'Proprietário',
@@ -14,6 +15,9 @@ export type ResolvedProfessional = {
   name: string
   role: string
   avatarUrl?: string | null
+  avatarCropX?: number | null
+  avatarCropY?: number | null
+  avatarCropZoom?: number | null
   bio?: string | null
   specialtyNames: string[]
 }
@@ -39,21 +43,23 @@ export function VitrineProfessionalSheet({ professional, primaryColor, bookingBa
               style={{ background: `linear-gradient(135deg, ${primaryColor}, #A855F7)` }}
             />
             <div className="-mt-7 px-5">
-              {professional.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={professional.avatarUrl}
-                  alt={professional.name}
-                  className="size-16 rounded-full border-4 border-popover object-cover"
-                />
-              ) : (
-                <div
-                  className="flex size-16 items-center justify-center rounded-full border-4 border-popover text-xl font-bold text-white"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  {professional.name[0]?.toUpperCase()}
-                </div>
-              )}
+              <EntityImage
+                src={professional.avatarUrl}
+                alt={professional.name}
+                shape="circle"
+                cropX={professional.avatarCropX}
+                cropY={professional.avatarCropY}
+                cropZoom={professional.avatarCropZoom}
+                className="size-16 border-4 border-popover"
+                fallback={
+                  <div
+                    className="flex size-full items-center justify-center text-xl font-bold text-white"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    {professional.name[0]?.toUpperCase()}
+                  </div>
+                }
+              />
               <h3 className="mt-2 text-base font-bold">{professional.name}</h3>
               <span
                 className="mt-1 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold"

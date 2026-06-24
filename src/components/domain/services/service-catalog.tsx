@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select'
 import { useActivateService, useDeactivateService, useServices, type Service } from '@/hooks/scheduling/use-services'
 import { useServiceCategories } from '@/hooks/scheduling/use-service-categories'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 import { ServiceFormModal } from './service-form-modal'
 
 const PAGE_SIZE = 10
@@ -134,11 +135,14 @@ export function ServiceCatalog() {
                   className="flex items-center gap-4 rounded-2xl border border-border/50 bg-card px-4 py-3 shadow-sm"
                 >
                   {service.imageUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <EntityImage
                       src={service.imageUrl}
                       alt={service.name}
-                      className="size-12 shrink-0 rounded-xl object-cover"
+                      shape="square"
+                      cropX={service.imageCropX}
+                      cropY={service.imageCropY}
+                      cropZoom={service.imageCropZoom}
+                      className="size-12 shrink-0 rounded-xl"
                     />
                   )}
                   <div className="min-w-0 flex-1">

@@ -21,6 +21,9 @@ export type Promotion = {
   endsAt: string | null
   active: boolean
   imageUrl: string | null
+  imageCropX: number | null
+  imageCropY: number | null
+  imageCropZoom: number | null
   expired: boolean
   items: PromotionItem[]
 }
@@ -50,6 +53,9 @@ export type UpdatePromotionInput = {
   endsAt?: string | null
   active?: boolean
   imageUrl?: string | null
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
   items?: PromoItemInput[]
 }
 

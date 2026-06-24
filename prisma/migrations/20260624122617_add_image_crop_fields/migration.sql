@@ -1,0 +1,24 @@
+-- AlterTable
+ALTER TABLE "Product" ADD COLUMN     "imageCropX" DOUBLE PRECISION,
+ADD COLUMN     "imageCropY" DOUBLE PRECISION,
+ADD COLUMN     "imageCropZoom" DOUBLE PRECISION;
+
+-- AlterTable
+ALTER TABLE "Promotion" ADD COLUMN     "imageCropX" DOUBLE PRECISION,
+ADD COLUMN     "imageCropY" DOUBLE PRECISION,
+ADD COLUMN     "imageCropZoom" DOUBLE PRECISION;
+
+-- AlterTable
+ALTER TABLE "Service" ADD COLUMN     "imageCropX" DOUBLE PRECISION,
+ADD COLUMN     "imageCropY" DOUBLE PRECISION,
+ADD COLUMN     "imageCropZoom" DOUBLE PRECISION;
+
+-- AlterTable
+ALTER TABLE "ServicePackage" ADD COLUMN     "imageCropX" DOUBLE PRECISION,
+ADD COLUMN     "imageCropY" DOUBLE PRECISION,
+ADD COLUMN     "imageCropZoom" DOUBLE PRECISION;
+
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "avatarCropX" DOUBLE PRECISION,
+ADD COLUMN     "avatarCropY" DOUBLE PRECISION,
+ADD COLUMN     "avatarCropZoom" DOUBLE PRECISION;

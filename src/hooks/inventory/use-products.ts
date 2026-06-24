@@ -14,6 +14,9 @@ export type Product = {
   lowStockAlert: number
   active: boolean
   imageUrl: string | null
+  imageCropX: number | null
+  imageCropY: number | null
+  imageCropZoom: number | null
 }
 
 export type ProductsResponse = {
@@ -35,7 +38,11 @@ export type CreateProductInput = {
   imageUrl?: string
 }
 
-export type UpdateProductInput = Partial<CreateProductInput>
+export type UpdateProductInput = Partial<CreateProductInput> & {
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
+}
 
 export type RecordPurchaseInput = {
   quantity: number

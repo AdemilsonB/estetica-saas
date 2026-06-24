@@ -52,6 +52,9 @@ export class CatalogServiceRepository {
       description?: string | null
       categoryId?: string | null
       imageUrl?: string | null
+      imageCropX?: number | null
+      imageCropY?: number | null
+      imageCropZoom?: number | null
     },
   ) {
     return prisma.service.update({

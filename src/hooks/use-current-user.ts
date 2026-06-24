@@ -13,6 +13,9 @@ export type CurrentUser = {
   businessName: string
   tenantSlug: string
   avatarUrl: string | null
+  avatarCropX: number | null
+  avatarCropY: number | null
+  avatarCropZoom: number | null
 }
 
 async function fetchCurrentUser(): Promise<CurrentUser> {

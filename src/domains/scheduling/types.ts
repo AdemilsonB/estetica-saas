@@ -32,6 +32,9 @@ export const updateServiceSchema = z.object({
   description: z.string().trim().max(1000).optional().nullable(),
   categoryId: z.string().cuid().optional().nullable(),
   imageUrl: z.string().url().optional().nullable(),
+  imageCropX: z.number().min(0).max(1).optional().nullable(),
+  imageCropY: z.number().min(0).max(1).optional().nullable(),
+  imageCropZoom: z.number().min(1).max(3).optional().nullable(),
   anamneseMode: z.enum(['NONE', 'OPTIONAL', 'REQUIRED']).optional(),
   anamneseBlocks: z.array(z.string().min(1)).optional(),
   anamneseValidityDays: z.number().int().min(7).max(365).optional(),
@@ -88,6 +91,9 @@ export const updatePackageSchema = z
     price: z.number().positive().optional(),
     serviceIds: z.array(z.string().cuid()).min(1).optional(),
     imageUrl: z.string().url().optional().nullable(),
+    imageCropX: z.number().min(0).max(1).optional().nullable(),
+    imageCropY: z.number().min(0).max(1).optional().nullable(),
+    imageCropZoom: z.number().min(1).max(3).optional().nullable(),
   })
   .refine((v) => Object.keys(v).length > 0, 'Informe ao menos um campo para atualizar.')
 
@@ -127,6 +133,9 @@ export const updatePromotionSchema = z
     endsAt: z.string().datetime().optional().nullable(),
     active: z.boolean().optional(),
     imageUrl: z.string().url().optional().nullable(),
+    imageCropX: z.number().min(0).max(1).optional().nullable(),
+    imageCropY: z.number().min(0).max(1).optional().nullable(),
+    imageCropZoom: z.number().min(1).max(3).optional().nullable(),
     items: z.array(promoItemSchema).min(1).optional(),
   })
   .refine((v) => Object.keys(v).length > 0, 'Informe ao menos um campo para atualizar.')

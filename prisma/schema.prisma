@@ -259,6 +259,9 @@ model User {
   role                 UserRole              @default(PROFESSIONAL)
   permissions          String[]
   avatarUrl            String?
+  avatarCropX          Float?
+  avatarCropY          Float?
+  avatarCropZoom       Float?
   bio                  String?
   showOnPublicPage     Boolean               @default(true)
   roleId               String?
@@ -391,6 +394,9 @@ model Service {
   priceMax             Decimal?              @db.Decimal(10, 2)
   active               Boolean               @default(true)
   imageUrl             String?
+  imageCropX           Float?
+  imageCropY           Float?
+  imageCropZoom        Float?
   description          String?
   anamneseMode         AnamneseMode          @default(NONE)
   anamneseBlocks       String[]              @default([])
@@ -612,6 +618,9 @@ model ServicePackage {
   description  String?
   price        Decimal              @db.Decimal(10, 2)
   imageUrl     String?
+  imageCropX   Float?
+  imageCropY   Float?
+  imageCropZoom Float?
   active       Boolean              @default(true)
   items        ServicePackageItem[]
   promotions   PromotionItem[]
@@ -645,6 +654,9 @@ model Promotion {
   endsAt        DateTime?
   active        Boolean           @default(true)
   imageUrl      String?
+  imageCropX    Float?
+  imageCropY    Float?
+  imageCropZoom Float?
   items         PromotionItem[]
   appointments  Appointment[]
   createdAt     DateTime          @default(now())
@@ -707,6 +719,9 @@ model Product {
   active              Boolean  @default(true)
   availableForSale    Boolean  @default(false)
   imageUrl            String?
+  imageCropX          Float?
+  imageCropY          Float?
+  imageCropZoom       Float?
   catalogProductId    String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

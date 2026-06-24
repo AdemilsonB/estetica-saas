@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronLeft } from 'lucide-react'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 import type { PublicProfessional } from '@/app/(public)/agendar/[slug]/types'
 
 export function ProfessionalStep({
@@ -46,20 +47,23 @@ export function ProfessionalStep({
             onClick={() => onSelect(professional)}
             className="flex flex-col items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-400 hover:shadow-sm transition-all text-center"
           >
-            {professional.avatarUrl ? (
-              <img
-                src={professional.avatarUrl}
-                alt={professional.name}
-                className="size-20 rounded-full object-cover border border-slate-100 shrink-0"
-              />
-            ) : (
-              <div
-                className="size-20 rounded-full flex items-center justify-center text-white font-bold text-2xl shrink-0"
-                style={{ backgroundColor: primaryColor }}
-              >
-                {professional.name[0]?.toUpperCase()}
-              </div>
-            )}
+            <EntityImage
+              src={professional.avatarUrl}
+              alt={professional.name}
+              shape="circle"
+              cropX={professional.avatarCropX}
+              cropY={professional.avatarCropY}
+              cropZoom={professional.avatarCropZoom}
+              className="size-20 border border-slate-100 shrink-0"
+              fallback={
+                <div
+                  className="flex size-full items-center justify-center text-white font-bold text-2xl"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  {professional.name[0]?.toUpperCase()}
+                </div>
+              }
+            />
             <p className="font-medium text-slate-900 text-sm leading-tight">{professional.name}</p>
           </button>
         ))}

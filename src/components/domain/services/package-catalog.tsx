@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { usePackages, useDeactivatePackage, type ServicePackage } from '@/hooks/scheduling/use-packages'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 import { PackageFormModal } from './package-form-modal'
 
 const PAGE_SIZE = 10
@@ -75,8 +76,15 @@ export function PackageCatalog() {
               return pageItems.map((pkg) => (
                 <div key={pkg.id} className="flex items-center gap-4 rounded-2xl border border-border/50 bg-card px-4 py-3 shadow-sm">
                   {pkg.imageUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={pkg.imageUrl} alt={pkg.name} className="size-12 shrink-0 rounded-xl object-cover" />
+                    <EntityImage
+                      src={pkg.imageUrl}
+                      alt={pkg.name}
+                      shape="square"
+                      cropX={pkg.imageCropX}
+                      cropY={pkg.imageCropY}
+                      cropZoom={pkg.imageCropZoom}
+                      className="size-12 shrink-0 rounded-xl"
+                    />
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">

@@ -1,12 +1,16 @@
 'use client'
 
 import { useVitrineInteraction } from './vitrine-interaction-context'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 
 type TeamMember = {
   id: string
   name: string
   role: string
   avatarUrl?: string | null
+  avatarCropX?: number | null
+  avatarCropY?: number | null
+  avatarCropZoom?: number | null
   bio?: string | null
 }
 
@@ -34,18 +38,16 @@ export function VitrineTeam({ members, id }: { members: TeamMember[]; id?: strin
             aria-label={`Ver perfil de ${m.name}`}
             className="flex min-w-[140px] shrink-0 flex-col items-center gap-2 rounded-2xl bg-card p-4 text-center shadow-sm sm:min-w-0"
           >
-            {m.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={m.avatarUrl}
-                alt={m.name}
-                className="size-16 rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex size-16 items-center justify-center rounded-full bg-muted text-xl font-semibold">
-                {m.name[0]?.toUpperCase()}
-              </div>
-            )}
+            <EntityImage
+              src={m.avatarUrl}
+              alt={m.name}
+              shape="circle"
+              cropX={m.avatarCropX}
+              cropY={m.avatarCropY}
+              cropZoom={m.avatarCropZoom}
+              className="size-16"
+              fallback={<span className="text-xl font-semibold">{m.name[0]?.toUpperCase()}</span>}
+            />
             <div>
               <p className="text-sm font-medium leading-tight">{m.name}</p>
               <p className="text-xs text-muted-foreground">{ROLE_LABELS[m.role] ?? m.role}</p>

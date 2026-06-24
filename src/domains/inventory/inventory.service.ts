@@ -9,6 +9,7 @@ import {
 } from '@/shared/errors'
 import { productRepository } from './product.repository'
 import { stockRepository } from './stock.repository'
+import { resolveImageCrop } from '@/shared/utils/image-crop'
 import type {
   CreateProductInput,
   UpdateProductInput,
@@ -32,7 +33,17 @@ export class InventoryService {
   async updateProduct(tenantId: string, id: string, input: UpdateProductInput) {
     const product = await productRepository.findById(tenantId, id)
     if (!product) throw new ProductNotFoundError()
-    return productRepository.update(tenantId, id, input)
+    const crop = resolveImageCrop(input.imageUrl !== undefined, {
+      x: input.imageCropX,
+      y: input.imageCropY,
+      zoom: input.imageCropZoom,
+    })
+    return productRepository.update(tenantId, id, {
+      ...input,
+      imageCropX: crop.x,
+      imageCropY: crop.y,
+      imageCropZoom: crop.zoom,
+    })
   }
 
   async deleteProduct(tenantId: string, id: string) {

@@ -19,6 +19,7 @@ import { ComboboxField } from '@/components/ui/combobox-field'
 import { useCreateProduct, useUpdateProduct } from '@/hooks/inventory/use-products'
 import { useProductCategories } from '@/hooks/inventory/use-product-categories'
 import { ImageUploadField } from '@/components/ui/image-upload-field'
+import type { CropValues } from '@/components/domain/shared/image-crop-editor'
 import type { CreateProductInput } from '@/domains/inventory/types'
 
 const schema = z.object({
@@ -84,6 +85,9 @@ type Product = {
   stockQuantity?: number
   lowStockAlert: number
   imageUrl: string | null
+  imageCropX: number | null
+  imageCropY: number | null
+  imageCropZoom: number | null
 }
 
 type Props = {
@@ -96,6 +100,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
   const isEditing = !!product
 
   const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [crop, setCrop] = useState<CropValues | null>(null)
   const [adjustTarget, setAdjustTarget] = useState('')
   const [adjusting, setAdjusting] = useState(false)
 
@@ -135,6 +140,11 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         lowStockAlert: String(product.lowStockAlert),
       })
       setImageUrl(product.imageUrl ?? null)
+      setCrop(
+        product.imageCropX != null && product.imageCropY != null && product.imageCropZoom != null
+          ? { cropX: product.imageCropX, cropY: product.imageCropY, cropZoom: product.imageCropZoom }
+          : null,
+      )
       setAdjustTarget('')
     } else if (open && !product) {
       reset({
@@ -145,6 +155,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         lowStockAlert: '',
       })
       setImageUrl(null)
+      setCrop(null)
       setAdjustTarget('')
     }
   }, [open, product, reset])
@@ -152,6 +163,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
   function handleClose() {
     reset()
     setImageUrl(null)
+    setCrop(null)
     setAdjustTarget('')
     onClose()
   }
@@ -186,7 +198,13 @@ export function ProductFormModal({ open, onClose, product }: Props) {
 
   function onSubmit(values: FormValues) {
     if (isEditing && product) {
-      const updatePayload = { ...buildProductPayload(values), imageUrl: imageUrl ?? undefined }
+      const updatePayload = {
+        ...buildProductPayload(values),
+        imageUrl: imageUrl ?? undefined,
+        imageCropX: crop?.cropX ?? null,
+        imageCropY: crop?.cropY ?? null,
+        imageCropZoom: crop?.cropZoom ?? null,
+      }
       updateProduct.mutate(
         { id: product.id, ...updatePayload },
         {
@@ -368,6 +386,9 @@ export function ProductFormModal({ open, onClose, product }: Props) {
                 onChange={setImageUrl}
                 entityId={product.id}
                 entityType="products"
+                cropShape="square"
+                crop={crop}
+                onCropChange={setCrop}
               />
             </div>
           ) : (

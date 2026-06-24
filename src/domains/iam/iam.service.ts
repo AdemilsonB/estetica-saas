@@ -4,6 +4,7 @@ import { prisma } from "@/shared/database/prisma";
 import { supabaseAdmin } from "@/integrations/supabase/admin";
 import { NotFoundError, ConflictError, ForbiddenError, UserNotFoundError } from "@/shared/errors";
 import { iamRepository } from "./iam.repository";
+import { resolveImageCrop } from "@/shared/utils/image-crop";
 import type { SessionContext } from "@/shared/types/auth";
 import { billingService } from "@/domains/billing/billing.service";
 import { featureGuard } from "@/domains/billing/feature-guard";
@@ -33,6 +34,9 @@ export class IamService {
         role: true,
         roleId: true,
         avatarUrl: true,
+        avatarCropX: true,
+        avatarCropY: true,
+        avatarCropZoom: true,
         customRole: { select: { id: true, name: true } },
         tenant: { select: { name: true, slug: true } },
       },
@@ -67,6 +71,9 @@ export class IamService {
       businessName: user.tenant.name,
       tenantSlug: user.tenant.slug,
       avatarUrl,
+      avatarCropX: user.avatarCropX,
+      avatarCropY: user.avatarCropY,
+      avatarCropZoom: user.avatarCropZoom,
     };
   }
 
@@ -186,7 +193,16 @@ export class IamService {
     tenantId: string,
     requesterId: string,
     targetId: string,
-    input: { name?: string; email?: string; avatarUrl?: string | null; bio?: string | null; showOnPublicPage?: boolean },
+    input: {
+      name?: string
+      email?: string
+      avatarUrl?: string | null
+      avatarCropX?: number | null
+      avatarCropY?: number | null
+      avatarCropZoom?: number | null
+      bio?: string | null
+      showOnPublicPage?: boolean
+    },
   ) {
     const requester = await iamRepository.findUserById(tenantId, requesterId)
     if (!requester) throw new UserNotFoundError()
@@ -213,7 +229,17 @@ export class IamService {
       if (conflict) throw new ConflictError('E-mail já cadastrado neste negócio.')
     }
 
-    return iamRepository.updateUser(tenantId, targetId, input)
+    const crop = resolveImageCrop(input.avatarUrl !== undefined, {
+      x: input.avatarCropX,
+      y: input.avatarCropY,
+      zoom: input.avatarCropZoom,
+    })
+    return iamRepository.updateUser(tenantId, targetId, {
+      ...input,
+      avatarCropX: crop.x,
+      avatarCropY: crop.y,
+      avatarCropZoom: crop.zoom,
+    })
   }
 
   async setMemberServices(tenantId: string, userId: string, serviceIds: string[]) {

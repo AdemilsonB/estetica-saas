@@ -21,6 +21,9 @@ type UpdatePackageData = {
   price?: number
   serviceIds?: string[]
   imageUrl?: string | null
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
 }
 
 export class PackageRepository {
@@ -68,6 +71,9 @@ export class PackageRepository {
           description: data.description,
           price: data.price !== undefined ? new Prisma.Decimal(data.price) : undefined,
           imageUrl: data.imageUrl,
+          imageCropX: data.imageCropX,
+          imageCropY: data.imageCropY,
+          imageCropZoom: data.imageCropZoom,
         },
         include: INCLUDE,
       })

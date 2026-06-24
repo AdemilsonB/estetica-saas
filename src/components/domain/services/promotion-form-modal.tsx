@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { PercentageInput } from '@/components/ui/percentage-input'
+import { ImageUploadField } from '@/components/ui/image-upload-field'
+import type { CropValues } from '@/components/domain/shared/image-crop-editor'
 import { useServices } from '@/hooks/scheduling/use-services'
 import { usePackages } from '@/hooks/scheduling/use-packages'
 import {
@@ -38,6 +40,8 @@ export function PromotionFormModal({ open, onClose, promotion }: Props) {
   const [startsAt, setStartsAt] = useState('')
   const [endsAt, setEndsAt] = useState('')
   const [selectedItems, setSelectedItems] = useState<PromoItemInput[]>([])
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [crop, setCrop] = useState<CropValues | null>(null)
 
   useEffect(() => {
     if (open && promotion) {
@@ -53,6 +57,12 @@ export function PromotionFormModal({ open, onClose, promotion }: Props) {
           packageId: i.packageId ?? undefined,
         })),
       )
+      setImageUrl(promotion.imageUrl ?? null)
+      setCrop(
+        promotion.imageCropX != null && promotion.imageCropY != null && promotion.imageCropZoom != null
+          ? { cropX: promotion.imageCropX, cropY: promotion.imageCropY, cropZoom: promotion.imageCropZoom }
+          : null,
+      )
     } else if (!open) {
       setName('')
       setDescription('')
@@ -61,6 +71,8 @@ export function PromotionFormModal({ open, onClose, promotion }: Props) {
       setStartsAt('')
       setEndsAt('')
       setSelectedItems([])
+      setImageUrl(null)
+      setCrop(null)
     }
   }, [open, promotion])
 
@@ -94,7 +106,17 @@ export function PromotionFormModal({ open, onClose, promotion }: Props) {
     }
 
     if (isEditing) {
-      update({ id: promotion.id, ...payload }, { onSuccess: onClose })
+      update(
+        {
+          id: promotion.id,
+          ...payload,
+          imageUrl,
+          imageCropX: crop?.cropX ?? null,
+          imageCropY: crop?.cropY ?? null,
+          imageCropZoom: crop?.cropZoom ?? null,
+        },
+        { onSuccess: onClose },
+      )
     } else {
       create(payload, { onSuccess: onClose })
     }
@@ -118,6 +140,24 @@ export function PromotionFormModal({ open, onClose, promotion }: Props) {
             <Label htmlFor="promo-desc">Descrição (opcional)</Label>
             <Input id="promo-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} />
           </div>
+
+          {isEditing ? (
+            <ImageUploadField
+              entityType="promotions"
+              entityId={promotion.id}
+              value={imageUrl}
+              onChange={setImageUrl}
+              cropShape="portrait"
+              crop={crop}
+              onCropChange={setCrop}
+              label="Imagem da promoção"
+              savePromptMessage="Salve a promoção primeiro para adicionar uma imagem."
+            />
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Salve a promoção para adicionar uma imagem.
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

@@ -306,21 +306,25 @@ export class XService {
 
 ---
 
-## Status dos domínios (2026-06-08)
+## Status dos domínios (2026-06-24)
 
 | Domínio | Backend | Frontend | Observação |
 |---------|---------|----------|------------|
-| IAM | ✅ | ✅ | Cargos dinâmicos, RBAC, edição de membros, foto, vínculo de serviços |
+| IAM | ✅ | ✅ | Cargos dinâmicos, RBAC, edição de membros, foto com enquadramento (zoom/posição) ajustável, vínculo de serviços |
 | CRM | ✅ | ✅ | Filtros avançados, badge VIP, anamnese |
 | Scheduling | ✅ | ✅ | Agenda semanal, slots configuráveis por tenant |
 | Financial | ✅ | ✅ | Checkout, despesas, comissões, taxas, estornos |
 | Notifications | ✅ | ✅ | Evolution API primário (WhatsApp), 6 templates |
 | Dashboard | ✅ | ✅ | Métricas + polling 30s |
 | Reports | ✅ | ✅ | 4 relatórios + filtros + CSV |
-| Serviços | ✅ | ✅ | Categorias, imagens, picker visual |
-| Produtos/Estoque | ✅ | ✅ | Catálogo, movimentação, reflexo financeiro |
+| Serviços | ✅ | ✅ | Categorias, imagens em retrato 4:5 com editor de enquadramento, picker visual |
+| Produtos/Estoque | ✅ | ✅ | Catálogo, movimentação, reflexo financeiro, imagem com editor de enquadramento |
 | Billing (Stripe) | ✅ | ✅ | Checkout, Portal, Webhook, planos dinâmicos do DB |
 | Automation | stub | — | Fase 2 |
+
+> Padrão de imagens: ver seção "Padrão de imagens" em `CLAUDE.md` —
+> `EntityImage` + `ImageCropEditor` (`src/components/domain/shared/`) substituem qualquer
+> `<img object-cover>` direto para avatar/serviço/pacote/promoção/produto.
 
 ---
 
