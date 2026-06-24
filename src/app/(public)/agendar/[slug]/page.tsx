@@ -1,6 +1,9 @@
-import { notFound } from 'next/navigation'
+import { cookies } from 'next/headers'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { verifyPublicSession, COOKIE_NAME } from '@/shared/auth/public-session'
+import { prisma } from '@/shared/database/prisma'
 import { BookingClient } from './booking-client'
 import type { TenantPublicData } from './types'
 
@@ -79,8 +82,24 @@ export default async function BookingPage({
 }) {
   const { slug } = await params
   const sp = await searchParams
+
   const data = await fetchTenantData(slug)
   if (!data || !data.allowPublicBooking) notFound()
+
+  const cookieStore = await cookies()
+  const token = cookieStore.get(COOKIE_NAME)?.value ?? null
+  const session = token ? verifyPublicSession(token) : null
+  if (!session || session.slug !== slug) {
+    redirect(`/${slug}/entrar`)
+  }
+
+  const customer = await prisma.customer.findFirst({
+    where: { id: session.customerId, tenantId: session.tenantId },
+    select: { id: true, name: true, phone: true },
+  })
+  if (!customer) {
+    redirect(`/${slug}/entrar`)
+  }
 
   const branding = data.branding
   const primaryColor = branding?.primaryColor ?? '#7C3AED'
@@ -159,6 +178,9 @@ export default async function BookingPage({
         <div className="sm:rounded-2xl sm:border sm:border-slate-200/80 sm:bg-white sm:p-6 sm:shadow-sm">
           <BookingClient
             tenantData={data}
+            customerId={customer.id}
+            customerName={customer.name}
+            customerPhone={customer.phone ?? ''}
             preSelectServiceId={sp.serviceId}
             preSelectPackageId={sp.packageId}
           />

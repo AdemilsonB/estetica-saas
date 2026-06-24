@@ -1,8 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
 import type {
   BookingState,
   BookingStep,
@@ -14,7 +12,6 @@ import type {
 import { ServiceStep, type PromotionServiceSelection } from '@/components/domain/booking/service-step'
 import { ProfessionalStep } from '@/components/domain/booking/professional-step'
 import { DateTimeStep } from '@/components/domain/booking/datetime-step'
-import { IdentificationStep } from '@/components/domain/booking/identification-step'
 import { ConfirmationStep } from '@/components/domain/booking/confirmation-step'
 import { BookingSuccess } from '@/components/domain/booking/booking-success'
 import { AnamneseStep } from '@/components/domain/booking/anamnese-step'
@@ -67,16 +64,21 @@ function StepIndicator({
 
 export function BookingClient({
   tenantData,
+  customerId,
+  customerName,
+  customerPhone,
   preSelectServiceId,
   preSelectPackageId,
 }: {
   tenantData: TenantPublicData
+  customerId: string
+  customerName: string
+  customerPhone: string
   preSelectServiceId?: string
   preSelectPackageId?: string
 }) {
-  const [authStatus, setAuthStatus] = useState<'checking' | 'unauthenticated' | 'authenticated'>('checking')
   const [step, setStep] = useState<BookingStep>('service')
-  const [booking, setBooking] = useState<BookingState>({})
+  const [booking, setBooking] = useState<BookingState>({ customerId, customerName, customerPhone })
   const [appointmentId, setAppointmentId] = useState<string | null>(null)
   const [professionalsForService, setProfessionalsForService] = useState<PublicProfessional[]>(
     tenantData.professionals,
@@ -87,28 +89,8 @@ export function BookingClient({
   const primaryColor = tenantData.branding?.primaryColor ?? '#7C3AED'
   const maxAdvanceDays = 60
 
-  // Verificação de autenticação — primeira coisa a rodar
+  // Pré-seleção via query params — cliente já chega autenticado (gate fica em /entrar)
   useEffect(() => {
-    fetch(`/api/public/${tenantData.slug}/me`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { name?: string; phone?: string } | null) => {
-        if (data?.name) {
-          setBooking((b) => ({
-            ...b,
-            customerName: data.name,
-            customerPhone: data.phone ?? '',
-          }))
-          setAuthStatus('authenticated')
-        } else {
-          setAuthStatus('unauthenticated')
-        }
-      })
-      .catch(() => setAuthStatus('unauthenticated'))
-  }, [tenantData.slug])
-
-  // Pré-seleção via query params (roda após autenticação confirmada)
-  useEffect(() => {
-    if (authStatus !== 'authenticated') return
     if (initializedRef.current) return
     initializedRef.current = true
 
@@ -127,7 +109,7 @@ export function BookingClient({
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authStatus])
+  }, [])
 
   const singleProfessional = tenantData.professionals.length === 1
   const visibleSteps = ALL_STEPS.filter((s) => {
@@ -135,55 +117,6 @@ export function BookingClient({
     if (s === 'anamnese') return false
     return true
   })
-
-  // Loading
-  if (authStatus === 'checking') {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="size-6 animate-spin text-slate-400" />
-      </div>
-    )
-  }
-
-  // Gate: cliente não autenticado — identificação antes do fluxo de agendamento
-  if (authStatus === 'unauthenticated') {
-    return (
-      <IdentificationStep
-        tenantSlug={tenantData.slug}
-        onIdentified={(id, name, isNew) => {
-          // Busca dados completos (incluindo telefone) para preencher o booking
-          fetch(`/api/public/${tenantData.slug}/me`)
-            .then((r) => (r.ok ? (r.json() as Promise<{ name?: string; phone?: string }>) : null))
-            .then((me) => {
-              const customerName = me?.name ?? name
-              setBooking((b) => ({
-                ...b,
-                customerName,
-                customerPhone: me?.phone ?? '',
-                customerId: id,
-              }))
-              setAuthStatus('authenticated')
-              if (isNew) {
-                toast.success(`Bem-vindo, ${customerName}! 🎉`, {
-                  description: 'Cadastro realizado. Agora escolha o serviço.',
-                })
-              } else {
-                toast.success(`Bem-vindo de volta, ${customerName}! 👋`, {
-                  description: 'Agora escolha o serviço que deseja agendar.',
-                })
-              }
-            })
-            .catch(() => {
-              setBooking((b) => ({ ...b, customerName: name, customerId: id }))
-              setAuthStatus('authenticated')
-            })
-        }}
-        onBack={() => {}}
-        primaryColor={primaryColor}
-        gateMode
-      />
-    )
-  }
 
   function handlePackageSelect(pkg: PublicPackage) {
     setBooking((b) => ({
