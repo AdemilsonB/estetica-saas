@@ -1,3 +1,4 @@
+import { PlanName } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { ForbiddenError, ValidationError, NotFoundError } from '@/shared/errors'
 import { NAV_REGISTRY, buildDefaultRolePermissions } from '@/shared/permissions/nav-registry'
@@ -71,11 +72,11 @@ export class RoleService {
   ) {
     const tenant = await prisma.tenant.findFirst({
       where: { id: tenantId },
-      select: { plan: true },
+      select: { subscription: { select: { plan: true } } },
     })
 
     const disabledSections = await prisma.planFeatureConfig.findMany({
-      where: { plan: tenant?.plan, enabled: false },
+      where: { plan: tenant?.subscription?.plan ?? PlanName.FREE, enabled: false },
       select: { sectionKey: true },
     })
     const disabledKeys = new Set(disabledSections.map((s) => s.sectionKey))

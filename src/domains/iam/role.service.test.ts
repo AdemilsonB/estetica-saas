@@ -60,7 +60,7 @@ describe('RoleService', () => {
   describe('createRole', () => {
     beforeEach(() => {
       vi.mocked(planLimitsService.assertWithinLimit).mockResolvedValue(undefined)
-      vi.mocked(prisma.tenant.findFirst).mockResolvedValue({ plan: 'PRO' } as any)
+      vi.mocked(prisma.tenant.findFirst).mockResolvedValue({ subscription: { plan: 'PRO' } } as any)
       // Opt-out: por padrão nenhuma seção está desabilitada
       vi.mocked(prisma.planFeatureConfig.findMany).mockResolvedValue([])
     })

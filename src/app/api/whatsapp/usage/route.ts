@@ -15,14 +15,14 @@ export async function GET(request: Request) {
 
     const tenant = await prisma.tenant.findFirst({
       where: { id: session.tenantId },
-      select: { plan: true },
+      select: { subscription: { select: { plan: true } } },
     });
 
     return Response.json({
       used: usage.used,
       limit: usage.limit,
       resetDate: usage.resetDate,
-      plan: tenant?.plan ?? "STARTER",
+      plan: tenant?.subscription?.plan ?? "STARTER",
     });
   } catch (error) {
     return handleApiError(error);

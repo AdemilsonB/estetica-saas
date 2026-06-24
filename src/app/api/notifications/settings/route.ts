@@ -41,6 +41,7 @@ export async function GET(request: Request) {
 
     const tenant = await prisma.tenant.findFirst({
       where: { id: session.tenantId },
+      include: { subscription: { select: { plan: true } } },
     });
 
     if (!tenant) {
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
     return Response.json({
       whatsappEnabled: tenant.whatsappEnabled,
       timezone: tenant.timezone,
-      plan: tenant.plan,
+      plan: tenant.subscription?.plan ?? "FREE",
       reminderLeadHours: tenant.reminderLeadHours,
       reminderWindowStart: tenant.reminderWindowStart,
       reminderWindowEnd: tenant.reminderWindowEnd,
@@ -85,12 +86,13 @@ export async function PATCH(request: Request) {
     const tenant = await prisma.tenant.update({
       where: { id: session.tenantId },
       data: input,
+      include: { subscription: { select: { plan: true } } },
     });
 
     return Response.json({
       whatsappEnabled: tenant.whatsappEnabled,
       timezone: tenant.timezone,
-      plan: tenant.plan,
+      plan: tenant.subscription?.plan ?? "FREE",
       reminderLeadHours: tenant.reminderLeadHours,
       reminderWindowStart: tenant.reminderWindowStart,
       reminderWindowEnd: tenant.reminderWindowEnd,

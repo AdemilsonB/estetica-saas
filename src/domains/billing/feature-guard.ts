@@ -54,8 +54,7 @@ export class FeatureGuard {
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
       select: {
-        plan: true,
-        subscription: { select: { status: true, trialEndsAt: true } },
+        subscription: { select: { plan: true, status: true, trialEndsAt: true } },
       },
     })
     if (!tenant) throw new NotFoundError('Tenant')
@@ -68,7 +67,7 @@ export class FeatureGuard {
       }
     }
 
-    return { plan: tenant.plan, status }
+    return { plan: tenant.subscription?.plan ?? PlanName.FREE, status }
   }
 
   private async findMinPlanForFeature(feature: FeatureName): Promise<PlanName | null> {

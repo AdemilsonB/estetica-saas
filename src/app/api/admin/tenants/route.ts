@@ -16,9 +16,9 @@ export async function GET(request: Request) {
         select: {
           id: true,
           name: true,
-          plan: true,
           isBlocked: true,
           createdAt: true,
+          subscription: { select: { plan: true } },
           _count: {
             select: {
               users: true,
@@ -37,11 +37,15 @@ export async function GET(request: Request) {
     const limitByPlan = Object.fromEntries(planLimits.map((l) => [l.plan, l.value]))
 
     return Response.json(
-      tenants.map((t) => ({
-        ...t,
-        appointmentsThisMonth: t._count.appointments,
-        appointmentsLimit: limitByPlan[t.plan] ?? null,
-      })),
+      tenants.map(({ subscription, ...t }) => {
+        const plan = subscription?.plan ?? 'FREE'
+        return {
+          ...t,
+          plan,
+          appointmentsThisMonth: t._count.appointments,
+          appointmentsLimit: limitByPlan[plan] ?? null,
+        }
+      }),
     )
   } catch (error) {
     return handleApiError(error)

@@ -1,5 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient, UserRole, PlanName } from "@prisma/client";
+import { PrismaClient, UserRole, PlanName, SubscriptionStatus } from "@prisma/client";
 import { config as loadEnv } from "dotenv";
 import { seedCatalog } from "./seed-catalog.mjs";
 
@@ -21,7 +21,18 @@ async function main() {
     create: {
       name: "SaaS Estetica Demo",
       slug: "saas-estetica-demo",
+    },
+  });
+
+  await prisma.subscription.upsert({
+    where: { tenantId: tenant.id },
+    update: { plan: PlanName.PRO, status: SubscriptionStatus.ACTIVE },
+    create: {
+      tenantId: tenant.id,
       plan: PlanName.PRO,
+      status: SubscriptionStatus.ACTIVE,
+      currentPeriodStart: new Date(),
+      currentPeriodEnd: new Date("2099-12-31"),
     },
   });
 

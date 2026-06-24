@@ -109,7 +109,6 @@ model Tenant {
   id                     String                 @id @default(cuid())
   name                   String
   slug                   String                 @unique
-  plan                   PlanName               @default(FREE)
   subscription           Subscription?
   brandingConfig         BrandingConfig?
   phone                  String?

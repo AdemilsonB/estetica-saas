@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
     const [totalTenants, planCounts, recentCount] = await Promise.all([
       prisma.tenant.count(),
-      prisma.tenant.groupBy({ by: ['plan'], _count: { _all: true } }),
+      prisma.subscription.groupBy({ by: ['plan'], _count: { _all: true } }),
       prisma.tenant.count({
         where: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
       }),
