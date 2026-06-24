@@ -74,12 +74,12 @@ export async function POST(req: Request) {
     if (!stripeSub) {
       await billingService.changePlan(
         session.tenantId,
-        PlanName.FREE,
+        sub.plan,
         SubscriptionStatus.CANCELLED,
         'sync',
         'no_active_subscription',
       )
-      return Response.json({ synced: true, plan: PlanName.FREE, status: SubscriptionStatus.CANCELLED })
+      return Response.json({ synced: true, plan: sub.plan, status: SubscriptionStatus.CANCELLED })
     }
 
     const newStatus = stripeStatusToLocal(stripeSub.status)
