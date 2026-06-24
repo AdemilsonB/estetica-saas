@@ -26,11 +26,20 @@ vi.mock('@/domains/scheduling/service.repository', () => ({
   },
 }))
 
+vi.mock('@/domains/scheduling/service-category.repository', () => ({
+  serviceCategoryRepository: {
+    list: vi.fn(),
+    create: vi.fn(),
+  },
+}))
+
 vi.mock('@/domains/inventory/product.repository', () => ({
   productRepository: {
     findByCatalogId: vi.fn(),
     createFromCatalog: vi.fn(),
     deleteByCatalogId: vi.fn(),
+    listCategories: vi.fn(),
+    createCategory: vi.fn(),
   },
 }))
 
@@ -43,6 +52,7 @@ vi.mock('@/shared/database/prisma', () => ({
 import { catalogMasterServiceRepository } from '../catalog-master-service.repository'
 import { catalogMasterProductRepository } from '../catalog-master-product.repository'
 import { catalogServiceRepository } from '@/domains/scheduling/service.repository'
+import { serviceCategoryRepository } from '@/domains/scheduling/service-category.repository'
 import { productRepository } from '@/domains/inventory/product.repository'
 import { prisma } from '@/shared/database/prisma'
 import { Prisma } from '@prisma/client'
@@ -95,6 +105,37 @@ describe('activateService', () => {
     }))
     expect(result).toBe(created)
   })
+
+  it('reaproveita ServiceCategory do tenant existente quando nome já corresponde (case-insensitive)', async () => {
+    const catalogItemWithCategory = { ...catalogItem, category: { id: 'cat-master-1', name: 'Cabelo' } }
+    vi.mocked(catalogMasterServiceRepository.findById).mockResolvedValue(catalogItemWithCategory as any)
+    vi.mocked(catalogServiceRepository.findByCatalogId).mockResolvedValue(null)
+    vi.mocked(serviceCategoryRepository.list).mockResolvedValue([{ id: 'cat-tenant-1', name: 'cabelo' }] as any)
+    vi.mocked(catalogServiceRepository.create).mockResolvedValue({ id: 'svc-new' } as any)
+
+    await service.activateService('t1', 'catalog-svc-1')
+
+    expect(serviceCategoryRepository.create).not.toHaveBeenCalled()
+    expect(catalogServiceRepository.create).toHaveBeenCalledWith('t1', expect.objectContaining({
+      categoryId: 'cat-tenant-1',
+    }))
+  })
+
+  it('cria ServiceCategory automaticamente no tenant quando não existe categoria correspondente', async () => {
+    const catalogItemWithCategory = { ...catalogItem, category: { id: 'cat-master-1', name: 'Cabelo' } }
+    vi.mocked(catalogMasterServiceRepository.findById).mockResolvedValue(catalogItemWithCategory as any)
+    vi.mocked(catalogServiceRepository.findByCatalogId).mockResolvedValue(null)
+    vi.mocked(serviceCategoryRepository.list).mockResolvedValue([] as any)
+    vi.mocked(serviceCategoryRepository.create).mockResolvedValue({ id: 'cat-tenant-novo', name: 'Cabelo' } as any)
+    vi.mocked(catalogServiceRepository.create).mockResolvedValue({ id: 'svc-new' } as any)
+
+    await service.activateService('t1', 'catalog-svc-1')
+
+    expect(serviceCategoryRepository.create).toHaveBeenCalledWith('t1', { name: 'Cabelo' })
+    expect(catalogServiceRepository.create).toHaveBeenCalledWith('t1', expect.objectContaining({
+      categoryId: 'cat-tenant-novo',
+    }))
+  })
 })
 
 describe('activateProduct', () => {
@@ -135,6 +176,22 @@ describe('activateProduct', () => {
     expect(productRepository.createFromCatalog).toHaveBeenCalledWith('t1', expect.objectContaining({
       name: 'Shampoo Profissional',
       catalogProductId: 'catalog-prod-1',
+    }))
+  })
+
+  it('cria ProductCategory automaticamente no tenant quando não existe categoria correspondente', async () => {
+    const catalogProductWithCategory = { ...catalogProduct, category: { id: 'cat-master-2', name: 'Cuidados com cabelo' } }
+    vi.mocked(catalogMasterProductRepository.findById).mockResolvedValue(catalogProductWithCategory as any)
+    vi.mocked(productRepository.findByCatalogId).mockResolvedValue(null)
+    vi.mocked(productRepository.listCategories).mockResolvedValue([] as any)
+    vi.mocked(productRepository.createCategory).mockResolvedValue({ id: 'cat-tenant-novo-2', name: 'Cuidados com cabelo' } as any)
+    vi.mocked(productRepository.createFromCatalog).mockResolvedValue({ id: 'prod-new' } as any)
+
+    await service.activateProduct('t1', 'catalog-prod-1')
+
+    expect(productRepository.createCategory).toHaveBeenCalledWith('t1', 'Cuidados com cabelo')
+    expect(productRepository.createFromCatalog).toHaveBeenCalledWith('t1', expect.objectContaining({
+      categoryId: 'cat-tenant-novo-2',
     }))
   })
 })

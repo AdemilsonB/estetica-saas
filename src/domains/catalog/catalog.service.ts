@@ -4,6 +4,7 @@ import { CatalogItemNotFoundError } from '@/shared/errors'
 import { catalogMasterServiceRepository } from './catalog-master-service.repository'
 import { catalogMasterProductRepository } from './catalog-master-product.repository'
 import { catalogServiceRepository } from '@/domains/scheduling/service.repository'
+import { serviceCategoryRepository } from '@/domains/scheduling/service-category.repository'
 import { productRepository } from '@/domains/inventory/product.repository'
 import type { SaveSegmentsInput } from './types'
 
@@ -31,6 +32,10 @@ export class CatalogDomainService {
     const existing = await catalogServiceRepository.findByCatalogId(tenantId, catalogServiceId)
     if (existing) return existing
 
+    const categoryId = catalogItem.category
+      ? await this.resolveTenantServiceCategory(tenantId, catalogItem.category.name)
+      : undefined
+
     return catalogServiceRepository.create(tenantId, {
       name:             catalogItem.name,
       description:      catalogItem.description ?? undefined,
@@ -39,6 +44,7 @@ export class CatalogDomainService {
       price:            catalogItem.suggestedPrice,
       priceType:        catalogItem.priceType,
       catalogServiceId: catalogItem.id,
+      categoryId,
       active:           true,
     })
   }
@@ -50,12 +56,33 @@ export class CatalogDomainService {
     const existing = await productRepository.findByCatalogId(tenantId, catalogProductId)
     if (existing) return existing
 
+    const categoryId = catalogItem.category
+      ? await this.resolveTenantProductCategory(tenantId, catalogItem.category.name)
+      : undefined
+
     return productRepository.createFromCatalog(tenantId, {
       name:             catalogItem.name,
       imageUrl:         catalogItem.imageUrl,
       salePrice:        catalogItem.suggestedPrice,
       catalogProductId: catalogItem.id,
+      categoryId,
     })
+  }
+
+  private async resolveTenantServiceCategory(tenantId: string, name: string): Promise<string> {
+    const categories = await serviceCategoryRepository.list(tenantId)
+    const match = categories.find(c => c.name.trim().toLowerCase() === name.trim().toLowerCase())
+    if (match) return match.id
+    const created = await serviceCategoryRepository.create(tenantId, { name })
+    return created.id
+  }
+
+  private async resolveTenantProductCategory(tenantId: string, name: string): Promise<string> {
+    const categories = await productRepository.listCategories(tenantId)
+    const match = categories.find(c => c.name.trim().toLowerCase() === name.trim().toLowerCase())
+    if (match) return match.id
+    const created = await productRepository.createCategory(tenantId, name)
+    return created.id
   }
 
   async deactivateService(tenantId: string, catalogServiceId: string): Promise<void> {
