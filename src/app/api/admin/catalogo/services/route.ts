@@ -3,6 +3,7 @@ import { BusinessSegment, PriceType, type Prisma } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { getAdminContext } from '@/shared/auth/admin-context'
 import { handleApiError } from '@/shared/http/handle-api-error'
+import { logAdminAction } from '@/shared/audit/admin-audit'
 import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 
 const createSchema = z.object({
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   initializeDomainRuntime()
   try {
-    await getAdminContext(request)
+    const session = await getAdminContext(request)
     const body = await request.json()
     const input = createSchema.parse(body)
 
@@ -71,6 +72,15 @@ export async function POST(request: Request) {
       data: { ...rest, ...(metadata !== undefined ? { metadata: metadata as Prisma.InputJsonValue } : {}) },
       include: { category: true },
     })
+
+    await logAdminAction({
+      adminUserId: session.userId,
+      action: 'catalog.service_created',
+      targetType: 'CatalogService',
+      targetId: service.id,
+      request,
+    })
+
     return Response.json(service, { status: 201 })
   } catch (error) {
     return handleApiError(error)

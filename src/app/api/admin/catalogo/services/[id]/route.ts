@@ -3,6 +3,7 @@ import { BusinessSegment, PriceType, type Prisma } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { getAdminContext } from '@/shared/auth/admin-context'
 import { handleApiError } from '@/shared/http/handle-api-error'
+import { logAdminAction } from '@/shared/audit/admin-audit'
 import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 
 const patchSchema = z.object({
@@ -22,7 +23,7 @@ const patchSchema = z.object({
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   initializeDomainRuntime()
   try {
-    await getAdminContext(request)
+    const session = await getAdminContext(request)
     const { id } = await params
     const body = await request.json()
     const input = patchSchema.parse(body)
@@ -42,6 +43,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       data: { ...rest, ...(metadata !== undefined ? { metadata: metadata as Prisma.InputJsonValue } : {}) },
       include: { category: true },
     })
+
+    await logAdminAction({
+      adminUserId: session.userId,
+      action: 'catalog.service_updated',
+      targetType: 'CatalogService',
+      targetId: id,
+      request,
+    })
+
     return Response.json(service)
   } catch (error) {
     return handleApiError(error)
@@ -51,9 +61,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   initializeDomainRuntime()
   try {
-    await getAdminContext(request)
+    const session = await getAdminContext(request)
     const { id } = await params
     await prisma.catalogService.update({ where: { id }, data: { active: false } })
+
+    await logAdminAction({
+      adminUserId: session.userId,
+      action: 'catalog.service_deactivated',
+      targetType: 'CatalogService',
+      targetId: id,
+      request,
+    })
+
     return Response.json({ ok: true })
   } catch (error) {
     return handleApiError(error)

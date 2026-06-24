@@ -3,6 +3,7 @@ import { getAdminContext } from '@/shared/auth/admin-context'
 import { handleApiError } from '@/shared/http/handle-api-error'
 import { validateInput } from '@/shared/http/validate-input'
 import { adminRepository } from '@/domains/admin/admin.repository'
+import { logAdminAction } from '@/shared/audit/admin-audit'
 import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 
 const blockSchema = z.object({
@@ -16,7 +17,7 @@ export async function PATCH(
 ) {
   initializeDomainRuntime()
   try {
-    await getAdminContext(request)
+    const session = await getAdminContext(request)
     const { tenantId } = await params
     const input = await validateInput(request, blockSchema)
 
@@ -25,6 +26,15 @@ export async function PATCH(
     } else {
       await adminRepository.unblockTenant(tenantId)
     }
+
+    await logAdminAction({
+      adminUserId: session.userId,
+      action: input.blocked ? 'tenant.blocked' : 'tenant.unblocked',
+      targetType: 'Tenant',
+      targetId: tenantId,
+      metadata: { reason: input.reason },
+      request,
+    })
 
     return Response.json({ ok: true })
   } catch (error) {

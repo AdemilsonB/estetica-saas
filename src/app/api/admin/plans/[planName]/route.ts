@@ -4,6 +4,7 @@ import { prisma } from '@/shared/database/prisma'
 import { getAdminContext } from '@/shared/auth/admin-context'
 import { handleApiError } from '@/shared/http/handle-api-error'
 import { validateInput } from '@/shared/http/validate-input'
+import { logAdminAction } from '@/shared/audit/admin-audit'
 import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 
 type Params = { params: Promise<{ planName: string }> }
@@ -26,7 +27,7 @@ const updatePlanSchema = z.object({
 export async function PUT(request: Request, { params }: Params) {
   initializeDomainRuntime()
   try {
-    await getAdminContext(request)
+    const session = await getAdminContext(request)
     const { planName } = await params
     if (!isPlanName(planName)) {
       return Response.json({ error: 'Plano inválido' }, { status: 400 })
@@ -36,6 +37,16 @@ export async function PUT(request: Request, { params }: Params) {
       where: { name: planName },
       data: input,
     })
+
+    await logAdminAction({
+      adminUserId: session.userId,
+      action: 'plan.updated',
+      targetType: 'Plan',
+      targetId: planName,
+      metadata: input,
+      request,
+    })
+
     return Response.json(plan)
   } catch (error) {
     return handleApiError(error)
