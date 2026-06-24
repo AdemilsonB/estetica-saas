@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { CheckCircle2 } from 'lucide-react'
 import type { BookingState } from '@/app/(public)/agendar/[slug]/types'
 
@@ -37,10 +38,12 @@ function downloadICS(content: string) {
 export function BookingSuccess({
   booking,
   tenantName,
+  tenantSlug,
   primaryColor,
 }: {
   booking: BookingState
   tenantName: string
+  tenantSlug: string
   primaryColor: string
 }) {
   function formatDate(d?: Date): string {
@@ -92,6 +95,22 @@ export function BookingSuccess({
           + Adicionar ao calendário
         </button>
       )}
+
+      <div className="flex flex-col gap-2 pt-2">
+        <Link
+          href={`/${tenantSlug}/cliente`}
+          className="flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold text-white shadow-sm"
+          style={{ backgroundColor: primaryColor }}
+        >
+          Ver meus agendamentos
+        </Link>
+        <Link
+          href={`/${tenantSlug}`}
+          className="flex h-12 w-full items-center justify-center rounded-full text-sm font-medium text-slate-600"
+        >
+          Voltar à vitrine
+        </Link>
+      </div>
     </div>
   )
 }

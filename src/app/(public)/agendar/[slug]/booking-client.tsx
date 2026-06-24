@@ -315,6 +315,7 @@ export function BookingClient({
         <BookingSuccess
           booking={booking}
           tenantName={tenantData.name}
+          tenantSlug={tenantData.slug}
           primaryColor={primaryColor}
         />
       )}
