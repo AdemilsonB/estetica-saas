@@ -116,7 +116,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <SidebarContent />
         </aside>
 
-        <main className="min-w-0 flex-1 p-4 text-white sm:p-6 md:p-8">{children}</main>
+        <main className="min-w-0 flex-1 bg-slate-50 p-4 sm:p-6 md:p-8">{children}</main>
       </div>
 
       {/* Menu drawer — mobile (< md) */}
