@@ -43,6 +43,39 @@ const FEATURES = [
   },
 ] as const
 
+const MORE_FEATURES = [
+  {
+    icon: '🩺',
+    title: 'Anamnese digital',
+    description: 'Ficha de saúde e preferências por serviço, preenchida pela cliente antes do atendimento.',
+  },
+  {
+    icon: '🌐',
+    title: 'Portal do cliente',
+    description: 'Sua cliente acompanha histórico, próximo horário e dados do negócio sem precisar te chamar.',
+  },
+  {
+    icon: '📦',
+    title: 'Catálogo & estoque',
+    description: 'Produtos, pacotes e promoções com controle de estoque conectado ao financeiro.',
+  },
+  {
+    icon: '🎨',
+    title: 'Marca personalizável',
+    description: 'Cores, logo e link público com a identidade do seu salão, não a nossa.',
+  },
+  {
+    icon: '🏢',
+    title: 'Multi-unidades',
+    description: 'Gerencie mais de uma unidade com agenda, equipe e financeiro separados por filial.',
+  },
+  {
+    icon: '📱',
+    title: 'App no celular',
+    description: 'Instale o painel na tela inicial do celular como um app — sem precisar baixar nada.',
+  },
+] as const
+
 export function LandingFeatures() {
   return (
     <section id="funcionalidades" className="bg-white px-4 sm:px-6 py-10 sm:py-20">
@@ -81,6 +114,24 @@ export function LandingFeatures() {
               </div>
             )
           })}
+        </div>
+
+        <div className="mt-14 sm:mt-24">
+          <h3 className="text-center text-xl sm:text-2xl font-extrabold text-slate-900">
+            E tem muito mais incluído
+          </h3>
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3">
+            {MORE_FEATURES.map((feature) => (
+              <div
+                key={feature.title}
+                className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50/50 to-pink-50/50 p-4 sm:p-5"
+              >
+                <div className="mb-2 text-xl sm:text-2xl">{feature.icon}</div>
+                <h4 className="mb-1 text-sm sm:text-base font-bold text-slate-900">{feature.title}</h4>
+                <p className="text-xs sm:text-sm leading-relaxed text-slate-500">{feature.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

@@ -9,12 +9,28 @@ import { LIMIT_REGISTRY } from '../src/shared/permissions/limit-registry'
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
 const prisma = new PrismaClient({ adapter } as any)
 
+// description: um benefício por linha — é o que /planos, onboarding e
+// /api/public/plans exibem como bullets. Fonte única de verdade configurada
+// pelo admin (nunca duplicar essa lista hardcoded no frontend).
 const PLANS = [
-  // FREE não é mais vendido — mantido apenas como estado técnico interno (nunca exibido/selecionável)
-  { name: PlanName.FREE,       displayName: 'Free',       price: 0,      description: 'Grátis para sempre',             isActive: false, displayOrder: 0 },
-  { name: PlanName.STARTER,    displayName: 'Starter',    price: 49.90,  description: 'Para negócios em crescimento',   isActive: true, displayOrder: 1 },
-  { name: PlanName.PRO,        displayName: 'Pro',        price: 149.90, description: 'Para negócios consolidados',     isActive: true, displayOrder: 2 },
-  { name: PlanName.ENTERPRISE, displayName: 'Enterprise', price: 0,      description: 'Para grandes operações',         isActive: true, displayOrder: 3 },
+  // FREE não é mais vendido (ver PR de billing/ADR-010) — isActive: false,
+  // nunca exibido em landing/planos/onboarding.
+  {
+    name: PlanName.FREE, displayName: 'Free', price: 0, isActive: false, displayOrder: 0,
+    description: ['Até 2 profissionais', 'Até 50 agendamentos/mês', 'Agenda e CRM básico', 'Relatórios básicos'].join('\n'),
+  },
+  {
+    name: PlanName.STARTER, displayName: 'Starter', price: 49.90, isActive: true, displayOrder: 1,
+    description: ['Até 5 profissionais', 'Até 300 agendamentos/mês', 'WhatsApp automático', 'Página de agendamento pública', 'Relatórios completos + CSV', 'Estoque de produtos'].join('\n'),
+  },
+  {
+    name: PlanName.PRO, displayName: 'Pro', price: 149.90, isActive: true, displayOrder: 2,
+    description: ['Até 20 profissionais', 'Até 2.000 agendamentos/mês', 'WhatsApp premium (chatbot, aniversário)', 'Tudo do Starter', 'Relatórios avançados', 'Até 3 unidades'].join('\n'),
+  },
+  {
+    name: PlanName.ENTERPRISE, displayName: 'Enterprise', price: 0, isActive: true, displayOrder: 3,
+    description: ['Profissionais ilimitados', 'Agendamentos ilimitados', 'WhatsApp ilimitado', 'Unidades ilimitadas', 'Suporte prioritário', 'Tudo do Pro'].join('\n'),
+  },
 ]
 
 const BILLING_FEATURES: Array<{ sectionKey: string; plans: Partial<Record<PlanName, boolean>> }> = [
