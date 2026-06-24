@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { CatalogServiceSheet } from '@/components/admin/catalog/CatalogServiceSheet'
 import { CatalogProductSheet } from '@/components/admin/catalog/CatalogProductSheet'
+import { CategoryManagerPanel } from '@/components/admin/catalog/CategoryManagerPanel'
 import {
   useAdminCatalogServices,
   useAdminCatalogProducts,
@@ -146,6 +147,7 @@ export default function AdminCatalogoPage() {
           <TabsTrigger value="products">
             Produtos {productsData && <span className="ml-1.5 text-xs text-slate-400">({productsData.total})</span>}
           </TabsTrigger>
+          <TabsTrigger value="categories">Categorias</TabsTrigger>
         </TabsList>
 
         <TabsContent value="services" className="space-y-4 pt-4">
@@ -284,6 +286,19 @@ export default function AdminCatalogoPage() {
               </div>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="categories" className="pt-4">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="space-y-2">
+              <h2 className="text-sm font-semibold text-slate-700">Categorias de Serviço</h2>
+              <CategoryManagerPanel kind="services" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-sm font-semibold text-slate-700">Categorias de Produto</h2>
+              <CategoryManagerPanel kind="products" />
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 

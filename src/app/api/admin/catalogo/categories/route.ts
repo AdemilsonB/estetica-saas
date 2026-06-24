@@ -7,9 +7,17 @@ export async function GET(request: Request) {
   initializeDomainRuntime()
   try {
     await getAdminContext(request)
+    const { searchParams } = new URL(request.url)
+    const includeInactive = searchParams.get('includeInactive') === 'true'
     const [services, products] = await Promise.all([
-      prisma.catalogServiceCategory.findMany({ orderBy: { order: 'asc' } }),
-      prisma.catalogProductCategory.findMany({ orderBy: { order: 'asc' } }),
+      prisma.catalogServiceCategory.findMany({
+        where: includeInactive ? {} : { active: true },
+        orderBy: { order: 'asc' },
+      }),
+      prisma.catalogProductCategory.findMany({
+        where: includeInactive ? {} : { active: true },
+        orderBy: { order: 'asc' },
+      }),
     ])
     return Response.json({ services, products })
   } catch (error) {
