@@ -25,6 +25,7 @@ export class ProductRepository {
     imageUrl?: string | null
     salePrice: Prisma.Decimal
     catalogProductId: string
+    categoryId?: string
   }) {
     return prisma.product.create({
       data: {
@@ -34,6 +35,7 @@ export class ProductRepository {
         costPrice:        new Prisma.Decimal(0),
         salePrice:        data.salePrice,
         catalogProductId: data.catalogProductId,
+        categoryId:       data.categoryId,
         active:           true,
       },
       include: { category: true },

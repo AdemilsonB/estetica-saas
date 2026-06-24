@@ -123,17 +123,83 @@ export function useAdminCatalogProducts(filters: {
   })
 }
 
-export function useAdminCatalogCategories() {
+export function useAdminCatalogCategories(includeInactive = false) {
   return useQuery<{ services: CatalogCategory[]; products: CatalogCategory[] }>({
-    queryKey: ['admin', 'catalog', 'categories'],
+    queryKey: ['admin', 'catalog', 'categories', { includeInactive }],
     queryFn: async () => {
-      const res = await fetch('/api/admin/catalogo/categories')
+      const res = await fetch(`/api/admin/catalogo/categories?includeInactive=${includeInactive}`)
       if (!res.ok) throw new Error('Erro ao carregar categorias')
       return res.json()
     },
     staleTime: 5 * 60 * 1000,
   })
 }
+
+// ---- hooks de mutação — categorias ----
+
+export interface CatalogCategoryCreateInput {
+  slug: string
+  name: string
+  segments: string[]
+  order?: number
+}
+
+function useCreateCatalogCategory(kind: 'services' | 'products') {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (data: CatalogCategoryCreateInput) => {
+      const res = await fetch(`/api/admin/catalogo/categories/${kind}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error((err as { error?: { message?: string } })?.error?.message ?? 'Erro ao criar categoria')
+      }
+      return res.json() as Promise<CatalogCategory>
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'catalog', 'categories'] }),
+  })
+}
+
+function useUpdateCatalogCategory(kind: 'services' | 'products') {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, ...data }: Partial<CatalogCategoryCreateInput> & { id: string; active?: boolean }) => {
+      const res = await fetch(`/api/admin/catalogo/categories/${kind}/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error((err as { error?: { message?: string } })?.error?.message ?? 'Erro ao atualizar categoria')
+      }
+      return res.json() as Promise<CatalogCategory>
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'catalog', 'categories'] }),
+  })
+}
+
+function useDeactivateCatalogCategory(kind: 'services' | 'products') {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/catalogo/categories/${kind}/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Erro ao desativar categoria')
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'catalog', 'categories'] }),
+  })
+}
+
+export const useCreateCatalogServiceCategory = () => useCreateCatalogCategory('services')
+export const useUpdateCatalogServiceCategory = () => useUpdateCatalogCategory('services')
+export const useDeactivateCatalogServiceCategory = () => useDeactivateCatalogCategory('services')
+
+export const useCreateCatalogProductCategory = () => useCreateCatalogCategory('products')
+export const useUpdateCatalogProductCategory = () => useUpdateCatalogCategory('products')
+export const useDeactivateCatalogProductCategory = () => useDeactivateCatalogCategory('products')
 
 // ---- hooks de mutação — serviços ----
 
