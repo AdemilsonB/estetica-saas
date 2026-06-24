@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyPublicSession, COOKIE_NAME } from '@/shared/auth/public-session'
 import { prisma } from '@/shared/database/prisma'
 import { publicBookingRepository } from '@/domains/scheduling/public-booking.repository'
+import { isOpenNow, getWeekdayIndex } from '@/lib/business-hours'
 import { CustomerHistoryClient } from './customer-history-client'
 
 function maskCpf(cpf: string | null): string {
@@ -79,6 +80,7 @@ export default async function ClientePage({
       ? `https://wa.me/55${tenant.phone.replace(/\D/g, '')}`
       : null
   const primary = tenant.brandingConfig?.primaryColor ?? '#7C3AED'
+  const timezone = tenant.timezone ?? 'America/Sao_Paulo'
 
   return (
     <CustomerHistoryClient
@@ -109,6 +111,12 @@ export default async function ClientePage({
       slug={slug}
       whatsappUrl={whatsappUrl}
       primaryColor={primary}
+      business={{
+        address: tenant.address,
+        businessHours: tenant.businessHours,
+        todayWeekdayIndex: getWeekdayIndex(timezone),
+        isOpenNow: isOpenNow(tenant.businessHours, timezone),
+      }}
     />
   )
 }

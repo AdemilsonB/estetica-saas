@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { isOpenNow } from '@/lib/business-hours'
 import { VitrineHero } from '@/components/domain/vitrine/vitrine-hero'
 import { VitrineServicesList } from '@/components/domain/vitrine/vitrine-services-list'
 import { VitrinePackagesSection } from '@/components/domain/vitrine/vitrine-packages-section'
@@ -54,33 +55,6 @@ type TeamMember = {
 }
 type Product = {
   id: string; name: string; salePrice: number; imageUrl?: string | null; categoryName?: string | null
-}
-
-type BusinessHourEntry = { open: string; close: string; active: boolean }
-type BusinessHoursMap = Record<string, BusinessHourEntry>
-
-function isOpenNow(businessHours: unknown, timezone: string): boolean {
-  if (!businessHours || typeof businessHours !== 'object') return true
-  try {
-    const hours = businessHours as BusinessHoursMap
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      hour: '2-digit', minute: '2-digit', weekday: 'short', hour12: false,
-    })
-    const parts = formatter.formatToParts(new Date())
-    const weekdayShort = parts.find((p) => p.type === 'weekday')?.value
-    const hourStr = parts.find((p) => p.type === 'hour')?.value
-    const minuteStr = parts.find((p) => p.type === 'minute')?.value
-    if (!weekdayShort || !hourStr || !minuteStr) return true
-    const weekdayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
-    const dayIndex = weekdayMap[weekdayShort]
-    if (dayIndex === undefined) return true
-    const dayConfig = hours[String(dayIndex)]
-    if (!dayConfig?.active) return false
-    const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return (h ?? 0) * 60 + (m ?? 0) }
-    const current = toMin(`${hourStr}:${minuteStr}`)
-    return current >= toMin(dayConfig.open) && current < toMin(dayConfig.close)
-  } catch { return true }
 }
 
 async function fetchAll(slug: string) {
