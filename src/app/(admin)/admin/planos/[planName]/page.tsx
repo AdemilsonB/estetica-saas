@@ -211,8 +211,8 @@ export default function PlanEditorPage() {
           <div className="max-w-lg rounded-xl border border-slate-200 bg-white p-6">
             <div className="space-y-4">
               {(Object.entries(LIMIT_REGISTRY) as Array<[string, typeof LIMIT_REGISTRY[keyof typeof LIMIT_REGISTRY]]>).map(([key, meta]) => (
-                <div key={key} className="flex items-center gap-4">
-                  <Label className="w-48 shrink-0">{meta.label}</Label>
+                <div key={key} className="flex flex-wrap items-center gap-2 sm:gap-4">
+                  <Label className="w-full sm:w-48 sm:shrink-0">{meta.label}</Label>
                   <Input
                     type="number"
                     min={0}

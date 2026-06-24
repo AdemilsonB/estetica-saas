@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -98,12 +98,12 @@ export function CatalogProductSheet({ open, onClose, item, categories }: Props) 
   }
 
   return (
-    <Sheet open={open} onOpenChange={v => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{isEditing ? 'Editar Produto' : 'Novo Produto'}</SheetTitle>
-        </SheetHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+    <Dialog open={open} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{isEditing ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <Label htmlFor="name">Nome *</Label>
             <Input id="name" value={form.name} onChange={e => handleNameChange(e.target.value)} required />
@@ -159,14 +159,14 @@ export function CatalogProductSheet({ open, onClose, item, categories }: Props) 
               <Label htmlFor="active">Ativo</Label>
             </div>
           </div>
-          <SheetFooter className="pt-2">
+          <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>Cancelar</Button>
             <Button type="submit" disabled={isPending}>
               {isPending ? 'Salvando...' : isEditing ? 'Salvar' : 'Criar'}
             </Button>
-          </SheetFooter>
+          </DialogFooter>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }

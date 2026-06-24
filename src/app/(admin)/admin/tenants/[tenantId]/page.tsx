@@ -104,7 +104,7 @@ export default function TenantDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href="/admin/tenants" className="text-slate-400 hover:text-slate-700">
             <ArrowLeft className="size-4" />
@@ -116,7 +116,7 @@ export default function TenantDetailPage() {
             </span>
           )}
         </div>
-        <Button variant="outline" size="sm" onClick={handleImpersonate} className="gap-1.5">
+        <Button variant="outline" size="sm" onClick={handleImpersonate} className="gap-1.5 self-start sm:self-auto">
           <Eye className="size-4" />
           Visualizar como dono
         </Button>
