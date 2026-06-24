@@ -1,10 +1,17 @@
+import { config } from 'dotenv'
+import { resolve } from 'path'
+config({ path: resolve(process.cwd(), '.env.local') })
+
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient, PlanName } from '@prisma/client'
 import { LIMIT_REGISTRY } from '../src/shared/permissions/limit-registry'
 
-const prisma = new PrismaClient()
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
+const prisma = new PrismaClient({ adapter } as any)
 
 const PLANS = [
-  { name: PlanName.FREE,       displayName: 'Free',       price: 0,      description: 'Grátis para sempre',             isActive: true, displayOrder: 0 },
+  // FREE não é mais vendido — mantido apenas como estado técnico interno (nunca exibido/selecionável)
+  { name: PlanName.FREE,       displayName: 'Free',       price: 0,      description: 'Grátis para sempre',             isActive: false, displayOrder: 0 },
   { name: PlanName.STARTER,    displayName: 'Starter',    price: 49.90,  description: 'Para negócios em crescimento',   isActive: true, displayOrder: 1 },
   { name: PlanName.PRO,        displayName: 'Pro',        price: 149.90, description: 'Para negócios consolidados',     isActive: true, displayOrder: 2 },
   { name: PlanName.ENTERPRISE, displayName: 'Enterprise', price: 0,      description: 'Para grandes operações',         isActive: true, displayOrder: 3 },
@@ -26,7 +33,7 @@ async function main() {
   for (const plan of PLANS) {
     await prisma.plan.upsert({
       where: { name: plan.name },
-      update: { displayName: plan.displayName, price: plan.price, description: plan.description, displayOrder: plan.displayOrder },
+      update: { displayName: plan.displayName, price: plan.price, description: plan.description, displayOrder: plan.displayOrder, isActive: plan.isActive },
       create: plan,
     })
   }

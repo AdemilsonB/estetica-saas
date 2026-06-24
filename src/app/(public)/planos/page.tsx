@@ -2,12 +2,6 @@ import { prisma } from '@/shared/database/prisma'
 import { PricingToggle } from '@/components/domain/billing/pricing-toggle'
 
 const PLAN_FEATURES: Record<string, string[]> = {
-  FREE: [
-    'Até 2 profissionais',
-    'Até 50 agendamentos/mês',
-    'Agenda e CRM básico',
-    'Relatórios básicos',
-  ],
   STARTER: [
     'Até 5 profissionais',
     'Até 300 agendamentos/mês',
@@ -76,7 +70,7 @@ export default async function PlansPage() {
             {[
               ['Preciso de cartão de crédito para o trial?', 'Não. O trial de 14 dias é gratuito e não exige cartão.'],
               ['Posso cancelar a qualquer momento?', 'Sim. Cancele pelo painel de configurações. Sem multas.'],
-              ['O que acontece ao fim do trial?', 'Seu plano retorna ao FREE automaticamente. Nenhum dado é perdido.'],
+              ['O que acontece ao fim do trial?', 'Seu acesso fica suspenso até você escolher e assinar um plano. Nenhum dado é perdido.'],
               ['Posso mudar de plano?', 'Sim. Upgrade ou downgrade a qualquer momento nas configurações.'],
             ].map(([q, a]) => (
               <details key={q} className="rounded-xl border border-slate-200 bg-white p-4">

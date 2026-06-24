@@ -4,10 +4,14 @@ import { redirect } from 'next/navigation'
 import { unstable_cache } from 'next/cache'
 import { AppShell } from '@/components/app/app-shell'
 import { ImpersonationBanner } from '@/components/admin/impersonation-banner'
+import { SubscriptionLockedScreen } from '@/components/domain/billing/subscription-locked-screen'
 import { brandingRepository } from '@/domains/iam/branding.repository'
 import { buildCssVariables } from '@/lib/branding/build-css-variables'
 import { iamRepository } from '@/domains/iam/iam.repository'
-import { getServerTenantId } from '@/shared/auth/get-server-tenant-id'
+import { getServerSessionInfo } from '@/shared/auth/get-server-tenant-id'
+import { featureGuard } from '@/domains/billing/feature-guard'
+
+const ACTIVE_SUBSCRIPTION_STATUSES = ['TRIALING', 'ACTIVE', 'PAST_DUE']
 
 async function getBrandingCached(tenantId: string) {
   const cached = unstable_cache(
@@ -37,7 +41,7 @@ async function getTenantOnboardingStatus(tenantId: string): Promise<boolean> {
 }
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const tenantId = await getServerTenantId()
+  const { tenantId, isOwner } = await getServerSessionInfo()
 
   // Lê o pathname injetado pelo middleware via header x-pathname
   const headersList = await headers()
@@ -46,6 +50,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   let brandingCss = ''
   let logoUrl: string | null = null
   let businessName = ''
+  let lockedPlan: string | null = null
+  let isLocked = false
 
   if (tenantId) {
     const [config, tenant, onboardingCompleted] = await Promise.all([
@@ -64,6 +70,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       redirect('/agenda')
     }
 
+    if (onboardingCompleted) {
+      const { plan, status } = await featureGuard.getSubscriptionState(tenantId)
+      if (!ACTIVE_SUBSCRIPTION_STATUSES.includes(status)) {
+        isLocked = true
+        lockedPlan = plan !== 'FREE' ? plan : null
+      }
+    }
+
     if (config) {
       const { styleTag } = buildCssVariables({
         primaryColor: config.primaryColor,
@@ -79,6 +93,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       })
       brandingCss = styleTag
     }
+  }
+
+  if (isLocked) {
+    return (
+      <>
+        <ImpersonationBanner />
+        <SubscriptionLockedScreen isOwner={isOwner} originalPlan={lockedPlan} />
+      </>
+    )
   }
 
   return (

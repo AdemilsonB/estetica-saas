@@ -37,7 +37,6 @@ function formatPrice(price: number) {
 }
 
 export function SharedPlanCard({ plan, action, badge }: Props) {
-  const isFree = plan.name === 'FREE'
   const trialDays = plan.trialDays ?? 14
   const isLoading = action.type === 'onboarding' && action.loadingKey !== null
 
@@ -57,7 +56,7 @@ export function SharedPlanCard({ plan, action, badge }: Props) {
       <div>
         <h3 className="font-semibold text-slate-900">{plan.displayName}</h3>
         <p className="text-3xl font-bold text-slate-900 mt-2">{formatPrice(plan.price)}</p>
-        {!isFree && trialDays > 0 && (
+        {trialDays > 0 && (
           <p className="text-xs text-slate-500 mt-1">{trialDays} dias grátis · cancele a qualquer momento</p>
         )}
       </div>
@@ -79,49 +78,36 @@ export function SharedPlanCard({ plan, action, badge }: Props) {
               ? 'bg-slate-900 text-white hover:bg-slate-700'
               : 'border border-slate-200 text-slate-700 hover:border-slate-400'}`}
         >
-          {isFree ? 'Começar grátis' : 'Iniciar 14 dias grátis'}
+          Iniciar 14 dias grátis
         </a>
       ) : (
         <div className="flex flex-col gap-2">
-          {isFree ? (
+          {trialDays > 0 && (
             <Button
-              onClick={() => action.onSelect('FREE')}
+              onClick={() => action.onSelect(plan.name, false)}
               disabled={isLoading}
-              variant="outline"
-              className="w-full"
+              variant={plan.isPopular ? 'default' : 'outline'}
+              className={`w-full ${plan.isPopular ? 'bg-slate-900 hover:bg-slate-700' : ''}`}
             >
-              Começar grátis
-            </Button>
-          ) : (
-            <>
-              {trialDays > 0 && (
-                <Button
-                  onClick={() => action.onSelect(plan.name, false)}
-                  disabled={isLoading}
-                  variant={plan.isPopular ? 'default' : 'outline'}
-                  className={`w-full ${plan.isPopular ? 'bg-slate-900 hover:bg-slate-700' : ''}`}
-                >
-                  {action.loadingKey === `${plan.name}_trial` ? (
-                    <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
-                  ) : (
-                    `Testar ${trialDays} dias grátis`
-                  )}
-                </Button>
+              {action.loadingKey === `${plan.name}_trial` ? (
+                <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
+              ) : (
+                `Testar ${trialDays} dias grátis`
               )}
-              <Button
-                onClick={() => action.onSelect(plan.name, true)}
-                disabled={isLoading}
-                variant="ghost"
-                className="w-full text-slate-500 text-sm"
-              >
-                {action.loadingKey === `${plan.name}_direct` ? (
-                  <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
-                ) : (
-                  'Assinar agora'
-                )}
-              </Button>
-            </>
+            </Button>
           )}
+          <Button
+            onClick={() => action.onSelect(plan.name, true)}
+            disabled={isLoading}
+            variant="ghost"
+            className="w-full text-slate-500 text-sm"
+          >
+            {action.loadingKey === `${plan.name}_direct` ? (
+              <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
+            ) : (
+              'Assinar agora'
+            )}
+          </Button>
         </div>
       )}
     </div>

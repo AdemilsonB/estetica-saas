@@ -6,6 +6,7 @@ import { stripeBillingService } from '@/domains/billing/stripe-billing.service'
 import { iamRepository } from '@/domains/iam/iam.repository'
 import { billingRepository } from '@/domains/billing/billing.repository'
 import { DomainError } from '@/shared/errors/domain-error'
+import { ForbiddenError } from '@/shared/errors'
 
 const CheckoutSchema = z.object({
   planName:   z.enum(['STARTER', 'PRO', 'ENTERPRISE']),
@@ -23,6 +24,7 @@ const ACTIVE_STATUSES: SubscriptionStatus[] = [
 export async function POST(req: Request) {
   try {
     const session = await getSessionContext(req)
+    if (!session.isOwner) throw new ForbiddenError('Apenas o dono pode contratar um plano.')
     const body = await req.json()
     const { planName, skipTrial, successUrl, cancelUrl } = CheckoutSchema.parse(body)
 
@@ -43,11 +45,8 @@ export async function POST(req: Request) {
       sub.trialEndsAt != null &&
       sub.trialEndsAt < new Date()
 
-    // Plano FREE é o estado inicial de todo tenant novo — nunca bloqueia upgrade
-    const isFree = sub?.plan === PlanName.FREE
-
-    // Bloqueia se status é ativo E não é trial expirado E não é FREE (protege contra race condition no webhook)
-    if (sub && ACTIVE_STATUSES.includes(sub.status) && !isExpiredTrial && !isFree) {
+    // Bloqueia se status é ativo e não é trial expirado (protege contra race condition no webhook)
+    if (sub && ACTIVE_STATUSES.includes(sub.status) && !isExpiredTrial) {
       throw new DomainError(
         'Você já possui uma assinatura ativa. Para mudar de plano, use o portal de assinatura.',
         'SUBSCRIPTION_EXISTS',

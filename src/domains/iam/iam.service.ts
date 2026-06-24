@@ -6,7 +6,6 @@ import { NotFoundError, ConflictError, ForbiddenError, UserNotFoundError } from 
 import { iamRepository } from "./iam.repository";
 import { resolveImageCrop } from "@/shared/utils/image-crop";
 import type { SessionContext } from "@/shared/types/auth";
-import { billingService } from "@/domains/billing/billing.service";
 import { featureGuard } from "@/domains/billing/feature-guard";
 
 type RegisterInput = {
@@ -126,8 +125,6 @@ export class IamService {
         onboardingStep: 'plan',
       },
     });
-
-    await billingService.startFree(createResult.tenant.id);
 
     return { tenantId: createResult.tenant.id, userId: createResult.user.id };
   }

@@ -178,3 +178,28 @@ O gate **não substitui** `getSessionContext`/tenant scoping — cada route.ts c
 - `getProfessionalsReport` (`reports.service.ts:208`) soma receita por `appointmentId` via `appointment.transactions` — uma entrada negativa no mesmo `appointmentId` neutraliza corretamente sem mudança de código.
 - `byGroup` em `getFinancialReport` (`reports.service.ts:74`) incrementa `quantidade` por transação, não por agendamento — um agendamento estornado contará como 2 ocorrências (pagamento + estorno) no agrupamento por serviço/profissional, com `receita` líquida correta. Limitação conhecida, aceitável; revisar se incomodar na prática.
 - `src/domains/financial/DOMAIN.md` está desatualizado (cita evento `scheduling.appointment.completed`, que não existe; o real é `scheduling.appointment.paid`) — corrigir numa sessão de documentação separada, fora do escopo desta ADR.
+
+---
+
+## ADR-010 — Remoção do plano FREE comercial; bloqueio de acesso em vez de downgrade automático
+
+**Data**: 2026-06-24
+**Status**: Aceito
+
+**Contexto**: O plano FREE permanente prejudicava a conversão e não refletia o posicionamento atual do produto. Decisão de negócio: parar de vender/oferecer FREE em qualquer superfície (landing, `/planos`, onboarding).
+
+**Problema técnico encontrado**: `PlanName.FREE` não era só uma opção comercial — era usado como *fallback* interno sempre que um trial expirava ou uma assinatura era cancelada (`billing.service.ts: runExpireSweep`, webhook `customer.subscription.deleted`, `/api/billing/sync`). Esses fluxos rebaixavam o tenant para FREE silenciosamente, perdendo o registro de qual plano ele tinha antes e permitindo acesso contínuo (ainda que limitado).
+
+**Decisão**:
+1. `PlanName.FREE` permanece no enum do Prisma (sem migration destrutiva), mas o registro em `Plan` fica com `isActive: false` — nunca aparece em `/api/public/plans`, `/planos`, onboarding ou cards de admin.
+2. Trial expirado ou assinatura cancelada/sem renovação **não rebaixam mais o `plan` para FREE** — `status` vai para `EXPIRED`/`CANCELLED` mantendo o `plan` real (`runExpireSweep`, `sync/route.ts`, webhook `customer.subscription.deleted` agora preservam `sub.plan`).
+3. `src/app/(app)/layout.tsx` passou a checar `featureGuard.getSubscriptionState()` e, se o status não for `TRIALING`/`ACTIVE`/`PAST_DUE`, renderiza `<SubscriptionLockedScreen>` em vez de `<AppShell>` — bloqueio total do painel até o dono escolher e assinar um plano. Apenas o `OWNER` vê o seletor de planos; demais papéis veem mensagem para contatar o dono.
+4. Novo tenant não recebe mais subscription FREE automática no signup (`billingService.startFree` removido) — sem subscription, `getSubscriptionState` já cai em `status: EXPIRED` por padrão, então o tenant fica bloqueado até escolher um plano no onboarding (comportamento existente, agora consistente).
+5. `/api/billing/checkout` e `/api/billing/portal` passaram a exigir `session.isOwner` (mesma regra já aplicada em `/api/billing/start-trial`) — gap de autorização pré-existente, corrigido porque a tela de bloqueio agora é o caminho principal para contratar/renovar.
+
+**Alternativa rejeitada — remover `FREE` do enum**: exigiria migration destrutiva e tocaria toda a lógica de fallback (`feature-guard.ts`, `plan-limits.service.ts`) que usa `PlanName.FREE` como valor "sem acesso". Manter o enum e apenas desativar a venda é mais seguro e reversível.
+
+**Consequências**:
+- Tenants existentes nunca tiveram FREE real em produção (confirmado antes da mudança) — sem necessidade de migração de dados.
+- `BillingPlansContent`/`SharedPlanCard` perderam os ramos especiais para `plan.name === 'FREE'` (não há mais como a API retornar um plano FREE ativo para exibição).
+- Página `/configuracoes/planos` fica inacessível enquanto o tenant está bloqueado (todo o `(app)` layout é substituído pela tela de bloqueio) — a própria tela de bloqueio embute o seletor de planos, então não há perda de funcionalidade.

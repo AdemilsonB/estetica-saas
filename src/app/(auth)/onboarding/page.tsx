@@ -69,7 +69,7 @@ function OnboardingContent() {
 
   // Plano pré-selecionado vindo da landing page
   const prePlan = searchParams.get('plan')
-  const hasPaidPrePlan = prePlan && prePlan !== 'FREE'
+  const hasPaidPrePlan = !!prePlan
 
   useEffect(() => {
     if (mode !== 'plan') return
@@ -166,14 +166,6 @@ function OnboardingContent() {
   }
 
   async function handleSelectPlan(planName: string, skipTrial = false) {
-    if (planName === 'FREE') {
-      const supabase = createSupabaseBrowserClient()
-      await supabase.auth.updateUser({ data: { onboardingStep: 'complete' } })
-      toast.success('Tudo pronto! Agora vamos configurar seu catálogo.')
-      router.push('/onboarding/catalogo')
-      return
-    }
-
     // Trial gratuito: ativa sem Stripe, usuário configura o catálogo em seguida
     if (!skipTrial) {
       setLoadingKey(`${planName}_trial`)
@@ -348,14 +340,6 @@ function OnboardingContent() {
                     className="text-sm text-[#787774] underline hover:text-[#191919] transition-colors"
                   >
                     Ver todos os planos
-                  </button>
-                  <span className="text-slate-200">·</span>
-                  <button
-                    onClick={() => handleSelectPlan('FREE')}
-                    disabled={loadingKey !== null}
-                    className="text-sm text-[#787774] hover:text-[#191919] transition-colors"
-                  >
-                    Continuar no plano gratuito
                   </button>
                 </div>
               )}
