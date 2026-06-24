@@ -42,6 +42,12 @@ export class ValidationError extends DomainError {
   }
 }
 
+export class RateLimitExceededError extends DomainError {
+  constructor(message = "Limite de requisições excedido. Tente novamente em breve.") {
+    super(message, "RATE_LIMIT_EXCEEDED", 429);
+  }
+}
+
 // --- Scheduling ---
 
 export class SlotUnavailableError extends DomainError {

@@ -821,6 +821,32 @@ model PublicRateLimit {
   @@index([windowStart])
 }
 
+model AdminRateLimit {
+  id          String   @id @default(cuid())
+  adminUserId String
+  action      String
+  count       Int      @default(1)
+  windowStart DateTime @default(now())
+
+  @@index([adminUserId, action, windowStart])
+  @@index([windowStart])
+}
+
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  adminUserId String
+  action      String
+  targetType  String?
+  targetId    String?
+  metadata    Json?
+  ip          String?
+  createdAt   DateTime @default(now())
+
+  @@index([adminUserId])
+  @@index([action])
+  @@index([createdAt])
+}
+
 model ProfessionalService {
   id        String   @id @default(cuid())
   tenantId  String
