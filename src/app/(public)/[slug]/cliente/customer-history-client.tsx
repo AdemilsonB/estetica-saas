@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { MessageCircle, LogOut, CalendarDays, MapPin, Clock } from 'lucide-react'
+import { MessageCircle, LogOut, CalendarDays, MapPin, Clock, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -83,7 +83,7 @@ export function CustomerHistoryClient({
 
   async function handleLogout() {
     await fetch(`/api/public/${slug}/auth/logout`, { method: 'POST' }).catch(() => {})
-    router.replace(`/${slug}/entrar`)
+    router.replace(`/${slug}`)
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -118,6 +118,13 @@ export function CustomerHistoryClient({
       >
         <div className="mx-auto flex max-w-lg items-center justify-between">
           <div className="flex items-center gap-3">
+            <Link
+              href={`/${slug}`}
+              aria-label="Voltar à vitrine"
+              className="-m-3 flex shrink-0 items-center justify-center rounded-full p-3 hover:bg-white/10"
+            >
+              <ArrowLeft className="size-5" />
+            </Link>
             <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white/40 bg-white/20 text-base font-bold">
               {customer.name[0]?.toUpperCase()}
             </div>

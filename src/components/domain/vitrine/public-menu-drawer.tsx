@@ -277,7 +277,7 @@ export function PublicMenuDrawer({
           )}
 
           {/* Conteúdo */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto overscroll-y-contain">
 
             {/* Meus Favoritos */}
             {clientName && favoriteServices.length + favoritePackages.length > 0 && (

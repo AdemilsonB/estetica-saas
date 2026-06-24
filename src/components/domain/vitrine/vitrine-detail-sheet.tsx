@@ -116,7 +116,9 @@ export function VitrineDetailSheet({
               )}
 
               {data.description && (
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{data.description}</p>
+                <p className="mt-3 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
+                  {data.description}
+                </p>
               )}
 
               {data.includedNames && data.includedNames.length > 0 && (

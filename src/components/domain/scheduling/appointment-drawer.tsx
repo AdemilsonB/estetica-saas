@@ -406,7 +406,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                         </p>
                         <div className="mt-1.5 flex items-start gap-1.5">
                           <StickyNote className="mt-0.5 size-3.5 shrink-0 text-slate-400" />
-                          <p className="text-sm text-slate-600">{appointment.customer.notes}</p>
+                          <p className="text-sm text-slate-600 whitespace-pre-line">{appointment.customer.notes}</p>
                         </div>
                       </div>
                     </>
@@ -416,7 +416,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                       <Separator />
                       <div>
                         <p className="text-xs font-medium text-slate-400 uppercase">Observações do atendimento</p>
-                        <p className="mt-0.5 text-sm text-slate-700">{appointment.notes}</p>
+                        <p className="mt-0.5 text-sm text-slate-700 whitespace-pre-line">{appointment.notes}</p>
                       </div>
                     </>
                   )}

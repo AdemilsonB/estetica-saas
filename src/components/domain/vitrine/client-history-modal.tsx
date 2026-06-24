@@ -63,7 +63,7 @@ function Timeline({ history, primaryColor }: { history: HistoryEntry[]; primaryC
   const grouped = groupByYear(history)
 
   return (
-    <div className="space-y-6 max-h-[52vh] overflow-y-auto pr-1">
+    <div className="space-y-6 max-h-[52vh] overflow-y-auto overscroll-y-contain pr-1">
       {grouped.map(([year, entries]) => (
         <div key={year}>
           <p className="mb-3 text-xs font-bold text-muted-foreground">{year}</p>

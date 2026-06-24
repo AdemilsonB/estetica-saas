@@ -53,7 +53,7 @@ export function VitrineTeam({ members, id }: { members: TeamMember[]; id?: strin
               <p className="text-xs text-muted-foreground">{ROLE_LABELS[m.role] ?? m.role}</p>
             </div>
             {m.bio && (
-              <p className="line-clamp-2 text-xs text-muted-foreground">{m.bio}</p>
+              <p className="line-clamp-2 whitespace-pre-line text-xs text-muted-foreground">{m.bio}</p>
             )}
           </button>
         ))}

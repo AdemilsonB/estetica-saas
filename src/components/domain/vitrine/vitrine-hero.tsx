@@ -282,7 +282,7 @@ export function VitrineHero({
         {bio && (
           <div className="mt-4">
             <p
-              className={`text-sm leading-relaxed text-muted-foreground ${bioExpanded ? '' : 'line-clamp-3'}`}
+              className={`text-sm leading-relaxed whitespace-pre-line text-muted-foreground ${bioExpanded ? '' : 'line-clamp-3'}`}
             >
               {bio}
             </p>

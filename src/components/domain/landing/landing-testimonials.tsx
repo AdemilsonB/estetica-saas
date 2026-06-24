@@ -31,7 +31,7 @@ export function LandingTestimonials({ testimonials }: LandingTestimonialsProps) 
               </div>
 
               {/* Citação */}
-              <p className="mb-5 italic leading-relaxed text-slate-600">"{t.quote}"</p>
+              <p className="mb-5 italic leading-relaxed text-slate-600 whitespace-pre-line">"{t.quote}"</p>
 
               {/* Autor */}
               <div className="flex items-center gap-3">

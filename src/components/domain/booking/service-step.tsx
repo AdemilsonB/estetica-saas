@@ -122,7 +122,7 @@ export function ServiceStep({
               >
                 <div className="font-medium text-slate-900">{pkg.name}</div>
                 {pkg.description && (
-                  <p className="text-sm text-slate-500 mt-0.5">{pkg.description}</p>
+                  <p className="text-sm text-slate-500 mt-0.5 whitespace-pre-line">{pkg.description}</p>
                 )}
                 <div className="text-sm text-slate-600 mt-1">
                   {pkg.services.map((s) => s.name).join(' + ')}
@@ -142,7 +142,7 @@ export function ServiceStep({
               <div key={promo.id} className="p-4 rounded-lg border border-slate-200 bg-white">
                 <div className="font-medium text-slate-900">{promo.name}</div>
                 {promo.description && (
-                  <p className="text-sm text-slate-500 mt-0.5">{promo.description}</p>
+                  <p className="text-sm text-slate-500 mt-0.5 whitespace-pre-line">{promo.description}</p>
                 )}
                 <div className="text-xs text-slate-400 mt-1">
                   Desconto:{' '}
