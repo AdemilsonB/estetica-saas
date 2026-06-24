@@ -77,25 +77,4 @@ export const adminRepository = {
       data: { isBlocked: false, blockedReason: null },
     })
   },
-
-  async findTenantsWithUsage() {
-    const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    return prisma.tenant.findMany({
-      select: {
-        id: true,
-        name: true,
-        plan: true,
-        isBlocked: true,
-        createdAt: true,
-        _count: {
-          select: {
-            users: true,
-            appointments: { where: { createdAt: { gte: startOfMonth } } },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
-  },
 }

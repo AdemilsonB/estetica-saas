@@ -10,8 +10,7 @@ export class PlanLimitsService {
     const tenant = await prisma.tenant.findFirst({
       where: { id: tenantId },
       select: {
-        plan: true,
-        subscription: { select: { status: true, trialEndsAt: true } },
+        subscription: { select: { plan: true, status: true, trialEndsAt: true } },
       },
     })
     if (!tenant) throw new Error(`Tenant ${tenantId} não encontrado.`)
@@ -33,15 +32,14 @@ export class PlanLimitsService {
   }
 
   private resolveEffectivePlan(tenant: {
-    plan: PlanName
-    subscription: { status: string; trialEndsAt: Date | null } | null
+    subscription: { plan: PlanName; status: string; trialEndsAt: Date | null } | null
   }): PlanName {
     const status = tenant.subscription?.status
     if (!status || !ACTIVE_STATUSES.includes(status)) return PlanName.FREE
     if (status === 'TRIALING' && tenant.subscription?.trialEndsAt) {
       if (tenant.subscription.trialEndsAt < new Date()) return PlanName.FREE
     }
-    return tenant.plan
+    return tenant.subscription?.plan ?? PlanName.FREE
   }
 }
 

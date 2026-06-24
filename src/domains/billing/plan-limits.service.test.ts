@@ -7,8 +7,7 @@ import { LIMIT_REGISTRY } from '@/shared/permissions/limit-registry'
 const TENANT_ID = 'tenant-abc'
 
 const activeTenant = (plan: PlanName) => ({
-  plan,
-  subscription: { status: SubscriptionStatus.ACTIVE, trialEndsAt: null },
+  subscription: { plan, status: SubscriptionStatus.ACTIVE, trialEndsAt: null },
 })
 
 describe('PlanLimitsService', () => {
@@ -41,8 +40,7 @@ describe('PlanLimitsService', () => {
 
     it('usa plano FREE quando subscription está expirada', async () => {
       prismaMock.tenant.findFirst.mockResolvedValue({
-        plan: PlanName.PRO,
-        subscription: { status: SubscriptionStatus.EXPIRED, trialEndsAt: null },
+        subscription: { plan: PlanName.PRO, status: SubscriptionStatus.EXPIRED, trialEndsAt: null },
       } as any)
       prismaMock.planLimitConfig.findFirst.mockResolvedValue(null)
 
@@ -54,8 +52,8 @@ describe('PlanLimitsService', () => {
 
     it('usa plano FREE quando trial está expirado', async () => {
       prismaMock.tenant.findFirst.mockResolvedValue({
-        plan: PlanName.STARTER,
         subscription: {
+          plan: PlanName.STARTER,
           status: SubscriptionStatus.TRIALING,
           trialEndsAt: new Date('2020-01-01'),
         },
@@ -71,8 +69,7 @@ describe('PlanLimitsService', () => {
     it('usa o plano real quando trial ainda é válido', async () => {
       const futureDate = new Date(Date.now() + 86400000)
       prismaMock.tenant.findFirst.mockResolvedValue({
-        plan: PlanName.STARTER,
-        subscription: { status: SubscriptionStatus.TRIALING, trialEndsAt: futureDate },
+        subscription: { plan: PlanName.STARTER, status: SubscriptionStatus.TRIALING, trialEndsAt: futureDate },
       } as any)
       prismaMock.planLimitConfig.findFirst.mockResolvedValue(null)
 

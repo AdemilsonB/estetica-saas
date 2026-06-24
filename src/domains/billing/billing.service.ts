@@ -38,7 +38,6 @@ export class BillingService {
         currentPeriodStart: now,
         currentPeriodEnd: trialEndsAt,
       });
-      await billingRepository.updateTenantPlanCache(tenantId, planName);
       return updated;
     }
 
@@ -50,8 +49,6 @@ export class BillingService {
       currentPeriodStart: now,
       currentPeriodEnd: trialEndsAt,
     });
-
-    await billingRepository.updateTenantPlanCache(tenantId, planName);
 
     return sub;
   }
@@ -89,8 +86,6 @@ export class BillingService {
       reason,
       changedBy,
     });
-
-    await billingRepository.updateTenantPlanCache(tenantId, newPlan);
 
     eventBus.publish({
       type: "billing.subscription.upgraded",
@@ -139,8 +134,6 @@ export class BillingService {
       reason: 'admin_reset_trial',
       changedBy: adminId,
     })
-
-    await billingRepository.updateTenantPlanCache(tenantId, PlanName.STARTER)
 
     return updated
   }

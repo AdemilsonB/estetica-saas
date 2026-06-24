@@ -18,8 +18,7 @@ describe('FeatureGuard', () => {
     guard = new FeatureGuard()
     vi.clearAllMocks()
     prismaMock.tenant.findUnique.mockResolvedValue({
-      plan: PlanName.STARTER,
-      subscription: { status: SubscriptionStatus.ACTIVE, trialEndsAt: null },
+      subscription: { plan: PlanName.STARTER, status: SubscriptionStatus.ACTIVE, trialEndsAt: null },
     } as any)
   })
 
@@ -41,8 +40,7 @@ describe('FeatureGuard', () => {
 
     it('retorna false quando subscription está inativa', async () => {
       prismaMock.tenant.findUnique.mockResolvedValue({
-        plan: PlanName.PRO,
-        subscription: { status: SubscriptionStatus.CANCELLED, trialEndsAt: null },
+        subscription: { plan: PlanName.PRO, status: SubscriptionStatus.CANCELLED, trialEndsAt: null },
       } as any)
       expect(await guard.canAccess(TENANT_ID, 'whatsapp_basic')).toBe(false)
     })

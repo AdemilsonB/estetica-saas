@@ -47,10 +47,6 @@ export class BillingRepository {
     return prisma.subscriptionHistory.create({ data });
   }
 
-  async updateTenantPlanCache(tenantId: string, plan: PlanName) {
-    await prisma.tenant.update({ where: { id: tenantId }, data: { plan } });
-  }
-
   async findExpiredTrials(now: Date) {
     // Exclui subscriptions com stripeSubId — o Stripe gerencia essas via webhook
     return prisma.subscription.findMany({
@@ -70,10 +66,7 @@ export class BillingRepository {
   }
 
   async findByStripeSubId(stripeSubId: string) {
-    return prisma.subscription.findFirst({
-      where: { stripeSubId },
-      include: { tenant: { select: { id: true, plan: true } } },
-    })
+    return prisma.subscription.findFirst({ where: { stripeSubId } })
   }
 
   async setStripeIds(tenantId: string, data: {

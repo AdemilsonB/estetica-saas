@@ -72,8 +72,8 @@ const brandingConfig = JSON.stringify({ primaryColor: '#191919', logoUrl: null, 
 
 // Criar Tenant
 const tenantRes = await client.query(
-  `INSERT INTO "Tenant" (id, name, slug, plan, "brandingConfig", "createdAt", "updatedAt")
-   VALUES ($1, $2, $3, 'free', $4::jsonb, NOW(), NOW())
+  `INSERT INTO "Tenant" (id, name, slug, "brandingConfig", "createdAt", "updatedAt")
+   VALUES ($1, $2, $3, $4::jsonb, NOW(), NOW())
    ON CONFLICT (slug) DO UPDATE SET "updatedAt" = NOW()
    RETURNING id`,
   [tenantId, BUSINESS_NAME, slug, brandingConfig]
