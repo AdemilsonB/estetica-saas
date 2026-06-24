@@ -211,10 +211,11 @@ Nunca entregar componente de UI sem passar pelo checklist do `agent-mobile`.
 | Serviços | ✅ | ✅ | 3 abas: Serviços, Pacotes, Promoções; anamnese por serviço; imagens em proporção retrato 4:5 padronizada com editor de enquadramento (zoom/posição) |
 | Produtos/Estoque | ✅ | ✅ | Catálogo, movimentação, reflexo financeiro; imagem com editor de enquadramento (zoom/posição) |
 | Branding | ✅ | ✅ | 6 tokens warm, logo |
-| Billing (Stripe) | ✅ | ✅ | FeatureGuard, startTrial, Checkout/Portal/Webhook, planos dinâmicos do DB |
-| Auth/Onboarding | ✅ | ✅ | Fluxo completo com plano pré-selecionado, signup enriquecido |
+| Billing (Stripe) | ✅ | ✅ | FeatureGuard, startTrial, Checkout/Portal/Webhook, planos dinâmicos do DB; `Subscription.plan` é a única fonte de verdade (Tenant.plan removido) |
+| Auth/Onboarding | ✅ | ✅ | Fluxo completo com plano pré-selecionado, signup enriquecido; conta `isSystemAdmin` é isolada (nunca tem tenant) |
 | Vitrine pública | ✅ | ✅ | SSR com revalidate 5min; modal de detalhe (serviço/pacote/promoção), perfil do profissional, filtro por categoria/profissional/preço, próximo horário livre, repetir último agendamento, favoritar serviços/pacotes (persistido), selo "Verificado" para negócio novo; cards de serviço/pacote/promoção em proporção retrato 4:5 com enquadramento (zoom/posição) consistente entre card e modal de detalhe |
 | Portal do cliente | ✅ | ✅ | Hub central pós-identificação: login/criação de conta (CPF+nascimento) sempre redireciona pra cá — nunca mais direto pro agendamento. Identidade visual do sistema (gradiente, cards), próximo agendamento, histórico, edição de perfil, info do negócio (endereço/rota/horário de funcionamento por dia) |
+| Admin (backoffice) | ✅ | ✅ | Painel `/admin` isolado do fluxo de tenant; sidebar mobile responsiva; audit log + rate limiting nas rotas `/api/admin/**`; CRUD de categorias do catálogo global com propagação automática ao ativar para o tenant |
 | PWA | ✅ | ✅ | Manifest + SW restrito a assets estáticos + ícones |
 | Automation | stub | — | Fase 2 |
 
