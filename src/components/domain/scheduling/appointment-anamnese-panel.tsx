@@ -113,7 +113,7 @@ export function AppointmentAnamnesePanel({ appointmentId, onPriceAdjust }: Props
             ))}
           </div>
           {capilar?.descricaoLivre && (
-            <p className="text-xs text-slate-600 mt-1 italic">"{capilar.descricaoLivre}"</p>
+            <p className="text-xs text-slate-600 mt-1 italic whitespace-pre-line">"{capilar.descricaoLivre}"</p>
           )}
         </div>
       )}

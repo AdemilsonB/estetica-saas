@@ -70,7 +70,7 @@ export function CustomerProfileHeader({ customer }: Props) {
           )}
 
           {customer.notes && (
-            <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+            <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-600 whitespace-pre-line">
               {customer.notes}
             </p>
           )}

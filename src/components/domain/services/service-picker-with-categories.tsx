@@ -114,7 +114,9 @@ export function ServicePickerWithCategories({ services, categories, selectedId, 
         <div className="flex flex-1 flex-col gap-1 p-3">
           <span className="text-sm font-medium leading-tight line-clamp-2">{service.name}</span>
           {service.description && (
-            <span className="text-xs text-muted-foreground line-clamp-2">{service.description}</span>
+            <span className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">
+              {service.description}
+            </span>
           )}
           <div className="mt-auto pt-1">
             <span className="text-xs font-semibold text-primary">{formatPrice(service)}</span>

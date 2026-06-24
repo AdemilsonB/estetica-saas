@@ -69,7 +69,9 @@ export function VitrineProfessionalSheet({ professional, primaryColor, bookingBa
               </span>
 
               {professional.bio && (
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{professional.bio}</p>
+                <p className="mt-3 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
+                  {professional.bio}
+                </p>
               )}
 
               {professional.specialtyNames.length > 0 && (

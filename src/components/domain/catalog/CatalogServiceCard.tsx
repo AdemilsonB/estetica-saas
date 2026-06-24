@@ -43,7 +43,7 @@ export function CatalogServiceCard({
         <div className="flex-1 space-y-1">
           <p className="font-semibold leading-snug">{service.name}</p>
           {service.description && (
-            <p className="line-clamp-2 text-sm text-muted-foreground">
+            <p className="line-clamp-2 whitespace-pre-line text-sm text-muted-foreground">
               {service.description}
             </p>
           )}
