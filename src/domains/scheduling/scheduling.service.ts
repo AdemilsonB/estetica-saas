@@ -24,6 +24,7 @@ import {
   scheduleAppointmentReminder,
   cancelAppointmentReminder,
 } from "@/shared/queue/jobs/appointment-reminder";
+import { resolveImageCrop } from "@/shared/utils/image-crop";
 
 import { featureGuard } from "@/domains/billing/feature-guard";
 import { commissionRepository } from "@/domains/financial/commission.repository";
@@ -296,6 +297,11 @@ export class SchedulingService {
   async updateService(tenantId: string, serviceId: string, input: UpdateServiceInput) {
     const existing = await catalogServiceRepository.findById(tenantId, serviceId);
     if (!existing) throw new ServiceNotFoundError();
+    const crop = resolveImageCrop(input.imageUrl !== undefined, {
+      x: input.imageCropX,
+      y: input.imageCropY,
+      zoom: input.imageCropZoom,
+    })
     return catalogServiceRepository.update(tenantId, serviceId, {
       ...(input.name !== undefined && { name: input.name }),
       ...(input.duration !== undefined && { duration: input.duration }),
@@ -306,6 +312,9 @@ export class SchedulingService {
       ...(input.description !== undefined && { description: input.description }),
       ...(input.categoryId !== undefined && { categoryId: input.categoryId }),
       ...(input.imageUrl !== undefined && { imageUrl: input.imageUrl }),
+      ...(crop.x !== undefined && { imageCropX: crop.x }),
+      ...(crop.y !== undefined && { imageCropY: crop.y }),
+      ...(crop.zoom !== undefined && { imageCropZoom: crop.zoom }),
       ...(input.anamneseMode !== undefined && { anamneseMode: input.anamneseMode as AnamneseMode }),
       ...(input.anamneseBlocks !== undefined && { anamneseBlocks: input.anamneseBlocks }),
       ...(input.anamneseValidityDays !== undefined && { anamneseValidityDays: input.anamneseValidityDays }),
@@ -462,7 +471,17 @@ export class SchedulingService {
   }
 
   async updatePackage(tenantId: string, packageId: string, input: UpdatePackageInput) {
-    return packageRepository.update(tenantId, packageId, input)
+    const crop = resolveImageCrop(input.imageUrl !== undefined, {
+      x: input.imageCropX,
+      y: input.imageCropY,
+      zoom: input.imageCropZoom,
+    })
+    return packageRepository.update(tenantId, packageId, {
+      ...input,
+      imageCropX: crop.x,
+      imageCropY: crop.y,
+      imageCropZoom: crop.zoom,
+    })
   }
 
   async deactivatePackage(tenantId: string, packageId: string) {
@@ -487,9 +506,17 @@ export class SchedulingService {
   }
 
   async updatePromotion(tenantId: string, promotionId: string, input: UpdatePromotionInput) {
+    const crop = resolveImageCrop(input.imageUrl !== undefined, {
+      x: input.imageCropX,
+      y: input.imageCropY,
+      zoom: input.imageCropZoom,
+    })
     return promotionRepository.update(tenantId, promotionId, {
       ...input,
       discountType: input.discountType as 'PERCENTAGE' | 'FIXED' | undefined,
+      imageCropX: crop.x,
+      imageCropY: crop.y,
+      imageCropZoom: crop.zoom,
     })
   }
 

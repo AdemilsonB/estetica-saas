@@ -12,13 +12,19 @@ const updateMemberSchema = z.object({
   email: z.string().email().optional(),
   bio: z.string().max(280).nullable().optional(),
   showOnPublicPage: z.boolean().optional(),
+  avatarCropX: z.number().min(0).max(1).optional().nullable(),
+  avatarCropY: z.number().min(0).max(1).optional().nullable(),
+  avatarCropZoom: z.number().min(1).max(3).optional().nullable(),
 }).refine(
   (d) =>
     d.roleId !== undefined ||
     d.name !== undefined ||
     d.email !== undefined ||
     d.bio !== undefined ||
-    d.showOnPublicPage !== undefined,
+    d.showOnPublicPage !== undefined ||
+    d.avatarCropX !== undefined ||
+    d.avatarCropY !== undefined ||
+    d.avatarCropZoom !== undefined,
   { message: 'Pelo menos um campo deve ser fornecido.' },
 )
 
@@ -47,6 +53,9 @@ export async function PATCH(request: Request, { params }: Params) {
       email: body.email,
       bio: body.bio,
       showOnPublicPage: body.showOnPublicPage,
+      avatarCropX: body.avatarCropX,
+      avatarCropY: body.avatarCropY,
+      avatarCropZoom: body.avatarCropZoom,
     })
     return Response.json(user)
   } catch (error) {

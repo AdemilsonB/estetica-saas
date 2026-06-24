@@ -32,6 +32,9 @@ type UpdatePromotionData = {
   endsAt?: string | null
   active?: boolean
   imageUrl?: string | null
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
   items?: PromoItemInput[]
 }
 
@@ -107,6 +110,9 @@ export class PromotionRepository {
             data.endsAt !== undefined ? (data.endsAt ? new Date(data.endsAt) : null) : undefined,
           active: data.active,
           imageUrl: data.imageUrl,
+          imageCropX: data.imageCropX,
+          imageCropY: data.imageCropY,
+          imageCropZoom: data.imageCropZoom,
         },
         include: INCLUDE,
       })

@@ -3,12 +3,16 @@
 import { ChevronRight } from 'lucide-react'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { VitrineNextSlotBadge } from './vitrine-next-slot-badge'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 
 export type VitrineDetailData = {
   kind: 'service' | 'package' | 'promotion'
   id: string
   name: string
   imageUrl?: string | null
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
   description?: string | null
   priceLabel: string
   originalPriceLabel?: string | null
@@ -19,7 +23,15 @@ export type VitrineDetailData = {
   bookingHref: string
 }
 
-type TeamMember = { id: string; name: string; role: string; avatarUrl?: string | null }
+type TeamMember = {
+  id: string
+  name: string
+  role: string
+  avatarUrl?: string | null
+  avatarCropX?: number | null
+  avatarCropY?: number | null
+  avatarCropZoom?: number | null
+}
 
 const ROLE_LABELS: Record<string, string> = {
   OWNER: 'Proprietário',
@@ -59,13 +71,17 @@ export function VitrineDetailSheet({
       >
         {data && (
           <>
-            <div className="mx-4 mt-4 flex h-40 items-center justify-center overflow-hidden rounded-2xl bg-muted">
-              {data.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={data.imageUrl} alt={data.name} className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-4xl">{KIND_FALLBACK_ICON[data.kind]}</span>
-              )}
+            <div className="mx-4 mt-4">
+              <EntityImage
+                src={data.imageUrl}
+                alt={data.name}
+                shape="portrait"
+                cropX={data.imageCropX}
+                cropY={data.imageCropY}
+                cropZoom={data.imageCropZoom}
+                className="mx-auto max-w-64"
+                fallback={<span className="text-4xl">{KIND_FALLBACK_ICON[data.kind]}</span>}
+              />
             </div>
 
             <div className="px-5 pt-4">
@@ -125,14 +141,16 @@ export function VitrineDetailSheet({
                         onClick={() => onSelectProfessional(p.id)}
                         className="flex w-full items-center gap-2.5 rounded-xl bg-muted/50 p-2 text-left"
                       >
-                        {p.avatarUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p.avatarUrl} alt={p.name} className="size-8 rounded-full object-cover" />
-                        ) : (
-                          <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-bold">
-                            {p.name[0]?.toUpperCase()}
-                          </div>
-                        )}
+                        <EntityImage
+                          src={p.avatarUrl}
+                          alt={p.name}
+                          shape="circle"
+                          cropX={p.avatarCropX}
+                          cropY={p.avatarCropY}
+                          cropZoom={p.avatarCropZoom}
+                          className="size-8 shrink-0"
+                          fallback={<span className="text-xs font-bold">{p.name[0]?.toUpperCase()}</span>}
+                        />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-xs font-semibold">{p.name}</p>
                           <p className="text-[10px] text-muted-foreground">{ROLE_LABELS[p.role] ?? p.role}</p>

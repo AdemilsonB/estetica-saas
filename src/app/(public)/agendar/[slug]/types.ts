@@ -17,6 +17,9 @@ export type PublicService = {
   priceMin?: number | null
   priceMax?: number | null
   imageUrl?: string | null
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
   description?: string | null
   categoryId?: string | null
   categoryName?: string | null
@@ -29,6 +32,9 @@ export type PublicProfessional = {
   id: string
   name: string
   avatarUrl: string | null
+  avatarCropX?: number | null
+  avatarCropY?: number | null
+  avatarCropZoom?: number | null
   serviceIds: string[]
 }
 
@@ -37,6 +43,9 @@ export type PublicPackage = {
   name: string
   description: string | null
   imageUrl: string | null
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
   price: number
   duration: number
   services: { id: string; name: string; duration: number }[]
@@ -47,6 +56,9 @@ export type PublicPromotion = {
   name: string
   description: string | null
   imageUrl: string | null
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
   discountType: 'PERCENTAGE' | 'FIXED'
   discountValue: number
   services: { id: string; name: string; duration: number; originalPrice: number }[]

@@ -5,6 +5,7 @@ import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatDuration } from '@/lib/format-duration'
 import { Input } from '@/components/ui/input'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 
 export type PickerService = {
   id: string
@@ -15,6 +16,9 @@ export type PickerService = {
   priceMax?: string | number | null
   description?: string | null
   imageUrl?: string | null
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
   categoryId?: string | null
   categoryName?: string | null
   category?: { id: string; name: string } | null
@@ -97,18 +101,16 @@ export function ServicePickerWithCategories({ services, categories, selectedId, 
             : 'border-border/50 hover:border-primary/40',
         )}
       >
-        {service.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={service.imageUrl}
-            alt={service.name}
-            className="h-28 w-full object-cover"
-          />
-        ) : (
-          <div className="h-28 w-full bg-muted/40 flex items-center justify-center">
-            <span className="text-2xl text-muted-foreground/30">✂</span>
-          </div>
-        )}
+        <EntityImage
+          src={service.imageUrl}
+          alt={service.name}
+          shape="portrait"
+          cropX={service.imageCropX}
+          cropY={service.imageCropY}
+          cropZoom={service.imageCropZoom}
+          className="w-full rounded-none"
+          fallback={<span className="text-2xl text-muted-foreground/30">✂</span>}
+        />
         <div className="flex flex-1 flex-col gap-1 p-3">
           <span className="text-sm font-medium leading-tight line-clamp-2">{service.name}</span>
           {service.description && (

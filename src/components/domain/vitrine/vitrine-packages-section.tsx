@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Filter, Heart } from 'lucide-react'
 import { formatDuration } from '@/lib/format-duration'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 import { useVitrineInteraction } from './vitrine-interaction-context'
 import {
   VitrineFilterSheet,
@@ -17,6 +18,9 @@ type PublicPackage = {
   name: string
   description?: string | null
   imageUrl?: string | null
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
   price: number
   duration: number
   services: { id: string; name: string }[]
@@ -46,6 +50,9 @@ function PackageCard({
       id: pkg.id,
       name: pkg.name,
       imageUrl: pkg.imageUrl,
+      imageCropX: pkg.imageCropX,
+      imageCropY: pkg.imageCropY,
+      imageCropZoom: pkg.imageCropZoom,
       description: pkg.description,
       priceLabel: `R$ ${pkg.price.toFixed(2)}`,
       durationLabel: pkg.duration > 0 ? formatDuration(pkg.duration) : null,
@@ -58,14 +65,16 @@ function PackageCard({
   return (
     <div className="relative w-32 shrink-0 overflow-hidden rounded-2xl bg-card shadow-sm sm:w-36">
       <button onClick={handleOpenDetail} className="flex w-full flex-col text-left" aria-label={`Ver detalhes de ${pkg.name}`}>
-        <div className="flex h-24 w-full items-center justify-center overflow-hidden bg-muted">
-          {pkg.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={pkg.imageUrl} alt={pkg.name} className="h-full w-full object-cover" />
-          ) : (
-            <span className="text-2xl">📦</span>
-          )}
-        </div>
+        <EntityImage
+          src={pkg.imageUrl}
+          alt={pkg.name}
+          shape="portrait"
+          cropX={pkg.imageCropX}
+          cropY={pkg.imageCropY}
+          cropZoom={pkg.imageCropZoom}
+          className="w-full rounded-none"
+          fallback={<span className="text-2xl">📦</span>}
+        />
         <div className="flex flex-1 flex-col gap-1 p-2.5">
           <p className="text-xs font-semibold leading-snug line-clamp-2">{pkg.name}</p>
           {pkg.duration > 0 && <p className="text-[11px] text-muted-foreground">{formatDuration(pkg.duration)}</p>}

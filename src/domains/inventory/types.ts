@@ -13,7 +13,12 @@ export const createProductSchema = z.object({
 })
 export type CreateProductInput = z.infer<typeof createProductSchema>
 
-export const updateProductSchema = createProductSchema.partial()
+export const updateProductSchema = createProductSchema.partial().extend({
+  imageUrl: z.string().url().optional().nullable(),
+  imageCropX: z.number().min(0).max(1).optional().nullable(),
+  imageCropY: z.number().min(0).max(1).optional().nullable(),
+  imageCropZoom: z.number().min(1).max(3).optional().nullable(),
+})
 export type UpdateProductInput = z.infer<typeof updateProductSchema>
 
 export const createCategorySchema = z.object({

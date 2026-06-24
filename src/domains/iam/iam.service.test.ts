@@ -124,6 +124,65 @@ describe('IamService.updateMember', () => {
 
     await expect(service.updateMember('tenant-1', 'req-1', 'tgt-1', { name: 'Novo' })).rejects.toThrow(UserNotFoundError)
   })
+
+  it('salva crop válido do avatar quando enviado sem nova foto', async () => {
+    vi.mocked(iamRepository.findUserById)
+      .mockResolvedValueOnce({ id: 'req-1', role: 'OWNER', tenantId: 'tenant-1' } as any)
+      .mockResolvedValueOnce({ id: 'tgt-1', role: 'PROFESSIONAL', tenantId: 'tenant-1' } as any)
+    vi.mocked(iamRepository.updateUser).mockResolvedValue({ id: 'tgt-1' } as any)
+
+    await service.updateMember('tenant-1', 'req-1', 'tgt-1', {
+      avatarCropX: 0.5,
+      avatarCropY: 0.5,
+      avatarCropZoom: 2,
+    })
+
+    expect(iamRepository.updateUser).toHaveBeenCalledWith(
+      'tenant-1',
+      'tgt-1',
+      expect.objectContaining({ avatarCropX: 0.5, avatarCropY: 0.5, avatarCropZoom: 2 }),
+    )
+  })
+
+  it('reseta o crop do avatar para null quando uma nova foto é enviada sem crop junto', async () => {
+    vi.mocked(iamRepository.findUserById)
+      .mockResolvedValueOnce({ id: 'req-1', role: 'OWNER', tenantId: 'tenant-1' } as any)
+      .mockResolvedValueOnce({ id: 'tgt-1', role: 'PROFESSIONAL', tenantId: 'tenant-1' } as any)
+    vi.mocked(iamRepository.updateUser).mockResolvedValue({ id: 'tgt-1' } as any)
+
+    await service.updateMember('tenant-1', 'req-1', 'tgt-1', { avatarUrl: 'https://cdn.test/novo.jpg' })
+
+    expect(iamRepository.updateUser).toHaveBeenCalledWith(
+      'tenant-1',
+      'tgt-1',
+      expect.objectContaining({
+        avatarUrl: 'https://cdn.test/novo.jpg',
+        avatarCropX: null,
+        avatarCropY: null,
+        avatarCropZoom: null,
+      }),
+    )
+  })
+
+  it('preserva o crop do avatar quando enviado junto com a nova foto', async () => {
+    vi.mocked(iamRepository.findUserById)
+      .mockResolvedValueOnce({ id: 'req-1', role: 'OWNER', tenantId: 'tenant-1' } as any)
+      .mockResolvedValueOnce({ id: 'tgt-1', role: 'PROFESSIONAL', tenantId: 'tenant-1' } as any)
+    vi.mocked(iamRepository.updateUser).mockResolvedValue({ id: 'tgt-1' } as any)
+
+    await service.updateMember('tenant-1', 'req-1', 'tgt-1', {
+      avatarUrl: 'https://cdn.test/novo.jpg',
+      avatarCropX: 0.3,
+      avatarCropY: 0.7,
+      avatarCropZoom: 1.4,
+    })
+
+    expect(iamRepository.updateUser).toHaveBeenCalledWith(
+      'tenant-1',
+      'tgt-1',
+      expect.objectContaining({ avatarCropX: 0.3, avatarCropY: 0.7, avatarCropZoom: 1.4 }),
+    )
+  })
 })
 
 describe('IamService.setMemberServices', () => {

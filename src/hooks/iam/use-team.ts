@@ -16,6 +16,9 @@ export type TeamMember = {
   roleId: string | null
   roleName: string
   avatarUrl: string | null
+  avatarCropX: number | null
+  avatarCropY: number | null
+  avatarCropZoom: number | null
   bio: string | null
   services: MemberService[]
   createdAt: string
@@ -117,6 +120,28 @@ async function uploadAvatar(input: {
   return res.json()
 }
 
+async function updateAvatarCrop(input: {
+  userId: string
+  cropX: number
+  cropY: number
+  cropZoom: number
+}): Promise<TeamMember> {
+  const res = await fetch(`/api/iam/users/${input.userId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      avatarCropX: input.cropX,
+      avatarCropY: input.cropY,
+      avatarCropZoom: input.cropZoom,
+    }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message ?? 'Falha ao salvar enquadramento')
+  }
+  return res.json()
+}
+
 async function cancelInvite(inviteId: string): Promise<void> {
   const res = await fetch(`/api/iam/invites/${inviteId}`, { method: 'DELETE' })
   if (!res.ok) {
@@ -194,6 +219,17 @@ export function useUploadAvatar() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: uploadAvatar,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team-members'] })
+      queryClient.invalidateQueries({ queryKey: ['current-user'] })
+    },
+  })
+}
+
+export function useUpdateAvatarCrop() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateAvatarCrop,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-members'] })
       queryClient.invalidateQueries({ queryKey: ['current-user'] })

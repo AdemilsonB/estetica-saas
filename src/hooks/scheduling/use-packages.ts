@@ -19,6 +19,9 @@ export type ServicePackage = {
   description: string | null
   price: string
   imageUrl: string | null
+  imageCropX: number | null
+  imageCropY: number | null
+  imageCropZoom: number | null
   active: boolean
   items: PackageItem[]
 }
@@ -37,6 +40,9 @@ export type UpdatePackageInput = {
   price?: string
   serviceIds?: string[]
   imageUrl?: string | null
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
 }
 
 async function listPackages(): Promise<ServicePackage[]> {

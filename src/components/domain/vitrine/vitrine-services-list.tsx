@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { ClipboardList, Filter, Heart, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 import { formatDuration } from '@/lib/format-duration'
 import { useVitrineInteraction } from './vitrine-interaction-context'
 import {
@@ -22,6 +23,9 @@ export type PublicService = {
   priceMin?: number | null
   priceMax?: number | null
   imageUrl?: string | null
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
   description?: string | null
   categoryName?: string | null
   anamneseMode: 'NONE' | 'OPTIONAL' | 'REQUIRED'
@@ -75,6 +79,9 @@ function ServiceCard({
       id: service.id,
       name: service.name,
       imageUrl: service.imageUrl,
+      imageCropX: service.imageCropX,
+      imageCropY: service.imageCropY,
+      imageCropZoom: service.imageCropZoom,
       description: service.description,
       priceLabel: formatPrice(service),
       durationLabel: formatDuration(service.duration),
@@ -85,14 +92,16 @@ function ServiceCard({
   return (
     <div className="relative w-32 shrink-0 overflow-hidden rounded-2xl bg-card shadow-sm sm:w-36">
       <button onClick={handleOpenDetail} className="flex w-full flex-col text-left" aria-label={`Ver detalhes de ${service.name}`}>
-        <div className="flex h-24 w-full items-center justify-center overflow-hidden bg-muted">
-          {service.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={service.imageUrl} alt={service.name} className="h-full w-full object-cover" />
-          ) : (
-            <span className="text-2xl">✂️</span>
-          )}
-        </div>
+        <EntityImage
+          src={service.imageUrl}
+          alt={service.name}
+          shape="portrait"
+          cropX={service.imageCropX}
+          cropY={service.imageCropY}
+          cropZoom={service.imageCropZoom}
+          className="w-full rounded-none"
+          fallback={<span className="text-2xl">✂️</span>}
+        />
         <div className="flex flex-1 flex-col gap-1 p-2.5">
           <p className="text-xs font-semibold leading-snug line-clamp-2">{service.name}</p>
           <p className="text-[11px] text-muted-foreground">{formatDuration(service.duration)}</p>

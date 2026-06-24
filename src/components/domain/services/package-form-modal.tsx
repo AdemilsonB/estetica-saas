@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CurrencyInput } from '@/components/ui/currency-input'
+import { ImageUploadField } from '@/components/ui/image-upload-field'
+import type { CropValues } from '@/components/domain/shared/image-crop-editor'
 import { useServices } from '@/hooks/scheduling/use-services'
 import { useCreatePackage, useUpdatePackage, type ServicePackage } from '@/hooks/scheduling/use-packages'
 
@@ -26,6 +28,8 @@ export function PackageFormModal({ open, onClose, pkg }: Props) {
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [crop, setCrop] = useState<CropValues | null>(null)
 
   useEffect(() => {
     if (open && pkg) {
@@ -33,11 +37,19 @@ export function PackageFormModal({ open, onClose, pkg }: Props) {
       setDescription(pkg.description ?? '')
       setPrice(Number(pkg.price).toFixed(2))
       setSelectedServiceIds(pkg.items.map((i) => i.serviceId))
+      setImageUrl(pkg.imageUrl ?? null)
+      setCrop(
+        pkg.imageCropX != null && pkg.imageCropY != null && pkg.imageCropZoom != null
+          ? { cropX: pkg.imageCropX, cropY: pkg.imageCropY, cropZoom: pkg.imageCropZoom }
+          : null,
+      )
     } else if (!open) {
       setName('')
       setDescription('')
       setPrice('')
       setSelectedServiceIds([])
+      setImageUrl(null)
+      setCrop(null)
     }
   }, [open, pkg])
 
@@ -54,7 +66,17 @@ export function PackageFormModal({ open, onClose, pkg }: Props) {
 
     if (isEditing) {
       update(
-        { id: pkg.id, name: name.trim(), description: description.trim() || undefined, price, serviceIds: selectedServiceIds },
+        {
+          id: pkg.id,
+          name: name.trim(),
+          description: description.trim() || undefined,
+          price,
+          serviceIds: selectedServiceIds,
+          imageUrl,
+          imageCropX: crop?.cropX ?? null,
+          imageCropY: crop?.cropY ?? null,
+          imageCropZoom: crop?.cropZoom ?? null,
+        },
         { onSuccess: onClose },
       )
     } else {
@@ -88,6 +110,24 @@ export function PackageFormModal({ open, onClose, pkg }: Props) {
             <Label htmlFor="pkg-price">Preço do pacote</Label>
             <CurrencyInput id="pkg-price" value={price} onChange={setPrice} placeholder="R$ 0,00" required />
           </div>
+
+          {isEditing ? (
+            <ImageUploadField
+              entityType="packages"
+              entityId={pkg.id}
+              value={imageUrl}
+              onChange={setImageUrl}
+              cropShape="portrait"
+              crop={crop}
+              onCropChange={setCrop}
+              label="Imagem do pacote"
+              savePromptMessage="Salve o pacote primeiro para adicionar uma imagem."
+            />
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Salve o pacote para adicionar uma imagem.
+            </p>
+          )}
 
           <div className="space-y-2">
             <Label>Serviços incluídos <span className="text-destructive">*</span></Label>

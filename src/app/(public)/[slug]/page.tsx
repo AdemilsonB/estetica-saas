@@ -34,15 +34,19 @@ type TenantData = {
     id: string; name: string; duration: number; price: number
     priceType: 'FIXED' | 'STARTING_FROM' | 'RANGE' | 'ON_CONSULTATION'
     priceMin?: number | null; priceMax?: number | null
-    imageUrl?: string | null; description?: string | null; categoryName?: string | null
+    imageUrl?: string | null
+    imageCropX?: number | null; imageCropY?: number | null; imageCropZoom?: number | null
+    description?: string | null; categoryName?: string | null
     anamneseMode: 'NONE' | 'OPTIONAL' | 'REQUIRED'
   }[]
   packages: {
     id: string; name: string; description?: string | null; imageUrl?: string | null
+    imageCropX?: number | null; imageCropY?: number | null; imageCropZoom?: number | null
     price: number; duration: number; services: { id: string; name: string }[]
   }[]
   promotions: {
     id: string; name: string; description?: string | null; imageUrl?: string | null
+    imageCropX?: number | null; imageCropY?: number | null; imageCropZoom?: number | null
     discountType: 'PERCENTAGE' | 'FIXED'; discountValue: number; endsAt?: string | null
     services: { id: string; name: string; duration: number; originalPrice: number }[]
   }[]
@@ -51,10 +55,13 @@ type TenantData = {
 
 type TeamMember = {
   id: string; name: string; role: string; avatarUrl?: string | null
+  avatarCropX?: number | null; avatarCropY?: number | null; avatarCropZoom?: number | null
   bio?: string | null; serviceIds?: string[]
 }
 type Product = {
-  id: string; name: string; salePrice: number; imageUrl?: string | null; categoryName?: string | null
+  id: string; name: string; salePrice: number; imageUrl?: string | null
+  imageCropX?: number | null; imageCropY?: number | null; imageCropZoom?: number | null
+  categoryName?: string | null
 }
 
 async function fetchAll(slug: string) {

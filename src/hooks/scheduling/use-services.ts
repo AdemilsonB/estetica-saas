@@ -10,6 +10,9 @@ export type Service = {
   priceMax: string | null
   description: string | null
   imageUrl: string | null
+  imageCropX: number | null
+  imageCropY: number | null
+  imageCropZoom: number | null
   categoryId: string | null
   category: { id: string; name: string } | null
   active: boolean
@@ -40,6 +43,9 @@ export type UpdateServiceInput = {
   description?: string | null
   categoryId?: string | null
   imageUrl?: string | null
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
   anamneseMode?: 'NONE' | 'OPTIONAL' | 'REQUIRED'
   anamneseBlocks?: string[]
   anamneseValidityDays?: number

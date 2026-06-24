@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { usePromotions, useDeactivatePromotion, type Promotion } from '@/hooks/scheduling/use-promotions'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 import { PromotionFormModal } from './promotion-form-modal'
 
 function PromotionStatusBadge({ promo }: { promo: Promotion }) {
@@ -91,8 +92,15 @@ export function PromotionCatalog() {
               return pageItems.map((promo) => (
                 <div key={promo.id} className="flex items-center gap-4 rounded-2xl border border-border/50 bg-card px-4 py-3 shadow-sm">
                   {promo.imageUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={promo.imageUrl} alt={promo.name} className="size-12 shrink-0 rounded-xl object-cover" />
+                    <EntityImage
+                      src={promo.imageUrl}
+                      alt={promo.name}
+                      shape="square"
+                      cropX={promo.imageCropX}
+                      cropY={promo.imageCropY}
+                      cropZoom={promo.imageCropZoom}
+                      className="size-12 shrink-0 rounded-xl"
+                    />
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">

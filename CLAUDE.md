@@ -164,6 +164,20 @@ Prisma Client
 
 Ver `.claude/skills/agent-backend.md` para templates completos de API Route, Repository e Service.
 
+### Padrão de imagens (avatar, serviço, pacote, promoção, produto)
+
+Toda foto de entidade (`User.avatarUrl`, `Service/ServicePackage/Promotion/Product.imageUrl`) tem 3 campos
+`imageCropX`/`imageCropY`/`imageCropZoom` (ou `avatarCropX/Y/Zoom` no User) — nullable, `null` = sem ajuste.
+- **Nunca** renderizar `<img object-cover>` direto para essas entidades — sempre usar
+  `<EntityImage>` (`src/components/domain/shared/entity-image.tsx`), que aplica o crop salvo.
+- Para permitir o usuário ajustar o enquadramento, usar `<ImageCropEditor>`
+  (`src/components/domain/shared/image-crop-editor.tsx`, baseado em `react-easy-crop`).
+- Proporção padrão por tipo: avatar = círculo 1:1, serviço/pacote/promoção = retrato 4:5,
+  produto = quadrado 1:1.
+- Ao subir uma imagem nova, os 3 campos de crop voltam para `null` automaticamente
+  (regra centralizada em `src/shared/utils/image-crop.ts`) — a menos que o crop seja enviado
+  junto na mesma chamada (ex: catálogo, onde o formulário salva imagem + crop de uma vez).
+
 ---
 
 ## Contexto Mobile-First
@@ -186,7 +200,7 @@ Nunca entregar componente de UI sem passar pelo checklist do `agent-mobile`.
 
 | Domínio | Backend | Frontend | Observação |
 |---------|---------|----------|------------|
-| IAM | ✅ | ✅ | Cargos dinâmicos, RBAC, edição completa de membros, foto, vínculo de serviços |
+| IAM | ✅ | ✅ | Cargos dinâmicos, RBAC, edição completa de membros, foto com enquadramento (zoom/posição) ajustável, vínculo de serviços |
 | CRM | ✅ | ✅ | Filtros avançados, badge VIP, anamnese digital |
 | Scheduling | ✅ | ✅ | Agenda semanal, slots, filtro profissional, quick actions mobile |
 | Financial | ✅ | ✅ | Checkout, despesas, comissões, taxas, estornos |
@@ -194,12 +208,12 @@ Nunca entregar componente de UI sem passar pelo checklist do `agent-mobile`.
 | Dashboard | ✅ | ✅ | Métricas + polling 30s |
 | Reports | ✅ | ✅ | 4 relatórios + filtros + CSV |
 | Settings | ✅ | ✅ | Cargos, Meu Link (QR Code, WhatsApp, Instagram) |
-| Serviços | ✅ | ✅ | 3 abas: Serviços, Pacotes, Promoções; anamnese por serviço |
-| Produtos/Estoque | ✅ | ✅ | Catálogo, movimentação, reflexo financeiro |
+| Serviços | ✅ | ✅ | 3 abas: Serviços, Pacotes, Promoções; anamnese por serviço; imagens em proporção retrato 4:5 padronizada com editor de enquadramento (zoom/posição) |
+| Produtos/Estoque | ✅ | ✅ | Catálogo, movimentação, reflexo financeiro; imagem com editor de enquadramento (zoom/posição) |
 | Branding | ✅ | ✅ | 6 tokens warm, logo |
 | Billing (Stripe) | ✅ | ✅ | FeatureGuard, startTrial, Checkout/Portal/Webhook, planos dinâmicos do DB |
 | Auth/Onboarding | ✅ | ✅ | Fluxo completo com plano pré-selecionado, signup enriquecido |
-| Vitrine pública | ✅ | ✅ | SSR com revalidate 5min; modal de detalhe (serviço/pacote/promoção), perfil do profissional, filtro por categoria/profissional/preço, próximo horário livre, repetir último agendamento, favoritar serviços/pacotes (persistido), selo "Verificado" para negócio novo |
+| Vitrine pública | ✅ | ✅ | SSR com revalidate 5min; modal de detalhe (serviço/pacote/promoção), perfil do profissional, filtro por categoria/profissional/preço, próximo horário livre, repetir último agendamento, favoritar serviços/pacotes (persistido), selo "Verificado" para negócio novo; cards de serviço/pacote/promoção em proporção retrato 4:5 com enquadramento (zoom/posição) consistente entre card e modal de detalhe |
 | Portal do cliente | ✅ | ✅ | Hub central pós-identificação: login/criação de conta (CPF+nascimento) sempre redireciona pra cá — nunca mais direto pro agendamento. Identidade visual do sistema (gradiente, cards), próximo agendamento, histórico, edição de perfil, info do negócio (endereço/rota/horário de funcionamento por dia) |
 | PWA | ✅ | ✅ | Manifest + SW restrito a assets estáticos + ícones |
 | Automation | stub | — | Fase 2 |

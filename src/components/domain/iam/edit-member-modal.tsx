@@ -131,6 +131,9 @@ export function EditMemberModal({ member, open, onClose }: Props) {
               <AvatarUpload
                 userId={member.id}
                 currentAvatarUrl={avatarUrl}
+                cropX={member.avatarCropX}
+                cropY={member.avatarCropY}
+                cropZoom={member.avatarCropZoom}
                 name={name}
                 onUploaded={(url) => setAvatarUrl(url)}
               />

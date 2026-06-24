@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useBillingStatus } from '@/hooks/billing/use-billing-status'
 import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 
 const NAV_ITEMS = [
   { icon: Calendar, label: 'Agenda', href: '/agenda' },
@@ -101,18 +102,20 @@ export function BottomNav({ onNewAppointment }: BottomNavProps) {
               {plan}
             </span>
           )}
-          {user?.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={user.avatarUrl}
-              alt={user?.name ?? 'Perfil'}
-              className="size-7 rounded-full object-cover"
-            />
-          ) : (
-            <div className="size-7 rounded-full bg-primary/15 text-[10px] font-bold text-primary inline-flex items-center justify-center border border-primary/20">
-              {getInitials(user?.name ?? 'U')}
-            </div>
-          )}
+          <EntityImage
+            src={user?.avatarUrl}
+            alt={user?.name ?? 'Perfil'}
+            shape="circle"
+            cropX={user?.avatarCropX}
+            cropY={user?.avatarCropY}
+            cropZoom={user?.avatarCropZoom}
+            className="size-7 border border-primary/20"
+            fallback={
+              <div className="flex size-full items-center justify-center bg-primary/15 text-[10px] font-bold text-primary">
+                {getInitials(user?.name ?? 'U')}
+              </div>
+            }
+          />
           <span className="text-[11px] font-medium text-muted-foreground">Perfil</span>
         </button>
       </nav>
@@ -124,18 +127,20 @@ export function BottomNav({ onNewAppointment }: BottomNavProps) {
           <div className="space-y-1 pb-2">
             {/* Cabeçalho do usuário */}
             <div className="flex items-center gap-3 px-2 py-3">
-              {user?.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={user.avatarUrl}
-                  alt={user?.name ?? 'Perfil'}
-                  className="size-11 rounded-xl object-cover"
-                />
-              ) : (
-                <div className="size-11 rounded-xl bg-primary/15 text-sm font-bold text-primary inline-flex items-center justify-center">
-                  {getInitials(user?.name ?? 'U')}
-                </div>
-              )}
+              <EntityImage
+                src={user?.avatarUrl}
+                alt={user?.name ?? 'Perfil'}
+                shape="circle"
+                cropX={user?.avatarCropX}
+                cropY={user?.avatarCropY}
+                cropZoom={user?.avatarCropZoom}
+                className="size-11 rounded-xl"
+                fallback={
+                  <div className="flex size-full items-center justify-center bg-primary/15 text-sm font-bold text-primary">
+                    {getInitials(user?.name ?? 'U')}
+                  </div>
+                }
+              />
               <div>
                 <p className="text-sm font-semibold text-foreground">{user?.name ?? '—'}</p>
                 {plan && (

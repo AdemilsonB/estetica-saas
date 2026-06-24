@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Flame, Filter, Timer } from 'lucide-react'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 import { useVitrineInteraction } from './vitrine-interaction-context'
 import {
   VitrineFilterSheet,
@@ -23,6 +24,9 @@ type PublicPromotion = {
   name: string
   description?: string | null
   imageUrl?: string | null
+  imageCropX?: number | null
+  imageCropY?: number | null
+  imageCropZoom?: number | null
   discountType: 'PERCENTAGE' | 'FIXED'
   discountValue: number
   endsAt?: string | null
@@ -95,6 +99,9 @@ function PromotionCard({
       id: promo.id,
       name: promo.name,
       imageUrl: promo.imageUrl,
+      imageCropX: promo.imageCropX,
+      imageCropY: promo.imageCropY,
+      imageCropZoom: promo.imageCropZoom,
       description: promo.description,
       priceLabel: finalPrice != null ? `R$ ${finalPrice.toFixed(2)}` : badgeLabel(promo),
       originalPriceLabel: first ? `R$ ${first.originalPrice.toFixed(2)}` : null,
@@ -108,14 +115,16 @@ function PromotionCard({
   return (
     <div className="relative w-32 shrink-0 overflow-hidden rounded-2xl bg-card shadow-sm sm:w-36">
       <button onClick={handleOpenDetail} className="flex w-full flex-col text-left" aria-label={`Ver detalhes de ${promo.name}`}>
-        <div className="flex h-24 w-full items-center justify-center overflow-hidden bg-muted">
-          {promo.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={promo.imageUrl} alt={promo.name} className="h-full w-full object-cover" />
-          ) : (
-            <span className="text-2xl">🎉</span>
-          )}
-        </div>
+        <EntityImage
+          src={promo.imageUrl}
+          alt={promo.name}
+          shape="portrait"
+          cropX={promo.imageCropX}
+          cropY={promo.imageCropY}
+          cropZoom={promo.imageCropZoom}
+          className="w-full rounded-none"
+          fallback={<span className="text-2xl">🎉</span>}
+        />
         <div className="flex flex-1 flex-col gap-1 p-2.5">
           <p className="text-xs font-semibold leading-snug line-clamp-2">{promo.name}</p>
           {promo.endsAt ? <Countdown endsAt={promo.endsAt} /> : (
