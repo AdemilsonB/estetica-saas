@@ -125,12 +125,12 @@ export default function AdminCatalogoPage() {
     <div className="space-y-6">
       <h1 className="text-xl font-semibold text-slate-950">Catálogo Mestre</h1>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
         <Input
           placeholder="Buscar por nome..."
           value={nameInput}
           onChange={e => setNameInput(e.target.value)}
-          className="w-64"
+          className="w-full sm:w-64"
         />
         <div className="flex items-center gap-2">
           <Switch id="inactive" checked={showInactive} onCheckedChange={setShowInactive} />
@@ -156,6 +156,7 @@ export default function AdminCatalogoPage() {
           </div>
           {sLoading ? <TableSkeleton /> : (
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="border-b border-slate-100 bg-slate-50">
                   <tr>
@@ -213,6 +214,7 @@ export default function AdminCatalogoPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </TabsContent>
@@ -225,6 +227,7 @@ export default function AdminCatalogoPage() {
           </div>
           {pLoading ? <TableSkeleton /> : (
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="border-b border-slate-100 bg-slate-50">
                   <tr>
@@ -278,6 +281,7 @@ export default function AdminCatalogoPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </TabsContent>

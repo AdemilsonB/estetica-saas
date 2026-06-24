@@ -23,13 +23,13 @@ export default function AdminTenantsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold text-slate-950">Tenants</h1>
         <Input
           placeholder="Buscar por nome..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-60"
+          className="w-full sm:w-60"
         />
       </div>
 
@@ -41,6 +41,7 @@ export default function AdminTenantsPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-slate-100 bg-slate-50">
               <tr>
@@ -111,6 +112,7 @@ export default function AdminTenantsPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>
