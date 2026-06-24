@@ -36,7 +36,7 @@ export default async function SlugLayout({
   const fg = data.branding?.foregroundColor ?? '#1a1a1a'
 
   return (
-    <div style={{ backgroundColor: bg, color: fg, minHeight: '100vh' }}>
+    <div className="min-h-dvh" style={{ backgroundColor: bg, color: fg }}>
       {children}
     </div>
   )
