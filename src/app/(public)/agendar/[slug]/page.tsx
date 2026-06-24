@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { verifyPublicSession, COOKIE_NAME } from '@/shared/auth/public-session'
 import { prisma } from '@/shared/database/prisma'
+import { isOpenNow } from '@/lib/business-hours'
 import { BookingClient } from './booking-client'
 import type { TenantPublicData } from './types'
 
@@ -17,59 +18,6 @@ async function fetchTenantData(slug: string): Promise<TenantPublicData | null> {
     return res.json() as Promise<TenantPublicData>
   } catch {
     return null
-  }
-}
-
-type BusinessHourEntry = {
-  open: string
-  close: string
-  active: boolean
-}
-
-type BusinessHoursMap = Record<string, BusinessHourEntry>
-
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number)
-  return (h ?? 0) * 60 + (m ?? 0)
-}
-
-function isOpenNow(businessHours: unknown, timezone: string): boolean {
-  if (!businessHours || typeof businessHours !== 'object') return true
-
-  try {
-    const hours = businessHours as BusinessHoursMap
-
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      hour: '2-digit',
-      minute: '2-digit',
-      weekday: 'short',
-      hour12: false,
-    })
-
-    const parts = formatter.formatToParts(new Date())
-    const weekdayShort = parts.find((p) => p.type === 'weekday')?.value
-    const hourStr = parts.find((p) => p.type === 'hour')?.value
-    const minuteStr = parts.find((p) => p.type === 'minute')?.value
-
-    if (!weekdayShort || !hourStr || !minuteStr) return true
-
-    const weekdayMap: Record<string, number> = {
-      Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
-    }
-    const dayIndex = weekdayMap[weekdayShort]
-    if (dayIndex === undefined) return true
-
-    const dayConfig = hours[String(dayIndex)]
-    if (!dayConfig || !dayConfig.active) return false
-
-    const currentMinutes = timeToMinutes(`${hourStr}:${minuteStr}`)
-    const openMinutes = timeToMinutes(dayConfig.open)
-    const closeMinutes = timeToMinutes(dayConfig.close)
-
-    return currentMinutes >= openMinutes && currentMinutes < closeMinutes
-  } catch {
-    return true
   }
 }
 

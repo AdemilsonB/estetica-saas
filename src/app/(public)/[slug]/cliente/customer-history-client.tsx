@@ -2,13 +2,15 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { MessageCircle, LogOut, CalendarDays } from 'lucide-react'
+import { MessageCircle, LogOut, CalendarDays, MapPin, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { openRoute } from '@/lib/maps-route'
+import { weekdayLabel, formatHourRange, WEEK_DISPLAY_ORDER, type BusinessHoursMap } from '@/lib/business-hours'
 
 type AppointmentRow = {
   id: string
@@ -28,6 +30,13 @@ type Customer = {
   birthDate: string | null
 }
 
+type BusinessInfo = {
+  address: string | null
+  businessHours: unknown
+  todayWeekdayIndex: number | null
+  isOpenNow: boolean
+}
+
 type Props = {
   customer: Customer
   upcoming: AppointmentRow[]
@@ -35,6 +44,7 @@ type Props = {
   slug: string
   whatsappUrl: string | null
   primaryColor: string
+  business: BusinessInfo
 }
 
 const STATUS_LABELS: Record<string, { label: string; tone: 'primary' | 'red' }> = {
@@ -54,12 +64,19 @@ export function CustomerHistoryClient({
   slug,
   whatsappUrl,
   primaryColor,
+  business,
 }: Props) {
   const router = useRouter()
   const [phone, setPhone] = useState(customer.phone ?? '')
   const [email, setEmail] = useState(customer.email ?? '')
   const [saving, setSaving] = useState(false)
   const [page, setPage] = useState(0)
+
+  const businessHours =
+    business.businessHours && typeof business.businessHours === 'object'
+      ? (business.businessHours as BusinessHoursMap)
+      : null
+  const hasBusinessHours = !!businessHours && Object.keys(businessHours).length > 0
 
   const visibleHistory = history.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
   const totalPages = Math.ceil(history.length / PAGE_SIZE)
@@ -161,6 +178,71 @@ export function CustomerHistoryClient({
                 Falar pelo WhatsApp
               </a>
             )}
+          </div>
+        )}
+
+        {/* Informações do negócio */}
+        {(business.address || hasBusinessHours) && (
+          <div className="space-y-2">
+            <p className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: primaryColor }}>
+              Informações
+            </p>
+            <div className="rounded-2xl bg-card p-4 shadow-sm space-y-4">
+              {business.address && (
+                <button
+                  type="button"
+                  onClick={() => openRoute(business.address!)}
+                  className="flex w-full items-center gap-3 text-left"
+                >
+                  <div
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: `${primaryColor}1A` }}
+                  >
+                    <MapPin className="size-4" style={{ color: primaryColor }} />
+                  </div>
+                  <span className="min-w-0 flex-1 text-sm">{business.address}</span>
+                  <span className="shrink-0 text-xs font-bold" style={{ color: primaryColor }}>
+                    Rota ›
+                  </span>
+                </button>
+              )}
+
+              {hasBusinessHours && (
+                <div className={cn('space-y-1.5', business.address && 'border-t pt-3')}>
+                  <div className="mb-1 flex items-center gap-2">
+                    <Clock className="size-4" style={{ color: primaryColor }} />
+                    <span className="text-sm font-medium">Horário de funcionamento</span>
+                    {business.todayWeekdayIndex !== null && (
+                      <span
+                        className={cn(
+                          'ml-auto rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                          !business.isOpenNow && 'bg-muted text-muted-foreground',
+                        )}
+                        style={business.isOpenNow ? { backgroundColor: `${primaryColor}1A`, color: primaryColor } : undefined}
+                      >
+                        {business.isOpenNow ? 'Aberto agora' : 'Fechado agora'}
+                      </span>
+                    )}
+                  </div>
+                  {WEEK_DISPLAY_ORDER.map((day) => {
+                    const isToday = day === business.todayWeekdayIndex
+                    return (
+                      <div
+                        key={day}
+                        className={cn(
+                          'flex items-center justify-between text-xs',
+                          isToday ? 'font-semibold' : 'text-muted-foreground',
+                        )}
+                        style={isToday ? { color: primaryColor } : undefined}
+                      >
+                        <span>{weekdayLabel(day)}</span>
+                        <span>{formatHourRange(businessHours?.[String(day)])}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

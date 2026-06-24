@@ -1,22 +1,11 @@
 'use client'
 
 import { MapPin } from 'lucide-react'
+import { openRoute } from '@/lib/maps-route'
 
 type Props = {
   address: string
   primaryColor: string
-}
-
-function isIOS(): boolean {
-  return typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
-}
-
-function openRoute(address: string) {
-  const query = encodeURIComponent(address)
-  const url = isIOS()
-    ? `https://maps.apple.com/?address=${query}`
-    : `https://www.google.com/maps/search/?api=1&query=${query}`
-  window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 export function VitrineLocationBlock({ address, primaryColor }: Props) {
