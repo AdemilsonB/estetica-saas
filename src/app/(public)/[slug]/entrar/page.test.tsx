@@ -20,22 +20,63 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+function mockFetch() {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string, init?: RequestInit) => {
+      if (url.includes('/me')) {
+        return Promise.resolve({ ok: false, json: () => Promise.resolve(null) })
+      }
+      if (url.includes('/auth') && init?.method === 'POST') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 'cust-1', name: 'Ana Souza' }) })
+      }
+      if (url.includes('/customers') && init?.method === 'POST') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 'cust-2', name: 'Beatriz Lima' }) })
+      }
+      return Promise.resolve({ ok: false, json: () => Promise.resolve(null) })
+    }),
+  )
+}
+
+async function renderEntrar() {
+  await act(async () => {
+    render(
+      <Suspense fallback={null}>
+        <EntrarPage params={Promise.resolve({ slug: 'salao-teste' })} />
+      </Suspense>,
+    )
+  })
+}
+
 describe('EntrarPage', () => {
   it('ao logar com sucesso, redireciona para a página completa do cliente (/[slug]/cliente)', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
+    mockFetch()
     const user = userEvent.setup()
 
-    await act(async () => {
-      render(
-        <Suspense fallback={null}>
-          <EntrarPage params={Promise.resolve({ slug: 'salao-teste' })} />
-        </Suspense>,
-      )
-    })
+    await renderEntrar()
 
-    await user.type(screen.getByLabelText('CPF'), '12345678901')
+    await user.type(await screen.findByLabelText('CPF'), '12345678901')
     fireEvent.change(screen.getByLabelText('Data de nascimento'), { target: { value: '1990-01-01' } })
-    await user.click(screen.getByRole('button', { name: /entrar/i }))
+    await user.click(screen.getByRole('button', { name: /^entrar$/i }))
+
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/salao-teste/cliente'))
+  })
+
+  it('oferece a opção de criar conta nova, e ao cadastrar redireciona para a página do cliente', async () => {
+    mockFetch()
+    const user = userEvent.setup()
+
+    await renderEntrar()
+
+    await user.click(await screen.findByRole('tab', { name: /primeira vez aqui/i }))
+
+    await user.type(screen.getByLabelText(/nome completo/i), 'Beatriz Lima')
+    await user.type(screen.getByLabelText('CPF *'), '98765432100')
+    await user.type(screen.getByLabelText(/telefone/i), '11999998888')
+    await user.type(screen.getByLabelText(/e-mail/i), 'bia@example.com')
+    fireEvent.change(screen.getByLabelText(/data de nascimento \*/i), { target: { value: '1995-05-05' } })
+
+    await user.click(screen.getByRole('button', { name: /cadastrar e continuar/i }))
 
     await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/salao-teste/cliente'))
   })
