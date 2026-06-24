@@ -4,6 +4,7 @@ import { prisma } from '@/shared/database/prisma'
 import { getAdminContext } from '@/shared/auth/admin-context'
 import { handleApiError } from '@/shared/http/handle-api-error'
 import { validateInput } from '@/shared/http/validate-input'
+import { logAdminAction } from '@/shared/audit/admin-audit'
 import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 
 type Params = { params: Promise<{ planName: string }> }
@@ -42,7 +43,7 @@ export async function GET(request: Request, { params }: Params) {
 export async function PUT(request: Request, { params }: Params) {
   initializeDomainRuntime()
   try {
-    await getAdminContext(request)
+    const session = await getAdminContext(request)
     const { planName } = await params
     if (!isPlanName(planName)) {
       return Response.json({ error: 'Plano inválido' }, { status: 400 })
@@ -61,6 +62,16 @@ export async function PUT(request: Request, { params }: Params) {
       where: { plan: planName },
       orderBy: { limitKey: 'asc' },
     })
+
+    await logAdminAction({
+      adminUserId: session.userId,
+      action: 'plan.limits_updated',
+      targetType: 'Plan',
+      targetId: planName,
+      metadata: { limits },
+      request,
+    })
+
     return Response.json(updated)
   } catch (error) {
     return handleApiError(error)

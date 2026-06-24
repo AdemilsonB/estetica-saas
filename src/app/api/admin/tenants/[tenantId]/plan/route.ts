@@ -4,6 +4,7 @@ import { getAdminContext } from '@/shared/auth/admin-context'
 import { handleApiError } from '@/shared/http/handle-api-error'
 import { validateInput } from '@/shared/http/validate-input'
 import { billingService } from '@/domains/billing/billing.service'
+import { logAdminAction } from '@/shared/audit/admin-audit'
 import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 
 const changePlanSchema = z.object({
@@ -28,6 +29,16 @@ export async function PATCH(
       session.userId,
       input.reason,
     )
+
+    await logAdminAction({
+      adminUserId: session.userId,
+      action: 'tenant.plan_changed',
+      targetType: 'Tenant',
+      targetId: tenantId,
+      metadata: { plan: input.plan, status: input.status, reason: input.reason },
+      request,
+    })
+
     return Response.json(updated)
   } catch (error) {
     return handleApiError(error)

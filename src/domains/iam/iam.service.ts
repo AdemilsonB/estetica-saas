@@ -85,6 +85,12 @@ export class IamService {
       throw new NotFoundError("Usuario Supabase");
     }
 
+    if (authUser.user.app_metadata?.isSystemAdmin) {
+      throw new ForbiddenError(
+        "Contas de administrador do sistema não podem criar ou possuir um negócio.",
+      );
+    }
+
     const meta = (authUser.user.user_metadata ?? {}) as Record<string, string>
 
     let createResult: Awaited<
@@ -273,6 +279,13 @@ export class IamService {
     pendingRoleId: string,
     userName: string,
   ) {
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (authUser.user?.app_metadata?.isSystemAdmin) {
+      throw new ForbiddenError(
+        "Contas de administrador do sistema não podem ingressar em um negócio.",
+      );
+    }
+
     const invite = await iamRepository.findInviteByEmailAndTenant(email, pendingTenantId);
     if (!invite) throw new ForbiddenError("Convite nao encontrado ou expirado.");
 

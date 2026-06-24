@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose'
 
 const ALG = 'HS256'
+const TOKEN_TTL = '15m'
 
 function getSecret(): Uint8Array {
   const secret = process.env.ADMIN_IMPERSONATE_SECRET
@@ -20,7 +21,7 @@ export async function signImpersonationToken(
   return new SignJWT({ ...payload, isImpersonating: true as const })
     .setProtectedHeader({ alg: ALG })
     .setIssuedAt()
-    .setExpirationTime('30m')
+    .setExpirationTime(TOKEN_TTL)
     .sign(getSecret())
 }
 

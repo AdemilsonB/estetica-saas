@@ -6,6 +6,7 @@ import { validateInput } from '@/shared/http/validate-input'
 import { DomainError } from '@/shared/errors'
 import { prisma } from '@/shared/database/prisma'
 import { notificationService } from '@/domains/notifications/notification.service'
+import { logAdminAction } from '@/shared/audit/admin-audit'
 import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 
 const sendMessageSchema = z.object({
@@ -18,7 +19,7 @@ export async function POST(
 ) {
   initializeDomainRuntime()
   try {
-    await getAdminContext(request)
+    const session = await getAdminContext(request)
     const { tenantId } = await params
     const { message } = await validateInput(request, sendMessageSchema)
 
@@ -57,6 +58,14 @@ export async function POST(
       recipient: phone,
       provider: 'evolution',
       payload: { message },
+    })
+
+    await logAdminAction({
+      adminUserId: session.userId,
+      action: 'tenant.message_sent',
+      targetType: 'Tenant',
+      targetId: tenantId,
+      request,
     })
 
     return Response.json({ ok: true })

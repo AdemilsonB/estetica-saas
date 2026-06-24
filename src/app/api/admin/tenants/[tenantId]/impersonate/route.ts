@@ -2,6 +2,7 @@ import { getAdminContext } from '@/shared/auth/admin-context'
 import { handleApiError } from '@/shared/http/handle-api-error'
 import { NotFoundError, ForbiddenError } from '@/shared/errors'
 import { signImpersonationToken } from '@/shared/auth/impersonation'
+import { logAdminAction } from '@/shared/audit/admin-audit'
 import { prisma } from '@/shared/database/prisma'
 import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 
@@ -25,6 +26,14 @@ export async function POST(
     const token = await signImpersonationToken({
       tenantId,
       adminId: session.userId,
+    })
+
+    await logAdminAction({
+      adminUserId: session.userId,
+      action: 'tenant.impersonated',
+      targetType: 'Tenant',
+      targetId: tenantId,
+      request,
     })
 
     return Response.json({ token, tenantId, tenantName: tenant.name })
