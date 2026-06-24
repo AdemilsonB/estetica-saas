@@ -171,6 +171,9 @@ export async function middleware(request: NextRequest) {
 
   // Landing page — redireciona usuários autenticados para o destino correto
   if (pathname === "/") {
+    if (user?.app_metadata?.isSystemAdmin) {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
     if (user?.app_metadata?.tenantId) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
@@ -189,6 +192,11 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/agenda", request.url));
     }
     return supabaseResponse;
+  }
+
+  // Admin do sistema é uma conta isolada — nunca passa pelo fluxo de tenant/onboarding
+  if (user?.app_metadata?.isSystemAdmin) {
+    return NextResponse.redirect(new URL("/admin", request.url));
   }
 
   if (user?.app_metadata?.tenantId && isAuthRoute) {

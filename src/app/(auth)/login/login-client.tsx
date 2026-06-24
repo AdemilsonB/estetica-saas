@@ -111,7 +111,9 @@ export function LoginClient({ branding, plan }: Props) {
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user?.app_metadata?.tenantId) {
+      if (data.session?.user?.app_metadata?.isSystemAdmin) {
+        router.replace("/admin");
+      } else if (data.session?.user?.app_metadata?.tenantId) {
         router.replace("/agenda");
       }
     });

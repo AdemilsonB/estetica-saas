@@ -47,7 +47,9 @@ export default function CallbackPage() {
           return
         }
 
-        if (user.app_metadata?.tenantId) {
+        if (user.app_metadata?.isSystemAdmin) {
+          router.replace('/admin')
+        } else if (user.app_metadata?.tenantId) {
           router.replace('/agenda')
         } else {
           router.replace('/onboarding')
