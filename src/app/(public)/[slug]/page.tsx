@@ -195,11 +195,13 @@ export default async function VitrinePage({
       <VitrineProductsSection products={products} primaryColor={primary} />
 
       {/* Espaço para o CTA fixo mobile */}
-      {tenant.allowPublicBooking && <div className="h-24 sm:hidden" />}
+      {tenant.allowPublicBooking && (
+        <div className="h-[calc(6rem_+_env(safe-area-inset-bottom))] sm:hidden" />
+      )}
 
       {/* CTA fixo mobile — Agendar + WhatsApp consolidados num único bloco */}
       {tenant.allowPublicBooking && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 flex gap-2 p-4 sm:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex gap-2 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:hidden">
           <a
             href={bookingUrl}
             className="flex h-14 flex-1 items-center justify-center rounded-full text-base font-semibold text-white shadow-lg"

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Inter, Manrope, DM_Sans, Plus_Jakarta_Sans, Lato } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { Providers } from '@/lib/providers'
@@ -15,6 +15,12 @@ const lato = Lato({ variable: '--font-lato', subsets: ['latin'], weight: ['400',
 export const metadata: Metadata = {
   title: 'Agendê',
   description: 'Plataforma operacional inteligente para negocios de estetica e servicos.',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
