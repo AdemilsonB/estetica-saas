@@ -203,3 +203,43 @@ O gate **não substitui** `getSessionContext`/tenant scoping — cada route.ts c
 - Tenants existentes nunca tiveram FREE real em produção (confirmado antes da mudança) — sem necessidade de migração de dados.
 - `BillingPlansContent`/`SharedPlanCard` perderam os ramos especiais para `plan.name === 'FREE'` (não há mais como a API retornar um plano FREE ativo para exibição).
 - Página `/configuracoes/planos` fica inacessível enquanto o tenant está bloqueado (todo o `(app)` layout é substituído pela tela de bloqueio) — a própria tela de bloqueio embute o seletor de planos, então não há perda de funcionalidade.
+
+---
+
+## ADR-011 — Idempotência do webhook do Stripe (auditoria 2026-06-26)
+
+**Data**: 2026-06-26
+**Status**: Aceito
+
+**Contexto**: Auditoria de ponta a ponta (prompt-arquiteto) identificou que `/api/billing/stripe/webhook` não deduplicava eventos. O Stripe reentrega webhooks em caso de timeout/erro de rede (retry automático), e cada reentrega reexecutava `changePlan` + `addHistory`, podendo duplicar registros de `SubscriptionHistory` e reaplicar mudanças de plano.
+
+**Decisão**: Reivindicação ("claim") antes do processamento, via tabela dedicada `ProcessedStripeEvent` (`eventId` como PK):
+1. Após validar a assinatura (`constructEvent`), `claimStripeEvent(event.id, event.type)` tenta inserir o `eventId`. Se já existe (violação de PK, `P2002`), retorna `false` → o handler responde `200 { duplicate: true }` sem reprocessar.
+2. Se a reivindicação é nova, o evento é processado normalmente.
+3. Se o processamento lança exceção, `releaseStripeEvent(event.id)` remove a reivindicação e o handler responde `500` — assim o Stripe reentrega e o evento é reprocessado do zero (sem ficar "preso" como processado).
+
+**Alternativa rejeitada — coluna `stripeEventId @unique` em `SubscriptionHistory`**: nem todo evento gera uma linha de histórico (ex: `invoice.payment_succeeded` que não muda status), então a dedup ficaria incompleta. Uma tabela dedicada por evento cobre 100% dos tipos.
+
+**Consequências**:
+- Migration aditiva `ProcessedStripeEvent` (apenas `CREATE TABLE`, não-destrutiva).
+- A tabela cresce 1 linha por evento do Stripe; limpeza periódica (ex: reter 90 dias) pode ser adicionada futuramente, fora do escopo desta ADR.
+
+---
+
+## ADR-012 — RLS no Supabase adiado; isolamento multi-tenant permanece no nível de aplicação (auditoria 2026-06-26)
+
+**Data**: 2026-06-26
+**Status**: Aceito (decisão de adiar)
+
+**Contexto**: A mesma auditoria apontou que o isolamento multi-tenant é hoje 100% garantido por filtro de `tenantId` em todas as queries do repository (confirmado sólido na varredura), mas **não há Row Level Security (RLS) ativo no Postgres** — nenhuma migration contém `ENABLE ROW LEVEL SECURITY` / `CREATE POLICY`, apesar da intenção registrada em ADRs antigas. Sem RLS, um vazamento da credencial direta do banco (`DIRECT_URL`) contornaria todo o isolamento.
+
+**Decisão**: **Não implementar RLS nesta auditoria.** Registrar como dívida técnica de segurança (issue no GitHub) para uma sessão dedicada.
+
+**Justificativa**:
+- O isolamento por código é robusto e cobre o vetor de ataque realista (acesso via aplicação).
+- RLS é defesa-em-profundidade para um vetor secundário (vazamento de credencial direta), cuja probabilidade é mitigada pelo controle de segredos.
+- Habilitar RLS é mudança de alto risco: o Prisma usa uma conexão única (não passa `tenantId` por sessão de banco), então seria preciso ou (a) configurar o cliente do app para rodar com um papel que **bypassa** RLS — o que anula o benefício — ou (b) rearquitetar o acesso para injetar `SET app.tenant_id` por transação e escrever políticas por tabela. Cada política precisa de teste individual; uma política errada quebra leituras/escritas em produção.
+
+**Consequências**:
+- Issue criada no GitHub para rastrear a implementação futura (RLS por tenant + estratégia de injeção de contexto + testes por policy).
+- Até lá, o filtro de `tenantId` no repository continua sendo o controle obrigatório — reforçar em code review que nenhuma query de negócio pode omiti-lo.

@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { stripe } from '@/domains/billing/stripe.client'
 import { billingRepository } from '@/domains/billing/billing.repository'
 import { billingService } from '@/domains/billing/billing.service'
+import { claimStripeEvent, releaseStripeEvent } from '@/domains/billing/webhook-idempotency'
 import { prisma } from '@/shared/database/prisma'
 
 async function planFromPriceId(priceId: string): Promise<PlanName | null> {
@@ -37,6 +38,14 @@ export async function POST(req: Request) {
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
   } catch {
     return Response.json({ error: 'Webhook inválido.' }, { status: 400 })
+  }
+
+  // Idempotência: reivindica o evento antes de processar. Se o Stripe reentregar
+  // o mesmo evento (retry de rede), a reivindicação falha e ignoramos com 200,
+  // evitando duplicar mudança de plano / registro de histórico.
+  const isFirstDelivery = await claimStripeEvent(event.id, event.type)
+  if (!isFirstDelivery) {
+    return Response.json({ received: true, duplicate: true })
   }
 
   try {
@@ -170,6 +179,8 @@ export async function POST(req: Request) {
     return Response.json({ received: true })
   } catch (error) {
     console.error('[webhook] Erro ao processar evento', event.type, error)
+    // Libera a reivindicação para que o Stripe reentregue e reprocesse o evento.
+    await releaseStripeEvent(event.id)
     return Response.json({ error: 'Erro interno no webhook.' }, { status: 500 })
   }
 }

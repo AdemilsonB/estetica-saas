@@ -84,7 +84,7 @@ export class BillingService {
     return updated;
   }
 
-  async runExpireSweep() {
+  async runExpireSweep(): Promise<{ expiredTrials: number; expiredActive: number }> {
     const now = new Date();
 
     const expiredTrials = await billingRepository.findExpiredTrials(now);
@@ -97,6 +97,8 @@ export class BillingService {
     for (const sub of expiredActive) {
       await this.changePlan(sub.tenantId, sub.plan, SubscriptionStatus.EXPIRED, "system", "period_expired");
     }
+
+    return { expiredTrials: expiredTrials.length, expiredActive: expiredActive.length };
   }
 
   async resetTrial(tenantId: string, adminId: string) {
