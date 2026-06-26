@@ -32,7 +32,7 @@ export async function PUT(request: Request, { params }: Params) {
     ensurePermission(session, PERMISSIONS.users.manage)
     const { userId } = await params
     const { serviceIds } = await validateInput(request, setServicesSchema)
-    const updated = await iamService.setMemberServices(session.tenantId, userId, serviceIds)
+    const updated = await iamService.setMemberServices(session.tenantId, session.userId, userId, serviceIds)
     return Response.json(updated.map((ps) => (ps as { service: { id: string; name: string } }).service))
   } catch (error) {
     return handleApiError(error)
