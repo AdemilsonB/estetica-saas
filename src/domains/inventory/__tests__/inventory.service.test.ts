@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { InventoryService } from '../inventory.service'
-import { InsufficientStockError, ProductNotFoundError, CategoryHasProductsError, NotFoundError } from '@/shared/errors'
+import { InsufficientStockError, ProductNotFoundError, CategoryHasProductsError, NotFoundError, ValidationError } from '@/shared/errors'
 import { makeProduct } from '@/shared/test/factories/product.factory'
 
 vi.mock('../product.repository', () => ({
@@ -38,10 +38,19 @@ vi.mock('@/shared/events/event-bus', () => ({
 import { productRepository } from '../product.repository'
 import { stockRepository } from '../stock.repository'
 import { eventBus } from '@/shared/events/event-bus'
+import { prisma } from '@/shared/database/prisma'
 
 const service = new InventoryService()
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  // O setup global mocka prisma como objeto vazio; aqui o service usa
+  // prisma.$transaction, então o fazemos executar o callback (com os
+  // repositories já mockados, o client de transação é irrelevante).
+  ;(prisma as unknown as { $transaction: unknown }).$transaction = vi.fn(
+    (cb: (tx: unknown) => unknown) => cb(prisma),
+  )
+})
 
 describe('recordSale', () => {
   it('lança ProductNotFoundError quando produto não existe', async () => {
@@ -54,15 +63,28 @@ describe('recordSale', () => {
     await expect(service.recordSale('t1', { quantity: 5, productId: 'p1' }, 'u1')).rejects.toBeInstanceOf(InsufficientStockError)
   })
 
+  it('lança InsufficientStockError se a baixa condicional não afeta linhas (corrida)', async () => {
+    // Pré-checagem passa (estoque 10), mas no momento da baixa outra venda
+    // esvaziou o estoque → decrementStock retorna count 0 → deve lançar.
+    const product = makeProduct({ stockQuantity: 10 })
+    vi.mocked(productRepository.findById).mockResolvedValue(product)
+    vi.mocked(productRepository.decrementStock).mockResolvedValue({ count: 0 } as any)
+
+    await expect(
+      service.recordSale('t1', { quantity: 2, productId: product.id }, 'u1'),
+    ).rejects.toBeInstanceOf(InsufficientStockError)
+    expect(stockRepository.create).not.toHaveBeenCalled()
+  })
+
   it('decrementa estoque e publica evento product.sold', async () => {
     const product = makeProduct({ stockQuantity: 10 })
     vi.mocked(productRepository.findById).mockResolvedValue(product)
-    vi.mocked(productRepository.decrementStock).mockResolvedValue({} as any)
+    vi.mocked(productRepository.decrementStock).mockResolvedValue({ count: 1 } as any)
     vi.mocked(stockRepository.create).mockResolvedValue({} as any)
 
     await service.recordSale('t1', { quantity: 2, productId: product.id }, 'u1')
 
-    expect(productRepository.decrementStock).toHaveBeenCalledWith('t1', product.id, 2)
+    expect(productRepository.decrementStock).toHaveBeenCalledWith('t1', product.id, 2, expect.anything())
     expect(eventBus.publish).toHaveBeenCalledWith(expect.objectContaining({ type: 'product.sold' }))
   })
 
@@ -96,7 +118,7 @@ describe('recordPurchase', () => {
 
     await service.recordPurchase('t1', { quantity: 10, unitPrice: 15, productId: product.id }, 'u1')
 
-    expect(productRepository.incrementStock).toHaveBeenCalledWith('t1', product.id, 10)
+    expect(productRepository.incrementStock).toHaveBeenCalledWith('t1', product.id, 10, expect.anything())
     expect(eventBus.publish).toHaveBeenCalledWith(expect.objectContaining({ type: 'stock.purchased' }))
     expect(eventBus.publish).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -184,8 +206,8 @@ describe('updateCompletedAppointmentProducts', () => {
       { serviceName: 'Corte Masculino', customerName: 'João Silva' },
     )
 
-    expect(productRepository.decrementStock).toHaveBeenCalledWith('t1', 'p1', 1)
-    expect(productRepository.incrementStock).toHaveBeenCalledWith('t1', 'p2', 1)
+    expect(productRepository.decrementStock).toHaveBeenCalledWith('t1', 'p1', 1, expect.anything())
+    expect(productRepository.incrementStock).toHaveBeenCalledWith('t1', 'p2', 1, expect.anything())
     expect(eventBus.publish).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'stock.appointment_use',
@@ -266,5 +288,12 @@ describe('updateCompletedAppointmentProducts', () => {
     expect(productRepository.incrementStock).not.toHaveBeenCalled()
     expect(eventBus.publish).not.toHaveBeenCalled()
     expect(productRepository.saveAppointmentProducts).toHaveBeenCalled()
+  })
+})
+
+describe('adjustStock', () => {
+  it('rejeita quantidade-alvo negativa (defesa em profundidade)', async () => {
+    await expect(service.adjustStock('t1', 'p1', -5, 'u1')).rejects.toBeInstanceOf(ValidationError)
+    expect(productRepository.findById).not.toHaveBeenCalled()
   })
 })

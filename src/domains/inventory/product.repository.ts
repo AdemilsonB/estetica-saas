@@ -4,8 +4,8 @@ import { prisma } from '@/shared/database/prisma'
 import type { CreateProductInput, UpdateProductInput, ListProductsQuery } from './types'
 
 export class ProductRepository {
-  async findById(tenantId: string, id: string) {
-    return prisma.product.findFirst({ where: { id, tenantId, active: true }, include: { category: true } })
+  async findById(tenantId: string, id: string, db: Prisma.TransactionClient = prisma) {
+    return db.product.findFirst({ where: { id, tenantId, active: true }, include: { category: true } })
   }
 
   async findByCatalogId(tenantId: string, catalogProductId: string) {
@@ -109,16 +109,20 @@ export class ProductRepository {
     return prisma.product.updateMany({ where: { id, tenantId }, data: { active: false } })
   }
 
-  async incrementStock(tenantId: string, id: string, quantity: number) {
-    return prisma.product.updateMany({
+  async incrementStock(tenantId: string, id: string, quantity: number, db: Prisma.TransactionClient = prisma) {
+    return db.product.updateMany({
       where: { id, tenantId },
       data: { stockQuantity: { increment: quantity } },
     })
   }
 
-  async decrementStock(tenantId: string, id: string, quantity: number) {
-    return prisma.product.updateMany({
-      where: { id, tenantId },
+  // Baixa atômica e condicional: só decrementa se houver saldo suficiente
+  // (`stockQuantity >= quantity`). Retorna `count: 0` quando não há saldo —
+  // o chamador deve tratar como estoque insuficiente. Previne venda acima do
+  // estoque e estoque negativo mesmo sob concorrência, sem precisar de lock.
+  async decrementStock(tenantId: string, id: string, quantity: number, db: Prisma.TransactionClient = prisma) {
+    return db.product.updateMany({
+      where: { id, tenantId, stockQuantity: { gte: quantity } },
       data: { stockQuantity: { decrement: quantity } },
     })
   }
