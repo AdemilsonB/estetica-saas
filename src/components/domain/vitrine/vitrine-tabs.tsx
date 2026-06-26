@@ -78,7 +78,7 @@ export function VitrineTabs({ services, packages, promotions, products, bookingB
               <div className="h-28 bg-muted flex items-center justify-center overflow-hidden">
                 {s.imageUrl
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={s.imageUrl} alt={s.name} className="h-full w-full object-cover" />
+                  ? <img src={s.imageUrl} alt={s.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   : <span className="text-3xl">✂️</span>}
               </div>
               <div className="flex flex-1 flex-col gap-1 p-3">
@@ -105,7 +105,7 @@ export function VitrineTabs({ services, packages, promotions, products, bookingB
               <div className="h-28 bg-muted flex items-center justify-center overflow-hidden">
                 {p.imageUrl
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
+                  ? <img src={p.imageUrl} alt={p.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   : <span className="text-3xl">📦</span>}
               </div>
               <div className="flex flex-1 flex-col gap-1 p-3">
@@ -135,7 +135,7 @@ export function VitrineTabs({ services, packages, promotions, products, bookingB
               <div className="h-28 bg-muted flex items-center justify-center overflow-hidden">
                 {promo.imageUrl
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={promo.imageUrl} alt={promo.name} className="h-full w-full object-cover" />
+                  ? <img src={promo.imageUrl} alt={promo.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   : <span className="text-3xl">🎉</span>}
               </div>
               <div className="flex flex-1 flex-col gap-1 p-3">
@@ -171,7 +171,7 @@ export function VitrineTabs({ services, packages, promotions, products, bookingB
               <div className="h-28 bg-muted flex items-center justify-center overflow-hidden">
                 {p.imageUrl
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
+                  ? <img src={p.imageUrl} alt={p.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   : <span className="text-3xl">🧴</span>}
               </div>
               <div className="p-3">
