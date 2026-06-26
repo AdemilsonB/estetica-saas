@@ -17,7 +17,6 @@ const CheckoutSchema = z.object({
 
 const ACTIVE_STATUSES: SubscriptionStatus[] = [
   SubscriptionStatus.ACTIVE,
-  SubscriptionStatus.TRIALING,
   SubscriptionStatus.PAST_DUE,
 ]
 
@@ -39,14 +38,10 @@ export async function POST(req: Request) {
       )
     }
 
-    // Trial expirado sem stripeSubId — não é uma assinatura ativa, permite novo checkout
-    const isExpiredTrial =
-      sub?.status === SubscriptionStatus.TRIALING &&
-      sub.trialEndsAt != null &&
-      sub.trialEndsAt < new Date()
-
-    // Bloqueia se status é ativo e não é trial expirado (protege contra race condition no webhook)
-    if (sub && ACTIVE_STATUSES.includes(sub.status) && !isExpiredTrial) {
+    // Bloqueia se status já é de assinatura paga (protege contra race condition no webhook).
+    // TRIALING nunca tem stripeSubId, então já é coberto pelo bloqueio acima — trial em
+    // andamento ou expirado pode sempre seguir para o checkout.
+    if (sub && ACTIVE_STATUSES.includes(sub.status)) {
       throw new DomainError(
         'Você já possui uma assinatura ativa. Para mudar de plano, use o portal de assinatura.',
         'SUBSCRIPTION_EXISTS',
