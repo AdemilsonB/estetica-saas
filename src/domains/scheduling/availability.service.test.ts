@@ -99,3 +99,60 @@ describe('AvailabilityService.getAvailableSlots', () => {
     expect(times).toContain('09:30')
   })
 })
+
+describe('AvailabilityService.getMonthAvailability', () => {
+  const service = new AvailabilityService()
+  const tenantId = 'tenant-1'
+  const professionalId = 'prof-1'
+  // Junho/2026: segundas-feiras nos dias 1, 8, 15, 22, 29 (mock só tem segunda ativa)
+  const MONDAYS = ['2026-06-01', '2026-06-08', '2026-06-15', '2026-06-22', '2026-06-29']
+
+  it('marca dias sem expediente como fechados (open:false, available:false)', async () => {
+    ;(prisma.appointment.findMany as any).mockResolvedValue([])
+
+    const days = await service.getMonthAvailability(tenantId, professionalId, 2026, 6, 60, 30)
+
+    // 2026-06-02 é terça (não configurada) → fechado
+    const tuesday = days.find((d) => d.date === '2026-06-02')
+    expect(tuesday?.open).toBe(false)
+    expect(tuesday?.available).toBe(false)
+  })
+
+  it('marca segundas como abertas e disponíveis quando não há agendamentos', async () => {
+    ;(prisma.appointment.findMany as any).mockResolvedValue([])
+
+    const days = await service.getMonthAvailability(tenantId, professionalId, 2026, 6, 60, 30)
+
+    for (const monday of MONDAYS) {
+      const d = days.find((x) => x.date === monday)
+      expect(d?.open, monday).toBe(true)
+      expect(d?.available, monday).toBe(true)
+    }
+  })
+
+  it('marca dia aberto porém lotado como indisponível', async () => {
+    // Agendamento cobrindo todo o expediente da segunda 08/06 (09:00–18:00 = 12:00–21:00 UTC)
+    ;(prisma.appointment.findMany as any).mockResolvedValue([
+      {
+        startsAt: new Date('2026-06-08T12:00:00.000Z'),
+        endsAt: new Date('2026-06-08T21:00:00.000Z'),
+      },
+    ])
+
+    const days = await service.getMonthAvailability(tenantId, professionalId, 2026, 6, 60, 30)
+
+    const blocked = days.find((d) => d.date === '2026-06-08')
+    expect(blocked?.open).toBe(true)
+    expect(blocked?.available).toBe(false)
+
+    // Outras segundas continuam livres
+    const free = days.find((d) => d.date === '2026-06-15')
+    expect(free?.available).toBe(true)
+  })
+
+  it('retorna um item por dia do mês', async () => {
+    ;(prisma.appointment.findMany as any).mockResolvedValue([])
+    const days = await service.getMonthAvailability(tenantId, professionalId, 2026, 6, 60, 30)
+    expect(days).toHaveLength(30) // junho tem 30 dias
+  })
+})
