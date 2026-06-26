@@ -112,9 +112,12 @@ export function BookingClient({
   }, [])
 
   const singleProfessional = tenantData.professionals.length === 1
+  const hasAnamnese =
+    !!booking.serviceAnamneseMode && booking.serviceAnamneseMode !== 'NONE'
   const visibleSteps = ALL_STEPS.filter((s) => {
     if (s === 'professional' && singleProfessional) return false
-    if (s === 'anamnese') return false
+    // A ficha só entra no progresso quando o serviço escolhido a exige
+    if (s === 'anamnese' && !hasAnamnese) return false
     return true
   })
 
@@ -308,6 +311,7 @@ export function BookingClient({
           onConfirm={handleConfirm}
           onBack={() => setStep('datetime')}
           primaryColor={primaryColor}
+          whatsappEnabled={tenantData.whatsappEnabled ?? false}
         />
       )}
 
@@ -317,6 +321,7 @@ export function BookingClient({
           tenantName={tenantData.name}
           tenantSlug={tenantData.slug}
           primaryColor={primaryColor}
+          whatsappEnabled={tenantData.whatsappEnabled ?? false}
         />
       )}
     </div>

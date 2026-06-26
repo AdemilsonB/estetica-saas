@@ -421,10 +421,14 @@ function OnboardingContent() {
                       className="hidden"
                       onChange={(e) => {
                         const f = e.target.files?.[0]
-                        if (f && f.size <= 2 * 1024 * 1024) {
-                          setLogoFile(f)
-                          setLogoPreview(URL.createObjectURL(f))
+                        if (!f) return
+                        if (f.size > 2 * 1024 * 1024) {
+                          toast.error('Imagem muito grande. O tamanho máximo é 2 MB.')
+                          e.target.value = ''
+                          return
                         }
+                        setLogoFile(f)
+                        setLogoPreview(URL.createObjectURL(f))
                       }}
                     />
                   </div>

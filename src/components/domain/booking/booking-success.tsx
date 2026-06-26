@@ -40,11 +40,13 @@ export function BookingSuccess({
   tenantName,
   tenantSlug,
   primaryColor,
+  whatsappEnabled = false,
 }: {
   booking: BookingState
   tenantName: string
   tenantSlug: string
   primaryColor: string
+  whatsappEnabled?: boolean
 }) {
   function formatDate(d?: Date): string {
     if (!d) return ''
@@ -72,7 +74,9 @@ export function BookingSuccess({
       <div>
         <h2 className="text-xl font-bold text-slate-900">Agendamento confirmado!</h2>
         <p className="text-slate-500 mt-2 text-sm">
-          Você receberá uma confirmação via WhatsApp em breve.
+          {whatsappEnabled
+            ? 'Você receberá uma confirmação via WhatsApp em breve.'
+            : 'Seu horário está reservado. Anote a data e o horário abaixo.'}
         </p>
       </div>
 
