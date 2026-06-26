@@ -245,7 +245,27 @@ export class IamService {
     })
   }
 
-  async setMemberServices(tenantId: string, userId: string, serviceIds: string[]) {
+  async setMemberServices(tenantId: string, requesterId: string, userId: string, serviceIds: string[]) {
+    // Mesma hierarquia de updateMember: gerentes não podem alterar dono/outros gerentes.
+    const requester = await iamRepository.findUserById(tenantId, requesterId)
+    if (!requester) throw new UserNotFoundError()
+    const target = await iamRepository.findUserById(tenantId, userId)
+    if (!target) throw new UserNotFoundError()
+
+    const isOwner = requester.role === UserRole.OWNER
+    const isManager = requester.role === UserRole.MANAGER
+    const isSelf = requesterId === userId
+
+    if (isOwner) {
+      // OWNER pode gerenciar serviços de qualquer membro
+    } else if (isManager) {
+      if (!isSelf && (target.role === UserRole.OWNER || target.role === UserRole.MANAGER)) {
+        throw new ForbiddenError('Gerentes não podem alterar serviços do dono ou de outros gerentes.')
+      }
+    } else {
+      throw new ForbiddenError('Sem permissão para alterar serviços de membros.')
+    }
+
     const currentServices = await iamRepository.findUserServices(tenantId, userId)
     const currentServiceIds = new Set(currentServices.map((ps) => ps.serviceId))
     const newServiceIds = serviceIds.filter((id) => !currentServiceIds.has(id))

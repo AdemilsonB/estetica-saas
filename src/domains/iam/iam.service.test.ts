@@ -194,6 +194,7 @@ describe('IamService.setMemberServices', () => {
   })
 
   it('substitui serviços e cria ServiceCommission para novos vínculos', async () => {
+    vi.mocked(iamRepository.findUserById).mockResolvedValue({ id: 'owner-1', role: 'OWNER' } as any)
     vi.mocked(iamRepository.findUserServices).mockResolvedValue([
       { serviceId: 'svc-old', service: { id: 'svc-old', name: 'Antigo' } } as any,
     ])
@@ -201,12 +202,13 @@ describe('IamService.setMemberServices', () => {
       { service: { id: 'svc-new', name: 'Novo' } } as any,
     ])
 
-    await service.setMemberServices('tenant-1', 'user-1', ['svc-new'])
+    await service.setMemberServices('tenant-1', 'owner-1', 'user-1', ['svc-new'])
 
     expect(iamRepository.setUserServices).toHaveBeenCalledWith('tenant-1', 'user-1', ['svc-new'])
   })
 
   it('não cria ServiceCommission para serviços já existentes', async () => {
+    vi.mocked(iamRepository.findUserById).mockResolvedValue({ id: 'owner-1', role: 'OWNER' } as any)
     vi.mocked(iamRepository.findUserServices).mockResolvedValue([
       { serviceId: 'svc-1', service: { id: 'svc-1', name: 'Corte' } } as any,
     ])
@@ -214,8 +216,20 @@ describe('IamService.setMemberServices', () => {
       { service: { id: 'svc-1', name: 'Corte' } } as any,
     ])
 
-    const result = await service.setMemberServices('tenant-1', 'user-1', ['svc-1'])
+    const result = await service.setMemberServices('tenant-1', 'owner-1', 'user-1', ['svc-1'])
 
     expect(result).toBeDefined()
+  })
+
+  it('impede MANAGER de alterar serviços do OWNER', async () => {
+    vi.mocked(iamRepository.findUserById)
+      .mockResolvedValueOnce({ id: 'mgr-1', role: 'MANAGER' } as any) // requester
+      .mockResolvedValueOnce({ id: 'owner-1', role: 'OWNER' } as any) // target
+
+    await expect(
+      service.setMemberServices('tenant-1', 'mgr-1', 'owner-1', ['svc-1']),
+    ).rejects.toThrow()
+
+    expect(iamRepository.setUserServices).not.toHaveBeenCalled()
   })
 })
