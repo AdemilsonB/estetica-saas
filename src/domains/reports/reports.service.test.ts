@@ -21,6 +21,10 @@ function income(amount: number, netAmount: number | null, appointmentId = 'apt-1
 describe('ReportsService.getFinancialReport — exatidão de netAmount', () => {
   beforeEach(() => {
     prismaMock.transaction.findMany.mockReset()
+    // resolvePeriod busca o timezone do tenant quando não há datas explícitas.
+    prismaMock.tenant.findFirstOrThrow.mockResolvedValue({
+      timezone: 'America/Sao_Paulo',
+    } as never)
   })
 
   it('usa netAmount (líquido) na receita, não amount (bruto)', async () => {
