@@ -70,6 +70,7 @@ export type TenantPublicData = {
   address?: string | null
   timezone: string
   businessHours?: unknown
+  whatsappEnabled?: boolean
   branding?: TenantBranding | null
   services: PublicService[]
   professionals: PublicProfessional[]

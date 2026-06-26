@@ -22,12 +22,14 @@ export function ConfirmationStep({
   onConfirm,
   onBack,
   primaryColor,
+  whatsappEnabled = false,
 }: {
   booking: BookingState
   tenantSlug: string
   onConfirm: (appointmentId: string, startsAt: Date) => void
   onBack: () => void
   primaryColor: string
+  whatsappEnabled?: boolean
 }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -135,7 +137,9 @@ export function ConfirmationStep({
       )}
 
       <p className="text-xs text-center text-slate-400">
-        Você receberá uma confirmação via WhatsApp.
+        {whatsappEnabled
+          ? 'Você receberá uma confirmação via WhatsApp.'
+          : 'Seu horário será reservado assim que você confirmar.'}
       </p>
 
       {/* Barra de navegação fixa na base */}
@@ -162,7 +166,7 @@ export function ConfirmationStep({
               Confirmando...
             </span>
           ) : (
-            'Avançar →'
+            'Confirmar agendamento'
           )}
         </Button>
       </div>
