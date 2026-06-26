@@ -51,15 +51,15 @@ export class ReportsService {
 
     const receita = transactions
       .filter((t) => t.type === TransactionType.INCOME)
-      .reduce((s, t) => s + Number(t.amount), 0)
+      .reduce((s, t) => s + Number(t.netAmount ?? t.amount), 0)
 
     const estornos = transactions
       .filter((t) => t.type === TransactionType.EXPENSE && isReversalTx(t))
-      .reduce((s, t) => s + Math.abs(Number(t.amount)), 0)
+      .reduce((s, t) => s + Math.abs(Number(t.netAmount ?? t.amount)), 0)
 
     const grossExpenses = transactions
       .filter((t) => t.type === TransactionType.EXPENSE && !isReversalTx(t))
-      .reduce((s, t) => s + Number(t.amount), 0)
+      .reduce((s, t) => s + Number(t.netAmount ?? t.amount), 0)
 
     const despesa = Math.max(0, grossExpenses - estornos)
 
@@ -81,7 +81,7 @@ export class ReportsService {
       byGroup.set(label, {
         label,
         quantidade: prev.quantidade + 1,
-        receita: prev.receita + Number(tx.amount),
+        receita: prev.receita + Number(tx.netAmount ?? tx.amount),
       })
     }
     const rows = [...byGroup.values()].sort((a, b) => b.receita - a.receita)
@@ -157,7 +157,7 @@ export class ReportsService {
       },
       include: {
         customer: { select: { id: true, name: true } },
-        transactions: { select: { amount: true, type: true } },
+        transactions: { select: { amount: true, netAmount: true, type: true } },
       },
       orderBy: { startsAt: 'desc' },
     })
@@ -173,7 +173,7 @@ export class ReportsService {
       const prev = byCustomer.get(apt.customerId)
       const receita = apt.transactions
         .filter((t) => t.type === TransactionType.INCOME)
-        .reduce((s, t) => s + Number(t.amount), 0)
+        .reduce((s, t) => s + Number(t.netAmount ?? t.amount), 0)
       byCustomer.set(apt.customerId, {
         nome: apt.customer.name,
         atendimentos: (prev?.atendimentos ?? 0) + 1,
@@ -226,7 +226,7 @@ export class ReportsService {
       },
       include: {
         professional: { select: { id: true, name: true } },
-        transactions: { select: { amount: true, type: true } },
+        transactions: { select: { amount: true, netAmount: true, type: true } },
       },
     })
 
@@ -236,7 +236,7 @@ export class ReportsService {
       const prev = byProf.get(apt.professionalId)
       const receita = apt.transactions
         .filter((t) => t.type === TransactionType.INCOME)
-        .reduce((s, t) => s + Number(t.amount), 0)
+        .reduce((s, t) => s + Number(t.netAmount ?? t.amount), 0)
       byProf.set(apt.professionalId, {
         nome: apt.professional.name,
         atendimentos: (prev?.atendimentos ?? 0) + 1,
