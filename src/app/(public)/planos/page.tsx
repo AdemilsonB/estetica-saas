@@ -1,6 +1,11 @@
 import { prisma } from '@/shared/database/prisma'
 import { PricingToggle } from '@/components/domain/billing/pricing-toggle'
 
+// Sempre renderizar no request: os planos são editáveis pelo admin e precisam
+// refletir imediatamente. Sem isto, o Next renderiza estaticamente no build
+// (chamadas Prisma não são sinal de dinamismo) e congela os valores do seed.
+export const dynamic = 'force-dynamic'
+
 async function getPlans() {
   return prisma.plan.findMany({
     where: { isActive: true },

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { revalidatePath } from 'next/cache'
 import { PlanName } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { getAdminContext } from '@/shared/auth/admin-context'
@@ -46,6 +47,11 @@ export async function PUT(request: Request, { params }: Params) {
       metadata: input,
       request,
     })
+
+    // Estoura o cache ISR das páginas públicas que exibem dados de plano,
+    // para que a edição do admin apareça imediatamente (sem esperar revalidate).
+    revalidatePath('/')
+    revalidatePath('/planos')
 
     return Response.json(plan)
   } catch (error) {
