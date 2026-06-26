@@ -14,8 +14,8 @@ type CreateMovementData = {
 }
 
 export class StockRepository {
-  async create(tenantId: string, data: CreateMovementData) {
-    return prisma.stockMovement.create({
+  async create(tenantId: string, data: CreateMovementData, db: Prisma.TransactionClient = prisma) {
+    return db.stockMovement.create({
       data: { tenantId, ...data },
       include: { product: true },
     })

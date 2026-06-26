@@ -1,11 +1,13 @@
 // src/domains/inventory/inventory.service.ts
 import { Prisma } from '@prisma/client'
 import { eventBus } from '@/shared/events/event-bus'
+import { prisma } from '@/shared/database/prisma'
 import {
   ProductNotFoundError,
   InsufficientStockError,
   CategoryHasProductsError,
   NotFoundError,
+  ValidationError,
 } from '@/shared/errors'
 import { productRepository } from './product.repository'
 import { stockRepository } from './stock.repository'
@@ -78,18 +80,19 @@ export class InventoryService {
 
     const totalAmount = new Prisma.Decimal(input.unitPrice).mul(input.quantity).toNumber()
 
-    // MVP: incrementStock e create StockMovement são operações separadas sem transação.
-    // Em caso de falha no create, o estoque permanece incrementado. Aceito para esta fase.
-    await productRepository.incrementStock(tenantId, product.id, input.quantity)
-
-    const movement = await stockRepository.create(tenantId, {
-      productId: product.id,
-      type: 'PURCHASE',
-      quantity: input.quantity,
-      unitPrice: new Prisma.Decimal(input.unitPrice),
-      totalAmount: new Prisma.Decimal(totalAmount),
-      notes: input.notes,
-      createdByUserId,
+    // Incremento de estoque e registro do movimento numa única transação:
+    // ou ambos persistem, ou nenhum (sem estoque incrementado "órfão").
+    const movement = await prisma.$transaction(async (tx) => {
+      await productRepository.incrementStock(tenantId, product.id, input.quantity, tx)
+      return stockRepository.create(tenantId, {
+        productId: product.id,
+        type: 'PURCHASE',
+        quantity: input.quantity,
+        unitPrice: new Prisma.Decimal(input.unitPrice),
+        totalAmount: new Prisma.Decimal(totalAmount),
+        notes: input.notes,
+        createdByUserId,
+      }, tx)
     })
 
     eventBus.publish({
@@ -115,17 +118,22 @@ export class InventoryService {
     const unitPrice = input.unitPrice ?? Number(product.salePrice)
     const totalAmount = new Prisma.Decimal(unitPrice).mul(input.quantity).toNumber()
 
-    // MVP: decrementStock e create StockMovement são operações separadas sem transação.
-    // Em caso de falha no create, o estoque permanece decrementado. Aceito para esta fase.
-    await productRepository.decrementStock(tenantId, product.id, input.quantity)
-
-    const movement = await stockRepository.create(tenantId, {
-      productId: product.id,
-      type: 'SALE',
-      quantity: -input.quantity,
-      unitPrice: new Prisma.Decimal(unitPrice),
-      totalAmount: new Prisma.Decimal(totalAmount),
-      createdByUserId,
+    // Baixa condicional + registro do movimento numa única transação. A baixa
+    // só ocorre se ainda houver saldo (previne venda acima do estoque sob
+    // concorrência, mesmo com a checagem inicial acima já tendo passado).
+    const movement = await prisma.$transaction(async (tx) => {
+      const dec = await productRepository.decrementStock(tenantId, product.id, input.quantity, tx)
+      if (dec.count === 0) {
+        throw new InsufficientStockError(product.stockQuantity, input.quantity, product.name)
+      }
+      return stockRepository.create(tenantId, {
+        productId: product.id,
+        type: 'SALE',
+        quantity: -input.quantity,
+        unitPrice: new Prisma.Decimal(unitPrice),
+        totalAmount: new Prisma.Decimal(totalAmount),
+        createdByUserId,
+      }, tx)
     })
 
     eventBus.publish({
@@ -173,18 +181,28 @@ export class InventoryService {
       }
     }
 
-    await productRepository.saveAppointmentProducts(tenantId, appointmentId, input.products)
+    // Todas as baixas + movimentos numa única transação: se algum produto
+    // ficar sem saldo no momento da baixa (corrida com outra venda), tudo é
+    // revertido em vez de aplicar parcialmente.
+    await prisma.$transaction(async (tx) => {
+      for (let i = 0; i < input.products.length; i++) {
+        const item = input.products[i]
+        const product = products[i]!
+        const dec = await productRepository.decrementStock(tenantId, item.productId, item.quantity, tx)
+        if (dec.count === 0) {
+          throw new InsufficientStockError(product.stockQuantity, item.quantity, product.name)
+        }
+        await stockRepository.create(tenantId, {
+          productId: item.productId,
+          type: 'APPOINTMENT_USE',
+          quantity: -item.quantity,
+          appointmentId,
+          createdByUserId,
+        }, tx)
+      }
+    })
 
-    for (const item of input.products) {
-      await productRepository.decrementStock(tenantId, item.productId, item.quantity)
-      await stockRepository.create(tenantId, {
-        productId: item.productId,
-        type: 'APPOINTMENT_USE',
-        quantity: -item.quantity,
-        appointmentId,
-        createdByUserId,
-      })
-    }
+    await productRepository.saveAppointmentProducts(tenantId, appointmentId, input.products)
 
     return productRepository.getAppointmentProducts(tenantId, appointmentId)
   }
@@ -225,58 +243,68 @@ export class InventoryService {
         changes.push({ pid, diff, product })
       }
 
-      for (const { pid, diff, product } of changes) {
-        const costPrice = Number(product.costPrice ?? 0)
-        const absDiff = Math.abs(diff)
+      // Aplica todas as mudanças de estoque + movimentos numa única transação.
+      // Eventos só são publicados após o commit (se a transação reverter, nada
+      // é notificado). Baixa condicional garante que não fica estoque negativo.
+      const pendingEvents: Array<() => void> = []
+      await prisma.$transaction(async (tx) => {
+        for (const { pid, diff, product } of changes) {
+          const costPrice = Number(product.costPrice ?? 0)
+          const absDiff = Math.abs(diff)
 
-        if (diff > 0) {
-          await productRepository.decrementStock(tenantId, pid, diff)
-          await stockRepository.create(tenantId, {
-            productId: pid,
-            type: 'ADJUSTMENT',
-            quantity: -diff,
-            appointmentId,
-            createdByUserId,
-          })
-          eventBus.publish({
-            type: 'stock.appointment_use',
-            payload: {
-              tenantId,
+          if (diff > 0) {
+            const dec = await productRepository.decrementStock(tenantId, pid, diff, tx)
+            if (dec.count === 0) {
+              throw new InsufficientStockError(product.stockQuantity, diff, product.name)
+            }
+            await stockRepository.create(tenantId, {
               productId: pid,
-              productName: product.name,
-              serviceName: context.serviceName,
-              customerName: context.customerName,
-              quantity: diff,
-              costPrice,
-              totalCost: costPrice * diff,
+              type: 'ADJUSTMENT',
+              quantity: -diff,
               appointmentId,
-            },
-          })
-        } else {
-          await productRepository.incrementStock(tenantId, pid, absDiff)
-          await stockRepository.create(tenantId, {
-            productId: pid,
-            type: 'ADJUSTMENT',
-            quantity: absDiff,
-            appointmentId,
-            createdByUserId,
-          })
-          eventBus.publish({
-            type: 'stock.appointment_restore',
-            payload: {
-              tenantId,
+              createdByUserId,
+            }, tx)
+            pendingEvents.push(() => eventBus.publish({
+              type: 'stock.appointment_use',
+              payload: {
+                tenantId,
+                productId: pid,
+                productName: product.name,
+                serviceName: context.serviceName,
+                customerName: context.customerName,
+                quantity: diff,
+                costPrice,
+                totalCost: costPrice * diff,
+                appointmentId,
+              },
+            }))
+          } else {
+            await productRepository.incrementStock(tenantId, pid, absDiff, tx)
+            await stockRepository.create(tenantId, {
               productId: pid,
-              productName: product.name,
-              serviceName: context.serviceName,
-              customerName: context.customerName,
+              type: 'ADJUSTMENT',
               quantity: absDiff,
-              costPrice,
-              totalCost: costPrice * absDiff,
               appointmentId,
-            },
-          })
+              createdByUserId,
+            }, tx)
+            pendingEvents.push(() => eventBus.publish({
+              type: 'stock.appointment_restore',
+              payload: {
+                tenantId,
+                productId: pid,
+                productName: product.name,
+                serviceName: context.serviceName,
+                customerName: context.customerName,
+                quantity: absDiff,
+                costPrice,
+                totalCost: costPrice * absDiff,
+                appointmentId,
+              },
+            }))
+          }
         }
-      }
+      })
+      for (const emit of pendingEvents) emit()
     }
 
     await productRepository.saveAppointmentProducts(tenantId, appointmentId, newProducts)
@@ -289,6 +317,12 @@ export class InventoryService {
     targetQuantity: number,
     createdByUserId: string,
   ): Promise<void> {
+    // Defesa em profundidade: a rota já valida min(0), mas o service é a
+    // fronteira de domínio — não permitir estoque-alvo negativo.
+    if (targetQuantity < 0) {
+      throw new ValidationError('A quantidade de estoque não pode ser negativa.')
+    }
+
     const product = await productRepository.findById(tenantId, productId)
     if (!product) throw new ProductNotFoundError()
 
@@ -296,18 +330,20 @@ export class InventoryService {
     const diff = targetQuantity - currentQty
     if (diff === 0) return
 
-    if (diff > 0) {
-      await productRepository.incrementStock(tenantId, productId, diff)
-    } else {
-      await productRepository.decrementStock(tenantId, productId, Math.abs(diff))
-    }
-
-    await stockRepository.create(tenantId, {
-      productId,
-      type: 'ADJUSTMENT',
-      quantity: diff,
-      notes: 'Ajuste manual de estoque',
-      createdByUserId,
+    // Ajuste de saldo + movimento numa única transação.
+    await prisma.$transaction(async (tx) => {
+      if (diff > 0) {
+        await productRepository.incrementStock(tenantId, productId, diff, tx)
+      } else {
+        await productRepository.decrementStock(tenantId, productId, Math.abs(diff), tx)
+      }
+      await stockRepository.create(tenantId, {
+        productId,
+        type: 'ADJUSTMENT',
+        quantity: diff,
+        notes: 'Ajuste manual de estoque',
+        createdByUserId,
+      }, tx)
     })
 
     eventBus.publish({
