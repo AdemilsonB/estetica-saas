@@ -24,11 +24,11 @@ const PLANS = [
     description: ['Até 5 profissionais', 'Até 300 agendamentos/mês', 'WhatsApp automático', 'Página de agendamento pública', 'Relatórios completos + CSV', 'Estoque de produtos'].join('\n'),
   },
   {
-    name: PlanName.PRO, displayName: 'Pro', price: 149.90, isActive: true, displayOrder: 2,
+    name: PlanName.PRO, displayName: 'Pro', price: 89.90, isActive: true, displayOrder: 2,
     description: ['Até 20 profissionais', 'Até 2.000 agendamentos/mês', 'WhatsApp premium (chatbot, aniversário)', 'Tudo do Starter', 'Relatórios avançados', 'Até 3 unidades'].join('\n'),
   },
   {
-    name: PlanName.ENTERPRISE, displayName: 'Enterprise', price: 0, isActive: true, displayOrder: 3,
+    name: PlanName.ENTERPRISE, displayName: 'Enterprise', price: 159.90, isActive: true, displayOrder: 3,
     description: ['Profissionais ilimitados', 'Agendamentos ilimitados', 'WhatsApp ilimitado', 'Unidades ilimitadas', 'Suporte prioritário', 'Tudo do Pro'].join('\n'),
   },
 ]
