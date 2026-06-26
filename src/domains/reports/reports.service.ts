@@ -1,7 +1,7 @@
 import { AppointmentStatus, TransactionType } from '@prisma/client'
 
 import { prisma } from '@/shared/database/prisma'
-import { defaultFrom, defaultTo } from '@/lib/dates'
+import { dayBoundsInTz, monthBoundsInTz } from '@/lib/dates'
 import { featureGuard, FEATURES } from '@/domains/billing/feature-guard'
 import { isReversal } from '@/domains/financial/categories'
 
@@ -17,12 +17,32 @@ import type {
 } from './types'
 
 export class ReportsService {
+  // Resolve o período do relatório no timezone do tenant (igual ao dashboard).
+  // Sem datas explícitas, o padrão é "mês atual"/"até hoje" calculado no fuso
+  // do tenant — não em UTC (o servidor roda em UTC, o que deslocava o período).
+  private async resolvePeriod(
+    tenantId: string,
+    input: { from?: string; to?: string },
+  ): Promise<{ from: Date; to: Date }> {
+    if (input.from && input.to) {
+      return { from: new Date(input.from), to: new Date(input.to) }
+    }
+    const tenant = await prisma.tenant.findFirstOrThrow({
+      where: { id: tenantId },
+      select: { timezone: true },
+    })
+    const tz = tenant.timezone ?? 'America/Sao_Paulo'
+    return {
+      from: input.from ? new Date(input.from) : monthBoundsInTz(tz).start,
+      to: input.to ? new Date(input.to) : dayBoundsInTz(tz).end,
+    }
+  }
+
   async getFinancialReport(
     tenantId: string,
     input: FinancialReportInput,
   ): Promise<FinancialReport> {
-    const from = input.from ? new Date(input.from) : defaultFrom()
-    const to = input.to ? new Date(input.to) : defaultTo()
+    const { from, to } = await this.resolvePeriod(tenantId, input)
 
     const transactions = await prisma.transaction.findMany({
       where: {
@@ -96,8 +116,7 @@ export class ReportsService {
     tenantId: string,
     input: AppointmentsReportInput,
   ): Promise<AppointmentsReport> {
-    const from = input.from ? new Date(input.from) : defaultFrom()
-    const to = input.to ? new Date(input.to) : defaultTo()
+    const { from, to } = await this.resolvePeriod(tenantId, input)
 
     const appointments = await prisma.appointment.findMany({
       where: {
@@ -144,8 +163,7 @@ export class ReportsService {
     tenantId: string,
     input: CustomersReportInput,
   ): Promise<CustomersReport> {
-    const from = input.from ? new Date(input.from) : defaultFrom()
-    const to = input.to ? new Date(input.to) : defaultTo()
+    const { from, to } = await this.resolvePeriod(tenantId, input)
 
     const appointments = await prisma.appointment.findMany({
       where: {
@@ -211,8 +229,7 @@ export class ReportsService {
   ): Promise<ProfessionalsReport> {
     await featureGuard.assertAccess(tenantId, FEATURES.REPORTS_ADVANCED)
 
-    const from = input.from ? new Date(input.from) : defaultFrom()
-    const to = input.to ? new Date(input.to) : defaultTo()
+    const { from, to } = await this.resolvePeriod(tenantId, input)
 
     const appointments = await prisma.appointment.findMany({
       where: {
