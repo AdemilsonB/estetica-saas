@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 type PublicSlot = { time: string; available: boolean }
+type DayInfo = { open: boolean; available: boolean }
 
 const MONTHS_PT = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -36,10 +37,30 @@ export function DateTimeStep({
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [slots, setSlots] = useState<PublicSlot[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
+  const [dayInfo, setDayInfo] = useState<Record<string, DayInfo>>({})
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const maxDate = new Date(today.getTime() + maxAdvanceDays * 86_400_000)
+
+  // Disponibilidade do mês visível — UMA chamada por mês, alimenta o destaque dos dias
+  useEffect(() => {
+    const y = viewDate.getFullYear()
+    const m = String(viewDate.getMonth() + 1).padStart(2, '0')
+    const params = new URLSearchParams({ month: `${y}-${m}`, serviceId })
+    if (professionalId) params.set('professionalId', professionalId)
+    fetch(`/api/public/${tenantSlug}/availability/month?${params}`)
+      .then((r) => r.json())
+      .then((d: { days?: { date: string; open: boolean; available: boolean }[] }) => {
+        const map: Record<string, DayInfo> = {}
+        for (const day of d.days ?? []) {
+          map[day.date] = { open: day.open, available: day.available }
+        }
+        setDayInfo((prev) => ({ ...prev, ...map }))
+      })
+      .catch(() => {})
+  }, [viewDate, serviceId, professionalId, tenantSlug])
 
   useEffect(() => {
     if (!selectedDay) return
@@ -156,26 +177,66 @@ export function DateTimeStep({
           ))}
           {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
             const dateStr = toDateString(day)
-            const disabled = isDisabled(day)
+            const outOfRange = isDisabled(day)
+            const info = dayInfo[dateStr]
+            // Só bloqueia por disponibilidade depois que a info do mês chega
+            const unavailable = !!info && (!info.open || !info.available)
+            const disabled = outOfRange || unavailable
             const selected = selectedDay === dateStr
+            const isToday = dateStr === todayStr
+            const hasFreeSlots = !!info && info.open && info.available && !outOfRange
+
             return (
               <button
                 key={day}
                 disabled={disabled}
+                aria-label={
+                  unavailable && !outOfRange
+                    ? `${day} — sem horários disponíveis`
+                    : `${day}`
+                }
                 onClick={() => setSelectedDay(dateStr)}
-                className={`h-9 rounded-lg text-sm font-medium transition-colors ${
-                  disabled
-                    ? 'text-slate-300 cursor-not-allowed'
-                    : selected
-                      ? 'text-white'
-                      : 'text-slate-700 hover:bg-slate-100'
+                className={`relative h-9 rounded-lg text-sm font-medium transition-colors ${
+                  selected
+                    ? 'text-white'
+                    : disabled
+                      ? `text-slate-300 cursor-not-allowed ${unavailable && !outOfRange ? 'line-through decoration-slate-300' : ''}`
+                      : isToday
+                        ? 'text-slate-900 font-semibold ring-1 ring-inset'
+                        : 'text-slate-700 hover:bg-slate-100'
                 }`}
-                style={selected ? { backgroundColor: primaryColor } : {}}
+                style={
+                  selected
+                    ? { backgroundColor: primaryColor }
+                    : isToday && !disabled
+                      ? ({ '--tw-ring-color': primaryColor } as React.CSSProperties)
+                      : {}
+                }
               >
                 {day}
+                {/* Indicador de vaga — pontinho na cor do tenant */}
+                {hasFreeSlots && !selected && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full"
+                    style={{ backgroundColor: primaryColor }}
+                  />
+                )}
               </button>
             )
           })}
+        </div>
+
+        {/* Legenda */}
+        <div className="mt-3 flex items-center justify-center gap-4 text-[11px] text-slate-400">
+          <span className="flex items-center gap-1">
+            <span className="size-1.5 rounded-full" style={{ backgroundColor: primaryColor }} />
+            Tem horário
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="text-slate-300 line-through">00</span>
+            Sem horário
+          </span>
         </div>
       </div>
 
