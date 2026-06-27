@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { validarCpf } from '@/shared/utils/cpf'
 
 type Props = {
   tenantSlug: string
@@ -84,6 +85,10 @@ export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryCo
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    if (!validarCpf(newCpf)) {
+      setError('CPF inválido. Confira os números digitados.')
+      return
+    }
     setLoading(true)
     try {
       const res = await fetch(`/api/public/${tenantSlug}/customers`, {

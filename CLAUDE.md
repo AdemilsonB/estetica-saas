@@ -201,7 +201,7 @@ Nunca entregar componente de UI sem passar pelo checklist do `agent-mobile`.
 | Domínio | Backend | Frontend | Observação |
 |---------|---------|----------|------------|
 | IAM | ✅ | ✅ | Cargos dinâmicos, RBAC, edição completa de membros, foto com enquadramento (zoom/posição) ajustável, vínculo de serviços; cadastro de novo tenant exige CPF/CNPJ único na plataforma (dígito verificador validado; tenants legados sem documento não são afetados — ADR-013) |
-| CRM | ✅ | ✅ | Filtros avançados, badge VIP, anamnese digital |
+| CRM | ✅ | ✅ | Filtros avançados, badge VIP, anamnese digital; CPF do cliente validado por dígito verificador no cadastro público (`cpfSchema` em `domains/crm/schemas.ts`) — login por CPF não exige dígito válido, só formato, para não travar contas antigas |
 | Scheduling | ✅ | ✅ | Agenda semanal, slots, filtro profissional, quick actions mobile |
 | Financial | ✅ | ✅ | Checkout, despesas, comissões, taxas, estornos |
 | Notifications | ✅ | ✅ | Evolution API primário (WhatsApp), email fallback via Resend, 6 templates |

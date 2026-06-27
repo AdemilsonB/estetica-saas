@@ -9,10 +9,11 @@ import {
   MAX_AGE_SECONDS,
 } from '@/shared/auth/public-session'
 import { handleApiError } from '@/shared/http/handle-api-error'
+import { cpfSchema } from '@/domains/crm/schemas'
 
 const CreateCustomerSchema = z.object({
   name: z.string().min(2).max(100),
-  cpf: z.string().min(11).max(14),
+  cpf: cpfSchema,
   phone: z.string().min(10).max(20),
   email: z.string().email().max(100),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
