@@ -306,20 +306,20 @@ export class XService {
 
 ---
 
-## Status dos domínios (2026-06-24)
+## Status dos domínios (2026-06-27)
 
 | Domínio | Backend | Frontend | Observação |
 |---------|---------|----------|------------|
-| IAM | ✅ | ✅ | Cargos dinâmicos, RBAC, edição de membros, foto com enquadramento (zoom/posição) ajustável, vínculo de serviços |
-| CRM | ✅ | ✅ | Filtros avançados, badge VIP, anamnese |
-| Scheduling | ✅ | ✅ | Agenda semanal, slots configuráveis por tenant |
+| IAM | ✅ | ✅ | Cargos dinâmicos, RBAC, edição de membros, foto com enquadramento (zoom/posição) ajustável, vínculo de serviços; cadastro de novo tenant exige CPF/CNPJ único na plataforma (dígito verificador validado; tenants legados sem documento não são afetados — ADR-013) |
+| CRM | ✅ | ✅ | Filtros avançados, badge VIP, anamnese; CPF do cliente validado por dígito verificador no cadastro público — login por CPF só exige formato, não dígito válido, para não travar contas antigas |
+| Scheduling | ✅ | ✅ | Agenda semanal, slots configuráveis por tenant; disponibilidade pública respeita `minAdvanceMinutes`/`maxAdvanceDays` da policy (painel não — só bloqueia data passada, com switch "lançar atendimento esquecido" — ADR-014) |
 | Financial | ✅ | ✅ | Checkout, despesas, comissões, taxas, estornos |
 | Notifications | ✅ | ✅ | Evolution API primário (WhatsApp), 6 templates |
 | Dashboard | ✅ | ✅ | Métricas + polling 30s |
 | Reports | ✅ | ✅ | 4 relatórios + filtros + CSV |
 | Serviços | ✅ | ✅ | Categorias, imagens em retrato 4:5 com editor de enquadramento, picker visual |
 | Produtos/Estoque | ✅ | ✅ | Catálogo, movimentação, reflexo financeiro, imagem com editor de enquadramento |
-| Billing (Stripe) | ✅ | ✅ | Checkout, Portal, Webhook, planos dinâmicos do DB; plano FREE não é mais vendido — trial/assinatura expirada bloqueia o painel (tela de assinatura) em vez de rebaixar para FREE |
+| Billing (Stripe) | ✅ | ✅ | Checkout, Portal, Webhook, planos dinâmicos do DB; plano FREE não é mais vendido — trial/assinatura expirada bloqueia o painel (tela de assinatura) em vez de rebaixar para FREE; trial não pode mais ser reativado após o primeiro uso (qualquer Subscription existente bloqueia novo trial) |
 | Automation | stub | — | Fase 2 |
 
 > Padrão de imagens: ver seção "Padrão de imagens" em `CLAUDE.md` —
