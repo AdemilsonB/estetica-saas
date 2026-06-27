@@ -1,4 +1,4 @@
-import { PlanName, SubscriptionStatus } from "@prisma/client";
+import { PlanName, SubscriptionStatus, type Prisma } from "@prisma/client";
 
 import { prisma } from "@/shared/database/prisma";
 
@@ -39,12 +39,19 @@ export class BillingRepository {
     return prisma.subscription.findUnique({ where: { tenantId } });
   }
 
-  async updateSubscription(tenantId: string, data: UpdateSubscriptionData) {
-    return prisma.subscription.update({ where: { tenantId }, data });
+  async updateSubscription(
+    tenantId: string,
+    data: UpdateSubscriptionData,
+    client: Prisma.TransactionClient | typeof prisma = prisma,
+  ) {
+    return client.subscription.update({ where: { tenantId }, data });
   }
 
-  async addHistory(data: CreateHistoryData) {
-    return prisma.subscriptionHistory.create({ data });
+  async addHistory(
+    data: CreateHistoryData,
+    client: Prisma.TransactionClient | typeof prisma = prisma,
+  ) {
+    return client.subscriptionHistory.create({ data });
   }
 
   async findExpiredTrials(now: Date) {

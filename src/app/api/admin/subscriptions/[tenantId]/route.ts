@@ -1,20 +1,18 @@
 import { billingService } from "@/domains/billing/billing.service";
+import { getAdminContext } from "@/shared/auth/admin-context";
+import { logAdminAction } from "@/shared/audit/admin-audit";
 import { handleApiError } from "@/shared/http/handle-api-error";
 import { validateInput } from "@/shared/http/validate-input";
-import { UnauthorizedError } from "@/shared/errors";
 import { updateSubscriptionSchema } from "@/domains/billing/types";
+import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ tenantId: string }> },
 ) {
+  initializeDomainRuntime();
   try {
-    const secret = process.env.ADMIN_API_SECRET;
-    const authHeader = request.headers.get("authorization");
-    if (!secret || authHeader !== `Bearer ${secret}`) {
-      throw new UnauthorizedError("Acesso restrito a administradores.");
-    }
-
+    const session = await getAdminContext(request);
     const { tenantId } = await params;
     const input = await validateInput(request, updateSubscriptionSchema);
 
@@ -22,9 +20,18 @@ export async function PATCH(
       tenantId,
       input.plan,
       input.status,
-      "admin",
+      session.userId,
       input.reason,
     );
+
+    await logAdminAction({
+      adminUserId: session.userId,
+      action: "billing.subscription_changed",
+      targetType: "Subscription",
+      targetId: tenantId,
+      metadata: { plan: input.plan, status: input.status, reason: input.reason ?? null },
+      request,
+    });
 
     return Response.json(updated);
   } catch (error) {
