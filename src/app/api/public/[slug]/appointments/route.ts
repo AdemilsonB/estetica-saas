@@ -239,6 +239,7 @@ export async function POST(req: Request, context: RouteContext) {
           startsAt: input.startsAt,
           notes: input.notes,
           allowOverlap: false,
+          allowPastDate: false,
         },
       )
 

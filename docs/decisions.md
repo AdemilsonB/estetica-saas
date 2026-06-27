@@ -267,3 +267,25 @@ O gate **não substitui** `getSessionContext`/tenant scoping — cada route.ts c
 - Cadastro de **novos** tenants exige documento válido e único a partir desta versão — fecha a brecha para o futuro.
 - Tenants antigos continuam sem essa garantia (podem coexistir 2 tenants legados com o mesmo CPF/CNPJ, se isso já tiver ocorrido no passado) — risco aceito, não há ação de remediação retroativa nesta rodada.
 - `User.cpf` (CPF pessoal do dono, coletado no signup) e `Customer.cpf` (CPF do cliente final) são campos e fluxos completamente separados de `Tenant.document` — não confundir os três no código ou em auditorias futuras.
+
+---
+
+## ADR-014 — minAdvanceMinutes/maxAdvanceDays só valem para o fluxo público; painel só bloqueia data passada (2026-06-27)
+
+**Data**: 2026-06-27
+**Status**: Aceito
+
+**Contexto**: Auditoria de integridade encontrou que `SchedulingPolicy.minAdvanceMinutes`/`maxAdvanceDays` já existiam no schema e já eram configuráveis pelo admin, mas `availability.service.ts` (geração de slots) e `scheduling.service.createAppointment` (criação manual pelo painel) nunca os liam — só o fluxo público de criação (`/api/public/[slug]/appointments/route.ts`) já validava corretamente.
+
+**Decisão**:
+1. `availabilityService.getAvailableSlots`/`getMonthAvailability` ganham parâmetros `minAdvanceMinutes`/`maxAdvanceDays` (default `0`/`Infinity` — comportamento inalterado se não informados) e aplicam o corte tanto no dia quanto no mês.
+2. **Só as rotas públicas** (`/api/public/[slug]/availability` e `/availability/month`) passam `policy.minAdvanceMinutes`/`policy.maxAdvanceDays`. A rota do painel (`/api/scheduling/availability`) deliberadamente **não passa** esses dois parâmetros — continua só cortando horário já passado (comportamento padrão, `minAdvanceMinutes=0`).
+3. `scheduling.service.createAppointment` (usado pelo painel) ganha uma checagem mínima — `startsAt` no passado é rejeitado (`ValidationError`) — mas **não** valida `minAdvanceMinutes`/`maxAdvanceDays`. Novo campo `allowPastDate` (mesmo padrão de `allowOverlap`, já existente) permite ao atendente explicitamente lançar um atendimento esquecido/retroativo, com um switch dedicado no modal de novo agendamento.
+
+**Por quê**: `minAdvanceMinutes`/`maxAdvanceDays` existem para conter o comportamento do **cliente final se autoatendendo** (evitar agendamento de cima da hora que a equipe não consegue absorver, ou marcação absurdamente distante). Aplicar a mesma regra ao atendente humano no painel bloquearia casos operacionais legítimos: registrar um walk-in que chegou agora mesmo (violaria `minAdvanceMinutes`), ou agendar um cliente VIP além do horizonte público (violaria `maxAdvanceDays`). O atendente já é autenticado e tem contexto — a única regra que vale para todo mundo, sem exceção configurável, é não criar um registro para uma data/hora que já passou (e mesmo essa tem escape hatch explícito via `allowPastDate`, para o caso de lançamento retroativo de um atendimento que esqueceram de registrar).
+
+**Alternativa rejeitada — aplicar minAdvanceMinutes/maxAdvanceDays também no painel, como uma leitura literal do brief original sugeria**: rejeitada após confirmar com o usuário — quebraria fluxos reais do dia a dia (walk-in, exceção pontual) sem nenhum ganho de integridade, já que o atendente não é o público que a policy pretende conter.
+
+**Consequências**:
+- Paridade availability↔criação é mantida **dentro de cada contexto**: o que a disponibilidade pública mostra é exatamente o que a criação pública aceita; o que a disponibilidade do painel mostra (sem corte de min/max) é exatamente o que a criação do painel aceita (sem corte de min/max, só passado).
+- `allowPastDate` deve ser usado com critério — não há auditoria adicional sobre quem/quando usa o escape hatch nesta rodada (fora de escopo; se necessário, pode entrar como item futuro de audit log, mesmo padrão já usado no admin).

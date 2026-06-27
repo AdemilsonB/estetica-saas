@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { prisma } from '@/shared/database/prisma'
 import { IamRepository } from '@/domains/iam/iam.repository'
 import { AvailabilityService } from './availability.service'
@@ -20,10 +20,19 @@ const mockBusinessHours = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // Fixa "agora" bem antes das datas de junho/2026 usadas nos fixtures — sem
+  // isso, o corte de minAdvanceMinutes/passado (EPIC 3) marca todo slot como
+  // indisponível conforme o calendário real avança além dessas datas fixas.
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-05-01T00:00:00Z'))
   const iamInstance = new (IamRepository as any)()
   iamInstance.getBusinessHours.mockResolvedValue(mockBusinessHours)
   iamInstance.getTenantTimezone.mockResolvedValue('America/Sao_Paulo')
   ;(IamRepository as any).mockImplementation(() => iamInstance)
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 describe('AvailabilityService.getAvailableSlots', () => {
@@ -98,6 +107,28 @@ describe('AvailabilityService.getAvailableSlots', () => {
     // Com intervalo 30: 09:00, 09:30, 10:00...
     expect(times).toContain('09:30')
   })
+
+  it('marca como indisponível slot abaixo da antecedência mínima (minAdvanceMinutes)', async () => {
+    ;(prisma.appointment.findMany as any).mockResolvedValue([])
+    // "Agora" é 08/06 08:30 BRT (11:30 UTC) — com 60min de antecedência mínima,
+    // só slots a partir de 09:30 BRT deveriam ficar disponíveis.
+    vi.setSystemTime(new Date('2026-06-08T11:30:00.000Z'))
+
+    const slots = await service.getAvailableSlots(tenantId, professionalId, date, 60, 30, 60)
+
+    expect(slots.find((s) => s.time === '09:00')?.available).toBe(false)
+    expect(slots.find((s) => s.time === '09:30')?.available).toBe(true)
+  })
+
+  it('retorna vazio quando a data pedida excede maxAdvanceDays', async () => {
+    ;(prisma.appointment.findMany as any).mockResolvedValue([])
+    vi.setSystemTime(new Date('2026-06-01T12:00:00.000Z'))
+
+    // date = '2026-06-08' está a 7 dias de '2026-06-01' — maxAdvanceDays=5 deve bloquear
+    const slots = await service.getAvailableSlots(tenantId, professionalId, date, 60, 30, 0, 5)
+
+    expect(slots).toHaveLength(0)
+  })
 })
 
 describe('AvailabilityService.getMonthAvailability', () => {
@@ -154,5 +185,21 @@ describe('AvailabilityService.getMonthAvailability', () => {
     ;(prisma.appointment.findMany as any).mockResolvedValue([])
     const days = await service.getMonthAvailability(tenantId, professionalId, 2026, 6, 60, 30)
     expect(days).toHaveLength(30) // junho tem 30 dias
+  })
+
+  it('marca como indisponível dia além de maxAdvanceDays, mas mantém open:true', async () => {
+    ;(prisma.appointment.findMany as any).mockResolvedValue([])
+    vi.setSystemTime(new Date('2026-06-01T12:00:00.000Z'))
+
+    // De 01/06, só dias até 10 dias à frente (até 11/06) devem ficar disponíveis
+    const days = await service.getMonthAvailability(tenantId, professionalId, 2026, 6, 60, 30, 0, 10)
+
+    const withinRange = days.find((d) => d.date === '2026-06-08')
+    expect(withinRange?.open).toBe(true)
+    expect(withinRange?.available).toBe(true)
+
+    const beyondRange = days.find((d) => d.date === '2026-06-22')
+    expect(beyondRange?.open).toBe(true)
+    expect(beyondRange?.available).toBe(false)
   })
 })

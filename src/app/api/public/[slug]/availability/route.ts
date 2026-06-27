@@ -50,6 +50,8 @@ export async function GET(
       date,
       service.duration,
       policy.slotIntervalMinutes,
+      policy.minAdvanceMinutes,
+      policy.maxAdvanceDays,
     )
 
     // Retorna todos os slots com status. Nunca expõe bookedBy (privacidade).

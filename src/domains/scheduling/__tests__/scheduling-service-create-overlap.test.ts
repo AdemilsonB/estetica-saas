@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Prisma } from "@prisma/client";
 import { prismaMock } from "@/shared/test/prisma-mock";
 import { SchedulingService } from "../scheduling.service";
-import { SlotUnavailableError } from "@/shared/errors";
+import { SlotUnavailableError, ValidationError } from "@/shared/errors";
 
 vi.mock("@/shared/database/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/shared/events/event-bus", () => ({
@@ -98,6 +98,10 @@ const baseInput = {
   serviceId: "svc-1",
   startsAt: "2026-06-10T10:00:00Z",
   notificationMessage: "",
+  // Estes testes cobrem mecânica de transação/overlap, não a regra de data
+  // passada (#138) — allowPastDate evita que a fixture fique frágil conforme
+  // o "hoje" do calendário avança além da data fixa do mock.
+  allowPastDate: true,
 };
 
 describe("SchedulingService.createAppointment — transação de disponibilidade (#138)", () => {
@@ -193,5 +197,35 @@ describe("SchedulingService.createAppointment — transação de disponibilidade
       expect.objectContaining({ allowOverlap: true }),
       prismaMock,
     );
+  });
+
+  it("rejeita startsAt no passado quando allowPastDate não é informado", async () => {
+    await expect(
+      service.createAppointment("tenant-1", "user-1", {
+        ...baseInput,
+        startsAt: "2020-01-01T10:00:00Z",
+        allowOverlap: false,
+        allowPastDate: false,
+      }),
+    ).rejects.toThrow(ValidationError);
+
+    expect(appointmentRepository.create).not.toHaveBeenCalled();
+  });
+
+  it("permite startsAt no passado quando allowPastDate=true (atendimento esquecido)", async () => {
+    prismaMock.$transaction.mockImplementation((fn: never) =>
+      (fn as (tx: typeof prismaMock) => unknown)(prismaMock),
+    );
+    vi.mocked(availabilityService.ensureSlotAvailable).mockResolvedValue(undefined);
+    vi.mocked(appointmentRepository.create).mockResolvedValue(mockAppointment as never);
+
+    await service.createAppointment("tenant-1", "user-1", {
+      ...baseInput,
+      startsAt: "2020-01-01T10:00:00Z",
+      allowOverlap: false,
+      allowPastDate: true,
+    });
+
+    expect(appointmentRepository.create).toHaveBeenCalled();
   });
 });
