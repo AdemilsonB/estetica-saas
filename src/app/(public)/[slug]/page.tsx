@@ -11,73 +11,7 @@ import { WhatsAppIcon } from '@/components/domain/vitrine/vitrine-icons'
 import { VitrineStatsBar } from '@/components/domain/vitrine/vitrine-stats-bar'
 import { VitrineLocationBlock } from '@/components/domain/vitrine/vitrine-location-block'
 import { VitrineInteractionProvider } from '@/components/domain/vitrine/vitrine-interaction-context'
-
-type TenantData = {
-  name: string
-  slug: string
-  phone?: string | null
-  whatsappEnabled?: boolean
-  bio?: string | null
-  instagramUrl?: string | null
-  coverImageUrl?: string | null
-  address?: string | null
-  segments: string[]
-  createdAt: string
-  branding?: {
-    logoUrl?: string | null
-    primaryColor?: string | null
-    accentColor?: string | null
-    backgroundColor?: string | null
-    foregroundColor?: string | null
-  } | null
-  services: {
-    id: string; name: string; duration: number; price: number
-    priceType: 'FIXED' | 'STARTING_FROM' | 'RANGE' | 'ON_CONSULTATION'
-    priceMin?: number | null; priceMax?: number | null
-    imageUrl?: string | null
-    imageCropX?: number | null; imageCropY?: number | null; imageCropZoom?: number | null
-    description?: string | null; categoryName?: string | null
-    anamneseMode: 'NONE' | 'OPTIONAL' | 'REQUIRED'
-  }[]
-  packages: {
-    id: string; name: string; description?: string | null; imageUrl?: string | null
-    imageCropX?: number | null; imageCropY?: number | null; imageCropZoom?: number | null
-    price: number; duration: number; services: { id: string; name: string }[]
-  }[]
-  promotions: {
-    id: string; name: string; description?: string | null; imageUrl?: string | null
-    imageCropX?: number | null; imageCropY?: number | null; imageCropZoom?: number | null
-    discountType: 'PERCENTAGE' | 'FIXED'; discountValue: number; endsAt?: string | null
-    services: { id: string; name: string; duration: number; originalPrice: number }[]
-  }[]
-  allowPublicBooking: boolean
-}
-
-type TeamMember = {
-  id: string; name: string; role: string; avatarUrl?: string | null
-  avatarCropX?: number | null; avatarCropY?: number | null; avatarCropZoom?: number | null
-  bio?: string | null; serviceIds?: string[]
-}
-type Product = {
-  id: string; name: string; salePrice: number; imageUrl?: string | null
-  imageCropX?: number | null; imageCropY?: number | null; imageCropZoom?: number | null
-  categoryName?: string | null
-}
-
-async function fetchAll(slug: string) {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-  const opts = { next: { revalidate: 300 } }
-  const [tenantRes, teamRes, productsRes] = await Promise.all([
-    fetch(`${base}/api/public/${encodeURIComponent(slug)}`, opts),
-    fetch(`${base}/api/public/${encodeURIComponent(slug)}/team`, opts),
-    fetch(`${base}/api/public/${encodeURIComponent(slug)}/products`, opts),
-  ])
-  if (!tenantRes.ok) return null
-  const tenant = (await tenantRes.json()) as TenantData & { businessHours?: unknown; timezone?: string }
-  const team: TeamMember[] = teamRes.ok ? ((await teamRes.json()) as TeamMember[]) : []
-  const products: Product[] = productsRes.ok ? ((await productsRes.json()) as Product[]) : []
-  return { tenant, team, products }
-}
+import { getPublicVitrine } from '@/domains/scheduling/public-booking.service'
 
 export default async function VitrinePage({
   params,
@@ -85,7 +19,7 @@ export default async function VitrinePage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const data = await fetchAll(slug)
+  const data = await getPublicVitrine(slug)
   if (!data) notFound()
 
   const { tenant, team, products } = data
