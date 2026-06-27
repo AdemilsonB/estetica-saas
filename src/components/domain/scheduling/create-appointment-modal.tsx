@@ -31,6 +31,7 @@ import { useAvailableSlots } from '@/hooks/scheduling/use-availability'
 import { useTeamMembers, useProfessionalsByService } from '@/hooks/iam/use-team'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
 
 type Props = {
   open: boolean
@@ -80,9 +81,12 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
   const { data: services = [] } = useServices()
   const { data: categories = [] } = useServiceCategories()
   const { data: teamMembers = [] } = useTeamMembers()
+  const { data: evolutionStatus } = useEvolutionStatus()
   const createAppointment = useCreateAppointment()
 
   const canManage = can('agenda', 'edit')
+  // Só sabemos que não vai enviar quando o status já carregou e está desconectado
+  const whatsappOffline = evolutionStatus !== undefined && !evolutionStatus.connected
 
   const [professionalId, setProfessionalId] = useState('')
   const [serviceId, setServiceId] = useState('')
@@ -408,10 +412,17 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
                 placeholder="A mensagem será gerada automaticamente ao selecionar o horário..."
                 className="min-h-[90px] resize-none text-sm"
               />
-              {selectedCustomer && !selectedCustomer.phone && (
-                <p className="text-xs text-slate-400">
-                  Este cliente não tem telefone cadastrado. A mensagem não será enviada.
-                </p>
+              {whatsappOffline ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  WhatsApp não está conectado, então esta mensagem não será enviada.
+                  Conecte em <span className="font-medium">Configurações → WhatsApp</span>.
+                </div>
+              ) : (
+                selectedCustomer && !selectedCustomer.phone && (
+                  <p className="text-xs text-slate-400">
+                    Este cliente não tem telefone cadastrado. A mensagem não será enviada.
+                  </p>
+                )
               )}
             </div>
           )}
