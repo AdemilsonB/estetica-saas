@@ -87,7 +87,7 @@ export function BookingClient({
   const initializedRef = useRef(false)
 
   const primaryColor = tenantData.branding?.primaryColor ?? '#7C3AED'
-  const maxAdvanceDays = 60
+  const maxAdvanceDays = tenantData.maxAdvanceDays
 
   // Pré-seleção via query params — cliente já chega autenticado (gate fica em /entrar)
   useEffect(() => {

@@ -36,6 +36,7 @@ const tenantData: TenantPublicData = {
   packages: [],
   promotions: [],
   allowPublicBooking: true,
+  maxAdvanceDays: 60,
 }
 
 describe('BookingClient', () => {
