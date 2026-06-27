@@ -3,6 +3,7 @@ import { PlanName, SubscriptionStatus } from "@prisma/client";
 import { eventBus } from "@/shared/events/event-bus";
 import { addDays } from "@/lib/dates";
 import { prisma } from "@/shared/database/prisma";
+import { TrialAlreadyUsedError } from "@/shared/errors";
 
 import { billingRepository } from "./billing.repository";
 
@@ -12,23 +13,18 @@ export class BillingService {
   }
 
   async startTrialForPlan(tenantId: string, planName: PlanName) {
+    const existing = await billingRepository.getSubscription(tenantId);
+
+    // Trial é benefício de primeiro cadastro — uma vez que existe subscription
+    // (mesmo que o tenant nunca tenha chegado a usar o trial), não há mais
+    // direito a novo trial; só assinatura direta via Stripe.
+    if (existing) {
+      throw new TrialAlreadyUsedError();
+    }
+
     const now = new Date();
     const plan = await prisma.plan.findUnique({ where: { name: planName }, select: { trialDays: true } });
     const trialEndsAt = addDays(now, plan?.trialDays ?? 14);
-
-    const existing = await billingRepository.getSubscription(tenantId);
-
-    // Migra de FREE para o plano com trial (cobre o caso do onboarding pós-registro)
-    if (existing) {
-      const updated = await billingRepository.updateSubscription(tenantId, {
-        plan: planName,
-        status: SubscriptionStatus.TRIALING,
-        trialEndsAt,
-        currentPeriodStart: now,
-        currentPeriodEnd: trialEndsAt,
-      });
-      return updated;
-    }
 
     const sub = await billingRepository.createSubscription({
       tenantId,
