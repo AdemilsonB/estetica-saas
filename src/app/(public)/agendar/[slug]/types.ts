@@ -77,6 +77,7 @@ export type TenantPublicData = {
   packages: PublicPackage[]
   promotions: PublicPromotion[]
   allowPublicBooking: boolean
+  maxAdvanceDays: number
 }
 
 export type BookingState = {

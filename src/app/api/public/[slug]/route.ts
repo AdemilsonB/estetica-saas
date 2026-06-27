@@ -34,6 +34,7 @@ export async function GET(
       packages,
       promotions,
       allowPublicBooking: tenant.schedulingPolicy?.allowPublicBooking ?? true,
+      maxAdvanceDays: tenant.schedulingPolicy?.maxAdvanceDays ?? 60,
     })
   } catch (error) {
     return handleApiError(error)

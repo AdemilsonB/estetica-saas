@@ -280,7 +280,10 @@ export function DateTimeStep({
                     className="flex h-11 flex-col items-center justify-center rounded-lg border border-slate-100 bg-slate-50 text-xs text-slate-400"
                   >
                     <span className="font-medium">{slot.time}</span>
-                    <span className="leading-none">Agendado</span>
+                    {/* "Indisponível" cobre tanto horário já ocupado quanto
+                        passado/abaixo da antecedência mínima — a API pública
+                        nunca expõe o motivo exato (privacidade do agendamento). */}
+                    <span className="leading-none">Indisponível</span>
                   </div>
                 )
               )}
