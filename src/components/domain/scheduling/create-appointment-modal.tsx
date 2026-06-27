@@ -313,11 +313,11 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
                         className={cn(
                           'rounded-xl border px-2 py-2 text-sm font-medium transition flex flex-col items-center gap-0.5 min-h-[40px]',
                           isSelected && !isOccupied
-                            ? 'border-rose-500 bg-rose-50 text-rose-700'
+                            ? 'border-primary bg-primary text-primary-foreground'
                             : isSelected && isOccupied
                             ? 'border-orange-500 bg-orange-50 text-orange-700'
                             : !isOccupied
-                            ? 'border-slate-200 bg-white text-slate-700 hover:border-rose-300 hover:bg-rose-50'
+                            ? 'border-slate-200 bg-white text-slate-700 hover:border-primary/40 hover:bg-primary/5'
                             : allowOverlap
                             ? 'border-slate-200 bg-slate-50 text-slate-400 hover:border-orange-300 hover:bg-orange-50'
                             : 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-300',
@@ -383,7 +383,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
                             setCustomerId(c.id)
                             setCustomerSearch(c.name)
                           }}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-rose-50"
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-primary/5"
                         >
                           <span className="font-medium">{c.name}</span>
                           {c.phone && (
