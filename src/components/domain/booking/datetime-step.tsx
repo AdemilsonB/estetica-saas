@@ -122,10 +122,16 @@ export function DateTimeStep({
     <div className="space-y-4">
       {/* CSS var para o hover dos slots com cor do tenant */}
       <style>{`
-        .slot-btn:hover {
+        .slot-btn:hover,
+        .slot-btn:focus-visible,
+        .slot-btn:active {
           background-color: var(--slot-primary);
           border-color: var(--slot-primary);
           color: white;
+          outline: none;
+        }
+        .slot-btn:active {
+          transform: scale(0.97);
         }
       `}</style>
 

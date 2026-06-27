@@ -76,7 +76,7 @@ export function DashboardMetrics() {
         </Card>
 
         <Card>
-          <div className="inline-flex rounded-xl bg-emerald-50 p-2 text-emerald-600">
+          <div className="inline-flex rounded-xl bg-sky-50 p-2 text-sky-600">
             <Users className="size-4" />
           </div>
           {isLoading ? (
@@ -96,7 +96,7 @@ export function DashboardMetrics() {
         </Card>
 
         <Card>
-          <div className="inline-flex rounded-xl bg-rose-50 p-2 text-rose-600">
+          <div className="inline-flex rounded-xl bg-emerald-50 p-2 text-emerald-600">
             <DollarSign className="size-4" />
           </div>
           {isLoading ? (
@@ -190,7 +190,7 @@ export function DashboardMetrics() {
                   </div>
                   <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-rose-400 transition-all"
+                      className="h-full rounded-full bg-primary transition-all"
                       style={{ width: `${(prof.count / maxCount) * 100}%` }}
                     />
                   </div>
