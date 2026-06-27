@@ -21,6 +21,7 @@ type OnboardingAction = {
   type: 'onboarding'
   onSelect: (planName: string, skipTrial?: boolean) => void
   loadingKey: string | null
+  allowTrial?: boolean
 }
 
 export type PlanCardAction = PublicAction | OnboardingAction
@@ -39,6 +40,7 @@ function formatPrice(price: number) {
 export function SharedPlanCard({ plan, action, badge }: Props) {
   const trialDays = plan.trialDays ?? 14
   const isLoading = action.type === 'onboarding' && action.loadingKey !== null
+  const showTrialOption = action.type === 'onboarding' && trialDays > 0 && action.allowTrial !== false
 
   return (
     <div
@@ -56,7 +58,10 @@ export function SharedPlanCard({ plan, action, badge }: Props) {
       <div>
         <h3 className="font-semibold text-slate-900">{plan.displayName}</h3>
         <p className="text-3xl font-bold text-slate-900 mt-2">{formatPrice(plan.price)}</p>
-        {trialDays > 0 && (
+        {action.type === 'navigate' && trialDays > 0 && (
+          <p className="text-xs text-slate-500 mt-1">{trialDays} dias grátis · cancele a qualquer momento</p>
+        )}
+        {action.type === 'onboarding' && showTrialOption && (
           <p className="text-xs text-slate-500 mt-1">{trialDays} dias grátis · cancele a qualquer momento</p>
         )}
       </div>
@@ -82,12 +87,12 @@ export function SharedPlanCard({ plan, action, badge }: Props) {
         </a>
       ) : (
         <div className="flex flex-col gap-2">
-          {trialDays > 0 && (
+          {showTrialOption && (
             <Button
               onClick={() => action.onSelect(plan.name, false)}
               disabled={isLoading}
               variant={plan.isPopular ? 'default' : 'outline'}
-              className={`w-full ${plan.isPopular ? 'bg-slate-900 hover:bg-slate-700' : ''}`}
+              className={`w-full h-11 ${plan.isPopular ? 'bg-slate-900 hover:bg-slate-700' : ''}`}
             >
               {action.loadingKey === `${plan.name}_trial` ? (
                 <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>
@@ -99,8 +104,8 @@ export function SharedPlanCard({ plan, action, badge }: Props) {
           <Button
             onClick={() => action.onSelect(plan.name, true)}
             disabled={isLoading}
-            variant="ghost"
-            className="w-full text-slate-500 text-sm"
+            variant={showTrialOption ? 'ghost' : (plan.isPopular ? 'default' : 'outline')}
+            className={`w-full h-11 ${showTrialOption ? 'text-slate-500 text-sm' : plan.isPopular ? 'bg-slate-900 hover:bg-slate-700' : ''}`}
           >
             {action.loadingKey === `${plan.name}_direct` ? (
               <><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>

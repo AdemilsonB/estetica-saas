@@ -53,30 +53,7 @@ export function SubscriptionLockedScreen({ isOwner, originalPlan }: Props) {
     window.location.href = '/login'
   }
 
-  async function handleSelectPlan(planName: string, skipTrial = false) {
-    if (!skipTrial) {
-      setLoadingKey(`${planName}_trial`)
-      try {
-        const res = await fetch('/api/billing/start-trial', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ planName }),
-        })
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}))
-          toast.error(err?.message ?? 'Erro ao iniciar trial. Tente novamente.')
-          return
-        }
-        toast.success('Trial reativado! Bem-vindo de volta.')
-        window.location.reload()
-      } catch {
-        toast.error('Erro de conexão. Tente novamente.')
-      } finally {
-        setLoadingKey(null)
-      }
-      return
-    }
-
+  async function handleSelectPlan(planName: string) {
     setLoadingKey(`${planName}_direct`)
     try {
       const origin = window.location.origin
@@ -129,7 +106,7 @@ export function SubscriptionLockedScreen({ isOwner, originalPlan }: Props) {
               Apenas o proprietário do negócio pode renovar a assinatura.
               Peça para ele acessar e escolher um plano.
             </p>
-            <Button variant="outline" className="w-full" onClick={handleLogout}>
+            <Button variant="outline" className="h-11 w-full" onClick={handleLogout}>
               <LogOut className="mr-2 size-4" />
               Sair da conta
             </Button>
@@ -145,12 +122,12 @@ export function SubscriptionLockedScreen({ isOwner, originalPlan }: Props) {
                 <SharedPlanCard
                   key={plan.name}
                   plan={apiPlanToShared(plan, plan.name === 'PRO')}
-                  action={{ type: 'onboarding', onSelect: handleSelectPlan, loadingKey }}
+                  action={{ type: 'onboarding', onSelect: handleSelectPlan, loadingKey, allowTrial: false }}
                 />
               ))}
             </div>
             <div className="flex justify-center">
-              <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={handleLogout}>
+              <Button variant="ghost" className="h-11 text-muted-foreground" onClick={handleLogout}>
                 <LogOut className="mr-2 size-4" />
                 Sair da conta
               </Button>

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { PlanName, SubscriptionStatus } from '@prisma/client'
 import { prismaMock } from '@/shared/test/prisma-mock'
+import { TrialAlreadyUsedError } from '@/shared/errors'
 
 vi.mock('./billing.repository', () => ({
   billingRepository: {
@@ -78,17 +79,15 @@ describe('BillingService', () => {
       )
     })
 
-    it('atualiza subscription existente (ex: tenant bloqueado reativando trial)', async () => {
+    it('rejeita novo trial quando o tenant já possui subscription (mesmo expirada/cancelada)', async () => {
       vi.mocked(billingRepository.getSubscription).mockResolvedValue({ id: 'sub-1' } as any)
-      prismaMock.plan.findUnique.mockResolvedValue({ trialDays: 14 } as any)
-      vi.mocked(billingRepository.updateSubscription).mockResolvedValue({ id: 'sub-1' } as any)
 
-      await billingService.startTrialForPlan(TENANT_ID, PlanName.PRO)
-
-      expect(billingRepository.updateSubscription).toHaveBeenCalledWith(
-        TENANT_ID,
-        expect.objectContaining({ plan: PlanName.PRO, status: SubscriptionStatus.TRIALING }),
+      await expect(billingService.startTrialForPlan(TENANT_ID, PlanName.PRO)).rejects.toThrow(
+        TrialAlreadyUsedError,
       )
+
+      expect(billingRepository.updateSubscription).not.toHaveBeenCalled()
+      expect(billingRepository.createSubscription).not.toHaveBeenCalled()
     })
   })
 })

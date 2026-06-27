@@ -122,6 +122,16 @@ export class PlanFeatureError extends DomainError {
   }
 }
 
+export class TrialAlreadyUsedError extends DomainError {
+  constructor() {
+    super(
+      "Este negócio já utilizou o período de teste gratuito. Escolha um plano para assinar.",
+      "TRIAL_ALREADY_USED",
+      409,
+    );
+  }
+}
+
 export class PlanLimitError extends DomainError {
   constructor(
     public readonly limitType: string,
