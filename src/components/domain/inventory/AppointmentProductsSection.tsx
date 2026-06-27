@@ -403,7 +403,7 @@ export function AppointmentProductsSection({
                 saveProducts.isPending ||
                 (stockAction === 'apply' && diffLines.some((l) => l.hasError))
               }
-              className="bg-slate-950 text-white hover:bg-slate-800"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {saveProducts.isPending ? 'Salvando...' : 'Confirmar'}
             </Button>
