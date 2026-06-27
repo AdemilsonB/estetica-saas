@@ -246,7 +246,7 @@ export default function CustomerProfilePage({
             <Button
               onClick={handleSaveNotes}
               disabled={savingNotes}
-              className="bg-slate-950 text-white hover:bg-slate-800"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
               size="sm"
             >
               {savingNotes ? 'Salvando...' : 'Salvar observações'}

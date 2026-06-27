@@ -70,7 +70,7 @@ export function CustomerList() {
             <ImportContactsButton />
             <Button
               onClick={() => setCreateOpen(true)}
-              className="shrink-0 rounded-full bg-slate-950 text-white hover:bg-slate-800"
+              className="shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <Plus className="size-4" />
               <span className="hidden sm:inline">Novo cliente</span>

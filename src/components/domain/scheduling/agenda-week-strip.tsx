@@ -108,7 +108,7 @@ export function AgendaWeekStrip({ selectedDate, onSelectDate }: Props) {
               className={cn(
                 'flex flex-col items-center rounded-xl py-2 text-center transition',
                 isSelected
-                  ? 'bg-slate-950 text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : isToday
                     ? 'bg-rose-50 text-rose-700'
                     : 'hover:bg-slate-100 text-slate-700',

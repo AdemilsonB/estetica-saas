@@ -191,7 +191,7 @@ export function ImportContactsModal({ open, onClose }: Props) {
                 Cancelar
               </Button>
               <Button
-                className="flex-1 bg-slate-950 text-white hover:bg-slate-800"
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
                 disabled={selectedCount === 0}
                 onClick={importSelected}
               >
@@ -223,7 +223,7 @@ export function ImportContactsModal({ open, onClose }: Props) {
                 </p>
               )}
             </div>
-            <Button onClick={handleClose} className="mt-2 bg-slate-950 text-white hover:bg-slate-800">
+            <Button onClick={handleClose} className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90">
               Fechar
             </Button>
           </div>

@@ -243,7 +243,7 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
         {can('agenda', 'create') && (
           <Button
             onClick={() => setCreateModalOpen(true)}
-            className="rounded-full bg-slate-950 text-white hover:bg-slate-800"
+            className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="size-4" />
             <span className="hidden sm:inline">Novo agendamento</span>
@@ -445,7 +445,7 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
       {can('agenda', 'create') && (
         <button
           onClick={() => setCreateModalOpen(true)}
-          className="fixed bottom-20 right-4 z-50 flex size-14 items-center justify-center rounded-full bg-slate-950 text-white shadow-lg hover:bg-slate-800 active:scale-95 transition sm:hidden"
+          className="fixed bottom-20 right-4 z-50 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 active:scale-95 transition sm:hidden"
           aria-label="Novo agendamento"
         >
           <Plus className="size-6" />

@@ -75,7 +75,7 @@ export function RoleEditor({ role, sections, onCancel }: Props) {
         <Button
           onClick={handleSave}
           disabled={!name.trim() || updateRole.isPending}
-          className="bg-slate-950 text-white hover:bg-slate-800"
+          className="bg-primary text-primary-foreground hover:bg-primary/90"
         >
           {updateRole.isPending ? 'Salvando...' : 'Salvar'}
         </Button>

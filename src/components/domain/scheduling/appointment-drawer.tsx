@@ -295,7 +295,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                             'rounded-full border px-3 py-1.5 text-xs font-medium transition',
                             slot.available
                               ? editTime === slot.time
-                                ? 'border-slate-950 bg-slate-950 text-white'
+                                ? 'border-primary bg-primary text-primary-foreground'
                                 : 'border-slate-200 bg-white text-slate-700 hover:border-slate-400'
                               : 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300',
                           )}
@@ -334,7 +334,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                     Cancelar edição
                   </Button>
                   <Button
-                    className="flex-1 bg-slate-950 text-white hover:bg-slate-800"
+                    className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
                     onClick={handleSaveEdit}
                     disabled={!hasChanged || !editTime || reschedule.isPending}
                   >

@@ -108,7 +108,7 @@ export default function EquipePage() {
           {canInvite && (
             <Button
               onClick={() => setInviteOpen(true)}
-              className="flex-1 rounded-full bg-slate-950 text-white hover:bg-slate-800 sm:flex-none"
+              className="flex-1 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 sm:flex-none"
             >
               <UserPlus className="size-4" />
               Convidar
