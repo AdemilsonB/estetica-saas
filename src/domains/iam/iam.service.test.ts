@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NotFoundError, ForbiddenError, UserNotFoundError } from '@/shared/errors'
+import { NotFoundError, ForbiddenError, UserNotFoundError, ConflictError, ValidationError } from '@/shared/errors'
 
 vi.mock('./iam.repository', () => ({
   iamRepository: {
@@ -8,11 +8,20 @@ vi.mock('./iam.repository', () => ({
     updateUser: vi.fn(),
     findUserServices: vi.fn(),
     setUserServices: vi.fn(),
+    createTenantWithOwner: vi.fn(),
+    findTenantByDocument: vi.fn(),
   },
 }))
 
 vi.mock('@/integrations/supabase/admin', () => ({
-  supabaseAdmin: { auth: { admin: {} } },
+  supabaseAdmin: {
+    auth: {
+      admin: {
+        getUserById: vi.fn(),
+        updateUserById: vi.fn(),
+      },
+    },
+  },
 }))
 
 vi.mock('@/domains/billing/billing.service', () => ({
@@ -37,6 +46,7 @@ vi.mock('@/shared/database/prisma', () => ({
 import { iamRepository } from './iam.repository'
 import { IamService } from './iam.service'
 import { prisma } from '@/shared/database/prisma'
+import { supabaseAdmin } from '@/integrations/supabase/admin'
 
 const TENANT_ID = 'tenant-abc'
 const INVITE_ID = 'invite-xyz'
@@ -231,5 +241,87 @@ describe('IamService.setMemberServices', () => {
     ).rejects.toThrow()
 
     expect(iamRepository.setUserServices).not.toHaveBeenCalled()
+  })
+})
+
+describe('IamService.register', () => {
+  let service: IamService
+  const USER_ID = 'user-novo'
+
+  beforeEach(() => {
+    service = new IamService()
+    vi.clearAllMocks()
+    vi.mocked(supabaseAdmin.auth.admin.getUserById).mockResolvedValue({
+      data: { user: { id: USER_ID, email: 'dono@negocio.com', app_metadata: {}, user_metadata: {} } },
+      error: null,
+    } as any)
+    vi.mocked(supabaseAdmin.auth.admin.updateUserById).mockResolvedValue({} as any)
+  })
+
+  it('cria tenant com CPF válido', async () => {
+    vi.mocked(iamRepository.findTenantByDocument).mockResolvedValue(null)
+    vi.mocked(iamRepository.createTenantWithOwner).mockResolvedValue({
+      tenant: { id: 'tenant-novo' },
+      user: { id: USER_ID },
+    } as any)
+
+    const result = await service.register(USER_ID, {
+      businessName: 'Salão da Maria',
+      userName: 'Maria',
+      documentType: 'CPF',
+      document: '111.444.777-35',
+    })
+
+    expect(iamRepository.createTenantWithOwner).toHaveBeenCalledWith(
+      expect.objectContaining({ documentType: 'CPF', document: '11144477735' }),
+    )
+    expect(result).toEqual({ tenantId: 'tenant-novo', userId: USER_ID })
+  })
+
+  it('cria tenant com CNPJ válido', async () => {
+    vi.mocked(iamRepository.findTenantByDocument).mockResolvedValue(null)
+    vi.mocked(iamRepository.createTenantWithOwner).mockResolvedValue({
+      tenant: { id: 'tenant-novo' },
+      user: { id: USER_ID },
+    } as any)
+
+    await service.register(USER_ID, {
+      businessName: 'Studio Estética LTDA',
+      userName: 'Maria',
+      documentType: 'CNPJ',
+      document: '11.222.333/0001-81',
+    })
+
+    expect(iamRepository.createTenantWithOwner).toHaveBeenCalledWith(
+      expect.objectContaining({ documentType: 'CNPJ', document: '11222333000181' }),
+    )
+  })
+
+  it('rejeita CPF com dígito verificador inválido', async () => {
+    await expect(
+      service.register(USER_ID, {
+        businessName: 'Salão da Maria',
+        userName: 'Maria',
+        documentType: 'CPF',
+        document: '11144477736',
+      }),
+    ).rejects.toThrow(ValidationError)
+
+    expect(iamRepository.createTenantWithOwner).not.toHaveBeenCalled()
+  })
+
+  it('rejeita quando o documento já está cadastrado para outro negócio', async () => {
+    vi.mocked(iamRepository.findTenantByDocument).mockResolvedValue({ id: 'tenant-existente' } as any)
+
+    await expect(
+      service.register(USER_ID, {
+        businessName: 'Salão da Maria',
+        userName: 'Maria',
+        documentType: 'CPF',
+        document: '111.444.777-35',
+      }),
+    ).rejects.toThrow(ConflictError)
+
+    expect(iamRepository.createTenantWithOwner).not.toHaveBeenCalled()
   })
 })

@@ -243,3 +243,27 @@ O gate **não substitui** `getSessionContext`/tenant scoping — cada route.ts c
 **Consequências**:
 - Issue criada no GitHub para rastrear a implementação futura (RLS por tenant + estratégia de injeção de contexto + testes por policy).
 - Até lá, o filtro de `tenantId` no repository continua sendo o controle obrigatório — reforçar em code review que nenhuma query de negócio pode omiti-lo.
+
+---
+
+## ADR-013 — Documento único do tenant: tenants legados ficam sem documento (2026-06-27)
+
+**Data**: 2026-06-27
+**Status**: Aceito
+
+**Contexto**: Auditoria de integridade de regras de negócio identificou que `Tenant` nunca teve campo de CPF/CNPJ — qualquer pessoa podia cadastrar múltiplos negócios (tenants) com o mesmo documento, sem nenhuma checagem de unicidade real no nível de negócio (apenas `slug` era único, e é gerado a partir do nome, não do documento).
+
+**Decisão**:
+1. `Tenant` ganhou `documentType` (`CPF`/`CNPJ`) e `document` (string normalizada, só dígitos) — ambos **nullable**, migration aditiva.
+2. `document` usa `@unique` simples no Prisma. No Postgres, um índice/constraint único trata múltiplos valores `NULL` como não-conflitantes (`NULL <> NULL`) — isso já entrega exatamente o comportamento de "unicidade parcial ignorando null" sem precisar de SQL customizado (`WHERE document IS NOT NULL`).
+3. `iamService.register()` agora exige `documentType`+`document`, valida o dígito verificador (CPF via `validarCpf`, CNPJ via `validarCnpj`, ambos em `src/shared/utils/`) e rejeita com `ConflictError` se o documento já pertence a outro tenant — checagem explícita no service (mensagem clara) **e** a constraint do banco como rede de segurança contra corrida de cadastros simultâneos (capturada via `Prisma.P2002`).
+4. **Tenants legados (criados antes desta migration) permanecem com `document = null` para sempre.** Não há backfill — não existe CPF/CNPJ desses negócios salvo em lugar nenhum do sistema hoje, então qualquer preenchimento automático seria inventado. Não há também prompt de pendência cobrando o dono a completar o cadastro — decisão explícita do usuário para não adicionar fricção a contas já ativas.
+
+**Alternativas rejeitadas**:
+- *Índice parcial via SQL manual (`CREATE UNIQUE INDEX ... WHERE document IS NOT NULL`)*: desnecessário — o comportamento padrão do Postgres para `UNIQUE` já ignora `NULL`, confirmado antes de escrever a migration.
+- *Backfill automático ou prompt de pendência para tenants legados*: descartado porque não há dado real para preencher e adicionaria fricção sem ganho de integridade (esses tenants já existem e já operam normalmente).
+
+**Consequências**:
+- Cadastro de **novos** tenants exige documento válido e único a partir desta versão — fecha a brecha para o futuro.
+- Tenants antigos continuam sem essa garantia (podem coexistir 2 tenants legados com o mesmo CPF/CNPJ, se isso já tiver ocorrido no passado) — risco aceito, não há ação de remediação retroativa nesta rodada.
+- `User.cpf` (CPF pessoal do dono, coletado no signup) e `Customer.cpf` (CPF do cliente final) são campos e fluxos completamente separados de `Tenant.document` — não confundir os três no código ou em auditorias futuras.

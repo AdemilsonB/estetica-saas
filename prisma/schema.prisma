@@ -105,10 +105,17 @@ enum BusinessSegment {
   AESTHETICS
 }
 
+enum TenantDocumentType {
+  CPF
+  CNPJ
+}
+
 model Tenant {
   id                     String                 @id @default(cuid())
   name                   String
   slug                   String                 @unique
+  documentType           TenantDocumentType?
+  document               String?                @unique
   subscription           Subscription?
   brandingConfig         BrandingConfig?
   phone                  String?

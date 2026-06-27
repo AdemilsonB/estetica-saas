@@ -1,4 +1,4 @@
-import { UserRole } from "@prisma/client";
+import { TenantDocumentType, UserRole } from "@prisma/client";
 import { prisma } from "@/shared/database/prisma";
 import { ROLE_PERMISSIONS } from "@/shared/auth/permissions";
 import { buildDefaultRolePermissions } from "@/shared/permissions/nav-registry";
@@ -8,6 +8,8 @@ type CreateTenantWithOwnerInput = {
   email: string;
   businessName: string;
   userName: string;
+  documentType: TenantDocumentType;
+  document: string;
   ownerPhone?: string;
   ownerCpf?: string;
   zipCode?: string;
@@ -37,6 +39,8 @@ export class IamRepository {
         data: {
           name: input.businessName,
           slug,
+          documentType: input.documentType,
+          document: input.document,
           ...(input.zipCode ? { zipCode: input.zipCode } : {}),
         },
       });
@@ -82,6 +86,10 @@ export class IamRepository {
 
   async findTenantBySlug(slug: string) {
     return prisma.tenant.findUnique({ where: { slug } });
+  }
+
+  async findTenantByDocument(document: string) {
+    return prisma.tenant.findUnique({ where: { document } });
   }
 
   async findAllUsers(tenantId: string) {

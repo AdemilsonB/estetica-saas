@@ -1,16 +1,20 @@
-import { Prisma, UserRole } from "@prisma/client";
+import { Prisma, TenantDocumentType, UserRole } from "@prisma/client";
 
 import { prisma } from "@/shared/database/prisma";
 import { supabaseAdmin } from "@/integrations/supabase/admin";
-import { NotFoundError, ConflictError, ForbiddenError, UserNotFoundError } from "@/shared/errors";
+import { NotFoundError, ConflictError, ForbiddenError, UserNotFoundError, ValidationError } from "@/shared/errors";
 import { iamRepository } from "./iam.repository";
 import { resolveImageCrop } from "@/shared/utils/image-crop";
+import { validarCpf } from "@/shared/utils/cpf";
+import { validarCnpj } from "@/shared/utils/cnpj";
 import type { SessionContext } from "@/shared/types/auth";
 import { featureGuard } from "@/domains/billing/feature-guard";
 
 type RegisterInput = {
   businessName: string;
   userName: string;
+  documentType: TenantDocumentType;
+  document: string;
   branding?: {
     logoUrl?: string | null;
     primaryColor?: string;
@@ -92,6 +96,24 @@ export class IamService {
 
     const meta = (authUser.user.user_metadata ?? {}) as Record<string, string>
 
+    const document = input.document.replace(/\D/g, "");
+    const isValidDocument =
+      input.documentType === TenantDocumentType.CPF
+        ? validarCpf(document)
+        : validarCnpj(document);
+    if (!isValidDocument) {
+      throw new ValidationError(
+        input.documentType === TenantDocumentType.CPF
+          ? "CPF invalido."
+          : "CNPJ invalido.",
+      );
+    }
+
+    const existingByDocument = await iamRepository.findTenantByDocument(document);
+    if (existingByDocument) {
+      throw new ConflictError("Este CPF/CNPJ ja esta cadastrado para outro negocio.");
+    }
+
     let createResult: Awaited<
       ReturnType<typeof iamRepository.createTenantWithOwner>
     >;
@@ -101,6 +123,8 @@ export class IamService {
         email: authUser.user.email!,
         businessName: input.businessName,
         userName: input.userName,
+        documentType: input.documentType,
+        document,
         branding: input.branding,
         ownerPhone: meta.phone,
         ownerCpf: meta.cpf,
@@ -111,7 +135,7 @@ export class IamService {
         err instanceof Prisma.PrismaClientKnownRequestError &&
         err.code === "P2002"
       ) {
-        throw new ConflictError("Tenant ja cadastrado para este usuario.");
+        throw new ConflictError("Este CPF/CNPJ ja esta cadastrado para outro negocio.");
       }
       throw err;
     }
