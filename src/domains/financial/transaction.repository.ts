@@ -48,8 +48,9 @@ export class TransactionRepository {
   async create(
     tenantId: string,
     data: Omit<Prisma.TransactionUncheckedCreateInput, "tenantId">,
+    client: Prisma.TransactionClient | typeof prisma = prisma,
   ): Promise<Transaction> {
-    return prisma.transaction.create({
+    return client.transaction.create({
       data: {
         ...data,
         tenantId,
@@ -61,8 +62,9 @@ export class TransactionRepository {
     tenantId: string,
     appointmentId: string,
     filters: { type?: TransactionType; category?: string } = {},
+    client: Prisma.TransactionClient | typeof prisma = prisma,
   ): Promise<Transaction[]> {
-    return prisma.transaction.findMany({
+    return client.transaction.findMany({
       where: { tenantId, appointmentId, ...filters },
     });
   }

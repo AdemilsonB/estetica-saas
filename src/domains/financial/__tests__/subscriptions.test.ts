@@ -9,8 +9,11 @@ vi.mock('@/shared/database/prisma')
 import { registerFinancialSubscriptions } from '../subscriptions'
 import { transactionRepository } from '../transaction.repository'
 import { eventBus } from '@/shared/events/event-bus'
-import { prisma } from '@/shared/database/prisma'
 
+// Os fluxos de pagamento/cortesia/estorno de atendimento deixaram de ser tratados
+// por subscriber: agora são registrados de forma atômica dentro da transação do
+// scheduling.service (ver scheduling.service.update.test.ts). Aqui ficam apenas os
+// eventos que continuam como side-effects desacoplados (produto/estoque).
 describe('registerFinancialSubscriptions', () => {
   const capturedHandlers: Record<string, (payload: Record<string, unknown>) => Promise<void>> = {}
 
@@ -24,6 +27,12 @@ describe('registerFinancialSubscriptions', () => {
     Object.assign(eventBus, { subscribe: mockSubscribe, publish: vi.fn() })
 
     registerFinancialSubscriptions()
+  })
+
+  it('NÃO registra mais o subscriber de pagamento/estorno de atendimento', () => {
+    expect(capturedHandlers['scheduling.appointment.paid']).toBeUndefined()
+    expect(capturedHandlers['scheduling.appointment.courtesy']).toBeUndefined()
+    expect(capturedHandlers['scheduling.appointment.payment_refunded']).toBeUndefined()
   })
 
   it('stock.appointment_restore cria EXPENSE com category SUPPLY_REVERSAL e amount positivo', async () => {
@@ -53,59 +62,5 @@ describe('registerFinancialSubscriptions', () => {
     const createArg = mockCreate.mock.calls[0][1]
     expect(Number(createArg.amount)).toBeGreaterThan(0)
     expect(createArg.description).toContain('Shampoo Belize')
-  })
-
-  it('payment_refunded cria INCOME com category SERVICE_REVERSAL e amounts negativos espelhando a transação original', async () => {
-    const mockCreate = vi.mocked(transactionRepository.create)
-    mockCreate.mockClear()
-    const mockFindByAppointmentId = vi.fn().mockResolvedValue([
-      { amount: 100, netAmount: 95, commissionAmount: 20, professionalId: 'prof-1' },
-    ])
-    Object.assign(transactionRepository, { findByAppointmentId: mockFindByAppointmentId })
-    Object.assign(prisma, {
-      appointment: {
-        findUnique: vi.fn().mockResolvedValue({
-          service: { name: 'Corte' },
-          customer: { name: 'Ana' },
-        }),
-      },
-    })
-
-    await capturedHandlers['scheduling.appointment.payment_refunded']({
-      tenantId: 'tenant-1',
-      appointmentId: 'appt-1',
-    })
-
-    expect(mockFindByAppointmentId).toHaveBeenCalledWith('tenant-1', 'appt-1', {
-      type: TransactionType.INCOME,
-      category: FINANCIAL_CATEGORIES.SERVICE,
-    })
-    expect(mockCreate).toHaveBeenCalledWith(
-      'tenant-1',
-      expect.objectContaining({
-        appointmentId: 'appt-1',
-        type: TransactionType.INCOME,
-        category: FINANCIAL_CATEGORIES.SERVICE_REVERSAL,
-        professionalId: 'prof-1',
-      }),
-    )
-    const createArg = mockCreate.mock.calls[0][1]
-    expect(Number(createArg.amount)).toBe(-100)
-    expect(Number(createArg.netAmount)).toBe(-95)
-    expect(Number(createArg.commissionAmount)).toBe(-20)
-    expect(createArg.description).toContain('Corte')
-  })
-
-  it('payment_refunded não cria nada se não encontrar a transação original do agendamento', async () => {
-    const mockCreate = vi.mocked(transactionRepository.create)
-    mockCreate.mockClear()
-    Object.assign(transactionRepository, { findByAppointmentId: vi.fn().mockResolvedValue([]) })
-
-    await capturedHandlers['scheduling.appointment.payment_refunded']({
-      tenantId: 'tenant-1',
-      appointmentId: 'appt-999',
-    })
-
-    expect(mockCreate).not.toHaveBeenCalled()
   })
 })
