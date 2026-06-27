@@ -151,55 +151,52 @@ export function ServiceStep({
                     : `R$ ${Number(promo.discountValue).toFixed(2).replace('.', ',')}`}
                 </div>
                 <div className="mt-2 space-y-2">
-                  {promo.services.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => {
-                        const discountedPrice =
-                          promo.discountType === 'PERCENTAGE'
-                            ? s.originalPrice * (1 - promo.discountValue / 100)
-                            : Math.max(0, s.originalPrice - promo.discountValue)
-                        if (onPromotionServiceSelect) {
-                          onPromotionServiceSelect(promo.id, {
-                            id: s.id,
-                            name: s.name,
-                            duration: s.duration,
-                            discountedPrice,
-                          })
-                        } else {
-                          onSelect({
-                            id: s.id,
-                            name: s.name,
-                            duration: s.duration,
-                            price: discountedPrice,
-                            priceType: 'FIXED',
-                            anamneseMode: 'NONE',
-                            anamneseBlocks: [],
-                            anamneseValidityDays: 90,
-                          })
-                        }
-                      }}
-                      className="w-full text-left p-2 rounded border border-slate-200 hover:border-[--booking-primary,#191919] transition-colors text-sm"
-                    >
-                      <span className="font-medium text-slate-900">{s.name}</span>
-                      <span className="text-slate-500">
-                        {' · '}
-                        {s.duration} min
-                        {' · '}
-                        <span className="line-through text-slate-400">
-                          R$ {Number(s.originalPrice).toFixed(2).replace('.', ',')}
-                        </span>
-                        {' '}
-                        <span className="text-green-700 font-medium">
-                          R${' '}
-                          {(promo.discountType === 'PERCENTAGE'
-                            ? s.originalPrice * (1 - promo.discountValue / 100)
-                            : Math.max(0, s.originalPrice - promo.discountValue)
-                          ).toFixed(2).replace('.', ',')}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
+                  {promo.services.map((s) => {
+                    const discountedPrice =
+                      promo.discountType === 'PERCENTAGE'
+                        ? s.originalPrice * (1 - promo.discountValue / 100)
+                        : Math.max(0, s.originalPrice - promo.discountValue)
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => {
+                          if (onPromotionServiceSelect) {
+                            onPromotionServiceSelect(promo.id, {
+                              id: s.id,
+                              name: s.name,
+                              duration: s.duration,
+                              discountedPrice,
+                            })
+                          } else {
+                            onSelect({
+                              id: s.id,
+                              name: s.name,
+                              duration: s.duration,
+                              price: discountedPrice,
+                              priceType: 'FIXED',
+                              anamneseMode: 'NONE',
+                              anamneseBlocks: [],
+                              anamneseValidityDays: 90,
+                            })
+                          }
+                        }}
+                        className="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-[--booking-primary,#191919] transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium text-slate-900 text-sm">{s.name}</span>
+                          <span className="shrink-0 text-sm font-semibold text-green-700">
+                            R$ {discountedPrice.toFixed(2).replace('.', ',')}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
+                          <span>{s.duration} min</span>
+                          <span className="line-through text-slate-400">
+                            R$ {Number(s.originalPrice).toFixed(2).replace('.', ',')}
+                          </span>
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             ))}
