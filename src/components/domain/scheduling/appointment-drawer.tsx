@@ -31,6 +31,7 @@ import {
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import { useAvailableSlots } from '@/hooks/scheduling/use-availability'
 import { useTeamMembers } from '@/hooks/iam/use-team'
+import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
 import { cn } from '@/lib/utils'
 import {
   AlertDialog,
@@ -111,7 +112,10 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
   const [editMessage, setEditMessage] = useState('')
 
   const { data: teamMembers = [] } = useTeamMembers()
+  const { data: evolutionStatus } = useEvolutionStatus()
   const reschedule = useRescheduleAppointment()
+  // Só sabemos que não vai enviar quando o status já carregou e está desconectado
+  const whatsappOffline = evolutionStatus !== undefined && !evolutionStatus.connected
 
   const { data: slots = [], isLoading: loadingSlots } = useAvailableSlots(
     isEditing ? editProfessionalId || null : null,
@@ -316,10 +320,17 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                     placeholder="Selecione um horário para pré-preencher a mensagem..."
                     className="min-h-[100px] resize-none text-sm"
                   />
-                  {!appointment.customer.phone && (
-                    <p className="text-xs text-slate-400">
-                      Este cliente não tem telefone cadastrado. A mensagem não será enviada.
-                    </p>
+                  {whatsappOffline ? (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      WhatsApp não está conectado, então esta mensagem não será enviada.
+                      Conecte em <span className="font-medium">Configurações → WhatsApp</span>.
+                    </div>
+                  ) : (
+                    !appointment.customer.phone && (
+                      <p className="text-xs text-slate-400">
+                        Este cliente não tem telefone cadastrado. A mensagem não será enviada.
+                      </p>
+                    )
                   )}
                 </div>
 
