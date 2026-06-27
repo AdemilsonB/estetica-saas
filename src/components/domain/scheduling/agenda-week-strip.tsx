@@ -110,7 +110,7 @@ export function AgendaWeekStrip({ selectedDate, onSelectDate }: Props) {
                 isSelected
                   ? 'bg-primary text-primary-foreground'
                   : isToday
-                    ? 'bg-rose-50 text-rose-700'
+                    ? 'bg-primary/10 text-primary'
                     : 'hover:bg-slate-100 text-slate-700',
               )}
             >
@@ -124,7 +124,7 @@ export function AgendaWeekStrip({ selectedDate, onSelectDate }: Props) {
                 <span
                   className={cn(
                     'mt-1 text-[10px] font-semibold',
-                    isSelected ? 'text-rose-300' : 'text-rose-500',
+                    isSelected ? 'text-primary-foreground/80' : 'text-primary',
                   )}
                 >
                   {countByDay[i]}
