@@ -59,6 +59,8 @@ export async function GET(
       monthNumber,
       service.duration,
       policy.slotIntervalMinutes,
+      policy.minAdvanceMinutes,
+      policy.maxAdvanceDays,
     )
 
     return Response.json({ days })

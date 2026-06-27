@@ -96,6 +96,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
   const [customerSearch, setCustomerSearch] = useState('')
   const [customerId, setCustomerId] = useState('')
   const [allowOverlap, setAllowOverlap] = useState(false)
+  const [allowPastDate, setAllowPastDate] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState('')
 
   const { data: professionalsByService } = useProfessionalsByService(serviceId || null)
@@ -166,6 +167,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
     setCustomerSearch('')
     setCustomerId(defaultCustomerId ?? '')
     setAllowOverlap(false)
+    setAllowPastDate(false)
     setNotificationMessage('')
     onClose()
   }
@@ -183,6 +185,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
         serviceId,
         startsAt,
         allowOverlap,
+        allowPastDate,
         notificationMessage: notificationMessage || undefined,
       },
       {
@@ -272,18 +275,30 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
           {/* 4. Horário — só aparece quando profissional + serviço + data estão definidos */}
           {professionalId && serviceId && date && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-2">
                 <Label>Horário</Label>
                 {canManage && (
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="allow-overlap"
-                      checked={allowOverlap}
-                      onCheckedChange={setAllowOverlap}
-                    />
-                    <Label htmlFor="allow-overlap" className="text-xs text-slate-500 cursor-pointer">
-                      Autorizar conflito
-                    </Label>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="allow-overlap"
+                        checked={allowOverlap}
+                        onCheckedChange={setAllowOverlap}
+                      />
+                      <Label htmlFor="allow-overlap" className="text-xs text-slate-500 cursor-pointer">
+                        Autorizar conflito
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="allow-past-date"
+                        checked={allowPastDate}
+                        onCheckedChange={setAllowPastDate}
+                      />
+                      <Label htmlFor="allow-past-date" className="text-xs text-slate-500 cursor-pointer">
+                        Lançar atendimento esquecido (data passada)
+                      </Label>
+                    </div>
                   </div>
                 )}
               </div>
@@ -303,7 +318,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
                   {slots.map((slot) => {
                     const isSelected = selectedTime === slot.time
                     const isOccupied = !slot.available
-                    const isClickable = slot.available || allowOverlap
+                    const isClickable = slot.available || allowOverlap || allowPastDate
 
                     return (
                       <button

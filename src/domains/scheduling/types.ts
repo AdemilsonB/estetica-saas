@@ -49,6 +49,7 @@ export const createAppointmentSchema = z.object({
   startsAt: z.string().datetime(),
   notes: z.string().trim().max(500).optional(),
   allowOverlap: z.boolean().optional().default(false),
+  allowPastDate: z.boolean().optional().default(false),
   notificationMessage: z.string().trim().optional(),
 });
 

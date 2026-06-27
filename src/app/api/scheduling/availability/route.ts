@@ -38,6 +38,9 @@ export async function GET(request: Request) {
       return Response.json({ slots: [] });
     }
 
+    // minAdvanceMinutes/maxAdvanceDays não se aplicam ao painel — só ao fluxo
+    // público (ver scheduling.service.createAppointment). O painel só corta
+    // horários já passados (comportamento padrão de getAvailableSlots).
     const slots = await availabilityService.getAvailableSlots(
       session.tenantId,
       professionalId,

@@ -19,6 +19,7 @@ import {
   RefundNotAllowedError,
   ServiceNotFoundError,
   SlotUnavailableError,
+  ValidationError,
 } from "@/shared/errors";
 import {
   scheduleAppointmentReminder,
@@ -109,6 +110,16 @@ export class SchedulingService {
 
     const startsAt = new Date(input.startsAt);
     const endsAt = new Date(startsAt.getTime() + service.duration * 60 * 1000);
+
+    // Painel não aplica minAdvanceMinutes/maxAdvanceDays (regra é do fluxo público,
+    // que já valida isso antes de chegar aqui) — só impede data passada, com escape
+    // hatch explícito (allowPastDate) para lançar atendimento esquecido.
+    if (startsAt.getTime() < Date.now() && !input.allowPastDate) {
+      throw new ValidationError(
+        "Não é possível criar agendamento para uma data/hora no passado.",
+        { startsAt: input.startsAt },
+      );
+    }
 
     // Check (overlap) + create na mesma transação Serializable — duas requisições
     // concorrentes para o mesmo profissional/horário não podem mais passar ambas

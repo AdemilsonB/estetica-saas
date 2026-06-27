@@ -34,6 +34,7 @@ export type CreateAppointmentInput = {
   startsAt: string
   notes?: string
   allowOverlap?: boolean
+  allowPastDate?: boolean
   notificationMessage?: string
 }
 

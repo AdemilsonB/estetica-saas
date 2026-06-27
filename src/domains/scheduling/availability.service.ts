@@ -85,9 +85,12 @@ export class AvailabilityService {
     serviceDuration: number,
     interval: number,
     timezone: string,
+    now: Date,
+    minAdvanceMinutes: number,
   ): TimeSlot[] {
     const openMin = timeToMinutes(dayConfig.open);
     const closeMin = timeToMinutes(dayConfig.close);
+    const earliestBookable = now.getTime() + minAdvanceMinutes * 60 * 1000;
 
     const slots: TimeSlot[] = [];
     // Intervalo fixo como passo; slot é incluído apenas se a duração cabe até o fechamento
@@ -98,15 +101,23 @@ export class AvailabilityService {
       const conflictingAppt = appointments.find(
         (a) => a.startsAt < slotEnd && a.endsAt > slotStart,
       );
+      const tooSoon = slotStart.getTime() < earliestBookable;
 
       slots.push({
         time: minutesToTime(min),
-        available: !conflictingAppt,
+        available: !conflictingAppt && !tooSoon,
         bookedBy: conflictingAppt?.customer?.name.split(" ")[0],
       });
     }
 
     return slots;
+  }
+
+  /** Quantos dias de calendário (no timezone do tenant) separam `date` de hoje. */
+  private daysFromToday(date: string, timezone: string, now: Date): number {
+    const { start: dayStart } = dayBoundsInTz(timezone, new Date(`${date}T12:00:00Z`));
+    const { start: todayStart } = dayBoundsInTz(timezone, now);
+    return Math.round((dayStart.getTime() - todayStart.getTime()) / (24 * 60 * 60 * 1000));
   }
 
   async getAvailableSlots(
@@ -115,6 +126,8 @@ export class AvailabilityService {
     date: string,
     serviceDuration: number,
     slotIntervalMinutes = 30,
+    minAdvanceMinutes = 0,
+    maxAdvanceDays = Infinity,
   ): Promise<TimeSlot[]> {
     const iamRepo = new IamRepository();
     const [businessHours, tz] = await Promise.all([
@@ -127,6 +140,11 @@ export class AvailabilityService {
     const dayConfig = businessHours[String(dayOfWeek)];
 
     if (!dayConfig || !dayConfig.active) {
+      return [];
+    }
+
+    const now = new Date();
+    if (this.daysFromToday(date, timezone, now) > maxAdvanceDays) {
       return [];
     }
 
@@ -149,7 +167,7 @@ export class AvailabilityService {
       },
     });
 
-    return this.buildDaySlots(date, dayConfig, existingAppointments, serviceDuration, interval, timezone);
+    return this.buildDaySlots(date, dayConfig, existingAppointments, serviceDuration, interval, timezone, now, minAdvanceMinutes);
   }
 
   /**
@@ -164,6 +182,8 @@ export class AvailabilityService {
     month: number, // 1-12
     serviceDuration: number,
     slotIntervalMinutes = 30,
+    minAdvanceMinutes = 0,
+    maxAdvanceDays = Infinity,
   ): Promise<DayAvailability[]> {
     const iamRepo = new IamRepository();
     const [businessHours, tz] = await Promise.all([
@@ -172,6 +192,7 @@ export class AvailabilityService {
     ]);
     const timezone = tz ?? "America/Sao_Paulo";
     const interval = Math.max(slotIntervalMinutes, 5);
+    const now = new Date();
 
     const mm = String(month).padStart(2, "0");
     const anchor = new Date(`${year}-${mm}-15T12:00:00Z`);
@@ -201,7 +222,12 @@ export class AvailabilityService {
         continue;
       }
 
-      const slots = this.buildDaySlots(date, dayConfig, appointments, serviceDuration, interval, timezone);
+      if (this.daysFromToday(date, timezone, now) > maxAdvanceDays) {
+        result.push({ date, open: true, available: false });
+        continue;
+      }
+
+      const slots = this.buildDaySlots(date, dayConfig, appointments, serviceDuration, interval, timezone, now, minAdvanceMinutes);
       result.push({ date, open: true, available: slots.some((s) => s.available) });
     }
 
