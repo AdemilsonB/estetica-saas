@@ -149,7 +149,7 @@ export function RegisterPaymentModal({ appointment, open, onClose }: Props) {
 
           {/* Desconto */}
           <div className="space-y-1.5">
-            <Label>Desconto (opcional)</Label>
+            <Label htmlFor="discount-value">Desconto (opcional)</Label>
             <div className="flex gap-2">
               <Popover open={discountOpen} onOpenChange={setDiscountOpen}>
                 <PopoverTrigger asChild>
@@ -177,6 +177,7 @@ export function RegisterPaymentModal({ appointment, open, onClose }: Props) {
               </Popover>
               <div className="flex items-center gap-1">
                 <Input
+                  id="discount-value"
                   type="number"
                   min={0}
                   step={0.01}
@@ -191,9 +192,10 @@ export function RegisterPaymentModal({ appointment, open, onClose }: Props) {
 
           {/* Gorjeta */}
           <div className="space-y-1.5">
-            <Label>Gorjeta (opcional)</Label>
+            <Label htmlFor="tip-amount">Gorjeta (opcional)</Label>
             <div className="flex items-center gap-2">
               <Input
+                id="tip-amount"
                 type="number"
                 min={0}
                 step={0.5}
@@ -207,9 +209,9 @@ export function RegisterPaymentModal({ appointment, open, onClose }: Props) {
 
           {/* Forma de pagamento */}
           <div className="space-y-1.5">
-            <Label>Forma de pagamento *</Label>
+            <Label htmlFor="payment-method">Forma de pagamento *</Label>
             <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-              <SelectTrigger>
+              <SelectTrigger id="payment-method">
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
