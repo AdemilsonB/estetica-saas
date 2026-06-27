@@ -12,6 +12,24 @@ import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
 import { SharedPlanCard, type SharedPlanData } from '@/components/domain/billing/plan-card-shared'
 
 type Mode = 'loading' | 'create' | 'join' | 'plan'
+type DocumentType = 'CPF' | 'CNPJ'
+
+function applyCpfMask(value: string): string {
+  const d = value.replace(/\D/g, '').slice(0, 11)
+  if (d.length <= 3) return d
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`
+}
+
+function applyCnpjMask(value: string): string {
+  const d = value.replace(/\D/g, '').slice(0, 14)
+  if (d.length <= 2) return d
+  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`
+  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`
+  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`
+}
 
 type ApiPlan = {
   name: string
@@ -53,6 +71,8 @@ function OnboardingContent() {
   const [pendingTenantId, setPendingTenantId] = useState('')
   const [businessName, setBusinessName] = useState('')
   const [userName, setUserName] = useState('')
+  const [documentType, setDocumentType] = useState<DocumentType>('CPF')
+  const [document, setDocument] = useState('')
   const [joinPassword, setJoinPassword] = useState('')
   const [joinConfirmPassword, setJoinConfirmPassword] = useState('')
   const [joinPasswordError, setJoinPasswordError] = useState('')
@@ -113,6 +133,12 @@ function OnboardingContent() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
+    const documentDigits = document.replace(/\D/g, '')
+    const expectedLength = documentType === 'CPF' ? 11 : 14
+    if (documentDigits.length !== expectedLength) {
+      toast.error(documentType === 'CPF' ? 'CPF incompleto.' : 'CNPJ incompleto.')
+      return
+    }
     setIsSubmitting(true)
     try {
       const supabase = createSupabaseBrowserClient()
@@ -143,6 +169,8 @@ function OnboardingContent() {
         body: JSON.stringify({
           businessName,
           userName,
+          documentType,
+          document: documentDigits,
           branding: {
             ...(logoUrl ? { logoUrl } : {}),
             primaryColor,
@@ -379,6 +407,40 @@ function OnboardingContent() {
                   required
                   minLength={2}
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label>CPF ou CNPJ do negócio</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={documentType === 'CPF' ? 'default' : 'outline'}
+                    className={`h-11 px-4 ${documentType === 'CPF' ? 'bg-[#191919] hover:bg-[#2d2d2d]' : ''}`}
+                    onClick={() => { setDocumentType('CPF'); setDocument('') }}
+                  >
+                    CPF
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={documentType === 'CNPJ' ? 'default' : 'outline'}
+                    className={`h-11 px-4 ${documentType === 'CNPJ' ? 'bg-[#191919] hover:bg-[#2d2d2d]' : ''}`}
+                    onClick={() => { setDocumentType('CNPJ'); setDocument('') }}
+                  >
+                    CNPJ
+                  </Button>
+                </div>
+                <Input
+                  className="h-11"
+                  inputMode="numeric"
+                  placeholder={documentType === 'CPF' ? '000.000.000-00' : '00.000.000/0000-00'}
+                  value={document}
+                  onChange={(e) => setDocument(
+                    documentType === 'CPF' ? applyCpfMask(e.target.value) : applyCnpjMask(e.target.value),
+                  )}
+                  required
+                />
+                <p className="text-xs text-[#787774]">
+                  Usamos para garantir que cada negócio tenha um cadastro único na plataforma.
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label>Seu nome</Label>

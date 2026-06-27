@@ -10,6 +10,8 @@ import { OnboardingBrandingSchema } from "@/domains/iam/branding.schemas";
 const RegisterSchema = z.object({
   businessName: z.string().min(2, "Nome do negocio muito curto"),
   userName: z.string().min(2, "Nome muito curto"),
+  documentType: z.enum(["CPF", "CNPJ"]),
+  document: z.string().min(11, "Documento invalido"),
   branding: OnboardingBrandingSchema.optional(),
 });
 
