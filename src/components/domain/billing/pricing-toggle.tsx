@@ -8,6 +8,7 @@ export type PlanData = {
   price: number
   description?: string | null
   features: string[]
+  trialDays: number
   isPopular?: boolean
 }
 
@@ -17,7 +18,7 @@ export function PricingToggle({ plans }: { plans: PlanData[] }) {
       {plans.map((plan) => (
         <SharedPlanCard
           key={plan.name}
-          plan={{ ...plan, trialDays: 14 }}
+          plan={plan}
           action={{ type: 'navigate', href: `/login?plan=${plan.name}` }}
         />
       ))}

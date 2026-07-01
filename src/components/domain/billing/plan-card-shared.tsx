@@ -83,7 +83,7 @@ export function SharedPlanCard({ plan, action, badge }: Props) {
               ? 'bg-slate-900 text-white hover:bg-slate-700'
               : 'border border-slate-200 text-slate-700 hover:border-slate-400'}`}
         >
-          Iniciar 14 dias grátis
+          {trialDays > 0 ? `Iniciar ${trialDays} dias grátis` : 'Assinar agora'}
         </a>
       ) : (
         <div className="flex flex-col gap-2">

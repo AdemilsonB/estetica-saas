@@ -24,8 +24,16 @@ export default async function PlansPage() {
     // Benefícios vêm do que o admin configurou em Plan.description (1 por linha) —
     // mesma fonte usada no onboarding, nunca uma lista hardcoded no frontend.
     features: p.description ? p.description.split('\n').map(l => l.trim()).filter(Boolean) : [],
+    // Trial parametrizado no banco — nunca cravar "14" no frontend.
+    trialDays: p.trialDays,
     isPopular: p.name === 'PRO',
   }))
+
+  // Duração do trial exibida nos textos genéricos: usa o STARTER como referência
+  // (mesmo plano que a landing destaca), com fallback ao maior trial disponível.
+  const trialDays =
+    plans.find(p => p.name === 'STARTER')?.trialDays ??
+    plans.reduce((max, p) => Math.max(max, p.trialDays), 0)
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -39,7 +47,7 @@ export default async function PlansPage() {
       <main className="max-w-5xl mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-slate-900">Planos simples e transparentes</h1>
-          <p className="mt-4 text-lg text-slate-500">14 dias grátis em qualquer plano pago. Sem cartão de crédito.</p>
+          <p className="mt-4 text-lg text-slate-500">{trialDays} dias grátis em qualquer plano pago. Sem cartão de crédito.</p>
         </div>
 
         <PricingToggle plans={plansWithFeatures} />
@@ -48,7 +56,7 @@ export default async function PlansPage() {
           <h2 className="text-xl font-semibold text-slate-900 mb-6 text-center">Dúvidas frequentes</h2>
           <div className="space-y-4">
             {[
-              ['Preciso de cartão de crédito para o trial?', 'Não. O trial de 14 dias é gratuito e não exige cartão.'],
+              ['Preciso de cartão de crédito para o trial?', `Não. O trial de ${trialDays} dias é gratuito e não exige cartão.`],
               ['Posso cancelar a qualquer momento?', 'Sim. Cancele pelo painel de configurações. Sem multas.'],
               ['O que acontece ao fim do trial?', 'Seu acesso fica suspenso até você escolher e assinar um plano. Nenhum dado é perdido.'],
               ['Posso mudar de plano?', 'Sim. Upgrade ou downgrade a qualquer momento nas configurações.'],

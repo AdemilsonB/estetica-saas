@@ -22,6 +22,8 @@ const TENANT_ID = 'tenant-abc'
 describe('BillingService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // changePlan/resetTrial envolvem as escritas em $transaction; executa o callback.
+    prismaMock.$transaction.mockImplementation((cb: any) => cb(prismaMock))
   })
 
   describe('runExpireSweep', () => {
@@ -42,6 +44,7 @@ describe('BillingService', () => {
       expect(billingRepository.updateSubscription).toHaveBeenCalledWith(
         TENANT_ID,
         expect.objectContaining({ plan: PlanName.PRO, status: SubscriptionStatus.EXPIRED }),
+        expect.anything(),
       )
     })
 
@@ -62,6 +65,7 @@ describe('BillingService', () => {
       expect(billingRepository.updateSubscription).toHaveBeenCalledWith(
         TENANT_ID,
         expect.objectContaining({ plan: PlanName.STARTER, status: SubscriptionStatus.EXPIRED }),
+        expect.anything(),
       )
     })
   })

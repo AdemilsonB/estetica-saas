@@ -505,6 +505,7 @@ model Transaction {
 
   @@index([tenantId])
   @@index([tenantId, paidAt])
+  @@index([tenantId, type, paidAt])
   @@index([tenantId, professionalId])
   @@index([appointmentId])
 }

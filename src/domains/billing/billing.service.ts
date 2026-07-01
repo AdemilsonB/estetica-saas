@@ -54,22 +54,35 @@ export class BillingService {
     const periodStart = periodDates?.currentPeriodStart ?? current?.currentPeriodStart ?? now;
     const periodEnd   = periodDates?.currentPeriodEnd   ?? current?.currentPeriodEnd   ?? addDays(now, 30);
 
-    const updated = await billingRepository.updateSubscription(tenantId, {
-      plan: newPlan,
-      status: newStatus,
-      currentPeriodStart: periodStart,
-      currentPeriodEnd: periodEnd,
-      ...(newStatus === SubscriptionStatus.CANCELLED ? { cancelledAt: now } : {}),
-    });
+    // Atômico: a mudança de plano e o registro no histórico ocorrem juntos,
+    // evitando trilha de auditoria incompleta caso o segundo write falhe.
+    const updated = await prisma.$transaction(async (tx) => {
+      const sub = await billingRepository.updateSubscription(
+        tenantId,
+        {
+          plan: newPlan,
+          status: newStatus,
+          currentPeriodStart: periodStart,
+          currentPeriodEnd: periodEnd,
+          ...(newStatus === SubscriptionStatus.CANCELLED ? { cancelledAt: now } : {}),
+        },
+        tx,
+      );
 
-    await billingRepository.addHistory({
-      subscriptionId: updated.id,
-      fromPlan: current?.plan ?? null,
-      toPlan: newPlan,
-      fromStatus: current?.status ?? null,
-      toStatus: newStatus,
-      reason,
-      changedBy,
+      await billingRepository.addHistory(
+        {
+          subscriptionId: sub.id,
+          fromPlan: current?.plan ?? null,
+          toPlan: newPlan,
+          fromStatus: current?.status ?? null,
+          toStatus: newStatus,
+          reason,
+          changedBy,
+        },
+        tx,
+      );
+
+      return sub;
     });
 
     eventBus.publish({
@@ -103,26 +116,35 @@ export class BillingService {
 
     const current = await billingRepository.getSubscription(tenantId)
 
-    const updated = await billingRepository.updateSubscription(tenantId, {
-      plan: PlanName.STARTER,
-      status: SubscriptionStatus.TRIALING,
-      trialEndsAt,
-      currentPeriodStart: now,
-      currentPeriodEnd: trialEndsAt,
-      cancelledAt: null,
-    })
+    return prisma.$transaction(async (tx) => {
+      const updated = await billingRepository.updateSubscription(
+        tenantId,
+        {
+          plan: PlanName.STARTER,
+          status: SubscriptionStatus.TRIALING,
+          trialEndsAt,
+          currentPeriodStart: now,
+          currentPeriodEnd: trialEndsAt,
+          cancelledAt: null,
+        },
+        tx,
+      )
 
-    await billingRepository.addHistory({
-      subscriptionId: updated.id,
-      fromPlan: current?.plan ?? null,
-      toPlan: PlanName.STARTER,
-      fromStatus: current?.status ?? null,
-      toStatus: SubscriptionStatus.TRIALING,
-      reason: 'admin_reset_trial',
-      changedBy: adminId,
-    })
+      await billingRepository.addHistory(
+        {
+          subscriptionId: updated.id,
+          fromPlan: current?.plan ?? null,
+          toPlan: PlanName.STARTER,
+          fromStatus: current?.status ?? null,
+          toStatus: SubscriptionStatus.TRIALING,
+          reason: 'admin_reset_trial',
+          changedBy: adminId,
+        },
+        tx,
+      )
 
-    return updated
+      return updated
+    })
   }
 }
 

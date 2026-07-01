@@ -28,6 +28,11 @@ import {
 import { resolveImageCrop } from "@/shared/utils/image-crop";
 
 import { featureGuard } from "@/domains/billing/feature-guard";
+import {
+  recordAppointmentCourtesy,
+  recordAppointmentPayment,
+  recordAppointmentRefund,
+} from "@/domains/financial/appointment-revenue";
 import { commissionRepository } from "@/domains/financial/commission.repository";
 import { discountTypeRepository } from "@/domains/financial/discount-type.repository";
 
@@ -382,34 +387,34 @@ export class SchedulingService {
       ? netAmount * Number(commission.rate) / 100 + tipAmount
       : 0;
 
-    await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: {
-        paymentStatus: AppointmentPaymentStatus.PAID,
-        paymentMethod: input.paymentMethod,
-        discountTypeId: input.discountTypeId ?? null,
-        discountValue: input.discountValue !== undefined
-          ? new Prisma.Decimal(input.discountValue)
-          : null,
-      },
-    });
+    // Atômico: marcar como pago E registrar a receita na mesma transação.
+    // Se o registro financeiro falhar, o agendamento NÃO fica pago (sem perda silenciosa de receita).
+    await prisma.$transaction(async (tx) => {
+      await tx.appointment.updateMany({
+        where: { id: appointmentId, tenantId },
+        data: {
+          paymentStatus: AppointmentPaymentStatus.PAID,
+          paymentMethod: input.paymentMethod,
+          discountTypeId: input.discountTypeId ?? null,
+          discountValue: input.discountValue !== undefined
+            ? new Prisma.Decimal(input.discountValue)
+            : null,
+        },
+      });
 
-    eventBus.publish({
-      type: "scheduling.appointment.paid",
-      payload: {
-        tenantId,
+      await recordAppointmentPayment(tx, tenantId, {
         appointmentId,
-        serviceId: appointment.serviceId ?? "",
-        professionalId: appointment.professionalId,
+        serviceName: appointment.service?.name ?? null,
+        customerName: appointment.customer?.name ?? null,
         paymentMethod: input.paymentMethod,
         grossAmount,
         discountAmount,
-        discountTypeId: input.discountTypeId ?? null,
         tipAmount,
         cardFeeAmount,
         netAmount,
         commissionAmount,
-      },
+        professionalId: appointment.professionalId,
+      });
     });
 
     return { grossAmount, discountAmount, tipAmount, cardFeeAmount, netAmount, commissionAmount };
@@ -419,19 +424,16 @@ export class SchedulingService {
     const appointment = await appointmentRepository.findById(tenantId, appointmentId);
     if (!appointment) throw new AppointmentNotFoundError();
 
-    await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: { paymentStatus: AppointmentPaymentStatus.COURTESY },
-    });
+    await prisma.$transaction(async (tx) => {
+      await tx.appointment.updateMany({
+        where: { id: appointmentId, tenantId },
+        data: { paymentStatus: AppointmentPaymentStatus.COURTESY },
+      });
 
-    eventBus.publish({
-      type: "scheduling.appointment.courtesy",
-      payload: {
-        tenantId,
+      await recordAppointmentCourtesy(tx, tenantId, {
         appointmentId,
-        serviceId: appointment.serviceId ?? "",
         grossAmount: Number(appointment.price),
-      },
+      });
     });
   }
 
@@ -439,8 +441,8 @@ export class SchedulingService {
     const appointment = await appointmentRepository.findById(tenantId, appointmentId);
     if (!appointment) throw new AppointmentNotFoundError();
 
-    await prisma.appointment.update({
-      where: { id: appointmentId },
+    await prisma.appointment.updateMany({
+      where: { id: appointmentId, tenantId },
       data: { paymentStatus: AppointmentPaymentStatus.DEBT },
     });
   }
@@ -456,14 +458,18 @@ export class SchedulingService {
       throw new RefundNotAllowedError("Este agendamento não está marcado como pago.");
     }
 
-    await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: { paymentStatus: AppointmentPaymentStatus.REFUNDED },
-    });
+    // Atômico: marcar como estornado E registrar o estorno na mesma transação.
+    await prisma.$transaction(async (tx) => {
+      await tx.appointment.updateMany({
+        where: { id: appointmentId, tenantId },
+        data: { paymentStatus: AppointmentPaymentStatus.REFUNDED },
+      });
 
-    eventBus.publish({
-      type: "scheduling.appointment.payment_refunded",
-      payload: { tenantId, appointmentId },
+      await recordAppointmentRefund(tx, tenantId, {
+        appointmentId,
+        serviceName: appointment.service?.name ?? null,
+        customerName: appointment.customer?.name ?? null,
+      });
     });
   }
 

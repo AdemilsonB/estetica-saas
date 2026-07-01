@@ -261,6 +261,8 @@ describe("SchedulingService.refundPayment (#154)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new SchedulingService();
+    // Executa o callback de $transaction com o próprio mock como tx client.
+    prismaMock.$transaction.mockImplementation((cb: any) => cb(prismaMock));
   });
 
   it("lança AppointmentNotFoundError quando agendamento não existe", async () => {
@@ -281,8 +283,7 @@ describe("SchedulingService.refundPayment (#154)", () => {
     await expect(service.refundPayment("tenant-1", "appt-1")).rejects.toThrow(
       RefundNotAllowedError,
     );
-    expect(prismaMock.appointment.update).not.toHaveBeenCalled();
-    expect(eventBus.publish).not.toHaveBeenCalled();
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
   it("lança RefundNotAllowedError quando o agendamento não está pago", async () => {
@@ -295,25 +296,84 @@ describe("SchedulingService.refundPayment (#154)", () => {
     await expect(service.refundPayment("tenant-1", "appt-1")).rejects.toThrow(
       RefundNotAllowedError,
     );
-    expect(prismaMock.appointment.update).not.toHaveBeenCalled();
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
-  it("marca paymentStatus REFUNDED e publica payment_refunded quando cancelado e pago", async () => {
+  it("marca REFUNDED e cria a transação de estorno atomicamente (sem evento)", async () => {
     vi.mocked(appointmentRepository.findById).mockResolvedValue({
       ...mockAppointment,
       status: AppointmentStatus.CANCELLED,
       paymentStatus: AppointmentPaymentStatus.PAID,
     } as any);
+    // Receita original do atendimento, lida dentro da transação.
+    prismaMock.transaction.findMany.mockResolvedValue([
+      { amount: 100, netAmount: 95, commissionAmount: 20, professionalId: "prof-1" },
+    ] as any);
 
     await service.refundPayment("tenant-1", "appt-1");
 
-    expect(prismaMock.appointment.update).toHaveBeenCalledWith({
-      where: { id: "appt-1" },
+    // Update tenant-scoped dentro da mesma transação.
+    expect(prismaMock.appointment.updateMany).toHaveBeenCalledWith({
+      where: { id: "appt-1", tenantId: "tenant-1" },
       data: { paymentStatus: AppointmentPaymentStatus.REFUNDED },
     });
-    expect(eventBus.publish).toHaveBeenCalledWith({
-      type: "scheduling.appointment.payment_refunded",
-      payload: { tenantId: "tenant-1", appointmentId: "appt-1" },
-    });
+    // Estorno espelhando a receita original com sinal negativo.
+    const createArg = prismaMock.transaction.create.mock.calls[0][0].data as any;
+    expect(createArg.tenantId).toBe("tenant-1");
+    expect(Number(createArg.amount)).toBe(-100);
+    expect(Number(createArg.netAmount)).toBe(-95);
+    // Não publica mais evento de pagamento (fluxo agora é síncrono/atômico).
+    expect(eventBus.publish).not.toHaveBeenCalled();
+  });
+});
+
+describe("SchedulingService.markPayment — atomicidade (checkout)", () => {
+  let service: SchedulingService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    service = new SchedulingService();
+    prismaMock.$transaction.mockImplementation((cb: any) => cb(prismaMock));
+  });
+
+  it("marca PAID e cria a receita na MESMA transação", async () => {
+    vi.mocked(appointmentRepository.findById).mockResolvedValue({
+      ...mockAppointment,
+      paymentStatus: AppointmentPaymentStatus.PENDING,
+    } as any);
+
+    const result = await service.markPayment("tenant-1", "appt-1", {
+      paymentMethod: "CASH",
+    } as any);
+
+    // Update do agendamento é tenant-scoped (updateMany com tenantId).
+    expect(prismaMock.appointment.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "appt-1", tenantId: "tenant-1" },
+        data: expect.objectContaining({
+          paymentStatus: AppointmentPaymentStatus.PAID,
+          paymentMethod: "CASH",
+        }),
+      }),
+    );
+    // Receita criada dentro da transação (client = prismaMock).
+    const createArg = prismaMock.transaction.create.mock.calls[0][0].data as any;
+    expect(createArg.tenantId).toBe("tenant-1");
+    expect(createArg.type).toBe("INCOME");
+    expect(Number(createArg.netAmount)).toBe(100);
+    expect(createArg.description).toContain("Corte");
+    expect(result.netAmount).toBe(100);
+  });
+
+  it("propaga erro do registro financeiro (não engole a falha)", async () => {
+    vi.mocked(appointmentRepository.findById).mockResolvedValue({
+      ...mockAppointment,
+      paymentStatus: AppointmentPaymentStatus.PENDING,
+    } as any);
+    prismaMock.transaction.create.mockRejectedValue(new Error("falha no DB"));
+
+    await expect(
+      service.markPayment("tenant-1", "appt-1", { paymentMethod: "CASH" } as any),
+    ).rejects.toThrow("falha no DB");
   });
 });
