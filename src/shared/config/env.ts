@@ -16,6 +16,7 @@ const envSchema = z.object({
   EVOLUTION_API_KEY: z.string().min(1).optional(),
   EVOLUTION_WEBHOOK_SECRET: z.string().min(1).optional(),
   WHATSAPP_PROVIDER: z.enum(["evolution", "twilio"]).default("twilio"),
+  GOOGLE_PLACES_API_KEY: z.string().min(1).optional(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
