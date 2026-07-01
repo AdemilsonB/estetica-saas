@@ -31,6 +31,19 @@ function applyCnpjMask(value: string): string {
   return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`
 }
 
+function applyPhoneMask(value: string): string {
+  const d = value.replace(/\D/g, '').slice(0, 11)
+  if (d.length <= 2) return d.length ? `(${d}` : ''
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+}
+
+function applyCepMask(value: string): string {
+  const d = value.replace(/\D/g, '').slice(0, 8)
+  if (d.length <= 5) return d
+  return `${d.slice(0, 5)}-${d.slice(5)}`
+}
+
 type ApiPlan = {
   name: string
   displayName: string
@@ -73,6 +86,10 @@ function OnboardingContent() {
   const [userName, setUserName] = useState('')
   const [documentType, setDocumentType] = useState<DocumentType>('CPF')
   const [document, setDocument] = useState('')
+  const [phone, setPhone] = useState('')
+  const [cep, setCep] = useState('')
+  const [ownerCpf, setOwnerCpf] = useState('')
+  const [reuseOwnerCpf, setReuseOwnerCpf] = useState(false)
   const [joinPassword, setJoinPassword] = useState('')
   const [joinConfirmPassword, setJoinConfirmPassword] = useState('')
   const [joinPasswordError, setJoinPasswordError] = useState('')
@@ -126,6 +143,9 @@ function OnboardingContent() {
       } else {
         // Pré-preenche nome do user_metadata se vier do signup enriquecido
         setUserName(meta?.full_name ?? meta?.name ?? '')
+        if (typeof meta?.cpf === 'string') setOwnerCpf(meta.cpf)
+        if (typeof meta?.phone === 'string') setPhone(applyPhoneMask(meta.phone))
+        if (typeof meta?.cep === 'string') setCep(applyCepMask(meta.cep))
         setMode('create')
       }
     })
@@ -171,6 +191,8 @@ function OnboardingContent() {
           userName,
           documentType,
           document: documentDigits,
+          ownerPhone: phone.replace(/\D/g, '').length >= 10 ? phone : undefined,
+          zipCode: cep.replace(/\D/g, '').length === 8 ? cep : undefined,
           branding: {
             ...(logoUrl ? { logoUrl } : {}),
             primaryColor,
@@ -415,7 +437,7 @@ function OnboardingContent() {
                     type="button"
                     variant={documentType === 'CPF' ? 'default' : 'outline'}
                     className={`h-11 px-4 ${documentType === 'CPF' ? 'bg-[#191919] hover:bg-[#2d2d2d]' : ''}`}
-                    onClick={() => { setDocumentType('CPF'); setDocument('') }}
+                    onClick={() => { setDocumentType('CPF'); setDocument(reuseOwnerCpf ? applyCpfMask(ownerCpf) : '') }}
                   >
                     CPF
                   </Button>
@@ -423,23 +445,53 @@ function OnboardingContent() {
                     type="button"
                     variant={documentType === 'CNPJ' ? 'default' : 'outline'}
                     className={`h-11 px-4 ${documentType === 'CNPJ' ? 'bg-[#191919] hover:bg-[#2d2d2d]' : ''}`}
-                    onClick={() => { setDocumentType('CNPJ'); setDocument('') }}
+                    onClick={() => { setDocumentType('CNPJ'); setDocument(''); setReuseOwnerCpf(false) }}
                   >
                     CNPJ
                   </Button>
                 </div>
+
+                {documentType === 'CPF' && ownerCpf && (
+                  <label className="flex items-center gap-2 text-sm text-[#191919]">
+                    <input
+                      type="checkbox"
+                      checked={reuseOwnerCpf}
+                      onChange={(e) => {
+                        const checked = e.target.checked
+                        setReuseOwnerCpf(checked)
+                        setDocument(checked ? applyCpfMask(ownerCpf) : '')
+                      }}
+                    />
+                    Usar o meu CPF (mesmo do cadastro)
+                  </label>
+                )}
+
                 <Input
                   className="h-11"
                   inputMode="numeric"
                   placeholder={documentType === 'CPF' ? '000.000.000-00' : '00.000.000/0000-00'}
                   value={document}
+                  disabled={documentType === 'CPF' && reuseOwnerCpf}
                   onChange={(e) => setDocument(
                     documentType === 'CPF' ? applyCpfMask(e.target.value) : applyCnpjMask(e.target.value),
                   )}
                   required
                 />
                 <p className="text-xs text-[#787774]">
-                  Usamos para garantir que cada negócio tenha um cadastro único na plataforma.
+                  Documento do seu negócio. Autônomo/MEI? Costuma ser o seu próprio CPF.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>CEP do negócio</Label>
+                <Input
+                  className="h-11"
+                  inputMode="numeric"
+                  placeholder="00000-000"
+                  value={cep}
+                  onChange={(e) => setCep(applyCepMask(e.target.value))}
+                />
+                <p className="text-xs text-[#787774]">
+                  Endereço do seu negócio. Você pode ajustar depois em Configurações.
                 </p>
               </div>
               <div className="space-y-1.5">
@@ -450,6 +502,16 @@ function OnboardingContent() {
                   onChange={(e) => setUserName(e.target.value)}
                   required
                   minLength={2}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Telefone</Label>
+                <Input
+                  className="h-11"
+                  inputMode="numeric"
+                  placeholder="(00) 0 0000-0000"
+                  value={phone}
+                  onChange={(e) => setPhone(applyPhoneMask(e.target.value))}
                 />
               </div>
               {/* Identidade visual opcional */}
