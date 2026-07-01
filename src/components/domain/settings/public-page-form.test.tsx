@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeAll } from 'vitest'
+import { it, expect, vi, beforeAll } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { PublicPageForm } from './public-page-form'
