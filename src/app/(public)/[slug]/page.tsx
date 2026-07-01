@@ -81,21 +81,13 @@ export default async function VitrinePage({
         hasProducts={products.length > 0}
       />
 
-      {/* Stats bar + localização */}
+      {/* Stats bar */}
       <VitrineStatsBar
         servicesCount={tenant.services.length}
         minPrice={minPrice}
         avgDurationMinutes={avgDuration}
         teamCount={team.length}
       />
-      {tenant.address && (
-        <VitrineLocationBlock
-          address={tenant.address}
-          primaryColor={primary}
-          googleBusinessUrl={tenant.googleBusinessUrl}
-          googleRating={googleRating}
-        />
-      )}
 
       {/* Separador */}
       <div className="mx-auto mt-6 max-w-3xl px-4">
@@ -134,6 +126,16 @@ export default async function VitrinePage({
         {/* Equipe */}
         <VitrineTeam members={team} id="equipe" />
       </VitrineInteractionProvider>
+
+      {/* Localização — exibida após a equipe */}
+      {tenant.address && (
+        <VitrineLocationBlock
+          address={tenant.address}
+          primaryColor={primary}
+          googleBusinessUrl={tenant.googleBusinessUrl}
+          googleRating={googleRating}
+        />
+      )}
 
       {/* Produtos */}
       <VitrineProductsSection products={products} primaryColor={primary} />
