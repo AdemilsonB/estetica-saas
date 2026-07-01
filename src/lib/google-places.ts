@@ -1,6 +1,10 @@
 const DETAILS_URL = 'https://places.googleapis.com/v1/places'
 const SEARCH_URL = 'https://places.googleapis.com/v1/places:searchText'
 
+// Timeout curto para não acoplar o TTFB do SSR (vitrine/portal) à latência do Google.
+// Em timeout, o AbortError cai no catch → retorna null (fail-closed).
+const FETCH_TIMEOUT_MS = 2500
+
 /** Retorna true se a chave de API do Google Places estiver configurada. */
 export function isGooglePlacesEnabled(): boolean {
   return Boolean(process.env.GOOGLE_PLACES_API_KEY)
@@ -28,6 +32,7 @@ export async function resolveGooglePlaceId(url: string): Promise<string | null> 
         'X-Goog-FieldMask': 'places.id',
       },
       body: JSON.stringify({ textQuery: name }),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
     if (!res.ok) return null
     const data = (await res.json()) as { places?: { id: string }[] }
@@ -50,6 +55,7 @@ export async function fetchGoogleRating(
         'X-Goog-FieldMask': 'rating,userRatingCount',
       },
       next: { revalidate: 300 },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
     if (!res.ok) return null
     const data = (await res.json()) as { rating?: number; userRatingCount?: number }
