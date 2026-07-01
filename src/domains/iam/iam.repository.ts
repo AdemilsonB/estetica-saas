@@ -347,6 +347,9 @@ export class IamRepository {
       bio?: string | null
       instagramUrl?: string | null
       coverImageUrl?: string | null
+      whatsappContactEnabled?: boolean
+      googleBusinessUrl?: string | null
+      googlePlaceId?: string | null
     },
   ) {
     return prisma.tenant.update({
@@ -361,6 +364,9 @@ export class IamRepository {
         bio: true,
         instagramUrl: true,
         coverImageUrl: true,
+        whatsappContactEnabled: true,
+        googleBusinessUrl: true,
+        googlePlaceId: true,
       },
     })
   }

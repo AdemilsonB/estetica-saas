@@ -149,6 +149,9 @@ model Tenant {
   birthdayGiftServiceId  String?
   instagramUrl           String?
   coverImageUrl          String?
+  whatsappContactEnabled Boolean                @default(true)
+  googleBusinessUrl      String?
+  googlePlaceId          String?
   bio                    String?
   isBlocked              Boolean                @default(false)
   blockedReason          String?

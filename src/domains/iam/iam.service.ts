@@ -366,6 +366,9 @@ export class IamService {
       bio?: string | null
       instagramUrl?: string | null
       coverImageUrl?: string | null
+      whatsappContactEnabled?: boolean
+      googleBusinessUrl?: string | null
+      googlePlaceId?: string | null
     },
   ) {
     return iamRepository.updateTenant(tenantId, data)

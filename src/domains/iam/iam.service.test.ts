@@ -10,6 +10,7 @@ vi.mock('./iam.repository', () => ({
     setUserServices: vi.fn(),
     createTenantWithOwner: vi.fn(),
     findTenantByDocument: vi.fn(),
+    updateTenant: vi.fn(),
   },
 }))
 
@@ -44,7 +45,7 @@ vi.mock('@/shared/database/prisma', () => ({
 }))
 
 import { iamRepository } from './iam.repository'
-import { IamService } from './iam.service'
+import { IamService, iamService } from './iam.service'
 import { prisma } from '@/shared/database/prisma'
 import { supabaseAdmin } from '@/integrations/supabase/admin'
 
@@ -323,5 +324,24 @@ describe('IamService.register', () => {
     ).rejects.toThrow(ConflictError)
 
     expect(iamRepository.createTenantWithOwner).not.toHaveBeenCalled()
+  })
+})
+
+describe('updateTenant', () => {
+  it('repassa os novos campos de confiança ao repositório', async () => {
+    const repo = (await import('./iam.repository')).iamRepository as unknown as {
+      updateTenant: ReturnType<typeof vi.fn>
+    }
+    repo.updateTenant.mockResolvedValue({ id: 't1' })
+
+    await iamService.updateTenant('t1', {
+      whatsappContactEnabled: false,
+      googleBusinessUrl: 'https://www.google.com/maps/place/Salao',
+    })
+
+    expect(repo.updateTenant).toHaveBeenCalledWith('t1', {
+      whatsappContactEnabled: false,
+      googleBusinessUrl: 'https://www.google.com/maps/place/Salao',
+    })
   })
 })
