@@ -40,7 +40,7 @@ type Props = {
   primaryColor: string
   accentColor: string
   phone?: string | null
-  whatsappEnabled?: boolean
+  whatsappContactEnabled?: boolean
   instagramUrl?: string | null
   allowPublicBooking: boolean
   bookingUrl: string
@@ -63,7 +63,7 @@ export function VitrineHero({
   primaryColor,
   accentColor,
   phone,
-  whatsappEnabled,
+  whatsappContactEnabled,
   instagramUrl,
   allowPublicBooking,
   bookingUrl,
@@ -79,7 +79,7 @@ export function VitrineHero({
   const hasHero = !!heroImage
   const segmentLabel = segments[0] ? (SEGMENT_LABELS[segments[0]] ?? segments[0]) : null
   const whatsappUrl =
-    whatsappEnabled && phone ? `https://wa.me/55${phone.replace(/\D/g, '')}` : null
+    whatsappContactEnabled && phone ? `https://wa.me/55${phone.replace(/\D/g, '')}` : null
   const city = address ? address.split(',').slice(-2).join(',').trim() : null
 
   const anchors = [
@@ -147,9 +147,9 @@ export function VitrineHero({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Instagram"
-                  className="flex size-9 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm transition-colors hover:bg-white/25"
+                  className="flex size-10 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm transition-colors hover:bg-white"
                 >
-                  <InstagramIcon className="size-4 text-white" />
+                  <InstagramIcon className="size-4" variant="brand" />
                 </a>
               )}
               {whatsappUrl && (
@@ -158,9 +158,9 @@ export function VitrineHero({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="WhatsApp"
-                  className="flex size-9 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm transition-colors hover:bg-white/25"
+                  className="flex size-10 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm transition-colors hover:bg-white"
                 >
-                  <WhatsAppIcon className="size-4 text-white" />
+                  <WhatsAppIcon className="size-4 text-[#25D366]" />
                 </a>
               )}
             </div>
@@ -210,9 +210,9 @@ export function VitrineHero({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Instagram"
-                className="flex size-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+                className="flex size-10 items-center justify-center rounded-full bg-fuchsia-50 transition-colors hover:bg-fuchsia-100"
               >
-                <InstagramIcon className="size-4 text-muted-foreground" />
+                <InstagramIcon className="size-4" variant="brand" />
               </a>
             )}
             {whatsappUrl && (
@@ -221,9 +221,9 @@ export function VitrineHero({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="WhatsApp"
-                className="flex size-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+                className="flex size-10 items-center justify-center rounded-full bg-green-50 transition-colors hover:bg-green-100"
               >
-                <WhatsAppIcon className="size-4 text-green-500" />
+                <WhatsAppIcon className="size-4 text-[#25D366]" />
               </a>
             )}
           </div>
@@ -315,7 +315,7 @@ export function VitrineHero({
               rel="noopener noreferrer"
               className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border text-sm font-medium"
             >
-              <WhatsAppIcon className="size-4 text-green-500" />
+              <WhatsAppIcon className="size-4 text-[#25D366]" />
               WhatsApp
             </a>
           )}

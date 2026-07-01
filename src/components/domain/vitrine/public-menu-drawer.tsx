@@ -32,7 +32,7 @@ type Props = {
   logoUrl?: string | null
   primaryColor: string
   phone?: string | null
-  whatsappEnabled?: boolean
+  whatsappContactEnabled?: boolean
   slug: string
   bookingBaseUrl: string
   services: PublicService[]
@@ -145,7 +145,7 @@ export function PublicMenuDrawer({
   logoUrl,
   primaryColor,
   phone,
-  whatsappEnabled,
+  whatsappContactEnabled,
   slug,
   bookingBaseUrl,
   services,
@@ -193,7 +193,7 @@ export function PublicMenuDrawer({
   }
 
   const whatsappUrl =
-    whatsappEnabled && phone
+    whatsappContactEnabled && phone
       ? `https://wa.me/55${phone.replace(/\D/g, '')}`
       : null
 

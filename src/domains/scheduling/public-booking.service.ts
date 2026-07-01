@@ -48,6 +48,7 @@ async function loadVitrine(slug: string) {
       instagramUrl: tenant.instagramUrl,
       coverImageUrl: tenant.coverImageUrl,
       whatsappEnabled: tenant.whatsappEnabled,
+      whatsappContactEnabled: tenant.whatsappContactEnabled,
       segments: tenant.segments,
       createdAt: tenant.createdAt.toISOString(),
       services,

@@ -15,6 +15,17 @@ const updateTenantSchema = z.object({
   bio: z.string().trim().max(280).nullable().optional(),
   instagramUrl: z.string().trim().url().max(200).nullable().optional(),
   coverImageUrl: z.string().trim().url().max(500).nullable().optional(),
+  whatsappContactEnabled: z.boolean().optional(),
+  googleBusinessUrl: z
+    .string()
+    .trim()
+    .url()
+    .max(500)
+    .refine((u) => /(google\.[^/]+\/maps|g\.co\/|maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(u), {
+      message: 'Informe um link válido do Google Maps.',
+    })
+    .nullable()
+    .optional(),
 })
 
 export async function GET(request: Request) {
