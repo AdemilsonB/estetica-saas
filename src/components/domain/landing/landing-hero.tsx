@@ -1,52 +1,63 @@
 // src/components/domain/landing/landing-hero.tsx
 import Link from 'next/link'
 
-export function LandingHero() {
+interface LandingHeroProps {
+  trialDays: number | null
+}
+
+export function LandingHero({ trialDays }: LandingHeroProps) {
+  const trialMicrotrust = trialDays ? `${trialDays} dias grátis` : 'Trial grátis'
+
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#FAF8FF] via-[#F0EBFF] to-[#FCE8F3] px-4 sm:px-6 pb-10 sm:pb-16 pt-14 sm:pt-20 text-center">
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#FAF8FF] via-[#F0EBFF] to-[#FCE8F3] px-4 pb-10 pt-12 text-center sm:px-6 sm:pb-16 sm:pt-20">
       {/* Glow decorativo */}
       <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-violet-200/40 blur-3xl" />
       <div className="pointer-events-none absolute -left-24 bottom-0 h-64 w-64 rounded-full bg-pink-200/30 blur-3xl" />
 
       {/* Badge */}
-      <div className="mb-6 inline-block rounded-full border border-violet-200 bg-gradient-to-r from-violet-50 to-pink-50 px-4 py-1.5 text-xs font-semibold text-violet-700">
-        ✨ Plataforma #1 para salões de beleza
+      <div className="relative mb-5 inline-block rounded-full border border-violet-200 bg-gradient-to-r from-violet-50 to-pink-50 px-4 py-1.5 text-xs font-semibold text-violet-700 sm:mb-6">
+        ✨ Feito para salões, barbearias e clínicas
       </div>
 
-      {/* Headline */}
-      <h1 className="mx-auto max-w-3xl text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl md:text-4xl lg:text-5xl">
-        Seu salão no{' '}
+      {/* Headline operacional */}
+      <h1 className="relative mx-auto max-w-3xl text-[1.75rem] font-extrabold leading-[1.15] text-slate-900 sm:text-4xl lg:text-5xl">
+        Pare de perder cliente no telefone tocando.
+        <br className="hidden sm:block" />{' '}
+        Sua agenda no{' '}
         <span className="bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
           piloto automático.
         </span>
-        <br />
-        Você foca nas clientes.
       </h1>
 
       {/* Subtítulo */}
-      <p className="mx-auto mt-4 sm:mt-5 max-w-xl text-sm sm:text-lg text-slate-500">
-        Agenda online, WhatsApp automático e controle financeiro — tudo em um só lugar.
-        Sem planilha. Sem telefone tocando.
+      <p className="relative mx-auto mt-4 max-w-xl text-sm text-slate-500 sm:mt-5 sm:text-lg">
+        Agenda online, WhatsApp automático e financeiro em tempo real — tudo num lugar só.
+        Sem planilha, sem telefone tocando.
       </p>
 
       {/* CTAs */}
-      <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+      <div className="relative mt-7 flex flex-col items-center gap-3 sm:mt-8 sm:flex-row sm:justify-center">
         <Link
-          href="/login"
+          href="/login?tab=signup"
           className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-pink-600 px-8 py-4 text-base font-bold text-white shadow-lg shadow-violet-200 transition-opacity hover:opacity-90 sm:w-auto"
         >
-          Começar trial gratuito →
+          Começar trial grátis →
         </Link>
         <Link
           href="/planos"
-          className="flex items-center gap-2 text-sm font-semibold text-violet-600 hover:text-violet-800 transition-colors"
+          className="flex items-center gap-2 text-sm font-semibold text-violet-600 transition-colors hover:text-violet-800"
         >
           Ver planos e preços
         </Link>
       </div>
 
-      {/* Screenshot mockup — overflow-x-auto para mobile */}
-      <div className="relative mx-auto mt-8 sm:mt-14 max-w-4xl overflow-x-auto">
+      {/* Microtrust */}
+      <p className="relative mt-4 text-xs text-slate-400">
+        ✓ sem cartão de crédito · {trialMicrotrust}
+      </p>
+
+      {/* Mockup de dashboard — overflow-x-auto para mobile */}
+      <div className="relative mx-auto mt-8 max-w-4xl overflow-x-auto sm:mt-14">
         <div className="min-w-150 overflow-hidden rounded-2xl border border-slate-200 shadow-2xl shadow-slate-900/20">
           {/* Barra do browser */}
           <div className="flex items-center gap-2 bg-slate-800 px-4 py-3">
@@ -68,7 +79,7 @@ export function LandingHero() {
               {['📅 Agenda', '👥 Clientes', '💬 WhatsApp', '💰 Financeiro', '📊 Relatórios'].map((item, i) => (
                 <div
                   key={item}
-                  className={`rounded-lg px-3 py-2 text-xs ${i === 0 ? 'bg-gradient-to-r from-violet-600 to-pink-600 text-white font-semibold' : 'text-slate-400'}`}
+                  className={`rounded-lg px-3 py-2 text-xs ${i === 0 ? 'bg-gradient-to-r from-violet-600 to-pink-600 font-semibold text-white' : 'text-slate-400'}`}
                 >
                   {item}
                 </div>
