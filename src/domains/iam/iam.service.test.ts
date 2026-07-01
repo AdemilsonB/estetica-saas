@@ -329,17 +329,14 @@ describe('IamService.register', () => {
 
 describe('updateTenant', () => {
   it('repassa os novos campos de confiança ao repositório', async () => {
-    const repo = (await import('./iam.repository')).iamRepository as unknown as {
-      updateTenant: ReturnType<typeof vi.fn>
-    }
-    repo.updateTenant.mockResolvedValue({ id: 't1' })
+    vi.mocked(iamRepository.updateTenant).mockResolvedValue({ id: 't1' } as never)
 
     await iamService.updateTenant('t1', {
       whatsappContactEnabled: false,
       googleBusinessUrl: 'https://www.google.com/maps/place/Salao',
     })
 
-    expect(repo.updateTenant).toHaveBeenCalledWith('t1', {
+    expect(iamRepository.updateTenant).toHaveBeenCalledWith('t1', {
       whatsappContactEnabled: false,
       googleBusinessUrl: 'https://www.google.com/maps/place/Salao',
     })
