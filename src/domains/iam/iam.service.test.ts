@@ -326,6 +326,19 @@ describe('IamService.register', () => {
   })
 
   it('usa ownerPhone e zipCode vindos do input', async () => {
+    // Sobrescreve o mock para retornar metadata DIFERENTE do input
+    // Isso prova que o código usa input em primeiro lugar, não metadata
+    vi.mocked(supabaseAdmin.auth.admin.getUserById).mockResolvedValue({
+      data: {
+        user: {
+          id: USER_ID,
+          email: 'dono@negocio.com',
+          app_metadata: {},
+          user_metadata: { phone: '(99) 9 0000-0000', cep: '99999-999' },
+        },
+      },
+      error: null,
+    } as any)
     vi.mocked(iamRepository.findTenantByDocument).mockResolvedValue(null)
     vi.mocked(iamRepository.createTenantWithOwner).mockResolvedValue({
       tenant: { id: 'tenant-novo' },
@@ -341,6 +354,7 @@ describe('IamService.register', () => {
       zipCode: '01001-000',
     })
 
+    // Assere que foram usados os valores do INPUT, não os da metadata
     expect(iamRepository.createTenantWithOwner).toHaveBeenCalledWith(
       expect.objectContaining({
         ownerPhone: '(11) 9 8888-7777',
