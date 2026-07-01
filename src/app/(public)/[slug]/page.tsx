@@ -12,6 +12,7 @@ import { VitrineStatsBar } from '@/components/domain/vitrine/vitrine-stats-bar'
 import { VitrineLocationBlock } from '@/components/domain/vitrine/vitrine-location-block'
 import { VitrineInteractionProvider } from '@/components/domain/vitrine/vitrine-interaction-context'
 import { getPublicVitrine } from '@/domains/scheduling/public-booking.service'
+import { fetchGoogleRating } from '@/lib/google-places'
 
 export default async function VitrinePage({
   params,
@@ -27,6 +28,8 @@ export default async function VitrinePage({
   const accent = tenant.branding?.accentColor ?? '#c084fc'
   const bookingUrl = `/agendar/${slug}`
   const isOpen = isOpenNow(tenant.businessHours, tenant.timezone ?? 'America/Sao_Paulo')
+
+  const googleRating = tenant.googlePlaceId ? await fetchGoogleRating(tenant.googlePlaceId) : null
 
   const bookableServices = tenant.services.filter((s) => s.priceType !== 'ON_CONSULTATION')
   const servicePrices = bookableServices.map((s) => (s.priceType === 'RANGE' ? s.priceMin ?? s.price : s.price))
@@ -85,7 +88,14 @@ export default async function VitrinePage({
         avgDurationMinutes={avgDuration}
         teamCount={team.length}
       />
-      {tenant.address && <VitrineLocationBlock address={tenant.address} primaryColor={primary} />}
+      {tenant.address && (
+        <VitrineLocationBlock
+          address={tenant.address}
+          primaryColor={primary}
+          googleBusinessUrl={tenant.googleBusinessUrl}
+          googleRating={googleRating}
+        />
+      )}
 
       {/* Separador */}
       <div className="mx-auto mt-6 max-w-3xl px-4">
