@@ -10,7 +10,7 @@ const DISMISSED_KEY = 'agende:install-banner-dismissed'
 const MIN_VISITS = 2
 
 export function InstallAppBanner() {
-  const { isStandalone } = usePwaInstall()
+  const { isStandalone, platform, deferredPrompt } = usePwaInstall()
   const [visible, setVisible] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const incremented = useRef(false)
@@ -18,13 +18,14 @@ export function InstallAppBanner() {
   useEffect(() => {
     if (isStandalone) return
     if (localStorage.getItem(DISMISSED_KEY)) return
+    if (platform === 'other' && !deferredPrompt) return
     if (incremented.current) return
     incremented.current = true
 
     const visits = Number(localStorage.getItem(VISITS_KEY) ?? '0') + 1
     localStorage.setItem(VISITS_KEY, String(visits))
     if (visits >= MIN_VISITS) setVisible(true)
-  }, [isStandalone])
+  }, [isStandalone, platform, deferredPrompt])
 
   if (!visible) return null
 
