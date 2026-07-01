@@ -326,6 +326,8 @@ export class IamRepository {
         instagramUrl: true,
         coverImageUrl: true,
         whatsappEnabled: true,
+        whatsappContactEnabled: true,
+        googleBusinessUrl: true,
         onboardingCompleted: true,
       },
     });

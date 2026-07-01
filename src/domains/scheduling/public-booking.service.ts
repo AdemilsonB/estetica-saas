@@ -49,6 +49,8 @@ async function loadVitrine(slug: string) {
       coverImageUrl: tenant.coverImageUrl,
       whatsappEnabled: tenant.whatsappEnabled,
       whatsappContactEnabled: tenant.whatsappContactEnabled,
+      googleBusinessUrl: tenant.googleBusinessUrl,
+      googlePlaceId: tenant.googlePlaceId,
       segments: tenant.segments,
       createdAt: tenant.createdAt.toISOString(),
       services,

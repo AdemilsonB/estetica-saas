@@ -2,10 +2,11 @@
 
 import { useState, useRef } from 'react'
 import { toast } from 'sonner'
-import { AtSign, Upload } from 'lucide-react'
+import { AtSign, Upload, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 
 type Props = {
@@ -14,7 +15,8 @@ type Props = {
     instagramUrl: string | null
     coverImageUrl: string | null
     phone: string | null
-    whatsappEnabled: boolean
+    whatsappContactEnabled: boolean
+    googleBusinessUrl: string | null
   }
 }
 
@@ -22,6 +24,8 @@ export function PublicPageForm({ initial }: Props) {
   const [bio, setBio] = useState(initial.bio ?? '')
   const [instagramUrl, setInstagramUrl] = useState(initial.instagramUrl ?? '')
   const [coverImageUrl, setCoverImageUrl] = useState(initial.coverImageUrl ?? '')
+  const [whatsappOn, setWhatsappOn] = useState(initial.whatsappContactEnabled)
+  const [googleUrl, setGoogleUrl] = useState(initial.googleBusinessUrl ?? '')
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -57,6 +61,8 @@ export function PublicPageForm({ initial }: Props) {
         body: JSON.stringify({
           bio: bio || null,
           instagramUrl: instagramUrl || null,
+          whatsappContactEnabled: whatsappOn,
+          googleBusinessUrl: googleUrl || null,
         }),
       })
       if (!res.ok) throw new Error('Erro ao salvar')
@@ -67,10 +73,6 @@ export function PublicPageForm({ initial }: Props) {
       setSaving(false)
     }
   }
-
-  const whatsappPreview = initial.phone
-    ? `wa.me/55${initial.phone.replace(/\D/g, '')}`
-    : null
 
   return (
     <form onSubmit={handleSave} className="space-y-5">
@@ -119,33 +121,54 @@ export function PublicPageForm({ initial }: Props) {
         <p className="text-xs text-muted-foreground text-right">{bio.length}/280</p>
       </div>
 
-      {/* Instagram */}
-      <div className="space-y-1.5">
-        <Label htmlFor="pub-instagram" className="flex items-center gap-1.5">
-          <AtSign className="size-3.5" />
-          Instagram
-        </Label>
-        <Input
-          id="pub-instagram"
-          type="url"
-          placeholder="https://instagram.com/seunegocio"
-          value={instagramUrl}
-          onChange={(e) => setInstagramUrl(e.target.value)}
-        />
-      </div>
-
-      {/* WhatsApp — preview readonly */}
-      {whatsappPreview && (
+      {/* Contato e redes */}
+      <div className="space-y-4">
+        {/* Instagram */}
         <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-sm">WhatsApp (gerado automaticamente)</Label>
-          <div className="flex h-9 items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground">
-            {whatsappPreview}
+          <Label htmlFor="pub-instagram" className="flex items-center gap-1.5">
+            <AtSign className="size-3.5" />
+            Instagram
+          </Label>
+          <Input
+            id="pub-instagram"
+            type="url"
+            placeholder="https://instagram.com/seunegocio"
+            value={instagramUrl}
+            onChange={(e) => setInstagramUrl(e.target.value)}
+          />
+        </div>
+
+        {/* WhatsApp — toggle */}
+        {initial.phone && (
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="wa-toggle">Mostrar WhatsApp na página</Label>
+              <p className="text-xs text-muted-foreground">
+                Botão de contato via {`wa.me/55${initial.phone.replace(/\D/g, '')}`}
+              </p>
+            </div>
+            <Switch id="wa-toggle" checked={whatsappOn} onCheckedChange={setWhatsappOn} />
           </div>
+        )}
+
+        {/* Google Maps */}
+        <div className="space-y-1.5">
+          <Label htmlFor="pub-google" className="flex items-center gap-1.5">
+            <MapPin className="size-3.5" />
+            Google Maps
+          </Label>
+          <Input
+            id="pub-google"
+            type="url"
+            placeholder="https://www.google.com/maps/place/seu-negocio"
+            value={googleUrl}
+            onChange={(e) => setGoogleUrl(e.target.value)}
+          />
           <p className="text-xs text-muted-foreground">
-            Gerado a partir do telefone do negócio. Para alterar, edite &quot;Dados do negócio&quot;.
+            Cole o link do seu perfil no Google Maps para exibir o botão &quot;Ver no Google&quot;.
           </p>
         </div>
-      )}
+      </div>
 
       <Button type="submit" disabled={saving} className="rounded-full">
         {saving ? 'Salvando...' : 'Salvar'}

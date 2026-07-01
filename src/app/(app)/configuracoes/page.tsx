@@ -48,6 +48,8 @@ type TenantPublicInfo = {
   coverImageUrl: string | null
   phone: string | null
   whatsappEnabled: boolean
+  whatsappContactEnabled: boolean
+  googleBusinessUrl: string | null
 }
 
 function BrandingCardContent() {
