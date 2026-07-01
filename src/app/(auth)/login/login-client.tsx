@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -137,24 +138,25 @@ function LeftPanel({
       <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-violet-200/40 blur-3xl" />
       <div className="pointer-events-none absolute -left-16 bottom-0 h-64 w-64 rounded-full bg-pink-200/30 blur-3xl" />
 
-      <div className="relative flex items-center gap-2">
-        {isCustomBranding && branding.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={branding.logoUrl}
-            alt={branding.displayName}
-            className="h-8 w-auto"
-          />
-        ) : (
-          <Image
-            src="/brand/logo-horizontal.png"
-            alt="Agendê"
-            width={550}
-            height={136}
-            priority
-            className="h-9 w-auto"
-          />
-        )}
+      <div className="relative flex items-center justify-between gap-2">
+        <Link href="/" className="flex items-center gap-2" aria-label="Voltar ao site">
+          {isCustomBranding && branding.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={branding.logoUrl} alt={branding.displayName} className="h-8 w-auto" />
+          ) : (
+            <Image
+              src="/brand/logo-horizontal.png"
+              alt="Agendê"
+              width={550}
+              height={136}
+              priority
+              className="h-9 w-auto"
+            />
+          )}
+        </Link>
+        <Link href="/" className="text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors">
+          ← Voltar ao site
+        </Link>
       </div>
 
       <div className="relative my-auto space-y-8">
@@ -226,20 +228,25 @@ function RightPanel({
 }) {
   return (
     <div className="flex w-full flex-col items-center bg-white md:justify-center md:p-8 lg:w-[55%]">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-md">
         {/* Cabeçalho — visível apenas no mobile, o LeftPanel cobre isso no desktop */}
-        <div className="md:hidden relative overflow-hidden bg-gradient-to-br from-violet-50 to-pink-50 px-6 pt-6 pb-5">
+        <div className="md:hidden relative overflow-hidden rounded-b-3xl bg-gradient-to-br from-violet-50 to-pink-50 px-6 pt-6 pb-5">
           <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-200/40 blur-2xl" />
 
-          <div className="relative flex items-center gap-2">
-            <Image
-              src="/brand/logo-horizontal.png"
-              alt="Agendê"
-              width={550}
-              height={136}
-              priority
-              className="h-7 w-auto"
-            />
+          <div className="relative flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2" aria-label="Voltar ao site">
+              <Image
+                src="/brand/logo-horizontal.png"
+                alt="Agendê"
+                width={550}
+                height={136}
+                priority
+                className="h-7 w-auto"
+              />
+            </Link>
+            <Link href="/" className="text-xs font-medium text-slate-500 hover:text-slate-800">
+              ← Site
+            </Link>
           </div>
 
           <h1 className="relative mt-3 text-lg font-extrabold leading-snug text-slate-900">
@@ -396,7 +403,7 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
         {isSubmitting ? (
           <><Loader2 className="mr-2 size-4 animate-spin" />Entrando...</>
         ) : (
-          "Entrar"
+          "Acessar minha conta"
         )}
       </Button>
     </form>
@@ -573,7 +580,7 @@ function SignupFormComponent({
         {isSubmitting ? (
           <><Loader2 className="mr-2 size-4 animate-spin" />Criando conta...</>
         ) : (
-          "Criar conta"
+          "Criar minha conta grátis"
         )}
       </Button>
 
