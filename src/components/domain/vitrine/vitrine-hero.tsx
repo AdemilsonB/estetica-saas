@@ -147,7 +147,7 @@ export function VitrineHero({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Instagram"
-                  className="flex size-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm transition-colors hover:bg-white"
+                  className="flex size-10 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm transition-colors hover:bg-white"
                 >
                   <InstagramIcon className="size-4" variant="brand" />
                 </a>
@@ -158,7 +158,7 @@ export function VitrineHero({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="WhatsApp"
-                  className="flex size-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm transition-colors hover:bg-white"
+                  className="flex size-10 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm transition-colors hover:bg-white"
                 >
                   <WhatsAppIcon className="size-4 text-[#25D366]" />
                 </a>
@@ -210,7 +210,7 @@ export function VitrineHero({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Instagram"
-                className="flex size-9 items-center justify-center rounded-full bg-fuchsia-50 transition-colors hover:bg-fuchsia-100"
+                className="flex size-10 items-center justify-center rounded-full bg-fuchsia-50 transition-colors hover:bg-fuchsia-100"
               >
                 <InstagramIcon className="size-4" variant="brand" />
               </a>
@@ -221,7 +221,7 @@ export function VitrineHero({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="WhatsApp"
-                className="flex size-9 items-center justify-center rounded-full bg-green-50 transition-colors hover:bg-green-100"
+                className="flex size-10 items-center justify-center rounded-full bg-green-50 transition-colors hover:bg-green-100"
               >
                 <WhatsAppIcon className="size-4 text-[#25D366]" />
               </a>
@@ -315,7 +315,7 @@ export function VitrineHero({
               rel="noopener noreferrer"
               className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border text-sm font-medium"
             >
-              <WhatsAppIcon className="size-4 text-green-500" />
+              <WhatsAppIcon className="size-4 text-[#25D366]" />
               WhatsApp
             </a>
           )}

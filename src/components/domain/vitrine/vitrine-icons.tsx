@@ -1,7 +1,12 @@
+'use client'
+
+import { useId } from 'react'
+
 type IconProps = { className?: string }
 
 export function InstagramIcon({ className, variant = 'mono' }: IconProps & { variant?: 'mono' | 'brand' }) {
-  const gradId = 'ig-grad'
+  const rawId = useId()
+  const gradId = rawId.replace(/:/g, '-')
   return (
     <svg viewBox="0 0 24 24" className={className} fill={variant === 'brand' ? `url(#${gradId})` : 'currentColor'} aria-hidden="true">
       {variant === 'brand' && (
