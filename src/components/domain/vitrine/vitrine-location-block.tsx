@@ -14,7 +14,8 @@ export function VitrineLocationBlock({ address, primaryColor, googleBusinessUrl,
   const mapSrc = `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`
 
   return (
-    <div className="mx-auto mt-4 w-full max-w-3xl px-4">
+    <section className="mx-auto max-w-3xl px-4 pt-8">
+      <h2 className="mb-5 text-lg font-bold">Localização</h2>
       <div className="overflow-hidden rounded-2xl border">
         <iframe
           title={`Mapa de ${address}`}
@@ -60,6 +61,6 @@ export function VitrineLocationBlock({ address, primaryColor, googleBusinessUrl,
           </div>
         )}
       </div>
-    </div>
+    </section>
   )
 }
