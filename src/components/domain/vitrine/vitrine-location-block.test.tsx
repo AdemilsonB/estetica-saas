@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import { VitrineLocationBlock } from './vitrine-location-block'
 
@@ -27,4 +27,18 @@ it('mostra mapa, rota e "Ver no Google" quando há link; selo com rating', () =>
 it('sem link do Google não renderiza "Ver no Google" nem selo', () => {
   render(<VitrineLocationBlock address="Rua X, 1" googleBusinessUrl={null} googleRating={null} primaryColor="#000" />)
   expect(screen.queryByRole('link', { name: /Ver no Google/i })).toBeNull()
+  expect(screen.queryByText(/avaliações/i)).toBeNull()
+})
+
+it('com link mas sem rating: mostra "Ver no Google" e nenhum selo de nota', () => {
+  render(
+    <VitrineLocationBlock
+      address="Rua X, 1"
+      googleBusinessUrl="https://www.google.com/maps/place/X"
+      googleRating={null}
+      primaryColor="#000"
+    />,
+  )
+  expect(screen.getByRole('link', { name: /Ver no Google/i })).toBeInTheDocument()
+  expect(screen.queryByText(/avaliações/i)).toBeNull()
 })

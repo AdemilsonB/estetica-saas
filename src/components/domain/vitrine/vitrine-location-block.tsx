@@ -27,6 +27,7 @@ export function VitrineLocationBlock({ address, primaryColor, googleBusinessUrl,
           <MapPin className="size-4 shrink-0" style={{ color: primaryColor }} />
           <span className="min-w-0 flex-1 truncate text-sm">{address}</span>
           <button
+            type="button"
             onClick={() => openRoute(address)}
             className="shrink-0 text-xs font-bold"
             style={{ color: primaryColor }}
@@ -36,7 +37,7 @@ export function VitrineLocationBlock({ address, primaryColor, googleBusinessUrl,
         </div>
         {(googleBusinessUrl || googleRating) && (
           <div className="flex items-center justify-between gap-3 border-t px-4 py-3">
-            {googleRating ? (
+            {googleRating && (
               <span className="flex items-center gap-1.5 text-sm font-medium">
                 <Star className="size-4 fill-amber-400 text-amber-400" />
                 {googleRating.rating.toFixed(1).replace('.', ',')}
@@ -44,8 +45,6 @@ export function VitrineLocationBlock({ address, primaryColor, googleBusinessUrl,
                   · {googleRating.userRatingCount} avaliações
                 </span>
               </span>
-            ) : (
-              <span className="text-sm text-muted-foreground">Avaliações no Google</span>
             )}
             {googleBusinessUrl && (
               <a
