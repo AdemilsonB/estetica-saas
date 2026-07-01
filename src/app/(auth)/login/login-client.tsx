@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -130,7 +131,6 @@ export function LoginClient({ branding, plan }: Props) {
 // ─── Left panel ────────────────────────────────────────────────────────────
 
 const PLAN_LABEL: Record<string, string> = {
-  FREE: "Trial gratuito",
   STARTER: "Plano Starter",
   PRO: "Plano Pro",
   ENTERPRISE: "Plano Enterprise",
@@ -166,9 +166,14 @@ function LeftPanel({
             className="h-8 w-auto"
           />
         ) : (
-          <span className="text-2xl font-extrabold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
-            Agendê
-          </span>
+          <Image
+            src="/brand/logo-horizontal.png"
+            alt="Agendê"
+            width={550}
+            height={136}
+            priority
+            className="h-9 w-auto"
+          />
         )}
       </div>
 
@@ -186,7 +191,7 @@ function LeftPanel({
             </span>
           </h1>
           <p className="mt-3 text-base leading-relaxed text-slate-500">
-            Agenda, CRM, financeiro e IA em uma plataforma só.
+            Agenda, CRM e financeiro em uma plataforma só.
           </p>
         </div>
 
@@ -247,9 +252,14 @@ function RightPanel({
           <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-200/40 blur-2xl" />
 
           <div className="relative flex items-center gap-2">
-            <span className="text-xl font-extrabold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
-              Agendê
-            </span>
+            <Image
+              src="/brand/logo-horizontal.png"
+              alt="Agendê"
+              width={550}
+              height={136}
+              priority
+              className="h-7 w-auto"
+            />
           </div>
 
           <h1 className="relative mt-3 text-lg font-extrabold leading-snug text-slate-900">
