@@ -9,6 +9,7 @@ import { validarCpf } from "@/shared/utils/cpf";
 import { validarCnpj } from "@/shared/utils/cnpj";
 import type { SessionContext } from "@/shared/types/auth";
 import { featureGuard } from "@/domains/billing/feature-guard";
+import { resolveGooglePlaceId } from "@/lib/google-places";
 
 type RegisterInput = {
   businessName: string;
@@ -371,7 +372,13 @@ export class IamService {
       googlePlaceId?: string | null
     },
   ) {
-    return iamRepository.updateTenant(tenantId, data)
+    const payload = { ...data }
+    if ('googleBusinessUrl' in data) {
+      payload.googlePlaceId = data.googleBusinessUrl
+        ? await resolveGooglePlaceId(data.googleBusinessUrl)
+        : null
+    }
+    return iamRepository.updateTenant(tenantId, payload)
   }
 
   async getBusinessHours(tenantId: string) {

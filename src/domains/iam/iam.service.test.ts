@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NotFoundError, ForbiddenError, UserNotFoundError, ConflictError, ValidationError } from '@/shared/errors'
 
+vi.mock('@/lib/google-places', () => ({
+  resolveGooglePlaceId: vi.fn(),
+}))
+
 vi.mock('./iam.repository', () => ({
   iamRepository: {
     deleteInvite: vi.fn(),
@@ -48,6 +52,7 @@ import { iamRepository } from './iam.repository'
 import { IamService, iamService } from './iam.service'
 import { prisma } from '@/shared/database/prisma'
 import { supabaseAdmin } from '@/integrations/supabase/admin'
+import { resolveGooglePlaceId } from '@/lib/google-places'
 
 const TENANT_ID = 'tenant-abc'
 const INVITE_ID = 'invite-xyz'
@@ -328,17 +333,40 @@ describe('IamService.register', () => {
 })
 
 describe('updateTenant', () => {
-  it('repassa os novos campos de confiança ao repositório', async () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('repassa os novos campos de confiança ao repositório (sem googleBusinessUrl)', async () => {
     vi.mocked(iamRepository.updateTenant).mockResolvedValue({ id: 't1' } as never)
 
     await iamService.updateTenant('t1', {
       whatsappContactEnabled: false,
-      googleBusinessUrl: 'https://www.google.com/maps/place/Salao',
     })
 
     expect(iamRepository.updateTenant).toHaveBeenCalledWith('t1', {
       whatsappContactEnabled: false,
-      googleBusinessUrl: 'https://www.google.com/maps/place/Salao',
+    })
+  })
+
+  it('resolve o googlePlaceId ao salvar o link do Google', async () => {
+    vi.mocked(resolveGooglePlaceId).mockResolvedValue('ChIJabc')
+    vi.mocked(iamRepository.updateTenant).mockResolvedValue({ id: 't1' } as never)
+
+    await iamService.updateTenant('t1', { googleBusinessUrl: 'https://www.google.com/maps/place/X' })
+
+    expect(iamRepository.updateTenant).toHaveBeenCalledWith('t1', {
+      googleBusinessUrl: 'https://www.google.com/maps/place/X',
+      googlePlaceId: 'ChIJabc',
+    })
+  })
+
+  it('grava googlePlaceId null ao remover o link', async () => {
+    vi.mocked(iamRepository.updateTenant).mockResolvedValue({ id: 't1' } as never)
+    await iamService.updateTenant('t1', { googleBusinessUrl: null })
+    expect(iamRepository.updateTenant).toHaveBeenCalledWith('t1', {
+      googleBusinessUrl: null,
+      googlePlaceId: null,
     })
   })
 })
