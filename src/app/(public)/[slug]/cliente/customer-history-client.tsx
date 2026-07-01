@@ -2,15 +2,15 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { MessageCircle, LogOut, CalendarDays, MapPin, Clock, ArrowLeft } from 'lucide-react'
+import { MessageCircle, LogOut, CalendarDays, Clock, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { openRoute } from '@/lib/maps-route'
 import { weekdayLabel, formatHourRange, WEEK_DISPLAY_ORDER, type BusinessHoursMap } from '@/lib/business-hours'
+import { VitrineLocationBlock } from '@/components/domain/vitrine/vitrine-location-block'
 
 type AppointmentRow = {
   id: string
@@ -44,6 +44,8 @@ type Props = {
   slug: string
   whatsappUrl: string | null
   primaryColor: string
+  googleBusinessUrl: string | null
+  googleRating: { rating: number; userRatingCount: number } | null
   business: BusinessInfo
 }
 
@@ -64,6 +66,8 @@ export function CustomerHistoryClient({
   slug,
   whatsappUrl,
   primaryColor,
+  googleBusinessUrl,
+  googleRating,
   business,
 }: Props) {
   const router = useRouter()
@@ -196,22 +200,12 @@ export function CustomerHistoryClient({
             </p>
             <div className="rounded-2xl bg-card p-4 shadow-sm space-y-4">
               {business.address && (
-                <button
-                  type="button"
-                  onClick={() => openRoute(business.address!)}
-                  className="flex w-full items-center gap-3 text-left"
-                >
-                  <div
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full"
-                    style={{ backgroundColor: `${primaryColor}1A` }}
-                  >
-                    <MapPin className="size-4" style={{ color: primaryColor }} />
-                  </div>
-                  <span className="min-w-0 flex-1 text-sm">{business.address}</span>
-                  <span className="shrink-0 text-xs font-bold" style={{ color: primaryColor }}>
-                    Rota ›
-                  </span>
-                </button>
+                <VitrineLocationBlock
+                  address={business.address}
+                  primaryColor={primaryColor}
+                  googleBusinessUrl={googleBusinessUrl}
+                  googleRating={googleRating}
+                />
               )}
 
               {hasBusinessHours && (
