@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Smartphone, X } from 'lucide-react'
 import { usePwaInstall } from './use-pwa-install'
 import { InstallInstructionsModal } from './install-instructions-modal'
@@ -13,10 +13,13 @@ export function InstallAppBanner() {
   const { isStandalone } = usePwaInstall()
   const [visible, setVisible] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
+  const incremented = useRef(false)
 
   useEffect(() => {
     if (isStandalone) return
     if (localStorage.getItem(DISMISSED_KEY)) return
+    if (incremented.current) return
+    incremented.current = true
 
     const visits = Number(localStorage.getItem(VISITS_KEY) ?? '0') + 1
     localStorage.setItem(VISITS_KEY, String(visits))

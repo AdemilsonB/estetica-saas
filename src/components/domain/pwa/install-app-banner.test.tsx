@@ -29,7 +29,7 @@ describe('InstallAppBanner', () => {
 
   it('não aparece no 1º acesso', () => {
     render(<InstallAppBanner />)
-    expect(screen.queryByText(/tela inicial/i)).toBeNull()
+    expect(screen.queryByText(/tela inicial/i)).not.toBeInTheDocument()
     expect(localStorage.getItem('agende:agenda-visits')).toBe('1')
   })
 
@@ -45,13 +45,13 @@ describe('InstallAppBanner', () => {
       isStandalone: true, platform: 'android', deferredPrompt: null, promptInstall: vi.fn(),
     } as any)
     render(<InstallAppBanner />)
-    expect(screen.queryByText(/tela inicial/i)).toBeNull()
+    expect(screen.queryByText(/tela inicial/i)).not.toBeInTheDocument()
   })
 
   it('não aparece se já foi dispensado', () => {
     localStorage.setItem('agende:agenda-visits', '5')
     localStorage.setItem('agende:install-banner-dismissed', '1')
     render(<InstallAppBanner />)
-    expect(screen.queryByText(/tela inicial/i)).toBeNull()
+    expect(screen.queryByText(/tela inicial/i)).not.toBeInTheDocument()
   })
 })
