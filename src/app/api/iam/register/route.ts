@@ -12,6 +12,8 @@ const RegisterSchema = z.object({
   userName: z.string().min(2, "Nome muito curto"),
   documentType: z.enum(["CPF", "CNPJ"]),
   document: z.string().min(11, "Documento invalido"),
+  ownerPhone: z.string().optional(),
+  zipCode: z.string().optional(),
   branding: OnboardingBrandingSchema.optional(),
 });
 

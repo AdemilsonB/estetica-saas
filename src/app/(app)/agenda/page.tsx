@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { AgendaDayView } from '@/components/domain/scheduling/agenda-day-view'
 import { AgendaWeekStrip } from '@/components/domain/scheduling/agenda-week-strip'
+import { InstallAppBanner } from '@/components/domain/pwa/install-app-banner'
 
 export default function AgendaPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
@@ -15,6 +16,7 @@ export default function AgendaPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
+      <InstallAppBanner />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
           Agenda

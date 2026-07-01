@@ -324,4 +324,75 @@ describe('IamService.register', () => {
 
     expect(iamRepository.createTenantWithOwner).not.toHaveBeenCalled()
   })
+
+  it('usa ownerPhone e zipCode vindos do input', async () => {
+    // Sobrescreve o mock para retornar metadata DIFERENTE do input
+    // Isso prova que o código usa input em primeiro lugar, não metadata
+    vi.mocked(supabaseAdmin.auth.admin.getUserById).mockResolvedValue({
+      data: {
+        user: {
+          id: USER_ID,
+          email: 'dono@negocio.com',
+          app_metadata: {},
+          user_metadata: { phone: '(99) 9 0000-0000', cep: '99999-999' },
+        },
+      },
+      error: null,
+    } as any)
+    vi.mocked(iamRepository.findTenantByDocument).mockResolvedValue(null)
+    vi.mocked(iamRepository.createTenantWithOwner).mockResolvedValue({
+      tenant: { id: 'tenant-novo' },
+      user: { id: USER_ID },
+    } as any)
+
+    await service.register(USER_ID, {
+      businessName: 'Salão da Maria',
+      userName: 'Maria',
+      documentType: 'CPF',
+      document: '111.444.777-35',
+      ownerPhone: '(11) 9 8888-7777',
+      zipCode: '01001-000',
+    })
+
+    // Assere que foram usados os valores do INPUT, não os da metadata
+    expect(iamRepository.createTenantWithOwner).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownerPhone: '(11) 9 8888-7777',
+        zipCode: '01001-000',
+      }),
+    )
+  })
+
+  it('faz fallback para metadata quando input não traz ownerPhone/zipCode', async () => {
+    vi.mocked(supabaseAdmin.auth.admin.getUserById).mockResolvedValue({
+      data: {
+        user: {
+          id: USER_ID,
+          email: 'dono@negocio.com',
+          app_metadata: {},
+          user_metadata: { phone: '(21) 9 7777-6666', cep: '20040-002', cpf: '111.444.777-35' },
+        },
+      },
+      error: null,
+    } as any)
+    vi.mocked(iamRepository.findTenantByDocument).mockResolvedValue(null)
+    vi.mocked(iamRepository.createTenantWithOwner).mockResolvedValue({
+      tenant: { id: 'tenant-novo' },
+      user: { id: USER_ID },
+    } as any)
+
+    await service.register(USER_ID, {
+      businessName: 'Salão da Maria',
+      userName: 'Maria',
+      documentType: 'CPF',
+      document: '111.444.777-35',
+    })
+
+    expect(iamRepository.createTenantWithOwner).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownerPhone: '(21) 9 7777-6666',
+        zipCode: '20040-002',
+      }),
+    )
+  })
 })

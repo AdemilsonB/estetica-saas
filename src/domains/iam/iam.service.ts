@@ -15,6 +15,8 @@ type RegisterInput = {
   userName: string;
   documentType: TenantDocumentType;
   document: string;
+  ownerPhone?: string;
+  zipCode?: string;
   branding?: {
     logoUrl?: string | null;
     primaryColor?: string;
@@ -126,9 +128,9 @@ export class IamService {
         documentType: input.documentType,
         document,
         branding: input.branding,
-        ownerPhone: meta.phone,
+        ownerPhone: input.ownerPhone ?? meta.phone,
         ownerCpf: meta.cpf,
-        zipCode: meta.cep,
+        zipCode: input.zipCode ?? meta.cep,
       });
     } catch (err) {
       if (
