@@ -316,38 +316,32 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Escrever o teste que falha**
 
-Adicionar em `src/domains/iam/iam.service.test.ts` (com mock de `@/lib/google-places`):
+Adicionar em `src/domains/iam/iam.service.test.ts`. Adicionar o mock de `@/lib/google-places` no topo do arquivo e o import estático de `resolveGooglePlaceId`; usar o padrão `vi.mocked()` do próprio arquivo (NUNCA `as unknown as` — proibido pela constraint global):
 
 ```ts
+// topo do arquivo:
 vi.mock('@/lib/google-places', () => ({
   resolveGooglePlaceId: vi.fn(),
 }))
+import { resolveGooglePlaceId } from '@/lib/google-places'
 
+// dentro de describe('updateTenant'):
 it('resolve o googlePlaceId ao salvar o link do Google', async () => {
-  const repo = (await import('./iam.repository')).iamRepository as unknown as {
-    updateTenant: ReturnType<typeof vi.fn>
-  }
-  const places = (await import('@/lib/google-places')) as unknown as {
-    resolveGooglePlaceId: ReturnType<typeof vi.fn>
-  }
-  places.resolveGooglePlaceId.mockResolvedValue('ChIJabc')
-  repo.updateTenant.mockResolvedValue({ id: 't1' })
+  vi.mocked(resolveGooglePlaceId).mockResolvedValue('ChIJabc')
+  vi.mocked(iamRepository.updateTenant).mockResolvedValue({ id: 't1' } as never)
 
   await iamService.updateTenant('t1', { googleBusinessUrl: 'https://www.google.com/maps/place/X' })
 
-  expect(repo.updateTenant).toHaveBeenCalledWith('t1', {
+  expect(iamRepository.updateTenant).toHaveBeenCalledWith('t1', {
     googleBusinessUrl: 'https://www.google.com/maps/place/X',
     googlePlaceId: 'ChIJabc',
   })
 })
 
 it('grava googlePlaceId null ao remover o link', async () => {
-  const repo = (await import('./iam.repository')).iamRepository as unknown as {
-    updateTenant: ReturnType<typeof vi.fn>
-  }
-  repo.updateTenant.mockResolvedValue({ id: 't1' })
+  vi.mocked(iamRepository.updateTenant).mockResolvedValue({ id: 't1' } as never)
   await iamService.updateTenant('t1', { googleBusinessUrl: null })
-  expect(repo.updateTenant).toHaveBeenCalledWith('t1', {
+  expect(iamRepository.updateTenant).toHaveBeenCalledWith('t1', {
     googleBusinessUrl: null,
     googlePlaceId: null,
   })
