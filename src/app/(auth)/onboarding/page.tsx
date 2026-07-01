@@ -431,6 +431,26 @@ function OnboardingContent() {
                 />
               </div>
               <div className="space-y-1.5">
+                <Label>Seu nome</Label>
+                <Input
+                  placeholder="Nome completo"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  required
+                  minLength={2}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Telefone</Label>
+                <Input
+                  className="h-11"
+                  inputMode="numeric"
+                  placeholder="(00) 0 0000-0000"
+                  value={phone}
+                  onChange={(e) => setPhone(applyPhoneMask(e.target.value))}
+                />
+              </div>
+              <div className="space-y-1.5">
                 <Label>CPF ou CNPJ do negócio</Label>
                 <div className="flex gap-2">
                   <Button
@@ -493,26 +513,6 @@ function OnboardingContent() {
                 <p className="text-xs text-[#787774]">
                   Endereço do seu negócio. Você pode ajustar depois em Configurações.
                 </p>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Seu nome</Label>
-                <Input
-                  placeholder="Nome completo"
-                  value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
-                  required
-                  minLength={2}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Telefone</Label>
-                <Input
-                  className="h-11"
-                  inputMode="numeric"
-                  placeholder="(00) 0 0000-0000"
-                  value={phone}
-                  onChange={(e) => setPhone(applyPhoneMask(e.target.value))}
-                />
               </div>
               {/* Identidade visual opcional */}
               <div className="space-y-4 border-t border-slate-100 pt-4">
