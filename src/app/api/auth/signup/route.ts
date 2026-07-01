@@ -10,9 +10,7 @@ const Schema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   nomeCompleto: z.string().min(2).optional(),
-  telefone: z.string().optional(),
   cpf: z.string().optional(),
-  cep: z.string().optional(),
 })
 
 async function getRequireEmailVerification() {
@@ -27,9 +25,7 @@ async function getRequireEmailVerification() {
 function buildUserMetadata(input: z.infer<typeof Schema>) {
   const meta: Record<string, string> = {}
   if (input.nomeCompleto) meta.full_name = input.nomeCompleto
-  if (input.telefone) meta.phone = input.telefone
   if (input.cpf) meta.cpf = input.cpf
-  if (input.cep) meta.cep = input.cep
   return meta
 }
 
