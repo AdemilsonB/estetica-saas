@@ -44,7 +44,7 @@ export default async function VitrinePage({
         logoUrl={tenant.branding?.logoUrl}
         primaryColor={primary}
         phone={tenant.phone}
-        whatsappEnabled={tenant.whatsappEnabled}
+        whatsappContactEnabled={tenant.whatsappContactEnabled}
         slug={slug}
         bookingBaseUrl={bookingUrl}
         services={tenant.services}
@@ -67,7 +67,7 @@ export default async function VitrinePage({
         primaryColor={primary}
         accentColor={accent}
         phone={tenant.phone}
-        whatsappEnabled={tenant.whatsappEnabled}
+        whatsappContactEnabled={tenant.whatsappContactEnabled}
         instagramUrl={tenant.instagramUrl}
         allowPublicBooking={tenant.allowPublicBooking}
         bookingUrl={bookingUrl}
@@ -143,7 +143,7 @@ export default async function VitrinePage({
           >
             Agendar agora
           </a>
-          {tenant.whatsappEnabled && tenant.phone && (
+          {tenant.whatsappContactEnabled && tenant.phone && (
             <a
               href={`https://wa.me/55${tenant.phone.replace(/\D/g, '')}`}
               target="_blank"
