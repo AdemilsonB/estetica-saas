@@ -27,6 +27,8 @@ export async function GET(
       instagramUrl: tenant.instagramUrl,
       coverImageUrl: tenant.coverImageUrl,
       whatsappEnabled: tenant.whatsappEnabled,
+      whatsappContactEnabled: tenant.whatsappContactEnabled,
+      googleBusinessUrl: tenant.googleBusinessUrl,
       segments: tenant.segments,
       createdAt: tenant.createdAt.toISOString(),
       services,
