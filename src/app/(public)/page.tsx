@@ -7,6 +7,7 @@ import { LandingFeatures } from '@/components/domain/landing/landing-features'
 import { LandingHowItWorks } from '@/components/domain/landing/landing-how-it-works'
 import { LandingBranding } from '@/components/domain/landing/landing-branding'
 import { LandingTestimonials } from '@/components/domain/landing/landing-testimonials'
+import { LandingPlans } from '@/components/domain/landing/landing-plans'
 import { LandingPricingCTA } from '@/components/domain/landing/landing-pricing-cta'
 import { LandingFooter } from '@/components/domain/landing/landing-footer'
 import { WhatsAppFloatButton } from '@/components/domain/landing/whatsapp-float-button'
@@ -20,10 +21,13 @@ export const metadata = {
 }
 
 export async function getLandingData() {
-  const [starterPlan, metrics, testimonials] = await Promise.all([
-    prisma.plan.findFirst({
-      where: { name: 'STARTER', isActive: true },
-      select: { price: true, trialDays: true },
+  const [plans, metrics, testimonials] = await Promise.all([
+    // Mesma fonte de /planos: planos ativos, benefícios de Plan.description,
+    // trial parametrizado — nunca hardcoded.
+    prisma.plan.findMany({
+      where: { isActive: true },
+      orderBy: { displayOrder: 'asc' },
+      select: { name: true, displayName: true, price: true, description: true, trialDays: true },
     }),
     prisma.landingMetric.findMany({
       where: { isActive: true },
@@ -35,15 +39,28 @@ export async function getLandingData() {
     }),
   ])
 
-  return { starterPlan, metrics, testimonials }
+  const starterPlan = plans.find((p) => p.name === 'STARTER') ?? null
+
+  return { plans, starterPlan, metrics, testimonials }
 }
 
 export default async function LandingPage() {
-  const { starterPlan, metrics, testimonials } = await getLandingData()
+  const { plans, starterPlan, metrics, testimonials } = await getLandingData()
 
   const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT_NUMBER ?? ''
   const trialDays = starterPlan?.trialDays ?? null
   const starterPrice = starterPlan?.price ? Number(starterPlan.price) : null
+
+  const plansForCards = plans.map((p) => ({
+    name: p.name,
+    displayName: p.displayName,
+    price: Number(p.price),
+    features: p.description
+      ? p.description.split('\n').map((l) => l.trim()).filter(Boolean)
+      : [],
+    trialDays: p.trialDays,
+    isPopular: p.name === 'PRO',
+  }))
 
   return (
     <>
@@ -55,6 +72,7 @@ export default async function LandingPage() {
         <LandingBranding />
         <LandingHowItWorks />
         <LandingTestimonials testimonials={testimonials} />
+        <LandingPlans plans={plansForCards} trialDays={trialDays} />
         <LandingPricingCTA starterPrice={starterPrice} trialDays={trialDays} />
       </main>
       <LandingFooter whatsappNumber={whatsappNumber} />
