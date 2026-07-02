@@ -2,6 +2,7 @@ import { publicBookingRepository } from '@/domains/scheduling/public-booking.rep
 import { availabilityService } from '@/domains/scheduling/availability.service'
 import { schedulingPolicyService } from '@/domains/scheduling/scheduling-policy.service'
 import { catalogServiceRepository } from '@/domains/scheduling/service.repository'
+import { packageRepository } from '@/domains/scheduling/package.repository'
 import { handleApiError } from '@/shared/http/handle-api-error'
 
 // Retorna a disponibilidade de cada dia de um mês (fechado / aberto / com vaga),
@@ -15,12 +16,13 @@ export async function GET(
     const { searchParams } = new URL(req.url)
     const month = searchParams.get('month') // formato YYYY-MM
     const serviceId = searchParams.get('serviceId')
+    const packageId = searchParams.get('packageId')
     const professionalId = searchParams.get('professionalId')
 
     const match = month?.match(/^(\d{4})-(\d{2})$/)
-    if (!match || !serviceId) {
+    if (!match || (!serviceId && !packageId)) {
       return Response.json(
-        { error: 'Parâmetros month (YYYY-MM) e serviceId são obrigatórios.' },
+        { error: 'Parâmetros month (YYYY-MM) e serviceId (ou packageId) são obrigatórios.' },
         { status: 400 },
       )
     }
@@ -37,9 +39,19 @@ export async function GET(
       return Response.json({ days: [] })
     }
 
-    const service = await catalogServiceRepository.findById(tenant.id, serviceId)
-    if (!service) {
-      return Response.json({ error: 'Serviço não encontrado.' }, { status: 404 })
+    let duration: number
+    if (serviceId) {
+      const service = await catalogServiceRepository.findById(tenant.id, serviceId)
+      if (!service) {
+        return Response.json({ error: 'Serviço não encontrado.' }, { status: 404 })
+      }
+      duration = service.duration
+    } else {
+      const pkg = await packageRepository.findById(tenant.id, packageId!)
+      if (!pkg) {
+        return Response.json({ error: 'Pacote não encontrado.' }, { status: 404 })
+      }
+      duration = pkg.items.reduce((sum, item) => sum + item.service.duration, 0)
     }
 
     // Sem profissional informado, usa o primeiro disponível — consistente com a rota de slots
@@ -57,7 +69,7 @@ export async function GET(
       resolvedProfessionalId,
       year,
       monthNumber,
-      service.duration,
+      duration,
       policy.slotIntervalMinutes,
       policy.minAdvanceMinutes,
       policy.maxAdvanceDays,

@@ -4,7 +4,6 @@ import { verifyPublicSession, COOKIE_NAME } from '@/shared/auth/public-session'
 import { prisma } from '@/shared/database/prisma'
 import { publicBookingRepository } from '@/domains/scheduling/public-booking.repository'
 import { isOpenNow, getWeekdayIndex } from '@/lib/business-hours'
-import { fetchGoogleRating } from '@/lib/google-places'
 import { CustomerHistoryClient } from './customer-history-client'
 
 function maskCpf(cpf: string | null): string {
@@ -80,7 +79,6 @@ export default async function ClientePage({
     tenant.whatsappContactEnabled && tenant.phone
       ? `https://wa.me/55${tenant.phone.replace(/\D/g, '')}`
       : null
-  const googleRating = tenant.googlePlaceId ? await fetchGoogleRating(tenant.googlePlaceId) : null
   const primary = tenant.brandingConfig?.primaryColor ?? '#7C3AED'
   const timezone = tenant.timezone ?? 'America/Sao_Paulo'
 
@@ -113,8 +111,6 @@ export default async function ClientePage({
       slug={slug}
       whatsappUrl={whatsappUrl}
       primaryColor={primary}
-      googleBusinessUrl={tenant.googleBusinessUrl}
-      googleRating={googleRating}
       business={{
         address: tenant.address,
         businessHours: tenant.businessHours,

@@ -10,7 +10,6 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { weekdayLabel, formatHourRange, WEEK_DISPLAY_ORDER, type BusinessHoursMap } from '@/lib/business-hours'
-import { VitrineLocationBlock } from '@/components/domain/vitrine/vitrine-location-block'
 
 type AppointmentRow = {
   id: string
@@ -44,8 +43,6 @@ type Props = {
   slug: string
   whatsappUrl: string | null
   primaryColor: string
-  googleBusinessUrl: string | null
-  googleRating: { rating: number; userRatingCount: number } | null
   business: BusinessInfo
 }
 
@@ -66,8 +63,6 @@ export function CustomerHistoryClient({
   slug,
   whatsappUrl,
   primaryColor,
-  googleBusinessUrl,
-  googleRating,
   business,
 }: Props) {
   const router = useRouter()
@@ -199,17 +194,8 @@ export function CustomerHistoryClient({
               Informações
             </p>
             <div className="rounded-2xl bg-card p-4 shadow-sm space-y-4">
-              {business.address && (
-                <VitrineLocationBlock
-                  address={business.address}
-                  primaryColor={primaryColor}
-                  googleBusinessUrl={googleBusinessUrl}
-                  googleRating={googleRating}
-                />
-              )}
-
               {hasBusinessHours && (
-                <div className={cn('space-y-1.5', business.address && 'border-t pt-3')}>
+                <div className="space-y-1.5">
                   <div className="mb-1 flex items-center gap-2">
                     <Clock className="size-4" style={{ color: primaryColor }} />
                     <span className="text-sm font-medium">Horário de funcionamento</span>

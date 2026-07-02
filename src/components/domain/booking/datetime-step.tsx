@@ -15,6 +15,7 @@ const DAYS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 export function DateTimeStep({
   tenantSlug,
   serviceId,
+  packageId,
   professionalId,
   maxAdvanceDays,
   onSelect,
@@ -22,7 +23,8 @@ export function DateTimeStep({
   primaryColor,
 }: {
   tenantSlug: string
-  serviceId: string
+  serviceId?: string
+  packageId?: string
   professionalId?: string
   maxAdvanceDays: number
   onSelect: (date: Date) => void
@@ -48,7 +50,9 @@ export function DateTimeStep({
   useEffect(() => {
     const y = viewDate.getFullYear()
     const m = String(viewDate.getMonth() + 1).padStart(2, '0')
-    const params = new URLSearchParams({ month: `${y}-${m}`, serviceId })
+    const params = new URLSearchParams({ month: `${y}-${m}` })
+    if (serviceId) params.set('serviceId', serviceId)
+    if (packageId) params.set('packageId', packageId)
     if (professionalId) params.set('professionalId', professionalId)
     fetch(`/api/public/${tenantSlug}/availability/month?${params}`)
       .then((r) => r.json())
@@ -60,20 +64,22 @@ export function DateTimeStep({
         setDayInfo((prev) => ({ ...prev, ...map }))
       })
       .catch(() => {})
-  }, [viewDate, serviceId, professionalId, tenantSlug])
+  }, [viewDate, serviceId, packageId, professionalId, tenantSlug])
 
   useEffect(() => {
     if (!selectedDay) return
     setLoadingSlots(true)
     setSlots([])
-    const params = new URLSearchParams({ date: selectedDay, serviceId })
+    const params = new URLSearchParams({ date: selectedDay })
+    if (serviceId) params.set('serviceId', serviceId)
+    if (packageId) params.set('packageId', packageId)
     if (professionalId) params.set('professionalId', professionalId)
     fetch(`/api/public/${tenantSlug}/availability?${params}`)
       .then((r) => r.json())
       .then((d: { slots?: PublicSlot[] }) => setSlots(d.slots ?? []))
       .catch(() => setSlots([]))
       .finally(() => setLoadingSlots(false))
-  }, [selectedDay, serviceId, professionalId, tenantSlug])
+  }, [selectedDay, serviceId, packageId, professionalId, tenantSlug])
 
   const year = viewDate.getFullYear()
   const month = viewDate.getMonth()

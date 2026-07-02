@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { toast } from 'sonner'
-import { AtSign, Upload, MapPin } from 'lucide-react'
+import { AtSign, Upload, MapPin, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,6 +27,7 @@ export function PublicPageForm({ initial }: Props) {
   const [whatsappOn, setWhatsappOn] = useState(initial.whatsappContactEnabled)
   const [googleUrl, setGoogleUrl] = useState(initial.googleBusinessUrl ?? '')
   const [uploading, setUploading] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const [saving, setSaving] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -48,6 +49,25 @@ export function PublicPageForm({ initial }: Props) {
       if (fileRef.current) fileRef.current.value = ''
     } finally {
       setUploading(false)
+    }
+  }
+
+  async function handleRemoveCover() {
+    setRemoving(true)
+    try {
+      const res = await fetch('/api/iam/tenant', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coverImageUrl: null }),
+      })
+      if (!res.ok) throw new Error('Erro ao remover')
+      setCoverImageUrl('')
+      if (fileRef.current) fileRef.current.value = ''
+      toast.success('Foto de capa removida')
+    } catch {
+      toast.error('Falha ao remover foto')
+    } finally {
+      setRemoving(false)
     }
   }
 
@@ -79,13 +99,22 @@ export function PublicPageForm({ initial }: Props) {
       {/* Foto de capa */}
       <div className="space-y-2">
         <Label>Foto de capa</Label>
-        {coverImageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={coverImageUrl}
-            alt="Capa"
-            className="h-24 w-full rounded-lg object-cover"
-          />
+        {coverImageUrl ? (
+          <div className="relative overflow-hidden rounded-lg">
+            {/* Proporção 3:1 simula como aparece na vitrine em qualquer largura */}
+            <div className="relative w-full" style={{ paddingBottom: '33.33%' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={coverImageUrl}
+                alt="Capa"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="flex w-full items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/30 py-8 text-xs text-muted-foreground">
+            Nenhuma foto de capa
+          </div>
         )}
         <input
           type="file"
@@ -94,16 +123,31 @@ export function PublicPageForm({ initial }: Props) {
           ref={fileRef}
           onChange={handleCoverUpload}
         />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={uploading}
-          onClick={() => fileRef.current?.click()}
-        >
-          <Upload className="size-4 mr-1.5" />
-          {uploading ? 'Enviando...' : 'Enviar foto'}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={uploading || removing}
+            onClick={() => fileRef.current?.click()}
+          >
+            <Upload className="size-4 mr-1.5" />
+            {uploading ? 'Enviando...' : 'Enviar foto'}
+          </Button>
+          {coverImageUrl && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={removing || uploading}
+              onClick={handleRemoveCover}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="size-4 mr-1.5" />
+              {removing ? 'Removendo...' : 'Remover foto'}
+            </Button>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground">PNG, JPG ou WebP · máx 5MB · ideal 1200×400px</p>
       </div>
 
