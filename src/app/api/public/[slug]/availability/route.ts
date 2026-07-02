@@ -2,6 +2,7 @@ import { publicBookingRepository } from '@/domains/scheduling/public-booking.rep
 import { availabilityService } from '@/domains/scheduling/availability.service'
 import { schedulingPolicyService } from '@/domains/scheduling/scheduling-policy.service'
 import { catalogServiceRepository } from '@/domains/scheduling/service.repository'
+import { packageRepository } from '@/domains/scheduling/package.repository'
 import { handleApiError } from '@/shared/http/handle-api-error'
 
 export async function GET(
@@ -13,11 +14,12 @@ export async function GET(
     const { searchParams } = new URL(req.url)
     const date = searchParams.get('date')
     const serviceId = searchParams.get('serviceId')
+    const packageId = searchParams.get('packageId')
     const professionalId = searchParams.get('professionalId')
 
-    if (!date || !serviceId) {
+    if (!date || (!serviceId && !packageId)) {
       return Response.json(
-        { error: 'Parâmetros date e serviceId são obrigatórios.' },
+        { error: 'Parâmetros date e serviceId (ou packageId) são obrigatórios.' },
         { status: 400 },
       )
     }
@@ -29,9 +31,19 @@ export async function GET(
       return Response.json({ slots: [] })
     }
 
-    const service = await catalogServiceRepository.findById(tenant.id, serviceId)
-    if (!service) {
-      return Response.json({ error: 'Serviço não encontrado.' }, { status: 404 })
+    let duration: number
+    if (serviceId) {
+      const service = await catalogServiceRepository.findById(tenant.id, serviceId)
+      if (!service) {
+        return Response.json({ error: 'Serviço não encontrado.' }, { status: 404 })
+      }
+      duration = service.duration
+    } else {
+      const pkg = await packageRepository.findById(tenant.id, packageId!)
+      if (!pkg) {
+        return Response.json({ error: 'Pacote não encontrado.' }, { status: 404 })
+      }
+      duration = pkg.items.reduce((sum, item) => sum + item.service.duration, 0)
     }
 
     // Se professionalId não foi informado, busca o primeiro profissional disponível do tenant
@@ -48,7 +60,7 @@ export async function GET(
       tenant.id,
       resolvedProfessionalId,
       date,
-      service.duration,
+      duration,
       policy.slotIntervalMinutes,
       policy.minAdvanceMinutes,
       policy.maxAdvanceDays,

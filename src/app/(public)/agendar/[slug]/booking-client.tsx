@@ -274,10 +274,11 @@ export function BookingClient({
         />
       )}
 
-      {step === 'datetime' && booking.serviceId && (
+      {step === 'datetime' && (booking.serviceId || booking.packageId) && (
         <DateTimeStep
           tenantSlug={tenantData.slug}
           serviceId={booking.serviceId}
+          packageId={booking.packageId}
           professionalId={booking.professionalId}
           maxAdvanceDays={maxAdvanceDays}
           onSelect={handleDateTimeSelect}

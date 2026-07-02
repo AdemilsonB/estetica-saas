@@ -126,10 +126,7 @@ export function ServiceCatalog() {
       {filteredServices && filteredServices.length > 0 && (
         <>
           <div className="space-y-2">
-            {(() => {
-              const totalPages = Math.ceil(filteredServices.length / PAGE_SIZE)
-              const pageItems = filteredServices.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-              return pageItems.map((service) => (
+            {filteredServices.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((service) => (
                 <div
                   key={service.id}
                   className="flex items-center gap-4 rounded-2xl border border-border/50 bg-card px-4 py-3 shadow-sm"
@@ -195,38 +192,34 @@ export function ServiceCatalog() {
                     )}
                   </div>
                 </div>
-              ))
-            })()}
+            ))}
           </div>
 
-          {(() => {
-            const totalPages = Math.ceil(filteredServices.length / PAGE_SIZE)
-            return totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4">
-                <p className="text-sm text-muted-foreground">
-                  Página {page} de {totalPages}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page === 1}
-                    onClick={() => setPage(p => p - 1)}
-                  >
-                    Anterior
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage(p => p + 1)}
-                  >
-                    Próxima
-                  </Button>
-                </div>
+          {Math.ceil(filteredServices.length / PAGE_SIZE) > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-sm text-muted-foreground">
+                Página {page} de {Math.ceil(filteredServices.length / PAGE_SIZE)}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 1}
+                  onClick={() => setPage(p => p - 1)}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= Math.ceil(filteredServices.length / PAGE_SIZE)}
+                  onClick={() => setPage(p => p + 1)}
+                >
+                  Próxima
+                </Button>
               </div>
-            )
-          })()}
+            </div>
+          )}
         </>
       )}
 
