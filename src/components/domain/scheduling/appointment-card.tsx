@@ -60,10 +60,10 @@ export function AppointmentCard({ appointment, onClick, onConfirm, onPay }: Prop
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 pr-6">
             <p className="truncate text-sm font-semibold text-slate-950">
-              {appointment.customer.name}
+              {appointment.customer?.name ?? '—'}
             </p>
             <p className="mt-0.5 text-xs text-slate-500">
-              {appointment.service.name} · {appointment.professional.name}
+              {appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'}{appointment.professional ? ` · ${appointment.professional.name}` : ''}
             </p>
           </div>
           <Badge className={cn('shrink-0 text-xs', config.badgeClass)}>

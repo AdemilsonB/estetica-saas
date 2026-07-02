@@ -41,7 +41,9 @@ function buildDefaultMessage(appointment: Appointment, valorFinal: number): stri
     month: '2-digit',
   })
   const hora = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-  return `Olá ${appointment.customer.name}! Seu agendamento de ${appointment.service.name} com ${appointment.professional.name} em ${dia} às ${hora} foi confirmado. Valor: ${formatCurrency(valorFinal)}. Aguardamos você!`
+  const serviceName = appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'
+  const profName = appointment.professional?.name ?? 'Profissional'
+  return `Olá ${appointment.customer.name}! Seu agendamento de ${serviceName} com ${profName} em ${dia} às ${hora} foi confirmado. Valor: ${formatCurrency(valorFinal)}. Aguardamos você!`
 }
 
 type Props = {
@@ -110,7 +112,7 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
           <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm space-y-1">
             <p className="font-medium text-slate-900">{appointment.customer.name}</p>
             <p className="text-slate-500">
-              {appointment.service.name} · {appointment.professional.name}
+              {appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'} · {appointment.professional?.name ?? '—'}
             </p>
             {anamneseLoading ? (
               <Skeleton className="h-20 w-full rounded-lg" />
