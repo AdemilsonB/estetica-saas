@@ -97,6 +97,12 @@ export class IamService {
       );
     }
 
+    // Guard de idempotência: usuário já completou o registro anteriormente
+    const existingTenantId = authUser.user.app_metadata?.tenantId as string | undefined;
+    if (existingTenantId) {
+      return { tenantId: existingTenantId, userId };
+    }
+
     const meta = (authUser.user.user_metadata ?? {}) as Record<string, string>
 
     const document = input.document.replace(/\D/g, "");
@@ -138,7 +144,13 @@ export class IamService {
         err instanceof Prisma.PrismaClientKnownRequestError &&
         err.code === "P2002"
       ) {
-        throw new ConflictError("Este CPF/CNPJ ja esta cadastrado para outro negocio.");
+        const target = (err.meta?.target as string[] | string | undefined) ?? [];
+        const fields = Array.isArray(target) ? target : [target];
+        if (fields.some((f) => f.includes("document"))) {
+          throw new ConflictError("Este CPF/CNPJ ja esta cadastrado para outro negocio.");
+        }
+        // Conflito de slug: nome do negócio gerou slug já existente mesmo após tentativa de sufixo
+        throw new ConflictError("Nome do negócio indisponível. Tente um nome ligeiramente diferente.");
       }
       throw err;
     }

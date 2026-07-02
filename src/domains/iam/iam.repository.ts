@@ -32,7 +32,12 @@ function generateSlug(name: string): string {
 
 export class IamRepository {
   async createTenantWithOwner(input: CreateTenantWithOwnerInput) {
-    const slug = generateSlug(input.businessName);
+    const baseSlug = generateSlug(input.businessName);
+
+    const existingSlug = await prisma.tenant.findUnique({ where: { slug: baseSlug }, select: { id: true } });
+    const slug = existingSlug
+      ? `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`
+      : baseSlug;
 
     return prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({
