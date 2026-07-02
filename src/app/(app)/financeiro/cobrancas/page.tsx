@@ -43,7 +43,7 @@ export default function CobrancasPage() {
               <div className="space-y-0.5">
                 <p className="text-sm font-medium text-slate-800">{a.customer.name}</p>
                 <p className="text-xs text-slate-400">
-                  {a.service.name} · {new Date(a.startsAt).toLocaleDateString("pt-BR")} · {daysSince(a.startsAt)}d atrás
+                  {a.service?.name ?? a.package?.name ?? a.promotion?.name ?? 'Serviço'} · {new Date(a.startsAt).toLocaleDateString("pt-BR")} · {daysSince(a.startsAt)}d atrás
                 </p>
               </div>
               <div className="flex items-center gap-3">

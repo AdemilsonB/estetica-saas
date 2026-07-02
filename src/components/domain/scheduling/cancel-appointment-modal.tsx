@@ -39,7 +39,7 @@ export function CancelAppointmentModal({ appointment, open, onClose }: Props) {
       setMessage(
         renderCancelTemplate({
           nome: appointment.customer.name.split(' ')[0],
-          serviço: appointment.service.name,
+          serviço: appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço',
         }),
       )
     }
@@ -77,7 +77,7 @@ export function CancelAppointmentModal({ appointment, open, onClose }: Props) {
             <p className="text-sm font-semibold text-slate-950">
               {appointment.customer.name}
             </p>
-            <p className="text-xs text-slate-500 mt-0.5">{appointment.service.name}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'}</p>
           </div>
 
           {isPaid && (

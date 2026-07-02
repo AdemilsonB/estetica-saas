@@ -111,7 +111,7 @@ export function RegisterPaymentModal({ appointment, open, onClose }: Props) {
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Checkout — {appointment.service.name}</DialogTitle>
+          <DialogTitle>Checkout — {appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">

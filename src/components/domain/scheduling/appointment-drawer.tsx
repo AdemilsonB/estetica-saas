@@ -127,7 +127,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
     if (!appointment || !editTime || !editDate) return
     const professionalName =
       teamMembers.find((m) => m.id === editProfessionalId)?.name ??
-      appointment.professional.name
+      appointment.professional?.name ?? '—'
     const dateLabel = new Date(editDate + 'T12:00:00').toLocaleDateString('pt-BR', {
       weekday: 'long',
       day: '2-digit',
@@ -136,7 +136,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
     setEditMessage(
       RESCHEDULE_TEMPLATE
         .replace('{nome}', appointment.customer.name.split(' ')[0])
-        .replace('{serviço}', appointment.service.name)
+        .replace('{serviço}', appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço')
         .replace('{data}', dateLabel)
         .replace('{hora}', editTime.replace(':', 'h'))
         .replace('{profissional}', professionalName.split(' ')[0]),
@@ -157,7 +157,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
     if (!appointment || !editTime) return
     const newStartsAt = new Date(`${editDate}T${editTime}:00`).toISOString()
     const newEndsAt = new Date(
-      new Date(newStartsAt).getTime() + appointment.service.duration * 60 * 1000,
+      new Date(newStartsAt).getTime() + (appointment.service?.duration ?? 60) * 60 * 1000,
     ).toISOString()
     reschedule.mutate(
       {
@@ -375,10 +375,10 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                   <div>
                     <p className="text-xs font-medium text-slate-400 uppercase">Serviço</p>
                     <p className="mt-0.5 text-sm font-semibold text-slate-950">
-                      {appointment.service.name}
+                      {appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {appointment.service.duration} min
+                      {appointment.service?.duration != null ? `${appointment.service.duration} min` : ''}
                       {appointment.confirmedPrice && Number(appointment.confirmedPrice) !== Number(appointment.price) ? (
                         <>
                           {' · '}
@@ -398,7 +398,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                   <div>
                     <p className="text-xs font-medium text-slate-400 uppercase">Profissional</p>
                     <p className="mt-0.5 text-sm font-semibold text-slate-950">
-                      {appointment.professional.name}
+                      {appointment.professional?.name ?? '—'}
                     </p>
                   </div>
                   <Separator />
@@ -439,7 +439,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                 {/* Produtos utilizados no atendimento — opcional */}
                 <AppointmentProductsSection
                   appointmentId={appointment.id}
-                  serviceId={appointment.serviceId}
+                  serviceId={appointment.serviceId ?? ''}
                   defaultExpanded={isActive}
                   isCompleted={!isActive}
                 />
