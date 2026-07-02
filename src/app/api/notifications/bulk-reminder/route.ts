@@ -43,7 +43,6 @@ export async function POST(request: Request) {
           channel: NotificationChannel.WHATSAPP,
           template: "appointment-reminder",
           recipient: a.customer.phone!,
-          provider: "twilio",
           payload: {
             appointmentId: a.id,
             startsAt: a.startsAt.toISOString(),

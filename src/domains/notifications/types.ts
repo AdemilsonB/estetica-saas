@@ -8,7 +8,7 @@ export type NotificationDraft = {
   channel: NotificationChannel;
   template: string;
   recipient: string;
-  provider: string;
+  provider?: string;
   payload: Prisma.InputJsonValue;
 };
 

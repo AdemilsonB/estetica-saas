@@ -51,7 +51,7 @@ export class NotificationService {
       channel: draft.channel,
       template: draft.template,
       recipient: draft.recipient,
-      provider: delivery.provider ?? draft.provider,
+      provider: delivery.provider ?? draft.provider ?? "gateway",
       status: delivery.status,
       payload: draft.payload,
       errorMessage: delivery.errorMessage,
