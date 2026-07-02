@@ -3,7 +3,7 @@ import type { Job } from "pg-boss";
 import { prisma } from "@/shared/database/prisma";
 import { NotificationChannel } from "@prisma/client";
 
-import { getPgBoss } from "@/shared/queue/pg-boss";
+import { startPgBoss } from "@/shared/queue/pg-boss";
 
 export const APPOINTMENT_REMINDER_JOB = "appointment-reminder";
 
@@ -81,7 +81,7 @@ export async function scheduleAppointmentReminder(
     sendAt = adjustToWindow(sendAt, windowStart, windowEnd, tz);
     if (sendAt <= new Date()) return;
 
-    const boss = getPgBoss();
+    const boss = await startPgBoss();
     await boss.send(
       APPOINTMENT_REMINDER_JOB,
       { appointmentId, tenantId },
@@ -100,7 +100,7 @@ export async function scheduleAppointmentReminder(
 
 export async function cancelAppointmentReminder(appointmentId: string): Promise<void> {
   try {
-    const boss = getPgBoss();
+    const boss = await startPgBoss();
     const jobs = await boss.findJobs(APPOINTMENT_REMINDER_JOB, { key: appointmentId });
     const ids = jobs.map((j) => j.id);
     if (ids.length > 0) {

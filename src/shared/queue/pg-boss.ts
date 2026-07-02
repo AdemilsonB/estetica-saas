@@ -1,7 +1,7 @@
 import { PgBoss } from "pg-boss";
 
 let boss: PgBoss | null = null;
-let bossStarted = false;
+let startPromise: Promise<PgBoss> | null = null;
 
 export function getPgBoss(): PgBoss {
   if (!boss) {
@@ -13,14 +13,12 @@ export function getPgBoss(): PgBoss {
   return boss;
 }
 
-// isInstalled() apenas verifica o schema no banco — não inicia os workers.
-// Chamamos b.start() sempre para garantir que o agendador interno rode,
-// especialmente após cold starts em ambiente serverless.
+// Promise-guard garante que boss.start() é chamado apenas uma vez mesmo em
+// requisições serverless concorrentes na mesma instância Lambda.
 export async function startPgBoss(): Promise<PgBoss> {
-  const b = getPgBoss();
-  if (!bossStarted) {
-    await b.start();
-    bossStarted = true;
+  if (!startPromise) {
+    const b = getPgBoss();
+    startPromise = b.start().then(() => b);
   }
-  return b;
+  return startPromise;
 }
