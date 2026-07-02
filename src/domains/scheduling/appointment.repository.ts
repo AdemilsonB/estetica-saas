@@ -31,6 +31,8 @@ export class AppointmentRepository {
         customer: { select: { id: true, name: true, phone: true, notes: true } },
         professional: { select: { id: true, name: true } },
         service: { select: { id: true, name: true, duration: true } },
+        package: { select: { id: true, name: true } },
+        promotion: { select: { id: true, name: true } },
       },
       orderBy: { startsAt: "asc" },
     });

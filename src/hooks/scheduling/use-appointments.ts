@@ -14,7 +14,9 @@ export type Appointment = {
   id: string
   customerId: string
   professionalId: string
-  serviceId: string
+  serviceId: string | null
+  packageId: string | null
+  promotionId: string | null
   startsAt: string
   endsAt: string
   status: AppointmentStatus
@@ -23,8 +25,10 @@ export type Appointment = {
   price: string
   confirmedPrice: string | null
   customer: { id: string; name: string; phone: string | null; notes: string | null }
-  professional: { id: string; name: string }
-  service: { id: string; name: string; duration: number }
+  professional: { id: string; name: string } | null
+  service: { id: string; name: string; duration: number } | null
+  package: { id: string; name: string } | null
+  promotion: { id: string; name: string } | null
 }
 
 export type CreateAppointmentInput = {
