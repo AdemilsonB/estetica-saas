@@ -45,6 +45,8 @@ export class AppointmentRepository {
         customer: true,
         professional: true,
         service: true,
+        package: true,
+        promotion: true,
       },
     });
   }
@@ -136,6 +138,8 @@ export class AppointmentRepository {
         customer: true,
         professional: true,
         service: true,
+        package: true,
+        promotion: true,
       },
     });
   }

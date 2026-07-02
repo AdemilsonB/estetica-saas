@@ -21,6 +21,8 @@ export async function GET(request: Request) {
         customer: { select: { id: true, name: true, phone: true } },
         service: { select: { id: true, name: true } },
         professional: { select: { id: true, name: true } },
+        package: { select: { id: true, name: true } },
+        promotion: { select: { id: true, name: true } },
       },
       orderBy: { startsAt: "desc" },
     });
