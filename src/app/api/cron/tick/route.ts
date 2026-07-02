@@ -74,9 +74,20 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // startPgBoss aciona o scheduler interno do pg-boss, que insere no banco
-    // os jobs de cron que estão vencidos antes de fazermos o fetch manual.
     const boss = await startPgBoss();
+
+    // Registra/atualiza os crons no banco (idempotente).
+    // Necessário em deploys frescos onde pgboss.schedule está vazio.
+    await Promise.all([
+      boss.schedule(BILLING_EXPIRE_SWEEP_JOB, "0 5 * * *", {}),
+      boss.schedule(BIRTHDAY_REMINDER_JOB, "0 12 * * *", {}),
+      boss.schedule(DAILY_STATUS_JOB, "0 * * * *", {}),
+      boss.schedule(RECURRING_EXPENSE_JOB, "0 6 * * *", {}),
+      boss.schedule(SUBSCRIPTION_EXPIRY_WARNINGS_JOB, "0 12 * * *", {}),
+      boss.schedule(USAGE_SNAPSHOT_JOB, "0 1 1 * *", {}),
+      boss.schedule(VIP_SWEEP_JOB, "0 2 * * *", {}),
+      boss.schedule(WHATSAPP_QUOTA_CLEANUP_JOB, "0 2 1 * *", {}),
+    ]);
 
     const [reminders, billing, birthday, dailyStatus, recurring, vip, expiry, snapshot, quota] =
       await Promise.all([
