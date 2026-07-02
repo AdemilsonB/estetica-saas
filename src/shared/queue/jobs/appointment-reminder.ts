@@ -49,7 +49,6 @@ export async function handleAppointmentReminder(
       channel: NotificationChannel.WHATSAPP,
       template: "appointment-reminder",
       recipient: appointment.customer.phone,
-      provider: "twilio",
       payload: {
         appointmentId,
         startsAt: appointment.startsAt.toISOString(),
