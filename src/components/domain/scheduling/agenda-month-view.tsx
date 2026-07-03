@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -18,10 +18,10 @@ type OccupancyRingProps = {
 }
 
 function OccupancyRing({ count, capacity, size, isSelected, isToday }: OccupancyRingProps) {
-  const filled = Math.round(Math.min(count / capacity, 1) * 100)
+  const filled = capacity > 0 ? Math.round(Math.min(count / capacity, 1) * 100) : 0
   const r = 15.9
   const bgColor = isSelected ? 'rgba(255,255,255,0.3)' : '#e2e8f0'
-  const fgColor = isSelected || isToday ? 'white' : 'currentColor'
+  const fgColor = 'currentColor'
 
   return (
     <svg
@@ -84,8 +84,21 @@ export function AgendaMonthView({ selectedDate, onSelectDate, onSelectDayView }:
   const counts = data?.counts ?? {}
   const capacity = data?.capacity ?? 16
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const today = useMemo(() => {
+    const t = new Date()
+    t.setHours(0, 0, 0, 0)
+    return t
+  }, [])
+
+  const todayKey = useMemo(
+    () => today.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }),
+    [today]
+  )
+
+  const selectedKey = useMemo(
+    () => selectedDate.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }),
+    [selectedDate]
+  )
 
   const days = getDaysInMonth(viewYear, viewMonth)
 
@@ -158,15 +171,15 @@ export function AgendaMonthView({ selectedDate, onSelectDate, onSelectDayView }:
       <div className="grid grid-cols-7 gap-y-1">
         {days.map((d) => {
           const isCurrentMonth = d.getMonth() === viewMonth
-          const isToday = d.toDateString() === today.toDateString()
-          const isSelected = d.toDateString() === selectedDate.toDateString()
           const dateKey = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+          const isToday = dateKey === todayKey
+          const isSelected = dateKey === selectedKey
           const count = counts[dateKey] ?? 0
           const hasAppointments = count > 0
 
           return (
             <button
-              key={d.toISOString()}
+              key={dateKey}
               aria-label={`${d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}${count > 0 ? `, ${count} agendamento${count > 1 ? 's' : ''}` : ''}`}
               aria-pressed={isSelected}
               onClick={() => handleDayClick(d)}
