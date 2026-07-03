@@ -1,7 +1,7 @@
 import { AppointmentStatus, TransactionType } from '@prisma/client'
 import { z } from 'zod'
 
-import type { KpiDelta } from './analytics-utils'
+import type { Granularity, KpiDelta } from './analytics-utils'
 
 // ── Financeiro ──────────────────────────────────────────────────────────────
 
@@ -146,4 +146,37 @@ export type ProfessionalsReport = {
     receitaTotal: number
   }
   rows: ProfessionalsReportRow[]
+}
+
+// ── Visão Geral ───────────────────────────────────────────────────────────────
+
+export const overviewReportSchema = z.object({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  categoryId: z.string().cuid().optional(),
+})
+
+export type OverviewReportInput = z.infer<typeof overviewReportSchema>
+
+export type OverviewSeriesPoint = {
+  bucket: string
+  faturamento: number
+  agendamentos: number
+}
+
+export type OverviewReport = {
+  kpis: {
+    faturamento: number
+    agendamentos: number
+    ticketMedio: number
+    novosPct: number
+    variacao: {
+      faturamento: KpiDelta
+      agendamentos: KpiDelta
+      ticketMedio: KpiDelta
+      novosPctPp: number
+    }
+  }
+  granularity: Granularity
+  series: OverviewSeriesPoint[] | null
 }
