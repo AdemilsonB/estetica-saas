@@ -7,7 +7,10 @@ import { PeriodFilter, type PeriodValue } from '@/components/domain/reports/peri
 import { ReportKpis, type KpiCard } from '@/components/domain/reports/report-kpis'
 import { ReportTable, type ReportColumn } from '@/components/domain/reports/report-table'
 import { ExportCsvButton } from '@/components/domain/reports/export-csv-button'
+import { CategorySelect } from '@/components/domain/reports/category-select'
+import { ServiceMixDonut } from '@/components/domain/reports/charts/service-mix-donut'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { startOfMonth, endOfDay } from '@/lib/dates'
 
 function fmtBRL(n: number) {
@@ -23,6 +26,7 @@ const COLUMNS: ReportColumn[] = [
   { key: 'label', header: 'Nome' },
   { key: 'quantidade', header: 'Transações', align: 'right' },
   { key: 'receita', header: 'Receita', align: 'right', format: (v) => fmtBRL(Number(v)) },
+  { key: 'ticketMedio', header: 'Ticket médio', align: 'right', format: (v) => fmtBRL(Number(v)) },
 ]
 
 export function FinanceiroClient() {
@@ -30,12 +34,14 @@ export function FinanceiroClient() {
   const [period, setPeriod] = useState<PeriodValue>(defaultPeriod)
   const [groupBy, setGroupBy] = useState<'profissional' | 'servico'>('servico')
   const [type, setType] = useState<'INCOME' | 'EXPENSE' | 'all'>('all')
+  const [categoryId, setCategoryId] = useState<string>('all')
 
   const { data, isLoading, isError } = useFinancialReport({
     from: period.from,
     to: period.to,
     groupBy,
     type: type === 'all' ? undefined : type,
+    categoryId: categoryId === 'all' ? undefined : categoryId,
   })
 
   if (!can('relatorios', 'view')) {
@@ -56,13 +62,13 @@ export function FinanceiroClient() {
 
   const kpis: KpiCard[] = data
     ? [
-        { label: 'Receita', value: fmtBRL(data.kpis.receita) },
-        { label: 'Despesa', value: fmtBRL(data.kpis.despesa) },
+        { label: 'Receita', value: fmtBRL(data.kpis.receita), delta: data.kpis.variacao.receita },
+        { label: 'Despesa', value: fmtBRL(data.kpis.despesa), delta: data.kpis.variacao.despesa, invertDeltaColor: true },
         ...(data.kpis.estornos > 0
           ? [{ label: 'Estornos', value: fmtBRL(data.kpis.estornos) }]
           : []),
-        { label: 'Saldo', value: fmtBRL(data.kpis.saldo) },
-        { label: 'Ticket médio', value: fmtBRL(data.kpis.ticketMedio) },
+        { label: 'Saldo', value: fmtBRL(data.kpis.saldo), delta: data.kpis.variacao.saldo },
+        { label: 'Ticket médio', value: fmtBRL(data.kpis.ticketMedio), delta: data.kpis.variacao.ticketMedio },
       ]
     : []
 
@@ -70,6 +76,7 @@ export function FinanceiroClient() {
     Nome: r.label,
     Transações: r.quantidade,
     'Receita (R$)': r.receita.toFixed(2),
+    'Ticket médio (R$)': r.ticketMedio.toFixed(2),
   }))
 
   return (
@@ -96,6 +103,7 @@ export function FinanceiroClient() {
               <SelectItem value="profissional">Agrupar por profissional</SelectItem>
             </SelectContent>
           </Select>
+          <CategorySelect value={categoryId} onChange={setCategoryId} />
           <div className="ml-auto">
             <ExportCsvButton rows={csvRows} filename="relatorio-financeiro.csv" isLoading={isLoading} />
           </div>
@@ -103,7 +111,22 @@ export function FinanceiroClient() {
       </div>
 
       <ReportKpis cards={kpis} isLoading={isLoading} />
-      <ReportTable columns={COLUMNS} rows={data?.rows ?? []} isLoading={isLoading} />
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 lg:col-span-1">
+          <h2 className="mb-4 text-sm font-semibold text-slate-900">
+            Participação na receita
+          </h2>
+          {isLoading ? (
+            <Skeleton className="mx-auto aspect-square h-44 rounded-full sm:h-52" />
+          ) : (
+            <ServiceMixDonut rows={data?.rows ?? []} />
+          )}
+        </div>
+        <div className="lg:col-span-2">
+          <ReportTable columns={COLUMNS} rows={data?.rows ?? []} isLoading={isLoading} />
+        </div>
+      </div>
     </div>
   )
 }
