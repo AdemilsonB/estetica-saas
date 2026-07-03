@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { BarChart2, Calendar, Users, Scissors } from 'lucide-react'
+import { BarChart2, Calendar, Users } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
@@ -10,7 +10,6 @@ const REPORT_ITEMS = [
   { label: 'Financeiro', href: '/relatorios/financeiro', icon: BarChart2 },
   { label: 'Agendamentos', href: '/relatorios/agendamentos', icon: Calendar },
   { label: 'Clientes', href: '/relatorios/clientes', icon: Users },
-  { label: 'Profissionais', href: '/relatorios/profissionais', icon: Scissors },
 ] as const
 
 export function ReportsSidebar() {

@@ -121,33 +121,6 @@ export type CustomersReport = {
   pageSize: number
 }
 
-// ── Profissionais ─────────────────────────────────────────────────────────────
-
-export const professionalsReportSchema = z.object({
-  from: z.string().datetime().optional(),
-  to: z.string().datetime().optional(),
-  professionalIds: z.array(z.string().cuid()).optional(),
-  serviceId: z.string().cuid().optional(),
-  status: z.array(z.nativeEnum(AppointmentStatus)).optional(),
-})
-
-export type ProfessionalsReportInput = z.infer<typeof professionalsReportSchema>
-
-export type ProfessionalsReportRow = {
-  profissionalNome: string
-  atendimentos: number
-  receita: number
-  ticketMedio: number
-}
-
-export type ProfessionalsReport = {
-  kpis: {
-    totalAtendimentos: number
-    receitaTotal: number
-  }
-  rows: ProfessionalsReportRow[]
-}
-
 // ── Visão Geral ───────────────────────────────────────────────────────────────
 
 export const overviewReportSchema = z.object({

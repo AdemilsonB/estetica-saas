@@ -2,7 +2,6 @@ import { AppointmentStatus, Prisma, TransactionType } from '@prisma/client'
 
 import { prisma } from '@/shared/database/prisma'
 import { dayBoundsInTz, monthBoundsInTz } from '@/lib/dates'
-import { featureGuard, FEATURES } from '@/domains/billing/feature-guard'
 import { isReversal } from '@/domains/financial/categories'
 import { percentDelta, pointsDelta, previousWindow } from './analytics-utils'
 
@@ -14,8 +13,6 @@ import type {
   CustomersReportInput,
   FinancialReport,
   FinancialReportInput,
-  ProfessionalsReport,
-  ProfessionalsReportInput,
 } from './types'
 
 export class ReportsService {
@@ -356,58 +353,6 @@ export class ReportsService {
     }
   }
 
-  async getProfessionalsReport(
-    tenantId: string,
-    input: ProfessionalsReportInput,
-  ): Promise<ProfessionalsReport> {
-    await featureGuard.assertAccess(tenantId, FEATURES.REPORTS_ADVANCED)
-
-    const { from, to } = await this.resolvePeriod(tenantId, input)
-
-    const appointments = await prisma.appointment.findMany({
-      where: {
-        tenantId,
-        startsAt: { gte: from, lte: to },
-        ...(input.status?.length && { status: { in: input.status } }),
-        ...(input.professionalIds?.length && {
-          professionalId: { in: input.professionalIds },
-        }),
-        ...(input.serviceId && { serviceId: input.serviceId }),
-      },
-      include: {
-        professional: { select: { id: true, name: true } },
-        transactions: { select: { amount: true, netAmount: true, type: true } },
-      },
-    })
-
-    type ProfAcc = { nome: string; atendimentos: number; receita: number }
-    const byProf = new Map<string, ProfAcc>()
-    for (const apt of appointments) {
-      const prev = byProf.get(apt.professionalId)
-      const receita = apt.transactions
-        .filter((t) => t.type === TransactionType.INCOME)
-        .reduce((s, t) => s + Number(t.netAmount ?? t.amount), 0)
-      byProf.set(apt.professionalId, {
-        nome: apt.professional.name,
-        atendimentos: (prev?.atendimentos ?? 0) + 1,
-        receita: (prev?.receita ?? 0) + receita,
-      })
-    }
-
-    const totalAtendimentos = appointments.length
-    const receitaTotal = [...byProf.values()].reduce((s, p) => s + p.receita, 0)
-
-    const rows = [...byProf.values()]
-      .sort((a, b) => b.receita - a.receita)
-      .map((p) => ({
-        profissionalNome: p.nome,
-        atendimentos: p.atendimentos,
-        receita: p.receita,
-        ticketMedio: p.atendimentos > 0 ? p.receita / p.atendimentos : 0,
-      }))
-
-    return { kpis: { totalAtendimentos, receitaTotal }, rows }
-  }
 }
 
 export const reportsService = new ReportsService()
