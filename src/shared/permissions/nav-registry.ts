@@ -26,7 +26,7 @@ export const NAV_REGISTRY: NavSection[] = [
     filterLabel: 'Ver atendimentos de outros profissionais',
     defaultPermissions: {
       MANAGER:      ['view', 'create', 'edit', 'delete', 'view_all'],
-      PROFESSIONAL: ['view', 'create'],
+      PROFESSIONAL: ['view', 'create', 'edit', 'delete', 'view_all'],
       RECEPTIONIST: ['view', 'create', 'edit'],
     },
   },
@@ -39,7 +39,7 @@ export const NAV_REGISTRY: NavSection[] = [
     actions: ['view', 'create', 'edit', 'delete'],
     defaultPermissions: {
       MANAGER:      ['view', 'create', 'edit', 'delete'],
-      PROFESSIONAL: ['view'],
+      PROFESSIONAL: ['view', 'create', 'edit', 'delete'],
       RECEPTIONIST: ['view'],
     },
   },
@@ -52,7 +52,7 @@ export const NAV_REGISTRY: NavSection[] = [
     actions: ['view', 'create', 'edit', 'delete'],
     defaultPermissions: {
       MANAGER:      ['view', 'create', 'edit', 'delete'],
-      PROFESSIONAL: ['view'],
+      PROFESSIONAL: ['view', 'create', 'edit', 'delete'],
       RECEPTIONIST: [],
     },
   },
@@ -65,7 +65,7 @@ export const NAV_REGISTRY: NavSection[] = [
     actions: ['view', 'create', 'edit', 'delete'],
     defaultPermissions: {
       MANAGER:      ['view', 'create', 'edit'],
-      PROFESSIONAL: ['view'],
+      PROFESSIONAL: ['view', 'create', 'edit'],
       RECEPTIONIST: ['view', 'create', 'edit'],
     },
   },
@@ -78,7 +78,7 @@ export const NAV_REGISTRY: NavSection[] = [
     actions: ['view', 'create', 'edit', 'delete'],
     defaultPermissions: {
       MANAGER:      ['view', 'create', 'edit'],
-      PROFESSIONAL: [],
+      PROFESSIONAL: ['view', 'create', 'edit'],
       RECEPTIONIST: [],
     },
   },
@@ -91,7 +91,7 @@ export const NAV_REGISTRY: NavSection[] = [
     actions: ['view'],
     defaultPermissions: {
       MANAGER:      ['view'],
-      PROFESSIONAL: [],
+      PROFESSIONAL: ['view'],
       RECEPTIONIST: [],
     },
   },
@@ -104,7 +104,7 @@ export const NAV_REGISTRY: NavSection[] = [
     actions: ['view', 'create', 'edit', 'delete'],
     defaultPermissions: {
       MANAGER:      ['view'],
-      PROFESSIONAL: [],
+      PROFESSIONAL: ['view'],
       RECEPTIONIST: [],
     },
   },
@@ -117,7 +117,7 @@ export const NAV_REGISTRY: NavSection[] = [
     actions: ['view', 'edit'],
     defaultPermissions: {
       MANAGER:      ['view', 'edit'],
-      PROFESSIONAL: [],
+      PROFESSIONAL: ['view', 'edit'],
       RECEPTIONIST: [],
     },
   },
