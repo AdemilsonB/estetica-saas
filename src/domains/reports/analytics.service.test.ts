@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { prismaMock } from '@/shared/test/prisma-mock'
 
 vi.mock('@/domains/billing/feature-guard', () => ({
@@ -46,6 +46,44 @@ describe('AnalyticsService.getSeasonalityReport', () => {
 
     expect(report.cells).toHaveLength(2)
     expect(report.maxTotal).toBe(9)
+  })
+})
+
+describe('AnalyticsService.getInactiveCustomersReport', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-03T12:00:00.000Z'))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('exige reports_advanced', async () => {
+    vi.mocked(featureGuard.assertAccess).mockRejectedValue(new Error('PLAN_FEATURE_REQUIRED'))
+
+    await expect(service.getInactiveCustomersReport('tenant-1', { days: 90, page: 1 })).rejects.toThrow()
+    expect(prismaMock.$queryRaw).not.toHaveBeenCalled()
+  })
+
+  it('retorna inativos com dias calculados e paginação', async () => {
+    vi.mocked(featureGuard.assertAccess).mockResolvedValue(undefined)
+    prismaMock.$queryRaw
+      .mockResolvedValueOnce([{
+        clienteId: 'c1',
+        nome: 'João',
+        telefone: '11999998888',
+        ultimoAtendimento: new Date('2026-03-05T15:00:00.000Z'), // 120 dias atrás
+        valorHistorico: 850,
+      }] as never)
+      .mockResolvedValueOnce([{ total: 7 }] as never)
+
+    const report = await service.getInactiveCustomersReport('tenant-1', { days: 90, page: 1 })
+
+    expect(report.rows[0].diasInativo).toBe(120)
+    expect(report.rows[0].valorHistorico).toBe(850)
+    expect(report.rows[0].ultimoAtendimento).toBe('2026-03-05T15:00:00.000Z')
+    expect(report.total).toBe(7)
+    expect(report.pageSize).toBe(20)
   })
 })
 

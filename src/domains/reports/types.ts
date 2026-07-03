@@ -181,6 +181,31 @@ export type OverviewReport = {
   series: OverviewSeriesPoint[] | null
 }
 
+// ── Clientes inativos ─────────────────────────────────────────────────────────
+
+export const inactiveCustomersSchema = z.object({
+  days: z.coerce.number().int().min(15).max(365).default(90),
+  page: z.coerce.number().int().min(1).default(1),
+})
+
+export type InactiveCustomersInput = z.infer<typeof inactiveCustomersSchema>
+
+export type InactiveCustomerRow = {
+  clienteId: string
+  nome: string
+  telefone: string | null
+  ultimoAtendimento: string
+  diasInativo: number
+  valorHistorico: number
+}
+
+export type InactiveCustomersReport = {
+  rows: InactiveCustomerRow[]
+  total: number
+  page: number
+  pageSize: number
+}
+
 // ── Sazonalidade ──────────────────────────────────────────────────────────────
 
 export const seasonalityReportSchema = z.object({

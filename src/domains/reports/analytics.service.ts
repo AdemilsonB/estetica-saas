@@ -12,7 +12,12 @@ import {
   previousWindow,
   type Granularity,
 } from './analytics-utils'
+import {
+  CUSTOMERS_PAGE_SIZE,
+} from './types'
 import type {
+  InactiveCustomersInput,
+  InactiveCustomersReport,
   OverviewReport,
   OverviewReportInput,
   SeasonalityCell,
@@ -187,6 +192,77 @@ export class AnalyticsService {
     `
     const maxTotal = cells.reduce((m, c) => Math.max(m, c.total), 0)
     return { cells, maxTotal }
+  }
+
+  async getInactiveCustomersReport(
+    tenantId: string,
+    input: InactiveCustomersInput,
+  ): Promise<InactiveCustomersReport> {
+    await featureGuard.assertAccess(tenantId, FEATURES.REPORTS_ADVANCED)
+
+    const days = input.days ?? 90
+    const page = input.page ?? 1
+    const offset = (page - 1) * CUSTOMERS_PAGE_SIZE
+    const agora = new Date()
+    const corte = new Date(agora.getTime() - days * 86_400_000)
+
+    type RawRow = {
+      clienteId: string
+      nome: string
+      telefone: string | null
+      ultimoAtendimento: Date
+      valorHistorico: number
+    }
+
+    const [rows, totalRows] = await Promise.all([
+      prisma.$queryRaw<RawRow[]>`
+        SELECT
+          c.id AS "clienteId",
+          c.name AS nome,
+          c.phone AS telefone,
+          MAX(a."startsAt") AS "ultimoAtendimento",
+          COALESCE(SUM(CASE WHEN t.type = 'INCOME'::"TransactionType"
+            THEN COALESCE(t."netAmount", t.amount) ELSE 0 END), 0)::float AS "valorHistorico"
+        FROM "Customer" c
+        JOIN "Appointment" a ON a."customerId" = c.id
+          AND a.status <> 'CANCELLED'::"AppointmentStatus"
+        LEFT JOIN "Transaction" t ON t."appointmentId" = a.id
+        WHERE c."tenantId" = ${tenantId}
+          AND a."tenantId" = ${tenantId}
+        GROUP BY c.id, c.name, c.phone
+        HAVING MAX(a."startsAt") < ${corte}
+        ORDER BY "valorHistorico" DESC
+        LIMIT ${CUSTOMERS_PAGE_SIZE} OFFSET ${offset}
+      `,
+      prisma.$queryRaw<{ total: number }[]>`
+        SELECT COUNT(*)::int AS total FROM (
+          SELECT c.id
+          FROM "Customer" c
+          JOIN "Appointment" a ON a."customerId" = c.id
+            AND a.status <> 'CANCELLED'::"AppointmentStatus"
+          WHERE c."tenantId" = ${tenantId}
+            AND a."tenantId" = ${tenantId}
+          GROUP BY c.id
+          HAVING MAX(a."startsAt") < ${corte}
+        ) sub
+      `,
+    ])
+
+    return {
+      rows: rows.map((r) => ({
+        clienteId: r.clienteId,
+        nome: r.nome,
+        telefone: r.telefone,
+        ultimoAtendimento: r.ultimoAtendimento.toISOString(),
+        diasInativo: Math.round(
+          (agora.getTime() - r.ultimoAtendimento.getTime()) / 86_400_000,
+        ),
+        valorHistorico: r.valorHistorico,
+      })),
+      total: totalRows[0]?.total ?? 0,
+      page,
+      pageSize: CUSTOMERS_PAGE_SIZE,
+    }
   }
 
   async getOverviewReport(
