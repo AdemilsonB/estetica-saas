@@ -35,14 +35,29 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
-    supabase.auth.getUser().then(({ data, error }) => {
-      if (error || !data.user) {
-        setSessionValid(false);
-        return;
-      }
-      setSessionValid(true);
-      setUserEmail(data.user.email ?? null);
-    });
+    const code = new URLSearchParams(window.location.search).get('code');
+
+    if (code) {
+      // PKCE flow: exchangeCodeForSession antes de getUser
+      supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
+        if (error || !data.session) {
+          setSessionValid(false);
+          return;
+        }
+        setSessionValid(true);
+        setUserEmail(data.session.user.email ?? null);
+      });
+    } else {
+      // Fluxo implícito: tokens já estão no hash, getUser é suficiente
+      supabase.auth.getUser().then(({ data, error }) => {
+        if (error || !data.user) {
+          setSessionValid(false);
+          return;
+        }
+        setSessionValid(true);
+        setUserEmail(data.user.email ?? null);
+      });
+    }
   }, []);
 
   const {
