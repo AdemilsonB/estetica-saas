@@ -99,6 +99,32 @@ export class AppointmentRepository {
     });
   }
 
+  async countByDateRange(
+    tenantId: string,
+    from: Date,
+    to: Date,
+  ): Promise<Record<string, number>> {
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        tenantId,
+        status: {
+          notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW],
+        },
+        startsAt: { gte: from, lte: to },
+      },
+      select: { startsAt: true },
+    });
+
+    const counts: Record<string, number> = {};
+    for (const appt of appointments) {
+      const key = appt.startsAt.toLocaleDateString("en-CA", {
+        timeZone: "America/Sao_Paulo",
+      });
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+  }
+
   async updateStatus(
     tenantId: string,
     appointmentId: string,

@@ -11,6 +11,8 @@ import { CreateAppointmentModal } from './create-appointment-modal'
 import { RegisterPaymentModal } from '@/components/domain/financial/register-payment-modal'
 import { ConfirmAppointmentModal } from './confirm-appointment-modal'
 import { AgendaWeekStrip } from './agenda-week-strip'
+import { AgendaMonthView } from './agenda-month-view'
+import { AgendaWeekGrid } from './agenda-week-grid'
 import { useAppointments } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -80,7 +82,7 @@ function toHour(appt: Appointment) {
   })
 }
 
-type ViewMode = 'day' | 'week'
+type ViewMode = 'day' | 'week' | 'month'
 
 type Props = {
   date?: Date
@@ -169,7 +171,7 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
   const groups = groupByHour(sorted)
   const hours = Object.keys(groups).sort()
 
-  // Dados para modo semana
+  // Dados para modo semana (fallback — lista antiga)
   const dayGroups = groupByDay(sorted)
   const dayKeys = Object.keys(dayGroups).sort(
     (a, b) => new Date(a).getTime() - new Date(b).getTime(),
@@ -230,6 +232,15 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
             <CalendarRange className="size-4" />
             <span className="hidden sm:inline">Semana</span>
           </Button>
+          <Button
+            variant={viewMode === 'month' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('month')}
+            className="rounded-full"
+          >
+            <CalendarDays className="size-4" />
+            <span className="hidden sm:inline">Mês</span>
+          </Button>
         </div>
 
         {canViewAll && currentUser && (
@@ -251,8 +262,8 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
         )}
       </div>
 
-      {/* Strip semanal (apenas quando gerenciado internamente) */}
-      {!dateProp && (
+      {/* Strip semanal (apenas quando gerenciado internamente e fora do modo mês) */}
+      {!dateProp && viewMode !== 'month' && (
         <AgendaWeekStrip
           selectedDate={selectedDate}
           onSelectDate={(d) => {
@@ -269,141 +280,167 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
         </p>
       )}
 
-      {/* Lista de agendamentos */}
-      {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-2xl" />
-          ))}
-        </div>
-      ) : error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
-          <p className="text-sm text-red-600">Erro ao carregar agendamentos.</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3"
-            onClick={() => refetch()}
-          >
-            Tentar novamente
-          </Button>
-        </div>
-      ) : isEmpty ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/60 py-16 text-center">
-          <CalendarDays className="size-10 text-slate-300" />
-          <p className="mt-4 text-sm font-medium text-slate-500">
-            {viewMode === 'week'
-              ? 'Nenhum agendamento para esta semana'
-              : 'Nenhum agendamento para este dia'}
-          </p>
-          {can('agenda', 'create') && (
-            <Button
-              onClick={() => setCreateModalOpen(true)}
-              variant="outline"
-              size="sm"
-              className="mt-4 rounded-full"
-            >
-              <Plus className="size-4" />
-              Criar primeiro agendamento
-            </Button>
-          )}
-        </div>
-      ) : viewMode === 'day' && canViewAll && selectedProfessionalIds.length > 1 ? (
-        // Layout de colunas com scroll horizontal — funciona em mobile e desktop
-        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="inline-flex min-w-full flex-col">
-            {/* Cabeçalho com nomes dos profissionais */}
-            <div className="mb-2 flex">
-              <div className="w-10 sm:w-14 shrink-0" />
-              {byProfessional.map(({ professional }) => (
-                <div key={professional.id} className="min-w-44 sm:min-w-60 flex-1 px-1 sm:px-2">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <div className="flex size-6 sm:size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] sm:text-xs font-semibold text-slate-600">
-                      {professional.name.charAt(0).toUpperCase()}
+      {/* Modo Mês */}
+      {viewMode === 'month' && (
+        <AgendaMonthView
+          selectedDate={selectedDate}
+          onSelectDate={(d) => {
+            if (!dateProp) setInternalDate(d)
+          }}
+          onSelectDayView={() => setViewMode('day')}
+        />
+      )}
+
+      {/* Modos Dia e Semana */}
+      {viewMode !== 'month' && (
+        <>
+          {isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+              <p className="text-sm text-red-600">Erro ao carregar agendamentos.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => refetch()}
+              >
+                Tentar novamente
+              </Button>
+            </div>
+          ) : isEmpty ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/60 py-16 text-center">
+              <CalendarDays className="size-10 text-slate-300" />
+              <p className="mt-4 text-sm font-medium text-slate-500">
+                {viewMode === 'week'
+                  ? 'Nenhum agendamento para esta semana'
+                  : 'Nenhum agendamento para este dia'}
+              </p>
+              {can('agenda', 'create') && (
+                <Button
+                  onClick={() => setCreateModalOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 rounded-full"
+                >
+                  <Plus className="size-4" />
+                  Criar primeiro agendamento
+                </Button>
+              )}
+            </div>
+          ) : viewMode === 'week' ? (
+            <AgendaWeekGrid
+              selectedDate={selectedDate}
+              onSelectDate={(d) => {
+                if (!dateProp) setInternalDate(d)
+                setViewMode('day')
+              }}
+              onAppointmentClick={handleCardClick}
+              professionalId={queryProfessionalId}
+            />
+          ) : viewMode === 'day' && canViewAll && selectedProfessionalIds.length > 1 ? (
+            // Layout de colunas com scroll horizontal — funciona em mobile e desktop
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+              <div className="inline-flex min-w-full flex-col">
+                {/* Cabeçalho com nomes dos profissionais */}
+                <div className="mb-2 flex">
+                  <div className="w-10 sm:w-14 shrink-0" />
+                  {byProfessional.map(({ professional }) => (
+                    <div key={professional.id} className="min-w-44 sm:min-w-60 flex-1 px-1 sm:px-2">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <div className="flex size-6 sm:size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] sm:text-xs font-semibold text-slate-600">
+                          {professional.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="truncate text-xs sm:text-sm font-medium text-slate-700">
+                          {professional.name}
+                        </span>
+                      </div>
                     </div>
-                    <span className="truncate text-xs sm:text-sm font-medium text-slate-700">
-                      {professional.name}
-                    </span>
+                  ))}
+                </div>
+                {/* Linhas por horário */}
+                {allColumnHours.map((hour) => (
+                  <div key={hour} className="flex items-start border-t border-slate-100/80">
+                    <div className="sticky left-0 z-10 w-10 sm:w-14 shrink-0 bg-background pt-1.5">
+                      <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        {hour}
+                      </span>
+                    </div>
+                    {byProfessional.map(({ professional, appointments: profAppts }) => {
+                      const appts = profAppts.filter((a) => toHour(a) === hour)
+                      return (
+                        <div
+                          key={professional.id}
+                          className="min-w-44 sm:min-w-60 flex-1 space-y-1.5 px-1 pb-2"
+                        >
+                          {appts.map((appt) => (
+                            <AppointmentCard
+                              key={appt.id}
+                              appointment={appt}
+                              onClick={handleCardClick}                          onConfirm={handleConfirmInline}
+                              onPay={handlePayInline}
+                            />
+                          ))}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : viewMode === 'day' ? (
+            <div className="space-y-6">
+              {hours.map((hour) => (
+                <div key={hour}>
+                  <p className="mb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase">
+                    {hour}
+                  </p>
+                  <div className="space-y-2">
+                    {groups[hour].map((appt) => (
+                      <AppointmentCard
+                        key={appt.id}
+                        appointment={appt}
+                        onClick={handleCardClick}
+                        onConfirm={handleConfirmInline}
+                        onPay={handlePayInline}
+                      />
+                    ))}
                   </div>
                 </div>
               ))}
             </div>
-            {/* Linhas por horário */}
-            {allColumnHours.map((hour) => (
-              <div key={hour} className="flex items-start border-t border-slate-100/80">
-                <div className="sticky left-0 z-10 w-10 sm:w-14 shrink-0 bg-background pt-1.5">
-                  <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    {hour}
-                  </span>
+          ) : (
+            // Fallback lista semanal — nunca alcançado com os modos atuais
+            <div className="space-y-6">
+              {dayKeys.map((key) => (
+                <div key={key}>
+                  <p className="mb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase capitalize">
+                    {new Date(key).toLocaleDateString('pt-BR', {
+                      weekday: 'long',
+                      day: '2-digit',
+                      month: 'long',
+                    })}
+                  </p>
+                  <div className="space-y-2">
+                    {dayGroups[key].map((appt) => (
+                      <AppointmentCard
+                        key={appt.id}
+                        appointment={appt}
+                        onClick={handleCardClick}
+                        onConfirm={handleConfirmInline}
+                        onPay={handlePayInline}
+                      />
+                    ))}
+                  </div>
                 </div>
-                {byProfessional.map(({ professional, appointments: profAppts }) => {
-                  const appts = profAppts.filter((a) => toHour(a) === hour)
-                  return (
-                    <div
-                      key={professional.id}
-                      className="min-w-44 sm:min-w-60 flex-1 space-y-1.5 px-1 pb-2"
-                    >
-                      {appts.map((appt) => (
-                        <AppointmentCard
-                          key={appt.id}
-                          appointment={appt}
-                          onClick={handleCardClick}                          onConfirm={handleConfirmInline}
-                          onPay={handlePayInline}
-                        />
-                      ))}
-                    </div>
-                  )
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : viewMode === 'day' ? (
-        <div className="space-y-6">
-          {hours.map((hour) => (
-            <div key={hour}>
-              <p className="mb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase">
-                {hour}
-              </p>
-              <div className="space-y-2">
-                {groups[hour].map((appt) => (
-                  <AppointmentCard
-                    key={appt.id}
-                    appointment={appt}
-                    onClick={handleCardClick}
-                    onConfirm={handleConfirmInline}
-                    onPay={handlePayInline}
-                  />
-                ))}
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {dayKeys.map((key) => (
-            <div key={key}>
-              <p className="mb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase capitalize">
-                {new Date(key).toLocaleDateString('pt-BR', {
-                  weekday: 'long',
-                  day: '2-digit',
-                  month: 'long',
-                })}
-              </p>
-              <div className="space-y-2">
-                {dayGroups[key].map((appt) => (
-                  <AppointmentCard
-                    key={appt.id}
-                    appointment={appt}
-                    onClick={handleCardClick}
-                    onConfirm={handleConfirmInline}
-                    onPay={handlePayInline}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       <AppointmentDrawer

@@ -156,3 +156,10 @@ export const updateServiceCategorySchema = z.object({
 
 export type CreateServiceCategoryInput = z.infer<typeof createServiceCategorySchema>
 export type UpdateServiceCategoryInput = z.infer<typeof updateServiceCategorySchema>
+
+export const appointmentCountsQuerySchema = z.object({
+  from: z.string().datetime(),
+  to: z.string().datetime(),
+})
+
+export type AppointmentCountsQuery = z.infer<typeof appointmentCountsQuerySchema>
