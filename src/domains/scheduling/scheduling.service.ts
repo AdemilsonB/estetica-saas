@@ -38,6 +38,7 @@ import { discountTypeRepository } from "@/domains/financial/discount-type.reposi
 
 import { appointmentRepository, type AppointmentFilters } from "./appointment.repository";
 import { availabilityService } from "./availability.service";
+import { schedulingPolicyRepository } from "./scheduling-policy.repository";
 import { packageRepository } from "./package.repository";
 import { promotionRepository } from "./promotion.repository";
 import { catalogServiceRepository } from "./service.repository";
@@ -81,6 +82,20 @@ export class SchedulingService {
 
   async listAppointments(tenantId: string, filters?: AppointmentFilters) {
     return appointmentRepository.findAll(tenantId, filters);
+  }
+
+  async getAppointmentCounts(
+    tenantId: string,
+    from: Date,
+    to: Date,
+  ): Promise<{ counts: Record<string, number>; capacity: number }> {
+    const [counts, policy] = await Promise.all([
+      appointmentRepository.countByDateRange(tenantId, from, to),
+      schedulingPolicyRepository.findByTenant(tenantId),
+    ])
+    const slotInterval = policy?.slotIntervalMinutes ?? 30
+    const capacity = Math.round(540 / slotInterval)
+    return { counts, capacity }
   }
 
   async createAppointment(
