@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Plus } from 'lucide-react'
+import { Plus, ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,6 +20,7 @@ export function RolesManager() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [creatingNew, setCreatingNew] = useState(false)
   const [newName, setNewName] = useState('')
+  const [mobileView, setMobileView] = useState<'list' | 'editor'>('list')
 
   function handleCreateSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -32,6 +33,7 @@ export function RolesManager() {
           setCreatingNew(false)
           setNewName('')
           setEditingId(created.id)
+          setMobileView('editor')
         },
         onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao criar cargo'),
       },
@@ -52,8 +54,12 @@ export function RolesManager() {
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
-      {/* Lista de cargos */}
-      <div className="w-full shrink-0 space-y-2 lg:w-56">
+      {/* Lista de cargos — visível no mobile apenas no step 'list' */}
+      <div
+        className={`w-full shrink-0 space-y-2 lg:block lg:w-56 ${
+          mobileView === 'editor' ? 'hidden' : 'block'
+        }`}
+      >
         {roles?.map((role) => (
           <div
             key={role.id}
@@ -62,7 +68,11 @@ export function RolesManager() {
                 ? 'border-slate-950 bg-slate-50'
                 : 'border-slate-200 hover:border-slate-300'
             }`}
-            onClick={() => { setEditingId(role.id); setCreatingNew(false) }}
+            onClick={() => {
+              setEditingId(role.id)
+              setCreatingNew(false)
+              setMobileView('editor')
+            }}
           >
             <div>
               <p className="text-sm font-medium text-slate-900">{role.name}</p>
@@ -72,13 +82,21 @@ export function RolesManager() {
               roleId={role.id}
               roleName={role.name}
               userCount={role._count.users}
-              onDeleted={() => { if (editingId === role.id) setEditingId(null) }}
+              onDeleted={() => {
+                if (editingId === role.id) {
+                  setEditingId(null)
+                  setMobileView('list')
+                }
+              }}
             />
           </div>
         ))}
 
         {creatingNew ? (
-          <form onSubmit={handleCreateSubmit} className="space-y-2 rounded-xl border border-slate-300 p-3">
+          <form
+            onSubmit={handleCreateSubmit}
+            className="space-y-2 rounded-xl border border-slate-300 p-3"
+          >
             <Label className="text-xs">Nome do cargo</Label>
             <Input
               value={newName}
@@ -87,10 +105,19 @@ export function RolesManager() {
               maxLength={50}
             />
             <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => { setCreatingNew(false); setNewName('') }}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => { setCreatingNew(false); setNewName('') }}
+              >
                 Cancelar
               </Button>
-              <Button type="submit" size="sm" disabled={!newName.trim() || createRole.isPending}>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={!newName.trim() || createRole.isPending}
+              >
                 {createRole.isPending ? '...' : 'Criar'}
               </Button>
             </div>
@@ -108,17 +135,35 @@ export function RolesManager() {
         )}
       </div>
 
-      {/* Painel de edição */}
-      <div className="min-w-0 flex-1">
+      {/* Painel de edição — visível no mobile apenas no step 'editor' */}
+      <div
+        className={`min-w-0 flex-1 lg:block ${
+          mobileView === 'list' ? 'hidden' : 'block'
+        }`}
+      >
         {editingRole ? (
-          <RoleEditor
-            key={editingRole.id}
-            role={editingRole}
-            sections={sections as NavSection[]}
-            onCancel={() => setEditingId(null)}
-          />
+          <>
+            {/* Botão voltar — apenas no mobile */}
+            <button
+              onClick={() => setMobileView('list')}
+              className="mb-4 flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 lg:hidden"
+            >
+              <ChevronLeft className="size-4" />
+              Cargos
+            </button>
+            <RoleEditor
+              key={editingRole.id}
+              role={editingRole}
+              sections={sections as NavSection[]}
+              onCancel={() => {
+                setEditingId(null)
+                setMobileView('list')
+              }}
+            />
+          </>
         ) : (
-          <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-slate-200">
+          // Estado vazio — oculto no mobile (nunca alcançável no fluxo normal)
+          <div className="hidden h-40 items-center justify-center rounded-xl border border-dashed border-slate-200 lg:flex">
             <p className="text-sm text-slate-400">Selecione um cargo para editar</p>
           </div>
         )}
