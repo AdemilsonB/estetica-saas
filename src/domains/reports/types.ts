@@ -1,6 +1,8 @@
 import { AppointmentStatus, TransactionType } from '@prisma/client'
 import { z } from 'zod'
 
+import type { KpiDelta } from './analytics-utils'
+
 // ── Financeiro ──────────────────────────────────────────────────────────────
 
 export const financialReportSchema = z.object({
@@ -9,15 +11,18 @@ export const financialReportSchema = z.object({
   type: z.nativeEnum(TransactionType).optional(),
   professionalId: z.string().cuid().optional(),
   serviceId: z.string().cuid().optional(),
+  categoryId: z.string().cuid().optional(),
   groupBy: z.enum(['profissional', 'servico']).default('servico'),
 })
 
 export type FinancialReportInput = z.infer<typeof financialReportSchema>
 
 export type FinancialReportRow = {
+  groupId: string | null
   label: string
   quantidade: number
   receita: number
+  ticketMedio: number
 }
 
 export type FinancialReport = {
@@ -27,6 +32,12 @@ export type FinancialReport = {
     estornos: number
     saldo: number
     ticketMedio: number
+    variacao: {
+      receita: KpiDelta
+      despesa: KpiDelta
+      saldo: KpiDelta
+      ticketMedio: KpiDelta
+    }
   }
   rows: FinancialReportRow[]
 }

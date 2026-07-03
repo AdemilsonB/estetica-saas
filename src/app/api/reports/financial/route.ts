@@ -19,6 +19,7 @@ export async function GET(request: Request) {
       type: sp.get('type') ?? undefined,
       professionalId: sp.get('professionalId') ?? undefined,
       serviceId: sp.get('serviceId') ?? undefined,
+      categoryId: sp.get('categoryId') ?? undefined,
       groupBy: sp.get('groupBy') ?? undefined,
     })
 

@@ -4,6 +4,7 @@ import { prisma } from '@/shared/database/prisma'
 import { dayBoundsInTz, monthBoundsInTz } from '@/lib/dates'
 import { featureGuard, FEATURES } from '@/domains/billing/feature-guard'
 import { isReversal } from '@/domains/financial/categories'
+import { percentDelta, previousWindow } from './analytics-utils'
 
 import type {
   AppointmentsReport,
@@ -44,30 +45,96 @@ export class ReportsService {
   ): Promise<FinancialReport> {
     const { from, to } = await this.resolvePeriod(tenantId, input)
 
-    const transactions = await prisma.transaction.findMany({
-      where: {
-        tenantId,
-        ...(input.type && { type: input.type }),
-        paidAt: { gte: from, lte: to },
-        ...((input.professionalId || input.serviceId) && {
+    const appointmentFilter = {
+      ...(input.professionalId && { professionalId: input.professionalId }),
+      ...(input.serviceId && { serviceId: input.serviceId }),
+      ...(input.categoryId && { service: { categoryId: input.categoryId } }),
+    }
+
+    const baseWhere = {
+      tenantId,
+      ...(input.type && { type: input.type }),
+      ...(Object.keys(appointmentFilter).length > 0 && { appointment: appointmentFilter }),
+    }
+
+    const [transactions, prevTransactions] = await Promise.all([
+      prisma.transaction.findMany({
+        where: { ...baseWhere, paidAt: { gte: from, lte: to } },
+        include: {
           appointment: {
-            ...(input.professionalId && { professionalId: input.professionalId }),
-            ...(input.serviceId && { serviceId: input.serviceId }),
-          },
-        }),
-      },
-      include: {
-        appointment: {
-          include: {
-            professional: { select: { id: true, name: true } },
-            service: { select: { id: true, name: true } },
+            include: {
+              professional: { select: { id: true, name: true } },
+              service: { select: { id: true, name: true } },
+            },
           },
         },
-      },
-    })
+      }),
+      (() => {
+        const prev = previousWindow(from, to)
+        return prisma.transaction.findMany({
+          where: { ...baseWhere, paidAt: { gte: prev.from, lte: prev.to } },
+          select: { type: true, amount: true, netAmount: true, category: true, appointmentId: true },
+        })
+      })(),
+    ])
 
-    const isReversalTx = (t: (typeof transactions)[0]) =>
-      isReversal(t.category, Number(t.amount))
+    const atual = this.summarizeFinancials(transactions)
+    const anterior = this.summarizeFinancials(prevTransactions)
+
+    type Group = { groupId: string | null; label: string; quantidade: number; receita: number }
+    const byGroup = new Map<string, Group>()
+    for (const tx of transactions.filter((t) => t.type === TransactionType.INCOME)) {
+      const groupId =
+        input.groupBy === 'profissional'
+          ? (tx.appointment?.professional?.id ?? null)
+          : (tx.appointment?.service?.id ?? null)
+      const label =
+        input.groupBy === 'profissional'
+          ? (tx.appointment?.professional?.name ?? 'Sem profissional')
+          : (tx.appointment?.service?.name ?? 'Sem serviço')
+      const key = groupId ?? label
+      const prev = byGroup.get(key) ?? { groupId, label, quantidade: 0, receita: 0 }
+      byGroup.set(key, {
+        groupId,
+        label,
+        quantidade: prev.quantidade + 1,
+        receita: prev.receita + Number(tx.netAmount ?? tx.amount),
+      })
+    }
+    const rows = [...byGroup.values()]
+      .map((g) => ({ ...g, ticketMedio: g.quantidade > 0 ? g.receita / g.quantidade : 0 }))
+      .sort((a, b) => b.receita - a.receita)
+
+    return {
+      kpis: {
+        receita: atual.receita,
+        despesa: atual.despesa,
+        estornos: atual.estornos,
+        saldo: atual.receita - atual.despesa,
+        ticketMedio: atual.ticketMedio,
+        variacao: {
+          receita: percentDelta(atual.receita, anterior.receita),
+          despesa: percentDelta(atual.despesa, anterior.despesa),
+          saldo: percentDelta(atual.receita - atual.despesa, anterior.receita - anterior.despesa),
+          ticketMedio: percentDelta(atual.ticketMedio, anterior.ticketMedio),
+        },
+      },
+      rows,
+    }
+  }
+
+  // Resume receita/despesa/estornos/ticket de um conjunto de transações
+  // (mesma regra para o período atual e o anterior).
+  private summarizeFinancials(
+    transactions: Array<{
+      type: TransactionType
+      amount: unknown
+      netAmount: unknown
+      category: string | null
+      appointmentId: string | null
+    }>,
+  ): { receita: number; despesa: number; estornos: number; ticketMedio: number } {
+    const isReversalTx = (t: (typeof transactions)[0]) => isReversal(t.category ?? '', Number(t.amount))
 
     const receita = transactions
       .filter((t) => t.type === TransactionType.INCOME)
@@ -85,31 +152,13 @@ export class ReportsService {
 
     const appointmentIdsComReceita = new Set(
       transactions
-        .filter((t) => t.type === TransactionType.INCOME && t.appointmentId)
-        .map((t) => t.appointmentId),
+        .filter((t) => t.type === TransactionType.INCOME && t.appointmentId !== null)
+        .map((t) => t.appointmentId as string),
     )
     const ticketMedio =
       appointmentIdsComReceita.size > 0 ? receita / appointmentIdsComReceita.size : 0
 
-    const byGroup = new Map<string, { label: string; quantidade: number; receita: number }>()
-    for (const tx of transactions.filter((t) => t.type === TransactionType.INCOME)) {
-      const label =
-        input.groupBy === 'profissional'
-          ? (tx.appointment?.professional?.name ?? 'Sem profissional')
-          : (tx.appointment?.service?.name ?? 'Sem serviço')
-      const prev = byGroup.get(label) ?? { label, quantidade: 0, receita: 0 }
-      byGroup.set(label, {
-        label,
-        quantidade: prev.quantidade + 1,
-        receita: prev.receita + Number(tx.netAmount ?? tx.amount),
-      })
-    }
-    const rows = [...byGroup.values()].sort((a, b) => b.receita - a.receita)
-
-    return {
-      kpis: { receita, despesa, estornos, saldo: receita - despesa, ticketMedio },
-      rows,
-    }
+    return { receita, despesa, estornos, ticketMedio }
   }
 
   async getAppointmentsReport(
