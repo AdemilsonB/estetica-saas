@@ -21,12 +21,17 @@ function toDateString(d: Date): string {
 }
 
 function toHourIndex(appt: Appointment): number {
-  const h = new Date(appt.startsAt).getHours()
-  return h - 7 // offset para o array HOURS
+  const hourStr = new Date(appt.startsAt).toLocaleString('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    hour: 'numeric',
+    hour12: false,
+  })
+  return parseInt(hourStr, 10) - 7 // offset para o array HOURS
 }
 
 function toTimeLabel(appt: Appointment): string {
   return new Date(appt.startsAt).toLocaleTimeString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
     hour: '2-digit',
     minute: '2-digit',
   })
@@ -70,7 +75,10 @@ export function AgendaWeekGrid({
     professionalId,
   })
 
-  const today = useMemo(() => new Date(), [])
+  const todayStr = useMemo(
+    () => toDateString(new Date()),
+    [],
+  )
 
   // Map: dateString → hourIndex → Appointment[]
   const grid = useMemo(() => {
@@ -95,8 +103,8 @@ export function AgendaWeekGrid({
           {/* Espaço para alinhar com a coluna de hora */}
           <div className="w-12 shrink-0" />
           {weekDays.map((d) => {
-            const isToday = d.toDateString() === today.toDateString()
-            const isSelected = d.toDateString() === selectedDate.toDateString()
+            const isToday = toDateString(d) === todayStr
+            const isSelected = toDateString(d) === toDateString(selectedDate)
             return (
               <button
                 key={toDateString(d)}
@@ -149,7 +157,7 @@ export function AgendaWeekGrid({
               {weekDays.map((d) => {
                 const key = toDateString(d)
                 const appts = grid[key]?.[hi] ?? []
-                const isToday = d.toDateString() === today.toDateString()
+                const isToday = toDateString(d) === todayStr
                 return (
                   <div
                     key={toDateString(d)}
