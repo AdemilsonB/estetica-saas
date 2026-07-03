@@ -35,10 +35,18 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
-    const code = new URLSearchParams(window.location.search).get('code');
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const urlError = params.get('error');
+
+    if (urlError) {
+      // Supabase redirecionou com ?error= — token expirado ou inválido
+      setSessionValid(false);
+      return;
+    }
 
     if (code) {
-      // PKCE flow: exchangeCodeForSession antes de getUser
+      // PKCE flow: troca o code pelo token de sessão antes de chamar getUser
       supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
         if (error || !data.session) {
           setSessionValid(false);
