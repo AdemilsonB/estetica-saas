@@ -24,7 +24,7 @@ export class BillingService {
 
     const now = new Date();
     const plan = await prisma.plan.findUnique({ where: { name: planName }, select: { trialDays: true } });
-    const trialEndsAt = addDays(now, plan?.trialDays ?? 14);
+    const trialEndsAt = addDays(now, plan?.trialDays ?? 0);
 
     const sub = await billingRepository.createSubscription({
       tenantId,
@@ -112,7 +112,8 @@ export class BillingService {
 
   async resetTrial(tenantId: string, adminId: string) {
     const now = new Date()
-    const trialEndsAt = addDays(now, 14)
+    const starterPlan = await prisma.plan.findUnique({ where: { name: PlanName.STARTER }, select: { trialDays: true } })
+    const trialEndsAt = addDays(now, starterPlan?.trialDays ?? 0)
 
     const current = await billingRepository.getSubscription(tenantId)
 

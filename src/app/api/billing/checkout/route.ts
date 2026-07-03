@@ -15,6 +15,14 @@ const CheckoutSchema = z.object({
   cancelUrl:  z.string().url().optional(),
 })
 
+// Statuses que indicam assinatura Stripe ativa/em andamento — bloqueia novo checkout
+const STRIPE_IN_PROGRESS: SubscriptionStatus[] = [
+  SubscriptionStatus.ACTIVE,
+  SubscriptionStatus.TRIALING,
+  SubscriptionStatus.PAST_DUE,
+]
+
+// Fallback para assinatura ativa sem stripeSubId (ex: race condition antes do webhook)
 const ACTIVE_STATUSES: SubscriptionStatus[] = [
   SubscriptionStatus.ACTIVE,
   SubscriptionStatus.PAST_DUE,
@@ -29,8 +37,9 @@ export async function POST(req: Request) {
 
     const sub = await billingRepository.getSubscription(session.tenantId)
 
-    // Bloqueia se já existe assinatura gerenciada pelo Stripe
-    if (sub?.stripeSubId) {
+    // Bloqueia se existe assinatura Stripe ativa/em andamento.
+    // CANCELLED e EXPIRED com stripeSubId podem fazer novo checkout.
+    if (sub?.stripeSubId && STRIPE_IN_PROGRESS.includes(sub.status)) {
       throw new DomainError(
         'Você já possui uma assinatura ativa. Para mudar de plano, use o portal de assinatura.',
         'SUBSCRIPTION_EXISTS',
@@ -38,10 +47,8 @@ export async function POST(req: Request) {
       )
     }
 
-    // Bloqueia se status já é de assinatura paga (protege contra race condition no webhook).
-    // TRIALING nunca tem stripeSubId, então já é coberto pelo bloqueio acima — trial em
-    // andamento ou expirado pode sempre seguir para o checkout.
-    if (sub && ACTIVE_STATUSES.includes(sub.status)) {
+    // Fallback: bloqueia se status indica ativa mesmo sem stripeSubId (race condition no webhook)
+    if (sub && !sub.stripeSubId && ACTIVE_STATUSES.includes(sub.status)) {
       throw new DomainError(
         'Você já possui uma assinatura ativa. Para mudar de plano, use o portal de assinatura.',
         'SUBSCRIPTION_EXISTS',
