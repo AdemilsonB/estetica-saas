@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { dayBoundsInTz, monthBoundsInTz } from './dates'
+import { dayBoundsInTz, monthBoundsInTz, startOfYear } from './dates'
 
 describe('dayBoundsInTz', () => {
   it('retorna meia-noite BRT (UTC-3) como start para America/Sao_Paulo no inverno', async () => {
@@ -54,5 +54,17 @@ describe('monthBoundsInTz', () => {
     const { start, end } = monthBoundsInTz('UTC', ref)
     expect(start.toISOString()).toBe('2028-02-01T00:00:00.000Z')
     expect(end.toISOString()).toBe('2028-02-29T23:59:59.999Z') // 29 dias em 2028
+  })
+})
+
+describe('startOfYear', () => {
+  it('retorna 1º de janeiro do ano da data, zerando horário', () => {
+    const d = new Date(2026, 6, 15, 14, 30, 45, 123)
+    const r = startOfYear(d)
+    expect(r.getFullYear()).toBe(2026)
+    expect(r.getMonth()).toBe(0)
+    expect(r.getDate()).toBe(1)
+    expect(r.getHours()).toBe(0)
+    expect(r.getMinutes()).toBe(0)
   })
 })

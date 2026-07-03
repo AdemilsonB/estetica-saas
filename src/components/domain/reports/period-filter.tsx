@@ -4,13 +4,13 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import {
-  startOfDay, endOfDay, startOfWeek, endOfWeek,
-  startOfMonth, startOfPrevMonth, endOfPrevMonth,
+  startOfDay, endOfDay, addDays,
+  startOfMonth, startOfPrevMonth, endOfPrevMonth, startOfYear,
 } from '@/lib/dates'
 
 export type PeriodValue = { from: string; to: string }
 
-type Preset = 'hoje' | 'semana' | 'mes' | 'mes-passado' | 'personalizado'
+type Preset = 'hoje' | '7dias' | 'mes' | 'mes-passado' | 'ano' | 'personalizado'
 
 function toISO(d: Date) {
   return d.toISOString()
@@ -20,18 +20,20 @@ function presetToPeriod(preset: Exclude<Preset, 'personalizado'>): PeriodValue {
   const now = new Date()
   const map: Record<Exclude<Preset, 'personalizado'>, PeriodValue> = {
     hoje: { from: toISO(startOfDay(now)), to: toISO(endOfDay(now)) },
-    semana: { from: toISO(startOfWeek(now)), to: toISO(endOfWeek(now)) },
+    '7dias': { from: toISO(startOfDay(addDays(now, -6))), to: toISO(endOfDay(now)) },
     mes: { from: toISO(startOfMonth(now)), to: toISO(endOfDay(now)) },
     'mes-passado': { from: toISO(startOfPrevMonth(now)), to: toISO(endOfPrevMonth(now)) },
+    ano: { from: toISO(startOfYear(now)), to: toISO(endOfDay(now)) },
   }
   return map[preset]
 }
 
 const PRESETS: { key: Preset; label: string }[] = [
   { key: 'hoje', label: 'Hoje' },
-  { key: 'semana', label: 'Esta semana' },
+  { key: '7dias', label: '7 dias' },
   { key: 'mes', label: 'Este mês' },
   { key: 'mes-passado', label: 'Mês passado' },
+  { key: 'ano', label: 'Este ano' },
   { key: 'personalizado', label: 'Personalizado' },
 ]
 
