@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import type { CustomersReport } from '@/domains/reports/types'
 
 export type CustomersReportParams = {
@@ -6,6 +6,8 @@ export type CustomersReportParams = {
   to?: string
   professionalId?: string
   serviceId?: string
+  page?: number
+  sortBy?: 'receita' | 'atendimentos' | 'ticketMedio'
 }
 
 async function fetchCustomersReport(params: CustomersReportParams): Promise<CustomersReport> {
@@ -14,6 +16,8 @@ async function fetchCustomersReport(params: CustomersReportParams): Promise<Cust
   if (params.to) url.searchParams.set('to', params.to)
   if (params.professionalId) url.searchParams.set('professionalId', params.professionalId)
   if (params.serviceId) url.searchParams.set('serviceId', params.serviceId)
+  if (params.page) url.searchParams.set('page', String(params.page))
+  if (params.sortBy) url.searchParams.set('sortBy', params.sortBy)
   const res = await fetch(url)
   if (!res.ok) throw new Error('Falha ao carregar relatório de clientes')
   return res.json()
@@ -24,5 +28,6 @@ export function useCustomersReport(params: CustomersReportParams) {
     queryKey: ['reports', 'customers', params],
     queryFn: () => fetchCustomersReport(params),
     staleTime: 60_000,
+    placeholderData: keepPreviousData,
   })
 }

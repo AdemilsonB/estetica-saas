@@ -1,10 +1,11 @@
-import { AppointmentStatus, TransactionType } from '@prisma/client'
+import { AppointmentStatus, Prisma, TransactionType } from '@prisma/client'
 
 import { prisma } from '@/shared/database/prisma'
 import { dayBoundsInTz, monthBoundsInTz } from '@/lib/dates'
-import { featureGuard, FEATURES } from '@/domains/billing/feature-guard'
 import { isReversal } from '@/domains/financial/categories'
+import { percentDelta, pointsDelta, previousWindow } from './analytics-utils'
 
+import { CUSTOMERS_PAGE_SIZE } from './types'
 import type {
   AppointmentsReport,
   AppointmentsReportInput,
@@ -12,8 +13,6 @@ import type {
   CustomersReportInput,
   FinancialReport,
   FinancialReportInput,
-  ProfessionalsReport,
-  ProfessionalsReportInput,
 } from './types'
 
 export class ReportsService {
@@ -44,30 +43,96 @@ export class ReportsService {
   ): Promise<FinancialReport> {
     const { from, to } = await this.resolvePeriod(tenantId, input)
 
-    const transactions = await prisma.transaction.findMany({
-      where: {
-        tenantId,
-        ...(input.type && { type: input.type }),
-        paidAt: { gte: from, lte: to },
-        ...((input.professionalId || input.serviceId) && {
+    const appointmentFilter = {
+      ...(input.professionalId && { professionalId: input.professionalId }),
+      ...(input.serviceId && { serviceId: input.serviceId }),
+      ...(input.categoryId && { service: { categoryId: input.categoryId } }),
+    }
+
+    const baseWhere = {
+      tenantId,
+      ...(input.type && { type: input.type }),
+      ...(Object.keys(appointmentFilter).length > 0 && { appointment: appointmentFilter }),
+    }
+
+    const [transactions, prevTransactions] = await Promise.all([
+      prisma.transaction.findMany({
+        where: { ...baseWhere, paidAt: { gte: from, lte: to } },
+        include: {
           appointment: {
-            ...(input.professionalId && { professionalId: input.professionalId }),
-            ...(input.serviceId && { serviceId: input.serviceId }),
-          },
-        }),
-      },
-      include: {
-        appointment: {
-          include: {
-            professional: { select: { id: true, name: true } },
-            service: { select: { id: true, name: true } },
+            include: {
+              professional: { select: { id: true, name: true } },
+              service: { select: { id: true, name: true } },
+            },
           },
         },
-      },
-    })
+      }),
+      (() => {
+        const prev = previousWindow(from, to)
+        return prisma.transaction.findMany({
+          where: { ...baseWhere, paidAt: { gte: prev.from, lte: prev.to } },
+          select: { type: true, amount: true, netAmount: true, category: true, appointmentId: true },
+        })
+      })(),
+    ])
 
-    const isReversalTx = (t: (typeof transactions)[0]) =>
-      isReversal(t.category, Number(t.amount))
+    const atual = this.summarizeFinancials(transactions)
+    const anterior = this.summarizeFinancials(prevTransactions)
+
+    type Group = { groupId: string | null; label: string; quantidade: number; receita: number }
+    const byGroup = new Map<string, Group>()
+    for (const tx of transactions.filter((t) => t.type === TransactionType.INCOME)) {
+      const groupId =
+        input.groupBy === 'profissional'
+          ? (tx.appointment?.professional?.id ?? null)
+          : (tx.appointment?.service?.id ?? null)
+      const label =
+        input.groupBy === 'profissional'
+          ? (tx.appointment?.professional?.name ?? 'Sem profissional')
+          : (tx.appointment?.service?.name ?? 'Sem serviço')
+      const key = groupId ?? label
+      const prev = byGroup.get(key) ?? { groupId, label, quantidade: 0, receita: 0 }
+      byGroup.set(key, {
+        groupId,
+        label,
+        quantidade: prev.quantidade + 1,
+        receita: prev.receita + Number(tx.netAmount ?? tx.amount),
+      })
+    }
+    const rows = [...byGroup.values()]
+      .map((g) => ({ ...g, ticketMedio: g.quantidade > 0 ? g.receita / g.quantidade : 0 }))
+      .sort((a, b) => b.receita - a.receita)
+
+    return {
+      kpis: {
+        receita: atual.receita,
+        despesa: atual.despesa,
+        estornos: atual.estornos,
+        saldo: atual.receita - atual.despesa,
+        ticketMedio: atual.ticketMedio,
+        variacao: {
+          receita: percentDelta(atual.receita, anterior.receita),
+          despesa: percentDelta(atual.despesa, anterior.despesa),
+          saldo: percentDelta(atual.receita - atual.despesa, anterior.receita - anterior.despesa),
+          ticketMedio: percentDelta(atual.ticketMedio, anterior.ticketMedio),
+        },
+      },
+      rows,
+    }
+  }
+
+  // Resume receita/despesa/estornos/ticket de um conjunto de transações
+  // (mesma regra para o período atual e o anterior).
+  private summarizeFinancials(
+    transactions: Array<{
+      type: TransactionType
+      amount: unknown
+      netAmount: unknown
+      category: string | null
+      appointmentId: string | null
+    }>,
+  ): { receita: number; despesa: number; estornos: number; ticketMedio: number } {
+    const isReversalTx = (t: (typeof transactions)[0]) => isReversal(t.category ?? '', Number(t.amount))
 
     const receita = transactions
       .filter((t) => t.type === TransactionType.INCOME)
@@ -85,31 +150,13 @@ export class ReportsService {
 
     const appointmentIdsComReceita = new Set(
       transactions
-        .filter((t) => t.type === TransactionType.INCOME && t.appointmentId)
-        .map((t) => t.appointmentId),
+        .filter((t) => t.type === TransactionType.INCOME && t.appointmentId !== null)
+        .map((t) => t.appointmentId as string),
     )
     const ticketMedio =
       appointmentIdsComReceita.size > 0 ? receita / appointmentIdsComReceita.size : 0
 
-    const byGroup = new Map<string, { label: string; quantidade: number; receita: number }>()
-    for (const tx of transactions.filter((t) => t.type === TransactionType.INCOME)) {
-      const label =
-        input.groupBy === 'profissional'
-          ? (tx.appointment?.professional?.name ?? 'Sem profissional')
-          : (tx.appointment?.service?.name ?? 'Sem serviço')
-      const prev = byGroup.get(label) ?? { label, quantidade: 0, receita: 0 }
-      byGroup.set(label, {
-        label,
-        quantidade: prev.quantidade + 1,
-        receita: prev.receita + Number(tx.netAmount ?? tx.amount),
-      })
-    }
-    const rows = [...byGroup.values()].sort((a, b) => b.receita - a.receita)
-
-    return {
-      kpis: { receita, despesa, estornos, saldo: receita - despesa, ticketMedio },
-      rows,
-    }
+    return { receita, despesa, estornos, ticketMedio }
   }
 
   async getAppointmentsReport(
@@ -118,14 +165,17 @@ export class ReportsService {
   ): Promise<AppointmentsReport> {
     const { from, to } = await this.resolvePeriod(tenantId, input)
 
+    const appointmentWhere = {
+      tenantId,
+      startsAt: { gte: from, lte: to },
+      ...(input.status?.length && { status: { in: input.status } }),
+      ...(input.professionalId && { professionalId: input.professionalId }),
+      ...(input.serviceId && { serviceId: input.serviceId }),
+      ...(input.categoryId && { service: { categoryId: input.categoryId } }),
+    }
+
     const appointments = await prisma.appointment.findMany({
-      where: {
-        tenantId,
-        startsAt: { gte: from, lte: to },
-        ...(input.status?.length && { status: { in: input.status } }),
-        ...(input.professionalId && { professionalId: input.professionalId }),
-        ...(input.serviceId && { serviceId: input.serviceId }),
-      },
+      where: appointmentWhere,
       include: {
         professional: { select: { id: true, name: true } },
         service: { select: { id: true, name: true } },
@@ -138,6 +188,25 @@ export class ReportsService {
     const naoCompareceu = appointments.filter((a) => a.status === AppointmentStatus.NO_SHOW).length
     const taxaConclusao = total > 0 ? Math.round((concluidos / total) * 100) : 0
 
+    // Busca janela anterior por agregação (sem carregar linhas completas)
+    const prev = previousWindow(from, to)
+    const prevGroups = await prisma.appointment.groupBy({
+      by: ['status'],
+      where: {
+        tenantId,
+        startsAt: { gte: prev.from, lte: prev.to },
+        ...(input.status?.length && { status: { in: input.status } }),
+        ...(input.professionalId && { professionalId: input.professionalId }),
+        ...(input.serviceId && { serviceId: input.serviceId }),
+        ...(input.categoryId && { service: { categoryId: input.categoryId } }),
+      },
+      _count: { _all: true },
+    })
+    const prevTotal = prevGroups.reduce((s, g) => s + g._count._all, 0)
+    const prevConcluidos =
+      prevGroups.find((g) => g.status === AppointmentStatus.COMPLETED)?._count._all ?? 0
+    const prevTaxa = prevTotal > 0 ? Math.round((prevConcluidos / prevTotal) * 100) : 0
+
     type RowAcc = { label: string; total: number; concluidos: number; cancelados: number; naoCompareceu: number }
     const byGroup = new Map<string, RowAcc>()
     for (const apt of appointments) {
@@ -145,18 +214,32 @@ export class ReportsService {
         input.groupBy === 'servico'
           ? (apt.service?.name ?? 'Sem serviço')
           : (apt.professional?.name ?? 'Sem profissional')
-      const prev = byGroup.get(label) ?? { label, total: 0, concluidos: 0, cancelados: 0, naoCompareceu: 0 }
+      const prevRow = byGroup.get(label) ?? { label, total: 0, concluidos: 0, cancelados: 0, naoCompareceu: 0 }
       byGroup.set(label, {
         label,
-        total: prev.total + 1,
-        concluidos: prev.concluidos + (apt.status === AppointmentStatus.COMPLETED ? 1 : 0),
-        cancelados: prev.cancelados + (apt.status === AppointmentStatus.CANCELLED ? 1 : 0),
-        naoCompareceu: prev.naoCompareceu + (apt.status === AppointmentStatus.NO_SHOW ? 1 : 0),
+        total: prevRow.total + 1,
+        concluidos: prevRow.concluidos + (apt.status === AppointmentStatus.COMPLETED ? 1 : 0),
+        cancelados: prevRow.cancelados + (apt.status === AppointmentStatus.CANCELLED ? 1 : 0),
+        naoCompareceu: prevRow.naoCompareceu + (apt.status === AppointmentStatus.NO_SHOW ? 1 : 0),
       })
     }
     const rows = [...byGroup.values()].sort((a, b) => b.total - a.total)
 
-    return { kpis: { total, concluidos, cancelados, naoCompareceu, taxaConclusao }, rows }
+    return {
+      kpis: {
+        total,
+        concluidos,
+        cancelados,
+        naoCompareceu,
+        taxaConclusao,
+        variacao: {
+          total: percentDelta(total, prevTotal),
+          concluidos: percentDelta(concluidos, prevConcluidos),
+          taxaConclusaoPp: pointsDelta(taxaConclusao, prevTaxa),
+        },
+      },
+      rows,
+    }
   }
 
   async getCustomersReport(
@@ -164,117 +247,112 @@ export class ReportsService {
     input: CustomersReportInput,
   ): Promise<CustomersReport> {
     const { from, to } = await this.resolvePeriod(tenantId, input)
+    const page = input.page ?? 1
+    const sortBy = input.sortBy ?? 'receita'
+    const offset = (page - 1) * CUSTOMERS_PAGE_SIZE
+    const prev = previousWindow(from, to)
 
-    const appointments = await prisma.appointment.findMany({
-      where: {
-        tenantId,
-        startsAt: { gte: from, lte: to },
-        status: { not: AppointmentStatus.CANCELLED },
-        ...(input.professionalId && { professionalId: input.professionalId }),
-        ...(input.serviceId && { serviceId: input.serviceId }),
-      },
-      include: {
-        customer: { select: { id: true, name: true } },
-        transactions: { select: { amount: true, netAmount: true, type: true } },
-      },
-      orderBy: { startsAt: 'desc' },
+    // Filtros compartilhados entre ranking (SQL) e KPIs (Prisma).
+    const sqlFilters = Prisma.sql`
+      a."tenantId" = ${tenantId}
+      AND a."startsAt" BETWEEN ${from} AND ${to}
+      AND a.status <> 'CANCELLED'::"AppointmentStatus"
+      ${input.professionalId ? Prisma.sql`AND a."professionalId" = ${input.professionalId}` : Prisma.empty}
+      ${input.serviceId ? Prisma.sql`AND a."serviceId" = ${input.serviceId}` : Prisma.empty}
+    `
+    const orderBy =
+      sortBy === 'atendimentos'
+        ? Prisma.sql`atendimentos DESC`
+        : sortBy === 'ticketMedio'
+          ? Prisma.sql`"ticketMedio" DESC`
+          : Prisma.sql`receita DESC`
+
+    const whereBase = (janela: { from: Date; to: Date }) => ({
+      tenantId,
+      startsAt: { gte: janela.from, lte: janela.to },
+      status: { not: AppointmentStatus.CANCELLED },
+      ...(input.professionalId && { professionalId: input.professionalId }),
+      ...(input.serviceId && { serviceId: input.serviceId }),
     })
 
-    type CustomerAcc = {
-      nome: string
+    type RawRow = {
+      id: string
+      clienteNome: string
       atendimentos: number
       receita: number
+      ticketMedio: number
       ultimoAtendimento: Date
     }
-    const byCustomer = new Map<string, CustomerAcc>()
-    for (const apt of appointments) {
-      const prev = byCustomer.get(apt.customerId)
-      const receita = apt.transactions
-        .filter((t) => t.type === TransactionType.INCOME)
-        .reduce((s, t) => s + Number(t.netAmount ?? t.amount), 0)
-      byCustomer.set(apt.customerId, {
-        nome: apt.customer.name,
-        atendimentos: (prev?.atendimentos ?? 0) + 1,
-        receita: (prev?.receita ?? 0) + receita,
-        ultimoAtendimento: prev
-          ? prev.ultimoAtendimento > apt.startsAt
-            ? prev.ultimoAtendimento
-            : apt.startsAt
-          : apt.startsAt,
-      })
+
+    const [rawRows, totalRows, curGroups, prevGroups, novos, novosPrev] = await Promise.all([
+      prisma.$queryRaw<RawRow[]>`
+        SELECT
+          c.id,
+          c.name AS "clienteNome",
+          COUNT(DISTINCT a.id)::int AS atendimentos,
+          COALESCE(SUM(CASE WHEN t.type = 'INCOME'::"TransactionType"
+            THEN COALESCE(t."netAmount", t.amount) ELSE 0 END), 0)::float AS receita,
+          (COALESCE(SUM(CASE WHEN t.type = 'INCOME'::"TransactionType"
+            THEN COALESCE(t."netAmount", t.amount) ELSE 0 END), 0)
+            / COUNT(DISTINCT a.id))::float AS "ticketMedio",
+          MAX(a."startsAt") AS "ultimoAtendimento"
+        FROM "Appointment" a
+        JOIN "Customer" c ON c.id = a."customerId"
+        LEFT JOIN "Transaction" t ON t."appointmentId" = a.id
+        WHERE ${sqlFilters}
+        GROUP BY c.id, c.name
+        ORDER BY ${orderBy}
+        LIMIT ${CUSTOMERS_PAGE_SIZE} OFFSET ${offset}
+      `,
+      prisma.$queryRaw<{ total: number }[]>`
+        SELECT COUNT(DISTINCT a."customerId")::int AS total
+        FROM "Appointment" a
+        WHERE ${sqlFilters}
+      `,
+      prisma.appointment.groupBy({
+        by: ['customerId'],
+        where: whereBase({ from, to }),
+        _count: { _all: true },
+      }),
+      prisma.appointment.groupBy({
+        by: ['customerId'],
+        where: whereBase(prev),
+        _count: { _all: true },
+      }),
+      prisma.customer.count({ where: { tenantId, createdAt: { gte: from, lte: to } } }),
+      prisma.customer.count({ where: { tenantId, createdAt: { gte: prev.from, lte: prev.to } } }),
+    ])
+
+    const totalAtivos = curGroups.length
+    const retorno = curGroups.filter((g) => g._count._all >= 2).length
+    const prevAtivos = prevGroups.length
+    const prevRetorno = prevGroups.filter((g) => g._count._all >= 2).length
+
+    return {
+      kpis: {
+        totalAtivos,
+        novosNoPeriodo: novos,
+        retorno,
+        variacao: {
+          totalAtivos: percentDelta(totalAtivos, prevAtivos),
+          novosNoPeriodo: percentDelta(novos, novosPrev),
+          retorno: percentDelta(retorno, prevRetorno),
+        },
+      },
+      rows: rawRows.map((r) => ({
+        clienteId: r.id,
+        clienteNome: r.clienteNome,
+        atendimentos: r.atendimentos,
+        receita: r.receita,
+        ticketMedio: r.ticketMedio,
+        ultimoAtendimento: r.ultimoAtendimento.toISOString(),
+      })),
+      total: totalRows[0]?.total ?? 0,
+      page,
+      pageSize: CUSTOMERS_PAGE_SIZE,
     }
-
-    const totalAtivos = byCustomer.size
-    const retorno = [...byCustomer.values()].filter((c) => c.atendimentos >= 2).length
-
-    const novosNoPeriodo = await prisma.customer.count({
-      where: { tenantId, createdAt: { gte: from, lte: to } },
-    })
-
-    const rows = [...byCustomer.values()]
-      .sort((a, b) => b.atendimentos - a.atendimentos)
-      .map((c) => ({
-        clienteNome: c.nome,
-        atendimentos: c.atendimentos,
-        receita: c.receita,
-        ultimoAtendimento: c.ultimoAtendimento.toISOString(),
-      }))
-
-    return { kpis: { totalAtivos, novosNoPeriodo, retorno }, rows }
   }
 
-  async getProfessionalsReport(
-    tenantId: string,
-    input: ProfessionalsReportInput,
-  ): Promise<ProfessionalsReport> {
-    await featureGuard.assertAccess(tenantId, FEATURES.REPORTS_ADVANCED)
-
-    const { from, to } = await this.resolvePeriod(tenantId, input)
-
-    const appointments = await prisma.appointment.findMany({
-      where: {
-        tenantId,
-        startsAt: { gte: from, lte: to },
-        ...(input.status?.length && { status: { in: input.status } }),
-        ...(input.professionalIds?.length && {
-          professionalId: { in: input.professionalIds },
-        }),
-        ...(input.serviceId && { serviceId: input.serviceId }),
-      },
-      include: {
-        professional: { select: { id: true, name: true } },
-        transactions: { select: { amount: true, netAmount: true, type: true } },
-      },
-    })
-
-    type ProfAcc = { nome: string; atendimentos: number; receita: number }
-    const byProf = new Map<string, ProfAcc>()
-    for (const apt of appointments) {
-      const prev = byProf.get(apt.professionalId)
-      const receita = apt.transactions
-        .filter((t) => t.type === TransactionType.INCOME)
-        .reduce((s, t) => s + Number(t.netAmount ?? t.amount), 0)
-      byProf.set(apt.professionalId, {
-        nome: apt.professional.name,
-        atendimentos: (prev?.atendimentos ?? 0) + 1,
-        receita: (prev?.receita ?? 0) + receita,
-      })
-    }
-
-    const totalAtendimentos = appointments.length
-    const receitaTotal = [...byProf.values()].reduce((s, p) => s + p.receita, 0)
-
-    const rows = [...byProf.values()]
-      .sort((a, b) => b.receita - a.receita)
-      .map((p) => ({
-        profissionalNome: p.nome,
-        atendimentos: p.atendimentos,
-        receita: p.receita,
-        ticketMedio: p.atendimentos > 0 ? p.receita / p.atendimentos : 0,
-      }))
-
-    return { kpis: { totalAtendimentos, receitaTotal }, rows }
-  }
 }
 
 export const reportsService = new ReportsService()

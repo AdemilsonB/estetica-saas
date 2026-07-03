@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
+import { VisaoGeralClient } from './visao-geral-client'
 
 export default function RelatoriosPage() {
-  redirect('/relatorios/financeiro')
+  return <VisaoGeralClient />
 }

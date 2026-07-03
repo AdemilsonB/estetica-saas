@@ -7,6 +7,7 @@ export type AppointmentsReportParams = {
   status?: string[]
   professionalId?: string
   serviceId?: string
+  categoryId?: string
   groupBy?: 'profissional' | 'servico'
 }
 
@@ -17,6 +18,7 @@ async function fetchAppointmentsReport(params: AppointmentsReportParams): Promis
   params.status?.forEach((s) => url.searchParams.append('status', s))
   if (params.professionalId) url.searchParams.set('professionalId', params.professionalId)
   if (params.serviceId) url.searchParams.set('serviceId', params.serviceId)
+  if (params.categoryId) url.searchParams.set('categoryId', params.categoryId)
   if (params.groupBy) url.searchParams.set('groupBy', params.groupBy)
   const res = await fetch(url)
   if (!res.ok) throw new Error('Falha ao carregar relatório de agendamentos')

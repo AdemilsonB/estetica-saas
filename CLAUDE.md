@@ -206,7 +206,7 @@ Nunca entregar componente de UI sem passar pelo checklist do `agent-mobile`.
 | Financial | ✅ | ✅ | Checkout, despesas, comissões, taxas, estornos |
 | Notifications | ✅ | ✅ | Evolution API primário (WhatsApp), email fallback via Resend, 6 templates |
 | Dashboard | ✅ | ✅ | Métricas + polling 30s |
-| Reports | ✅ | ✅ | 4 relatórios + filtros + CSV |
+| Reports | ✅ | ✅ | 4 páginas (Visão Geral, Financeiro, Agendamentos, Clientes); KPIs com % de variação vs. período anterior; gráficos Recharts (line, donut, heatmap de sazonalidade); filtro de categoria; clientes inativos com ação WhatsApp; paginação server-side; feature gate `reports_advanced` com upsell inline |
 | Settings | ✅ | ✅ | Cargos, Meu Link (QR Code, WhatsApp, Instagram) |
 | Serviços | ✅ | ✅ | 3 abas: Serviços, Pacotes, Promoções; anamnese por serviço; imagens em proporção retrato 4:5 padronizada com editor de enquadramento (zoom/posição) |
 | Produtos/Estoque | ✅ | ✅ | Catálogo, movimentação, reflexo financeiro; imagem com editor de enquadramento (zoom/posição) |

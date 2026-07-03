@@ -2,24 +2,28 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { BarChart2, Calendar, Users, Scissors } from 'lucide-react'
+import { BarChart2, Calendar, LineChart, Users } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
 const REPORT_ITEMS = [
+  { label: 'Visão Geral', href: '/relatorios', icon: LineChart },
   { label: 'Financeiro', href: '/relatorios/financeiro', icon: BarChart2 },
   { label: 'Agendamentos', href: '/relatorios/agendamentos', icon: Calendar },
   { label: 'Clientes', href: '/relatorios/clientes', icon: Users },
-  { label: 'Profissionais', href: '/relatorios/profissionais', icon: Scissors },
 ] as const
+
+function isItemActive(pathname: string, href: string): boolean {
+  if (href === '/relatorios') return pathname === '/relatorios'
+  return pathname === href || pathname.startsWith(href + '/')
+}
 
 export function ReportsSidebar() {
   const pathname = usePathname()
   const router = useRouter()
 
   const activeHref =
-    REPORT_ITEMS.find((i) => pathname === i.href || pathname.startsWith(i.href + '/'))?.href ??
-    REPORT_ITEMS[0].href
+    REPORT_ITEMS.find((i) => isItemActive(pathname, i.href))?.href ?? REPORT_ITEMS[0].href
 
   return (
     <>
@@ -45,7 +49,7 @@ export function ReportsSidebar() {
           Tipo de relatório
         </p>
         {REPORT_ITEMS.map(({ label, href, icon: Icon }) => {
-          const isActive = pathname === href || pathname.startsWith(href + '/')
+          const isActive = isItemActive(pathname, href)
           return (
             <Link
               key={href}
