@@ -84,15 +84,18 @@ function toHour(appt: Appointment) {
 
 type ViewMode = 'day' | 'week' | 'month'
 
+const PROF_FILTER_KEY = (userId: string) => `agende:agenda-prof-filter:${userId}`
+
 type Props = {
-  date?: Date
+  onDateChange?: (d: Date) => void
 }
 
-export function AgendaDayView({ date: dateProp }: Props = {}) {
+export function AgendaDayView({ onDateChange }: Props = {}) {
   const [internalDate, setInternalDate] = useState(new Date())
-  const selectedDate = dateProp ?? internalDate
-  const setSelectedDate = (d: Date) => {
-    if (!dateProp) setInternalDate(d)
+  const selectedDate = internalDate
+  function setSelectedDate(d: Date) {
+    setInternalDate(d)
+    onDateChange?.(d)
   }
   const [viewMode, setViewMode] = useState<ViewMode>('day')
   const [selectedAppointment, setSelectedAppointment] =
@@ -122,9 +125,31 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
 
   useEffect(() => {
     if (!canViewAll || teamMembers.length === 0 || selectedProfessionalIds.length > 0) return
+    if (currentUser?.id) {
+      try {
+        const saved = localStorage.getItem(PROF_FILTER_KEY(currentUser.id))
+        if (saved) {
+          const parsed = JSON.parse(saved) as string[]
+          const valid = parsed.filter((id) => teamMembers.some((m) => m.id === id))
+          if (valid.length > 0) {
+            setSelectedProfessionalIds(valid)
+            return
+          }
+        }
+      } catch {}
+    }
     setSelectedProfessionalIds(teamMembers.map((m) => m.id))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canViewAll, teamMembers])
+  }, [canViewAll, teamMembers, currentUser?.id])
+
+  function handleProfessionalFilterChange(ids: string[]) {
+    setSelectedProfessionalIds(ids)
+    if (currentUser?.id) {
+      try {
+        localStorage.setItem(PROF_FILTER_KEY(currentUser.id), JSON.stringify(ids))
+      } catch {}
+    }
+  }
 
   // Sem view_all: comportamento original — profissional vê só seus agendamentos
   // Com view_all e 1 selecionado: filtra por esse profissional na API
@@ -246,7 +271,7 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
         {canViewAll && currentUser && (
           <ProfessionalFilter
             selectedIds={selectedProfessionalIds}
-            onChange={setSelectedProfessionalIds}
+            onChange={handleProfessionalFilterChange}
             currentUserId={currentUser.id}
           />
         )}
@@ -262,8 +287,8 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
         )}
       </div>
 
-      {/* Strip semanal (apenas quando gerenciado internamente e fora do modo mês) */}
-      {!dateProp && viewMode !== 'month' && (
+      {/* Strip semanal — oculto no modo mês (o calendário mensal tem sua própria navegação) */}
+      {viewMode !== 'month' && (
         <AgendaWeekStrip
           selectedDate={selectedDate}
           onSelectDate={(d) => {
@@ -284,9 +309,7 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
       {viewMode === 'month' && (
         <AgendaMonthView
           selectedDate={selectedDate}
-          onSelectDate={(d) => {
-            if (!dateProp) setInternalDate(d)
-          }}
+          onSelectDate={(d) => setSelectedDate(d)}
           onSelectDayView={() => setViewMode('day')}
         />
       )}
@@ -336,7 +359,7 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
             <AgendaWeekGrid
               selectedDate={selectedDate}
               onSelectDate={(d) => {
-                if (!dateProp) setInternalDate(d)
+                setSelectedDate(d)
                 setViewMode('day')
               }}
               onAppointmentClick={handleCardClick}
