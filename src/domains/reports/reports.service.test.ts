@@ -106,6 +106,76 @@ describe('ReportsService.getAppointmentsReport — variação e categoria', () =
   })
 })
 
+describe('ReportsService.getCustomersReport — ranking paginado no banco', () => {
+  const rawRow = {
+    id: 'c1',
+    clienteNome: 'Maria',
+    atendimentos: 3,
+    receita: 300,
+    ticketMedio: 100,
+    ultimoAtendimento: new Date('2026-06-20T14:00:00.000Z'),
+  }
+
+  beforeEach(() => {
+    prismaMock.$queryRaw.mockReset()
+    prismaMock.appointment.groupBy.mockReset()
+    prismaMock.customer.count.mockReset()
+    prismaMock.tenant.findFirstOrThrow.mockResolvedValue({
+      timezone: 'America/Sao_Paulo',
+    } as never)
+  })
+
+  it('retorna rows do banco com paginação e serializa datas', async () => {
+    prismaMock.$queryRaw
+      .mockResolvedValueOnce([rawRow] as never) // ranking
+      .mockResolvedValueOnce([{ total: 42 }] as never) // count distinct
+    prismaMock.appointment.groupBy
+      .mockResolvedValueOnce([{ customerId: 'c1', _count: { _all: 3 } }] as never) // atual
+      .mockResolvedValueOnce([] as never) // anterior
+    prismaMock.customer.count
+      .mockResolvedValueOnce(5 as never) // novos atual
+      .mockResolvedValueOnce(2 as never) // novos anterior
+
+    const report = await service.getCustomersReport('tenant-1', { page: 2 })
+
+    expect(report.rows[0]).toEqual({
+      clienteId: 'c1',
+      clienteNome: 'Maria',
+      atendimentos: 3,
+      receita: 300,
+      ticketMedio: 100,
+      ultimoAtendimento: '2026-06-20T14:00:00.000Z',
+    })
+    expect(report.total).toBe(42)
+    expect(report.page).toBe(2)
+    expect(report.pageSize).toBe(20)
+  })
+
+  it('calcula KPIs e variações a partir das agregações', async () => {
+    prismaMock.$queryRaw
+      .mockResolvedValueOnce([] as never)
+      .mockResolvedValueOnce([{ total: 0 }] as never)
+    prismaMock.appointment.groupBy
+      .mockResolvedValueOnce([
+        { customerId: 'c1', _count: { _all: 3 } },
+        { customerId: 'c2', _count: { _all: 1 } },
+      ] as never) // atual: 2 ativos, 1 com retorno
+      .mockResolvedValueOnce([{ customerId: 'c9', _count: { _all: 2 } }] as never) // anterior: 1 ativo, 1 retorno
+    prismaMock.customer.count
+      .mockResolvedValueOnce(4 as never)
+      .mockResolvedValueOnce(2 as never)
+
+    const report = await service.getCustomersReport('tenant-1', {})
+
+    expect(report.kpis.totalAtivos).toBe(2)
+    expect(report.kpis.retorno).toBe(1)
+    expect(report.kpis.novosNoPeriodo).toBe(4)
+    expect(report.kpis.variacao.totalAtivos).toBe(100) // 2 vs 1
+    expect(report.kpis.variacao.novosNoPeriodo).toBe(100) // 4 vs 2
+    expect(report.kpis.variacao.retorno).toBe(0) // 1 vs 1
+  })
+})
+
 describe('ReportsService.getFinancialReport — ticket médio, variação e categoria', () => {
   beforeEach(() => {
     prismaMock.transaction.findMany.mockReset()

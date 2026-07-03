@@ -82,19 +82,25 @@ export type AppointmentsReport = {
 
 // ── Clientes ──────────────────────────────────────────────────────────────────
 
+export const CUSTOMERS_PAGE_SIZE = 20
+
 export const customersReportSchema = z.object({
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   professionalId: z.string().cuid().optional(),
   serviceId: z.string().cuid().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  sortBy: z.enum(['receita', 'atendimentos', 'ticketMedio']).default('receita'),
 })
 
 export type CustomersReportInput = z.infer<typeof customersReportSchema>
 
 export type CustomersReportRow = {
+  clienteId: string
   clienteNome: string
   atendimentos: number
   receita: number
+  ticketMedio: number
   ultimoAtendimento: string
 }
 
@@ -103,8 +109,16 @@ export type CustomersReport = {
     totalAtivos: number
     novosNoPeriodo: number
     retorno: number
+    variacao: {
+      totalAtivos: KpiDelta
+      novosNoPeriodo: KpiDelta
+      retorno: KpiDelta
+    }
   }
   rows: CustomersReportRow[]
+  total: number
+  page: number
+  pageSize: number
 }
 
 // ── Profissionais ─────────────────────────────────────────────────────────────

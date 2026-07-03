@@ -18,6 +18,8 @@ export async function GET(request: Request) {
       to: sp.get('to') ?? undefined,
       professionalId: sp.get('professionalId') ?? undefined,
       serviceId: sp.get('serviceId') ?? undefined,
+      page: sp.get('page') ?? undefined,
+      sortBy: sp.get('sortBy') ?? undefined,
     })
 
     const result = await reportsService.getCustomersReport(session.tenantId, input)
