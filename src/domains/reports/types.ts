@@ -50,6 +50,7 @@ export const appointmentsReportSchema = z.object({
   status: z.array(z.nativeEnum(AppointmentStatus)).optional(),
   professionalId: z.string().cuid().optional(),
   serviceId: z.string().cuid().optional(),
+  categoryId: z.string().cuid().optional(),
   groupBy: z.enum(['profissional', 'servico']).default('profissional'),
 })
 
@@ -70,6 +71,11 @@ export type AppointmentsReport = {
     cancelados: number
     naoCompareceu: number
     taxaConclusao: number
+    variacao: {
+      total: KpiDelta
+      concluidos: KpiDelta
+      taxaConclusaoPp: number
+    }
   }
   rows: AppointmentsReportRow[]
 }

@@ -4,7 +4,7 @@ import { prisma } from '@/shared/database/prisma'
 import { dayBoundsInTz, monthBoundsInTz } from '@/lib/dates'
 import { featureGuard, FEATURES } from '@/domains/billing/feature-guard'
 import { isReversal } from '@/domains/financial/categories'
-import { percentDelta, previousWindow } from './analytics-utils'
+import { percentDelta, pointsDelta, previousWindow } from './analytics-utils'
 
 import type {
   AppointmentsReport,
@@ -167,14 +167,17 @@ export class ReportsService {
   ): Promise<AppointmentsReport> {
     const { from, to } = await this.resolvePeriod(tenantId, input)
 
+    const appointmentWhere = {
+      tenantId,
+      startsAt: { gte: from, lte: to },
+      ...(input.status?.length && { status: { in: input.status } }),
+      ...(input.professionalId && { professionalId: input.professionalId }),
+      ...(input.serviceId && { serviceId: input.serviceId }),
+      ...(input.categoryId && { service: { categoryId: input.categoryId } }),
+    }
+
     const appointments = await prisma.appointment.findMany({
-      where: {
-        tenantId,
-        startsAt: { gte: from, lte: to },
-        ...(input.status?.length && { status: { in: input.status } }),
-        ...(input.professionalId && { professionalId: input.professionalId }),
-        ...(input.serviceId && { serviceId: input.serviceId }),
-      },
+      where: appointmentWhere,
       include: {
         professional: { select: { id: true, name: true } },
         service: { select: { id: true, name: true } },
@@ -187,6 +190,25 @@ export class ReportsService {
     const naoCompareceu = appointments.filter((a) => a.status === AppointmentStatus.NO_SHOW).length
     const taxaConclusao = total > 0 ? Math.round((concluidos / total) * 100) : 0
 
+    // Busca janela anterior por agregação (sem carregar linhas completas)
+    const prev = previousWindow(from, to)
+    const prevGroups = await prisma.appointment.groupBy({
+      by: ['status'],
+      where: {
+        tenantId,
+        startsAt: { gte: prev.from, lte: prev.to },
+        ...(input.status?.length && { status: { in: input.status } }),
+        ...(input.professionalId && { professionalId: input.professionalId }),
+        ...(input.serviceId && { serviceId: input.serviceId }),
+        ...(input.categoryId && { service: { categoryId: input.categoryId } }),
+      },
+      _count: { _all: true },
+    })
+    const prevTotal = prevGroups.reduce((s, g) => s + g._count._all, 0)
+    const prevConcluidos =
+      prevGroups.find((g) => g.status === AppointmentStatus.COMPLETED)?._count._all ?? 0
+    const prevTaxa = prevTotal > 0 ? Math.round((prevConcluidos / prevTotal) * 100) : 0
+
     type RowAcc = { label: string; total: number; concluidos: number; cancelados: number; naoCompareceu: number }
     const byGroup = new Map<string, RowAcc>()
     for (const apt of appointments) {
@@ -194,18 +216,32 @@ export class ReportsService {
         input.groupBy === 'servico'
           ? (apt.service?.name ?? 'Sem serviço')
           : (apt.professional?.name ?? 'Sem profissional')
-      const prev = byGroup.get(label) ?? { label, total: 0, concluidos: 0, cancelados: 0, naoCompareceu: 0 }
+      const prevRow = byGroup.get(label) ?? { label, total: 0, concluidos: 0, cancelados: 0, naoCompareceu: 0 }
       byGroup.set(label, {
         label,
-        total: prev.total + 1,
-        concluidos: prev.concluidos + (apt.status === AppointmentStatus.COMPLETED ? 1 : 0),
-        cancelados: prev.cancelados + (apt.status === AppointmentStatus.CANCELLED ? 1 : 0),
-        naoCompareceu: prev.naoCompareceu + (apt.status === AppointmentStatus.NO_SHOW ? 1 : 0),
+        total: prevRow.total + 1,
+        concluidos: prevRow.concluidos + (apt.status === AppointmentStatus.COMPLETED ? 1 : 0),
+        cancelados: prevRow.cancelados + (apt.status === AppointmentStatus.CANCELLED ? 1 : 0),
+        naoCompareceu: prevRow.naoCompareceu + (apt.status === AppointmentStatus.NO_SHOW ? 1 : 0),
       })
     }
     const rows = [...byGroup.values()].sort((a, b) => b.total - a.total)
 
-    return { kpis: { total, concluidos, cancelados, naoCompareceu, taxaConclusao }, rows }
+    return {
+      kpis: {
+        total,
+        concluidos,
+        cancelados,
+        naoCompareceu,
+        taxaConclusao,
+        variacao: {
+          total: percentDelta(total, prevTotal),
+          concluidos: percentDelta(concluidos, prevConcluidos),
+          taxaConclusaoPp: pointsDelta(taxaConclusao, prevTaxa),
+        },
+      },
+      rows,
+    }
   }
 
   async getCustomersReport(

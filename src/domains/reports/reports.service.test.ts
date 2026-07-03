@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { TransactionType } from '@prisma/client'
+import { AppointmentStatus, TransactionType } from '@prisma/client'
 import { prismaMock } from '@/shared/test/prisma-mock'
 import { ReportsService } from './reports.service'
 
@@ -54,6 +54,55 @@ describe('ReportsService.getFinancialReport — exatidão de netAmount', () => {
 
     const total = report.rows.reduce((s, r) => s + r.receita, 0)
     expect(total).toBe(135)
+  })
+})
+
+function apt(status: AppointmentStatus, professional = { id: 'p1', name: 'Ana' }) {
+  return {
+    id: `apt-${Math.random()}`,
+    status,
+    professional,
+    service: { id: 's1', name: 'Corte' },
+  }
+}
+
+describe('ReportsService.getAppointmentsReport — variação e categoria', () => {
+  beforeEach(() => {
+    prismaMock.appointment.findMany.mockReset()
+    prismaMock.appointment.groupBy.mockReset()
+    prismaMock.tenant.findFirstOrThrow.mockResolvedValue({
+      timezone: 'America/Sao_Paulo',
+    } as never)
+  })
+
+  it('calcula variação de total, concluídos e taxa (p.p.) vs janela anterior', async () => {
+    prismaMock.appointment.findMany.mockResolvedValue([
+      apt(AppointmentStatus.COMPLETED),
+      apt(AppointmentStatus.COMPLETED),
+      apt(AppointmentStatus.CANCELLED),
+    ] as never) // atual: 3 total, 2 concluídos, taxa 67%
+    prismaMock.appointment.groupBy.mockResolvedValue([
+      { status: AppointmentStatus.COMPLETED, _count: { _all: 1 } },
+      { status: AppointmentStatus.CANCELLED, _count: { _all: 1 } },
+    ] as never) // anterior: 2 total, 1 concluído, taxa 50%
+
+    const report = await service.getAppointmentsReport('tenant-1', {})
+
+    expect(report.kpis.variacao.total).toBe(50) // 3 vs 2
+    expect(report.kpis.variacao.concluidos).toBe(100) // 2 vs 1
+    expect(report.kpis.variacao.taxaConclusaoPp).toBe(17) // 67 - 50
+  })
+
+  it('repassa categoryId como filtro via service.categoryId', async () => {
+    prismaMock.appointment.findMany.mockResolvedValue([] as never)
+    prismaMock.appointment.groupBy.mockResolvedValue([] as never)
+
+    await service.getAppointmentsReport('tenant-1', { categoryId: 'clx0categoria0000000000000', groupBy: 'profissional' })
+
+    const call = prismaMock.appointment.findMany.mock.calls[0][0] as {
+      where: { service?: { categoryId?: string } }
+    }
+    expect(call.where.service?.categoryId).toBe('clx0categoria0000000000000')
   })
 })
 
