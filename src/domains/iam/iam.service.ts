@@ -10,6 +10,7 @@ import { validarCnpj } from "@/shared/utils/cnpj";
 import type { SessionContext } from "@/shared/types/auth";
 import { featureGuard } from "@/domains/billing/feature-guard";
 import { resolveGooglePlaceId } from "@/lib/google-places";
+import { getEmailProvider } from "@/domains/notifications/providers/email.provider";
 
 type RegisterInput = {
   businessName: string;
@@ -198,10 +199,45 @@ export class IamService {
 
     const invite = await iamRepository.createInviteByRoleId(tenantId, email, roleId);
     const baseUrl = (origin ?? 'https://estetica-saas-product.vercel.app').replace(/\/$/, '');
-    await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+
+    const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       redirectTo: `${baseUrl}/callback`,
       data: { pendingTenantId: tenantId, pendingRoleId: roleId },
     });
+
+    if (inviteError) {
+      // Usuário já existe e confirmado no Supabase — gera magic link como fallback.
+      // generateLink atualiza user_metadata com os dados do convite e retorna o link.
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email,
+        options: {
+          redirectTo: `${baseUrl}/callback`,
+          data: { pendingTenantId: tenantId, pendingRoleId: roleId },
+        },
+      });
+
+      if (linkError) throw linkError;
+
+      const actionLink = linkData?.properties?.action_link;
+      if (actionLink) {
+        try {
+          const emailProvider = getEmailProvider();
+          await emailProvider.send({
+            to: email,
+            subject: 'Novo convite para sua equipe',
+            html: `
+              <p>Você recebeu um novo convite para entrar na equipe.</p>
+              <p><a href="${actionLink}">Clique aqui para acessar</a></p>
+              <p>Se você já possui uma conta, este link irá direcioná-la para completar o ingresso na equipe.</p>
+            `,
+          });
+        } catch {
+          // Falha no envio do email não interrompe o registro do convite
+        }
+      }
+    }
+
     return invite;
   }
 

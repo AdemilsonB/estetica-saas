@@ -292,7 +292,7 @@ function OnboardingContent() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { toast.error('Sessão expirada.'); router.push('/login'); return }
 
-      const { error: passwordError } = await supabase.auth.updateUser({ password: joinPassword })
+      const { error: passwordError } = await supabase.auth.updateUser({ password: joinPassword.trim() })
       if (passwordError) {
         toast.error('Erro ao definir senha. Tente novamente.')
         return
