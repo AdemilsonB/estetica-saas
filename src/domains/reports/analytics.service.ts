@@ -12,7 +12,13 @@ import {
   previousWindow,
   type Granularity,
 } from './analytics-utils'
-import type { OverviewReport, OverviewReportInput } from './types'
+import type {
+  OverviewReport,
+  OverviewReportInput,
+  SeasonalityCell,
+  SeasonalityReport,
+  SeasonalityReportInput,
+} from './types'
 
 type Janela = { from: Date; to: Date }
 
@@ -150,6 +156,37 @@ export class AnalyticsService {
       faturamento: receitaPorBucket.get(bucket) ?? 0,
       agendamentos: agendaPorBucket.get(bucket) ?? 0,
     }))
+  }
+
+  async getSeasonalityReport(
+    tenantId: string,
+    input: SeasonalityReportInput,
+  ): Promise<SeasonalityReport> {
+    await featureGuard.assertAccess(tenantId, FEATURES.REPORTS_ADVANCED)
+
+    const { from, to, tz } = await this.resolvePeriodTz(tenantId, input)
+    const categoryFilter = input.categoryId
+      ? Prisma.sql`AND EXISTS (
+          SELECT 1 FROM "Service" s
+          WHERE s.id = a."serviceId" AND s."categoryId" = ${input.categoryId})`
+      : Prisma.empty
+
+    const cells = await prisma.$queryRaw<SeasonalityCell[]>`
+      SELECT
+        EXTRACT(DOW FROM timezone(${tz}, timezone('UTC', a."startsAt")))::int AS dow,
+        EXTRACT(HOUR FROM timezone(${tz}, timezone('UTC', a."startsAt")))::int AS hora,
+        COUNT(*)::int AS total
+      FROM "Appointment" a
+      WHERE a."tenantId" = ${tenantId}
+        AND a."startsAt" BETWEEN ${from} AND ${to}
+        AND a.status <> 'CANCELLED'::"AppointmentStatus"
+        ${input.professionalId ? Prisma.sql`AND a."professionalId" = ${input.professionalId}` : Prisma.empty}
+        ${categoryFilter}
+      GROUP BY 1, 2
+      ORDER BY 1, 2
+    `
+    const maxTotal = cells.reduce((m, c) => Math.max(m, c.total), 0)
+    return { cells, maxTotal }
   }
 
   async getOverviewReport(

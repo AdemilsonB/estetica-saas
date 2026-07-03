@@ -180,3 +180,21 @@ export type OverviewReport = {
   granularity: Granularity
   series: OverviewSeriesPoint[] | null
 }
+
+// ── Sazonalidade ──────────────────────────────────────────────────────────────
+
+export const seasonalityReportSchema = z.object({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  professionalId: z.string().cuid().optional(),
+  categoryId: z.string().cuid().optional(),
+})
+
+export type SeasonalityReportInput = z.infer<typeof seasonalityReportSchema>
+
+export type SeasonalityCell = { dow: number; hora: number; total: number }
+
+export type SeasonalityReport = {
+  cells: SeasonalityCell[]
+  maxTotal: number
+}

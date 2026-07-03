@@ -27,6 +27,28 @@ beforeEach(() => {
   } as never)
 })
 
+describe('AnalyticsService.getSeasonalityReport', () => {
+  it('exige reports_advanced antes de consultar', async () => {
+    vi.mocked(featureGuard.assertAccess).mockRejectedValue(new Error('PLAN_FEATURE_REQUIRED'))
+
+    await expect(service.getSeasonalityReport('tenant-1', {})).rejects.toThrow()
+    expect(prismaMock.$queryRaw).not.toHaveBeenCalled()
+  })
+
+  it('retorna células e o total máximo para escala do heatmap', async () => {
+    vi.mocked(featureGuard.assertAccess).mockResolvedValue(undefined)
+    prismaMock.$queryRaw.mockResolvedValueOnce([
+      { dow: 1, hora: 9, total: 4 },
+      { dow: 6, hora: 14, total: 9 },
+    ] as never)
+
+    const report = await service.getSeasonalityReport('tenant-1', janela)
+
+    expect(report.cells).toHaveLength(2)
+    expect(report.maxTotal).toBe(9)
+  })
+})
+
 describe('AnalyticsService.getOverviewReport', () => {
   function mockQueries(opts: { canAccess: boolean }) {
     vi.mocked(featureGuard.canAccess).mockResolvedValue(opts.canAccess)
