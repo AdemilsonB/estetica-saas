@@ -1,10 +1,31 @@
 import { PlanName } from '@prisma/client'
+import Stripe from 'stripe'
 import { stripe } from './stripe.client'
 import { billingRepository } from './billing.repository'
 import { DomainError } from '@/shared/errors/domain-error'
 import { prisma } from '@/shared/database/prisma'
 
 export class StripeBillingService {
+  /**
+   * O stripeCustomerId salvo pode não existir mais na conta/modo Stripe atual
+   * (troca de chave test↔live, troca de conta ou purga de dados de teste).
+   * Reusar um ID órfão derruba o checkout com "No such customer".
+   */
+  private async stripeCustomerExists(customerId: string): Promise<boolean> {
+    try {
+      const customer = await stripe.customers.retrieve(customerId)
+      return !customer.deleted
+    } catch (error) {
+      if (
+        error instanceof Stripe.errors.StripeInvalidRequestError &&
+        error.code === 'resource_missing'
+      ) {
+        return false
+      }
+      throw error
+    }
+  }
+
   async getOrCreateStripeCustomer(params: {
     tenantId: string
     ownerEmail: string
@@ -12,7 +33,9 @@ export class StripeBillingService {
   }): Promise<string> {
     const sub = await billingRepository.getSubscription(params.tenantId)
 
-    if (sub?.stripeCustomerId) return sub.stripeCustomerId
+    if (sub?.stripeCustomerId && (await this.stripeCustomerExists(sub.stripeCustomerId))) {
+      return sub.stripeCustomerId
+    }
 
     const customer = await stripe.customers.create({
       email: params.ownerEmail,
