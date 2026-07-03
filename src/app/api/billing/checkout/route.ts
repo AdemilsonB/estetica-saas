@@ -37,9 +37,15 @@ export async function POST(req: Request) {
 
     const sub = await billingRepository.getSubscription(session.tenantId)
 
-    // Bloqueia se existe assinatura Stripe ativa/em andamento.
-    // CANCELLED e EXPIRED com stripeSubId podem fazer novo checkout.
-    if (sub?.stripeSubId && STRIPE_IN_PROGRESS.includes(sub.status)) {
+    // Trial expirado por tempo (trialEndsAt < now), independente do status no DB:
+    // o webhook pode estar atrasado, mas o usuário já perdeu o acesso via featureGuard.
+    // Neste caso deixamos prosseguir para o checkout.
+    const trialExpiredByTime =
+      sub?.trialEndsAt != null && sub.trialEndsAt < new Date()
+
+    // Bloqueia se existe assinatura Stripe ativa/em andamento E trial não expirou por tempo.
+    // CANCELLED, EXPIRED ou trial vencido com stripeSubId podem fazer novo checkout.
+    if (sub?.stripeSubId && STRIPE_IN_PROGRESS.includes(sub.status) && !trialExpiredByTime) {
       throw new DomainError(
         'Você já possui uma assinatura ativa. Para mudar de plano, use o portal de assinatura.',
         'SUBSCRIPTION_EXISTS',
@@ -48,7 +54,7 @@ export async function POST(req: Request) {
     }
 
     // Fallback: bloqueia se status indica ativa mesmo sem stripeSubId (race condition no webhook)
-    if (sub && !sub.stripeSubId && ACTIVE_STATUSES.includes(sub.status)) {
+    if (sub && !sub.stripeSubId && ACTIVE_STATUSES.includes(sub.status) && !trialExpiredByTime) {
       throw new DomainError(
         'Você já possui uma assinatura ativa. Para mudar de plano, use o portal de assinatura.',
         'SUBSCRIPTION_EXISTS',
