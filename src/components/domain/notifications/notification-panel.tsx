@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Check } from "lucide-react";
+import { Settings, Check, ArrowLeft, X } from "lucide-react";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -42,20 +43,51 @@ export function NotificationPanel({
   const groups = groupByDate(filtered, new Date());
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        onOpenChange(v);
+        if (!v) setShowPrefs(false);
+      }}
+    >
+      <SheetContent
+        side="right"
+        showCloseButton={false}
+        className="flex w-full flex-col gap-0 p-0 sm:max-w-md"
+      >
         <SheetHeader className="flex-row items-center justify-between space-y-0 border-b px-4 py-3">
-          <SheetTitle>Notificações</SheetTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-10"
-            onClick={() => setShowPrefs((v) => !v)}
-            aria-label="Preferências de notificação"
-            aria-pressed={showPrefs}
-          >
-            <Settings className="size-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            {showPrefs && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="-ml-2 size-10"
+                onClick={() => setShowPrefs(false)}
+                aria-label="Voltar para notificações"
+              >
+                <ArrowLeft className="size-4" />
+              </Button>
+            )}
+            <SheetTitle>{showPrefs ? "Preferências" : "Notificações"}</SheetTitle>
+          </div>
+          <div className="flex items-center gap-1">
+            {!showPrefs && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-10"
+                onClick={() => setShowPrefs(true)}
+                aria-label="Preferências de notificação"
+              >
+                <Settings className="size-4" />
+              </Button>
+            )}
+            <SheetClose asChild>
+              <Button variant="ghost" size="icon" className="size-10" aria-label="Fechar">
+                <X className="size-4" />
+              </Button>
+            </SheetClose>
+          </div>
         </SheetHeader>
 
         {showPrefs ? (
