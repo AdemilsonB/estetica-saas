@@ -21,6 +21,10 @@ import {
   WHATSAPP_QUOTA_CLEANUP_JOB,
   handleWhatsAppQuotaCleanup,
 } from "@/shared/queue/jobs/whatsapp-quota-reset";
+import {
+  USER_BIRTHDAY_DIGEST_JOB,
+  handleUserBirthdayDigest,
+} from "@/shared/queue/jobs/user-birthday-digest";
 
 type EmptyPayload = Record<string, never>;
 type PgBossInstance = Awaited<ReturnType<typeof startPgBoss>>;
@@ -87,9 +91,10 @@ export async function GET(request: NextRequest) {
       boss.schedule(USAGE_SNAPSHOT_JOB, "0 1 1 * *", {}),
       boss.schedule(VIP_SWEEP_JOB, "0 2 * * *", {}),
       boss.schedule(WHATSAPP_QUOTA_CLEANUP_JOB, "0 2 1 * *", {}),
+      boss.schedule(USER_BIRTHDAY_DIGEST_JOB, "0 8 * * 1", {}),
     ]);
 
-    const [reminders, billing, birthday, dailyStatus, recurring, vip, expiry, snapshot, quota] =
+    const [reminders, billing, birthday, dailyStatus, recurring, vip, expiry, snapshot, quota, userBirthday] =
       await Promise.all([
         runBatch<AppointmentReminderPayload>(boss, APPOINTMENT_REMINDER_JOB, handleAppointmentReminder),
         runScheduled(boss, BILLING_EXPIRE_SWEEP_JOB, handleBillingExpireSweep),
@@ -100,6 +105,7 @@ export async function GET(request: NextRequest) {
         runBatch(boss, SUBSCRIPTION_EXPIRY_WARNINGS_JOB, handleSubscriptionExpiryWarnings),
         runBatch(boss, USAGE_SNAPSHOT_JOB, handleUsageSnapshot),
         runScheduled(boss, WHATSAPP_QUOTA_CLEANUP_JOB, handleWhatsAppQuotaCleanup),
+        runScheduled(boss, USER_BIRTHDAY_DIGEST_JOB, handleUserBirthdayDigest),
       ]);
 
     return Response.json({
@@ -114,6 +120,7 @@ export async function GET(request: NextRequest) {
         expiry,
         snapshot,
         quota,
+        userBirthday,
       },
     });
   } catch (err) {
