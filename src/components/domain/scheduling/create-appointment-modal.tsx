@@ -24,7 +24,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useServices } from '@/hooks/scheduling/use-services'
 import { useServiceCategories } from '@/hooks/scheduling/use-service-categories'
-import { ServicePickerWithCategories } from '@/components/domain/services/service-picker-with-categories'
+import { usePackages } from '@/hooks/scheduling/use-packages'
+import { usePromotions } from '@/hooks/scheduling/use-promotions'
+import { ServicePickerWithCategories, type PickerSelection } from '@/components/domain/services/service-picker-with-categories'
 import { useCustomersSearch } from '@/hooks/crm/use-customers-search'
 import { useCreateAppointment } from '@/hooks/scheduling/use-appointments'
 import { useAvailableSlots } from '@/hooks/scheduling/use-availability'
@@ -80,6 +82,8 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
   const { can } = usePermissions()
   const { data: services = [] } = useServices()
   const { data: categories = [] } = useServiceCategories()
+  const { data: packages = [] } = usePackages()
+  const { data: promotions = [] } = usePromotions()
   const { data: teamMembers = [] } = useTeamMembers()
   const { data: evolutionStatus } = useEvolutionStatus()
   const createAppointment = useCreateAppointment()
@@ -90,6 +94,9 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
 
   const [professionalId, setProfessionalId] = useState('')
   const [serviceId, setServiceId] = useState('')
+  const [packageId, setPackageId] = useState('')
+  const [promotionId, setPromotionId] = useState('')
+  const [selectedItemName, setSelectedItemName] = useState('')
   const [date, setDate] = useState(defaultDate ?? toDateInput(new Date()))
   const [selectedTime, setSelectedTime] = useState('')
   const [customTime, setCustomTime] = useState('')
@@ -108,6 +115,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
     professionalId || null,
     date || null,
     serviceId || null,
+    packageId || null,
   )
 
   useEffect(() => {
@@ -129,38 +137,61 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
   useEffect(() => {
     setSelectedTime('')
     setCustomTime('')
-  }, [professionalId, date, serviceId])
+  }, [professionalId, date, serviceId, packageId])
 
   useEffect(() => {
     if (canManage) {
       setProfessionalId('')
     }
-  }, [serviceId, canManage])
+  }, [serviceId, packageId, canManage])
 
   useEffect(() => {
-    if (!customerId || !serviceId || !date || !selectedTime || !professionalId) return
+    if (!customerId || (!serviceId && !packageId) || !date || !selectedTime || !professionalId) return
 
     const customerName = defaultCustomerName
       ? defaultCustomerName.split(' ')[0]
       : customers.find((c) => c.id === customerId)?.name.split(' ')[0]
-    const service = services.find((s) => s.id === serviceId)
     const professional = teamMembers.find((m) => m.id === professionalId)
-    if (!customerName || !service || !professional) return
+    if (!customerName || !selectedItemName || !professional) return
 
     setNotificationMessage(
       renderConfirmTemplate({
         nome: customerName,
-        serviço: service.name,
+        serviço: selectedItemName,
         data: formatDateLabel(date),
         hora: formatHour(selectedTime),
         profissional: professional.name.split(' ')[0],
       }),
     )
-  }, [customerId, serviceId, date, selectedTime, professionalId, customers, services, teamMembers, defaultCustomerName])
+  }, [customerId, serviceId, packageId, selectedItemName, date, selectedTime, professionalId, customers, teamMembers, defaultCustomerName])
+
+  function handlePickerSelect(selection: PickerSelection) {
+    setServiceId('')
+    setPackageId('')
+    setPromotionId('')
+    setSelectedTime('')
+    setCustomTime('')
+
+    if (selection.type === 'service') {
+      setServiceId(selection.item.id)
+      setSelectedItemName(selection.item.name)
+    } else if (selection.type === 'package') {
+      setPackageId(selection.item.id)
+      setSelectedItemName(selection.item.name)
+      if (canManage) setProfessionalId('')
+    } else if (selection.type === 'promotion') {
+      setServiceId(selection.service.id)
+      setPromotionId(selection.promotionId)
+      setSelectedItemName(selection.service.name)
+    }
+  }
 
   function handleClose() {
     setProfessionalId(canManage ? '' : (currentUser?.id ?? ''))
     setServiceId('')
+    setPackageId('')
+    setPromotionId('')
+    setSelectedItemName('')
     setDate(defaultDate ?? toDateInput(new Date()))
     setSelectedTime('')
     setCustomTime('')
@@ -174,7 +205,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!customerId || !serviceId || !professionalId || !date || !selectedTime) return
+    if (!customerId || (!serviceId && !packageId) || !professionalId || !date || !selectedTime) return
 
     const startsAt = new Date(`${date}T${selectedTime}:00`).toISOString()
 
@@ -182,7 +213,9 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
       {
         customerId,
         professionalId,
-        serviceId,
+        ...(serviceId ? { serviceId } : {}),
+        ...(packageId ? { packageId } : {}),
+        ...(promotionId ? { promotionId } : {}),
         startsAt,
         allowOverlap,
         allowPastDate,
@@ -212,7 +245,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
 
   const showServiceWarning =
     serviceId && professionalsByService && !professionalsByService.filtered
-  const isFormValid = customerId && serviceId && professionalId && date && selectedTime
+  const isFormValid = customerId && (serviceId || packageId) && professionalId && date && selectedTime
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
@@ -228,8 +261,36 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
             <ServicePickerWithCategories
               services={activeServices}
               categories={categories}
-              selectedId={serviceId}
-              onSelect={(s) => setServiceId(s.id)}
+              packages={packages.filter((p) => p.active).map((p) => ({
+                id: p.id,
+                name: p.name,
+                description: p.description ?? null,
+                price: p.price,
+                imageUrl: p.imageUrl ?? null,
+                imageCropX: p.imageCropX ?? null,
+                imageCropY: p.imageCropY ?? null,
+                imageCropZoom: p.imageCropZoom ?? null,
+                items: p.items.map((i) => ({ service: i.service })),
+              }))}
+              promotions={promotions.filter((p) => p.active && !p.expired).map((p) => ({
+                id: p.id,
+                name: p.name,
+                description: p.description ?? null,
+                discountType: p.discountType,
+                discountValue: p.discountValue,
+                imageUrl: p.imageUrl ?? null,
+                imageCropX: p.imageCropX ?? null,
+                imageCropY: p.imageCropY ?? null,
+                imageCropZoom: p.imageCropZoom ?? null,
+                items: p.items
+                  .filter((i) => i.service !== null)
+                  .map((i) => ({
+                    serviceId: i.serviceId,
+                    service: i.service ? { id: i.service.id, name: i.service.name, price: i.service.price } : null,
+                  })),
+              }))}
+              selectedId={serviceId || packageId || undefined}
+              onSelect={handlePickerSelect}
             />
           </div>
 
@@ -272,8 +333,8 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
             />
           </div>
 
-          {/* 4. Horário — só aparece quando profissional + serviço + data estão definidos */}
-          {professionalId && serviceId && date && (
+          {/* 4. Horário — só aparece quando profissional + serviço/pacote + data estão definidos */}
+          {professionalId && (serviceId || packageId) && date && (
             <div className="space-y-2">
               <div className="flex flex-col gap-2">
                 <Label>Horário</Label>
