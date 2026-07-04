@@ -29,6 +29,27 @@ describe("groupByDate", () => {
     expect(groups[0].label).toBe("Hoje");
     expect(groups[1].label).toBe("Ontem");
   });
+
+  it("boundary: 7 dias cai em 'Esta semana', 8 dias em 'Mais antigas'", () => {
+    const now = new Date("2026-07-15T12:00:00");
+    const seteDias = item({ id: "7d", createdAt: "2026-07-08T09:00:00" });
+    const oitoDias = item({ id: "8d", createdAt: "2026-07-07T09:00:00" });
+    const groups = groupByDate([seteDias, oitoDias], now);
+    const semana = groups.find((g) => g.label === "Esta semana");
+    const antigas = groups.find((g) => g.label === "Mais antigas");
+    expect(semana?.items.map((i) => i.id)).toEqual(["7d"]);
+    expect(antigas?.items.map((i) => i.id)).toEqual(["8d"]);
+  });
+
+  it("omite grupos vazios: só 'Hoje' quando todos são de hoje", () => {
+    const now = new Date("2026-07-15T12:00:00");
+    const groups = groupByDate(
+      [item({ createdAt: "2026-07-15T08:00:00" }), item({ createdAt: "2026-07-15T10:00:00" })],
+      now,
+    );
+    expect(groups).toHaveLength(1);
+    expect(groups[0].label).toBe("Hoje");
+  });
 });
 
 describe("hasUnread", () => {
