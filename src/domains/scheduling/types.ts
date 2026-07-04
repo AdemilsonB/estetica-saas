@@ -45,12 +45,16 @@ export type UpdateServiceInput = z.infer<typeof updateServiceSchema>;
 export const createAppointmentSchema = z.object({
   customerId: z.string().cuid(),
   professionalId: z.string().uuid(),
-  serviceId: z.string().cuid(),
+  serviceId: z.string().cuid().optional(),
+  packageId: z.string().cuid().optional(),
+  promotionId: z.string().cuid().optional(),
   startsAt: z.string().datetime(),
   notes: z.string().trim().max(500).optional(),
   allowOverlap: z.boolean().optional().default(false),
   allowPastDate: z.boolean().optional().default(false),
   notificationMessage: z.string().trim().optional(),
+}).refine((d) => d.serviceId || d.packageId, {
+  message: 'serviceId ou packageId é obrigatório',
 });
 
 export const updateAppointmentStatusSchema = z.object({
