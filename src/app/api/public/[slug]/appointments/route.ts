@@ -241,6 +241,7 @@ export async function POST(req: Request, context: RouteContext) {
           allowOverlap: false,
           allowPastDate: false,
         },
+        "public",
       )
 
       if (input.anamneseId) {

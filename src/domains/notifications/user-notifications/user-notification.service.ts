@@ -19,6 +19,7 @@ type AppointmentPayload = {
   customer: { id: string; name: string };
   service: { id: string; name: string };
   professional: { id: string; name: string; email: string };
+  origin?: "panel" | "public";
 };
 
 // Destinatário candidato normalizado (profissional do atendimento ou gestor).
@@ -44,6 +45,9 @@ export class UserNotificationService {
 
   async notifyAppointment(payload: AppointmentPayload, kind: "created" | "cancelled"): Promise<void> {
     const { tenantId, appointment, customer, service, professional } = payload;
+    // Origem vitrine: `createdByUserId` aponta para o dono (só pra satisfazer a FK),
+    // então não é confiável como sinal de "quem marcou" — usamos o flag do evento.
+    const isPublic = payload.origin === "public";
     const [managers, proPrefs] = await Promise.all([
       this.repo.findManagers(tenantId),
       this.repo.findUserPrefs(tenantId, professional.id),
@@ -86,8 +90,14 @@ export class UserNotificationService {
     const emailTargets: Candidate[] = [];
 
     for (const c of byId.values()) {
-      // Auto-skip: só em criação, quando o candidato é o criador e não optou por se avisar.
-      if (kind === "created" && appointment.createdByUserId === c.id && !c.notifyOwnAppointments) {
+      // Auto-skip: só no painel (não-público), em criação, quando o candidato é o
+      // criador e não optou por se avisar. Na vitrine ninguém é pulado por auto-skip.
+      if (
+        kind === "created" &&
+        !isPublic &&
+        appointment.createdByUserId === c.id &&
+        !c.notifyOwnAppointments
+      ) {
         continue;
       }
       // Gestor puro (não é o profissional do atendimento) que desligou avisos da equipe.
@@ -95,14 +105,14 @@ export class UserNotificationService {
         continue;
       }
 
-      const isSelfCreator = appointment.createdByUserId === c.id;
+      const isSelfCreator = !isPublic && appointment.createdByUserId === c.id;
       const title =
         kind === "cancelled"
           ? "Agendamento cancelado"
-          : isSelfCreator
-            ? "Você marcou um horário"
-            : appointment.createdByUserId === null
-              ? "Novo agendamento pela vitrine"
+          : isPublic
+            ? "Novo agendamento pela vitrine"
+            : isSelfCreator
+              ? "Você marcou um horário"
               : "Novo agendamento na sua agenda";
       const body =
         kind === "cancelled"
@@ -119,6 +129,7 @@ export class UserNotificationService {
           customerName: customer.name,
           serviceName: service.name,
           startsAt: appointment.startsAt.toISOString(),
+          origin: isPublic ? "public" : "panel",
         },
       });
 

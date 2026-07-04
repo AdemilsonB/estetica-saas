@@ -17,7 +17,14 @@ vi.mock("@/domains/notifications/providers/email.provider", () => ({
   getEmailProvider: () => ({ send: emailSend }),
 }));
 
-function makePayload(over: Partial<{ createdByUserId: string | null; profId: string; profEmail: string }> = {}) {
+function makePayload(
+  over: Partial<{
+    createdByUserId: string | null;
+    profId: string;
+    profEmail: string;
+    origin: "panel" | "public";
+  }> = {},
+) {
   return {
     tenantId: "t1",
     appointment: {
@@ -28,6 +35,7 @@ function makePayload(over: Partial<{ createdByUserId: string | null; profId: str
     customer: { id: "c1", name: "Maria", phone: null, email: null },
     service: { id: "s1", name: "Corte", duration: 30 },
     professional: { id: over.profId ?? "prof1", name: "Ana", email: over.profEmail ?? "ana@x.com" },
+    origin: over.origin ?? "panel",
   } as never;
 }
 
@@ -52,14 +60,25 @@ describe("UserNotificationService.notifyAppointment", () => {
     });
   });
 
-  it("agendamento público (createdByUserId null) notifica o profissional", async () => {
-    await service.notifyAppointment(makePayload(), "created");
+  it("agendamento pela vitrine notifica o dono mesmo sendo o createdByUserId (sem auto-skip)", async () => {
+    // Vitrine passa owner.id como createdByUserId só pra satisfazer a FK.
+    repo.findManagers.mockResolvedValue([
+      { id: "owner1", email: "o@x.com", name: "Dono", notifyEmailAppointments: false, notifyOwnAppointments: false, notifyTeamAppointments: true },
+    ]);
+    await service.notifyAppointment(
+      makePayload({ origin: "public", createdByUserId: "owner1" }),
+      "created",
+    );
     const rows = repo.createMany.mock.calls[0][1];
-    expect(rows.map((r: { userId: string }) => r.userId)).toContain("prof1");
+    // Dono NÃO é pulado por auto-skip em fluxo público.
+    const ownerRow = rows.find((r: { userId: string }) => r.userId === "owner1");
+    expect(ownerRow).toBeDefined();
+    expect(ownerRow.title).toBe("Novo agendamento pela vitrine");
+    expect(rows.find((r: { userId: string }) => r.userId === "prof1")).toBeDefined();
     expect(rows[0].type).toBe("appointment_created");
   });
 
-  it("auto-agendamento sem opt-in NÃO notifica o próprio criador", async () => {
+  it("painel: profissional é o criador sem opt-in NÃO recebe (auto-skip continua valendo)", async () => {
     // profissional é o próprio criador e não optou por se notificar
     repo.findManagers.mockResolvedValue([]);
     await service.notifyAppointment(

@@ -104,6 +104,7 @@ export class SchedulingService {
     tenantId: string,
     userId: string,
     input: CreateAppointmentInput,
+    origin: "panel" | "public" = "panel",
   ) {
     const appointmentCount = await appointmentRepository.countThisMonth(tenantId);
     await featureGuard.assertWithinLimit(tenantId, "appointments_month", appointmentCount);
@@ -199,6 +200,7 @@ export class SchedulingService {
       payload: {
         ...this.toAppointmentEventPayload(tenantId, appointmentDetails),
         notificationMessage: input.notificationMessage,
+        origin,
       },
     });
 
