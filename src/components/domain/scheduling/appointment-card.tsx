@@ -53,6 +53,7 @@ type Props = {
 export function AppointmentCard({ appointment, onClick, onConfirm, onPay, onEdit }: Props) {
   const config = STATUS_CONFIG[appointment.status]
   const isActive = !['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(appointment.status)
+  const serviceName = appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'
 
   return (
     <div
@@ -62,44 +63,45 @@ export function AppointmentCard({ appointment, onClick, onConfirm, onPay, onEdit
       onKeyDown={(e) => e.key === 'Enter' && onClick(appointment)}
       className={cn('relative w-full cursor-pointer rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md', config.cardClass)}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-slate-950">
-            {appointment.customer?.name ?? '—'}
-          </p>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'}{appointment.professional ? ` · ${appointment.professional.name}` : ''}
-          </p>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1.5">
-          <Badge className={cn('text-xs', config.badgeClass)}>
-            {config.label}
-          </Badge>
-          {onEdit && isActive && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit(appointment) }}
-              className="rounded-md border border-slate-200 p-1 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 transition"
-              aria-label="Editar agendamento"
-            >
-              <Pencil className="size-3.5" />
-            </button>
-          )}
-        </div>
+      {/* Linha 1: status + lápis */}
+      <div className="flex items-center justify-between gap-2">
+        <Badge className={cn('text-xs', config.badgeClass)}>
+          {config.label}
+        </Badge>
+        {onEdit && isActive && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(appointment) }}
+            className="rounded-md border border-slate-200 p-1 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 transition"
+            aria-label="Editar agendamento"
+          >
+            <Pencil className="size-3.5" />
+          </button>
+        )}
       </div>
 
-      <p className="mt-3 text-xs font-medium text-slate-600">
+      {/* Linha 2: cliente */}
+      <p className="mt-2 truncate text-sm font-semibold text-slate-950">
+        {appointment.customer?.name ?? '—'}
+      </p>
+
+      {/* Linha 3: serviço */}
+      <p className="mt-0.5 text-xs text-slate-500 line-clamp-2">
+        {serviceName}
+      </p>
+
+      {/* Linha 4: horário */}
+      <p className="mt-2 text-xs font-medium text-slate-600">
         {formatTime(appointment.startsAt)} – {formatTime(appointment.endsAt)}
       </p>
 
-      {/* Quick actions — visíveis apenas em mobile */}
+      {/* Linha 5: botões de ação */}
       {(() => {
         const showConfirm = !!onConfirm && appointment.status === 'SCHEDULED'
         const showPay = !!onPay && appointment.status === 'CONFIRMED' && appointment.paymentStatus !== 'PAID'
         if (!showConfirm && !showPay) return null
         return (
           <div
-            className="mt-3 flex flex-col gap-2 sm:hidden border-t border-slate-100 pt-3"
+            className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3"
             onClick={(e) => e.stopPropagation()}
           >
             {showConfirm && (
