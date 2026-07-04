@@ -94,6 +94,7 @@ export function AgendaDayView() {
   const [paymentAppointment, setPaymentAppointment] = useState<Appointment | null>(null)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   const [confirmModalAppointment, setConfirmModalAppointment] = useState<Appointment | null>(null)
+  const [drawerEditMode, setDrawerEditMode] = useState(false)
   const { can } = usePermissions()
 
   // Esconde o bottom nav quando o drawer está aberto
@@ -110,6 +111,12 @@ export function AgendaDayView() {
   function handlePayInline(appt: Appointment) {
     setPaymentAppointment(appt)
     setPaymentModalOpen(true)
+  }
+
+  function handleEditInline(appt: Appointment) {
+    setSelectedAppointment(appt)
+    setDrawerEditMode(true)
+    setDrawerOpen(true)
   }
 
   const { data: currentUser } = useCurrentUser()
@@ -400,6 +407,7 @@ export function AgendaDayView() {
                               onClick={handleCardClick}
                               onConfirm={handleConfirmInline}
                               onPay={handlePayInline}
+                              onEdit={handleEditInline}
                             />
                           ))}
                         </div>
@@ -424,6 +432,7 @@ export function AgendaDayView() {
                         onClick={handleCardClick}
                         onConfirm={handleConfirmInline}
                         onPay={handlePayInline}
+                        onEdit={handleEditInline}
                       />
                     ))}
                   </div>
@@ -437,9 +446,11 @@ export function AgendaDayView() {
       <AppointmentDrawer
         appointment={selectedAppointment}
         open={drawerOpen}
+        startInEditMode={drawerEditMode}
         onClose={() => {
           setDrawerOpen(false)
           setSelectedAppointment(null)
+          setDrawerEditMode(false)
         }}
       />
 

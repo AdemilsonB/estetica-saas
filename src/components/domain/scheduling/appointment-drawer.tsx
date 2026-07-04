@@ -96,9 +96,10 @@ type Props = {
   open: boolean
   onClose: () => void
   onCompleted?: (appointment: Appointment) => void
+  startInEditMode?: boolean
 }
 
-export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: Props) {
+export function AppointmentDrawer({ appointment, open, onClose, onCompleted, startInEditMode }: Props) {
   const updateStatus = useUpdateAppointmentStatus()
   const refundAppointment = useRefundAppointment()
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
@@ -124,6 +125,13 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
     isEditing ? editDate || null : null,
     isEditing ? (appointment?.serviceId ?? null) : null,
   )
+
+  useEffect(() => {
+    if (open && startInEditMode && appointment) {
+      startEditing()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, startInEditMode])
 
   useEffect(() => {
     if (!appointment || !editTime || !editDate) return
@@ -364,10 +372,10 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                   {isActive && !isEditing && (
                     <button
                       onClick={startEditing}
-                      className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                      className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 transition"
                       aria-label="Editar agendamento"
                     >
-                      <Pencil className="size-3.5" />
+                      <Pencil className="size-4" />
                     </button>
                   )}
                 </div>
@@ -451,7 +459,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                 <AppointmentProductsSection
                   appointmentId={appointment.id}
                   serviceId={appointment.serviceId ?? ''}
-                  defaultExpanded={isActive}
+                  defaultExpanded={false}
                   isCompleted={!isActive}
                 />
 
