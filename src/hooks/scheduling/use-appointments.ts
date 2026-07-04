@@ -77,7 +77,7 @@ async function createAppointment(input: CreateAppointmentInput): Promise<Appoint
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.message ?? 'Falha ao criar agendamento')
+    throw new Error(err.error?.message ?? 'Falha ao criar agendamento')
   }
   return res.json()
 }
@@ -93,7 +93,7 @@ async function rescheduleAppointment(
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.message ?? 'Falha ao remarcar agendamento')
+    throw new Error(err.error?.message ?? 'Falha ao remarcar agendamento')
   }
   return res.json()
 }
@@ -111,7 +111,7 @@ async function updateAppointmentStatus(
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.message ?? 'Falha ao atualizar status')
+    throw new Error(err.error?.message ?? 'Falha ao atualizar status')
   }
   return res.json()
 }
