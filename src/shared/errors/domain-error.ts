@@ -78,6 +78,12 @@ export class RefundNotAllowedError extends DomainError {
   }
 }
 
+export class AppointmentAlreadyPaidError extends DomainError {
+  constructor() {
+    super("Este agendamento já possui pagamento registrado.", "APPOINTMENT_ALREADY_PAID", 409);
+  }
+}
+
 export class ServiceNotFoundError extends DomainError {
   constructor() {
     super("Servico nao encontrado.", "SERVICE_NOT_FOUND", 404);

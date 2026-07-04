@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { StickyNote } from 'lucide-react'
+import { Pencil, StickyNote } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -45,6 +45,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { CancelAppointmentModal } from './cancel-appointment-modal'
 import { ConfirmAppointmentModal } from './confirm-appointment-modal'
+import { RegisterPaymentModal } from '@/components/domain/financial/register-payment-modal'
 import { AppointmentProductsSection } from '@/components/domain/inventory/AppointmentProductsSection'
 import { AppointmentAnamnesePanel } from './appointment-anamnese-panel'
 
@@ -104,6 +105,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const [noShowModalOpen, setNoShowModalOpen] = useState(false)
   const [refundModalOpen, setRefundModalOpen] = useState(false)
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
 
   const [isEditing, setIsEditing] = useState(false)
   const [editProfessionalId, setEditProfessionalId] = useState('')
@@ -355,10 +357,19 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <Badge className={cn('text-sm', STATUS_BADGE[appointment.status])}>
                     {STATUS_LABELS[appointment.status]}
                   </Badge>
+                  {isActive && !isEditing && (
+                    <button
+                      onClick={startEditing}
+                      className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                      aria-label="Editar agendamento"
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                  )}
                 </div>
 
                 <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -446,15 +457,6 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
 
                 {isActive && (
                   <div className="space-y-2">
-                    {appointment.status === 'SCHEDULED' && !isEditing && (
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={startEditing}
-                      >
-                        Editar agendamento
-                      </Button>
-                    )}
                     {appointment.status === 'SCHEDULED' && (
                       <Button
                         className="w-full"
@@ -466,7 +468,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
                     {['SCHEDULED', 'CONFIRMED'].includes(appointment.status) && (
                       <Button
                         className="w-full bg-green-600 text-white hover:bg-green-700"
-                        onClick={() => handleStatus('COMPLETED')}
+                        onClick={() => setCheckoutOpen(true)}
                         disabled={updateStatus.isPending}
                       >
                         Concluir atendimento
@@ -562,6 +564,16 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted }: P
         onClose={() => {
           setConfirmModalOpen(false)
           onClose()
+        }}
+      />
+
+      <RegisterPaymentModal
+        appointment={appointment}
+        open={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        onAfterCheckout={() => {
+          setCheckoutOpen(false)
+          handleStatus('COMPLETED')
         }}
       />
     </>

@@ -13,6 +13,7 @@ const checkoutSchema = z.object({
   discountTypeId: z.string().cuid().optional(),
   discountValue: z.number().min(0).optional(),
   tipAmount: z.number().min(0).default(0),
+  baseAmount: z.number().min(0).optional(),
 });
 
 type RouteContext = {

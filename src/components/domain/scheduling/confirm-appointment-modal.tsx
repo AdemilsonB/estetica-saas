@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
 import { useUpdateAppointmentStatus } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import type { SugestaoPreco } from '@/domains/crm/price-suggestion'
@@ -68,12 +69,14 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
 
   const [valorFinal, setValorFinal] = useState<number>(Number(appointment.price))
   const [mensagem, setMensagem] = useState<string>('')
+  const [sendWhatsApp, setSendWhatsApp] = useState(true)
 
   useEffect(() => {
     if (!open) return
     const price = anamneseData?.sugestaoPreco?.valorSugerido ?? Number(appointment.price)
     setValorFinal(price)
     setMensagem(buildDefaultMessage(appointment, price))
+    setSendWhatsApp(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -85,7 +88,7 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
       {
         id: appointment.id,
         status: 'CONFIRMED',
-        notificationMessage: mensagem,
+        notificationMessage: sendWhatsApp ? mensagem : '',
         confirmedPrice: valorFinal,
       },
       {
@@ -145,16 +148,29 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="mensagem-cliente">Mensagem para o cliente</Label>
-            <Textarea
-              id="mensagem-cliente"
-              value={mensagem}
-              onChange={(e) => setMensagem(e.target.value)}
-              rows={4}
-              className="resize-none text-sm"
+          <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5">
+            <Label htmlFor="send-whatsapp" className="cursor-pointer text-sm font-medium text-slate-700">
+              Enviar confirmação via WhatsApp
+            </Label>
+            <Switch
+              id="send-whatsapp"
+              checked={sendWhatsApp}
+              onCheckedChange={setSendWhatsApp}
             />
           </div>
+
+          {sendWhatsApp && (
+            <div className="space-y-1.5">
+              <Label htmlFor="mensagem-cliente">Mensagem para o cliente</Label>
+              <Textarea
+                id="mensagem-cliente"
+                value={mensagem}
+                onChange={(e) => setMensagem(e.target.value)}
+                rows={4}
+                className="resize-none text-sm"
+              />
+            </div>
+          )}
 
           <div className="flex gap-2 pt-1">
             <Button

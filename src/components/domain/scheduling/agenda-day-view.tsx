@@ -441,10 +441,6 @@ export function AgendaDayView() {
           setDrawerOpen(false)
           setSelectedAppointment(null)
         }}
-        onCompleted={(appt) => {
-          setPaymentAppointment(appt)
-          setPaymentModalOpen(true)
-        }}
       />
 
       <CreateAppointmentModal

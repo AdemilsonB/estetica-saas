@@ -11,6 +11,7 @@ import {
 import { prisma } from "@/shared/database/prisma";
 import { eventBus } from "@/shared/events/event-bus";
 import {
+  AppointmentAlreadyPaidError,
   AppointmentNotFoundError,
   AppointmentAlreadyCancelledError,
   CustomerBlockedError,
@@ -59,6 +60,7 @@ export type CheckoutInput = {
   discountTypeId?: string;
   discountValue?: number;
   tipAmount?: number;
+  baseAmount?: number;
 };
 
 export class SchedulingService {
@@ -362,7 +364,15 @@ export class SchedulingService {
     const appointment = await appointmentRepository.findById(tenantId, appointmentId);
     if (!appointment) throw new AppointmentNotFoundError();
 
-    const grossAmount = Number(appointment.price);
+    if (appointment.paymentStatus === AppointmentPaymentStatus.PAID) {
+      throw new AppointmentAlreadyPaidError();
+    }
+
+    const grossAmount = input.baseAmount !== undefined
+      ? input.baseAmount
+      : appointment.confirmedPrice !== null
+        ? Number(appointment.confirmedPrice)
+        : Number(appointment.price);
 
     // Calcular desconto
     let discountAmount = 0;
@@ -414,6 +424,9 @@ export class SchedulingService {
           discountValue: input.discountValue !== undefined
             ? new Prisma.Decimal(input.discountValue)
             : null,
+          ...(input.baseAmount !== undefined && {
+            confirmedPrice: new Prisma.Decimal(input.baseAmount),
+          }),
         },
       });
 
