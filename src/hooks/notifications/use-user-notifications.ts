@@ -69,6 +69,7 @@ export function useUserNotifications() {
     },
     isLoading: query.isLoading,
     isError: query.isError,
+    refetch: query.refetch,
     markRead: (id: string) => markRead.mutate({ id }),
     markAllRead: () => markRead.mutate({ all: true }),
     updatePrefs: (prefs: Partial<NotificationPrefs>) => updatePrefs.mutate(prefs),
