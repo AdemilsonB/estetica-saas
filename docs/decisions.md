@@ -289,3 +289,25 @@ O gate **não substitui** `getSessionContext`/tenant scoping — cada route.ts c
 **Consequências**:
 - Paridade availability↔criação é mantida **dentro de cada contexto**: o que a disponibilidade pública mostra é exatamente o que a criação pública aceita; o que a disponibilidade do painel mostra (sem corte de min/max) é exatamente o que a criação do painel aceita (sem corte de min/max, só passado).
 - `allowPastDate` deve ser usado com critério — não há auditoria adicional sobre quem/quando usa o escape hatch nesta rodada (fora de escopo; se necessário, pode entrar como item futuro de audit log, mesmo padrão já usado no admin).
+
+## ADR-015 — Central de notificações in-app da equipe (2026-07-04)
+
+**Data**: 2026-07-04
+**Status**: Aceito
+
+**Contexto**: O domínio `notifications` só tratava mensagens **para o cliente** (WhatsApp/e-mail, `NotificationLog`). Não havia canal de notificação **para a equipe** (profissionais/gestores). Demanda: sino no topo (estilo redes sociais) com central por usuário para novos agendamentos, cancelamentos, novos clientes e aniversariantes da semana, com e-mail opcional para agendamentos.
+
+**Decisão**:
+1. Novo submódulo `src/domains/notifications/user-notifications/` com model próprio `UserNotification` (uma linha por destinatário — cada usuário tem seu feed), separado do `NotificationLog` (que é outbound-cliente). 3 prefs aditivas no `User`: `notifyEmailAppointments` (opt-in, default false), `notifyOwnAppointments` (auto-skip, default false), `notifyTeamAppointments` (gestor, default true).
+2. **Destinatários** (via event bus, sem acoplar domínios): profissional do atendimento ∪ gestores (`role ∈ {OWNER, MANAGER}`), deduplicados por `userId`. Auto-skip do criador só em `appointment_created` **e só quando a origem é painel**. `customer_created` e `birthday_digest` → só gestores, sem e-mail.
+3. **Origem vitrine detectada por flag explícito** `origin: "panel" | "public"` no payload do evento `scheduling.appointment.created`, **não** por `createdByUserId` — porque `Appointment.createdByUserId` é `String` NOT NULL e o fluxo público seta `owner.id` só para satisfazer a FK. Sem o flag, o dono era tratado como criador e o auto-skip suprimia a notificação dele nas reservas da vitrine (o cenário-chave). O caminho de **pacote** da vitrine passou a publicar o evento via `schedulingService.emitAppointmentCreated` (antes criava direto no repositório e não notificava ninguém — nem a equipe, nem a confirmação ao cliente).
+4. Entrega in-app via polling de 30s (padrão já usado no Dashboard) + hook TanStack Query; e-mail transacional via Resend (opt-in). **Sem feature gate** — é UX core e o e-mail não é a automação paga de WhatsApp. `birthday_digest`: job pg-boss semanal (seg 08h) que varre `Customer.birthDate` na janela de 7 dias (fuso do servidor, simplificação v1).
+
+**Por quê**: Modelar por-usuário (em vez de reaproveitar `NotificationLog`) mantém as concerns separadas e dá a "visão de cada profissional" pedida. O flag de origem é a única forma correta de distinguir vitrine de painel, já que o campo de criador nunca é nulo. Gestor = enum `UserRole` (não os cargos dinâmicos) para uma regra de destinatário simples e estável.
+
+**Alternativas rejeitadas**: (a) reaproveitar `NotificationLog` com canal `IN_APP` — poluiria um model outbound-cliente com estado de leitura por usuário; (b) inferir vitrine por `createdByUserId === null` — falso no codebase (campo NOT NULL), gerava código morto e suprimia a notificação do dono; (c) Supabase Realtime (websocket) — adiado; o polling de 30s já é o padrão do projeto.
+
+**Consequências / follow-ups conhecidos**:
+- Migration `20260704120000_add_user_notifications` foi criada aditiva mas **não aplicada** no banco (dev inacessível na sessão) — rodar `prisma migrate resolve --applied` / `migrate deploy` antes de produção.
+- `handleApiError` **não trata `ZodError`** → input inválido retorna 500 em vez de 400. É **pré-existente e transversal** a todo o projeto (não introduzido aqui); recomendável item separado.
+- Novo cliente e aniversariantes são sempre-ligados para gestores na v1 (sem toggle individual); cancelamento/reagendamento/no-show e push nativo/PWA ficam para fases futuras (arquitetura já pronta para somar).
