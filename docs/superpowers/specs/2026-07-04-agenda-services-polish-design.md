@@ -194,6 +194,64 @@ Mesmo padrão do Item F. O único caso identificado é o `CommissionsGrid`. O fi
 
 ---
 
+## Item H — Pacotes e Promoções fluindo para Financeiro e Relatórios
+
+**Contexto:** O appointment repository já inclui `package` e `promotion` nas queries. Porém o código que consome esses dados (`scheduling.service.ts` e `reports.service.ts`) só lê `service?.name`, deixando pacotes e promoções como `null` / `"Sem serviço"` no financeiro e nos gráficos de relatório.
+
+### Helper de nome unificado
+
+Criar helper inline (ou função local) para uso consistente:
+```typescript
+function appointmentItemName(apt: { service?: { name: string } | null; package?: { name: string } | null; promotion?: { name: string } | null }): string {
+  return apt.service?.name ?? apt.package?.name ?? apt.promotion?.name ?? ''
+}
+```
+
+### `src/domains/scheduling/scheduling.service.ts`
+
+Três pontos a corrigir:
+
+1. **Evento de reagendamento** (linha ~318):
+   ```typescript
+   // antes
+   serviceName: current.service?.name ?? ""
+   // depois
+   serviceName: current.service?.name ?? current.package?.name ?? current.promotion?.name ?? ""
+   ```
+
+2. **Registro de pagamento** (linha ~435):
+   ```typescript
+   // antes
+   serviceName: appointment.service?.name ?? null
+   // depois
+   serviceName: appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? null
+   ```
+
+3. **Registro de estorno** (linha ~498) — mesma correção.
+
+### `src/domains/reports/reports.service.ts`
+
+**Inclusão das relações** (dois `findMany` que precisam de `include`):
+```typescript
+// adicionar ao lado de service: { select: { id: true, name: true } }
+package: { select: { id: true, name: true } },
+promotion: { select: { id: true, name: true } },
+```
+
+**Leitura do nome** (linhas ~88-92 e ~215):
+```typescript
+// antes
+tx.appointment?.service?.id ?? null
+tx.appointment?.service?.name ?? 'Sem serviço'
+// depois
+tx.appointment?.service?.id ?? tx.appointment?.package?.id ?? tx.appointment?.promotion?.id ?? null
+tx.appointment?.service?.name ?? tx.appointment?.package?.name ?? tx.appointment?.promotion?.name ?? 'Sem serviço'
+```
+
+**Filtro por `serviceId`** nos relatórios de agendamentos: hoje o filtro `serviceId` só funciona para serviços diretos. Pacotes e promoções não têm `serviceId` no appointment. Isso é uma limitação conhecida — não alterar o filtro agora (não há UI de filtro por pacote/promoção nos relatórios); apenas garantir que os itens apareçam na listagem.
+
+---
+
 ## Arquivos a modificar
 
 | Arquivo | Itens |
@@ -206,8 +264,10 @@ Mesmo padrão do Item F. O único caso identificado é o `CommissionsGrid`. O fi
 | `src/components/domain/services/package-form-modal.tsx` | D |
 | `src/components/domain/services/promotion-form-modal.tsx` | D |
 | `src/components/domain/settings/commissions-grid.tsx` | F, G |
+| `src/domains/scheduling/scheduling.service.ts` | H |
+| `src/domains/reports/reports.service.ts` | H |
 
-Nenhuma mudança de banco de dados ou API necessária — todas as alterações são de frontend.
+Nenhuma mudança de schema de banco necessária — o repository já inclui `package` e `promotion`.
 
 ---
 
@@ -221,4 +281,7 @@ Nenhuma mudança de banco de dados ou API necessária — todas as alterações 
 - [ ] Modal de criação de agendamento permite agendar pacotes e promoções
 - [ ] Descrição de pacote e promoção aceita quebra de linha
 - [ ] Comissões: campo editável sem travar; sem zoom em iOS
+- [ ] Agendamento de pacote/promoção registra nome correto no financeiro (não "Serviço")
+- [ ] Relatório financeiro agrupa/exibe pacotes e promoções pelo nome correto
+- [ ] Relatório de agendamentos conta e exibe pacotes/promoções corretamente
 - [ ] `npx tsc --noEmit` sem erros
