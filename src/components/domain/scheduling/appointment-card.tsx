@@ -1,4 +1,5 @@
 // src/components/domain/scheduling/appointment-card.tsx
+import { Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import type { Appointment, AppointmentStatus } from '@/hooks/scheduling/use-appointments'
@@ -46,45 +47,64 @@ type Props = {
   onClick: (appointment: Appointment) => void
   onConfirm?: (appointment: Appointment) => void
   onPay?: (appointment: Appointment) => void
+  onEdit?: (appointment: Appointment) => void
 }
 
-export function AppointmentCard({ appointment, onClick, onConfirm, onPay }: Props) {
+export function AppointmentCard({ appointment, onClick, onConfirm, onPay, onEdit }: Props) {
   const config = STATUS_CONFIG[appointment.status]
+  const isActive = !['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(appointment.status)
 
   return (
-    <div className={cn('relative w-full rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md', config.cardClass)}>
-      <button
-        onClick={() => onClick(appointment)}
-        className="w-full text-left"
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 pr-6">
-            <p className="truncate text-sm font-semibold text-slate-950">
-              {appointment.customer?.name ?? '—'}
-            </p>
-            <p className="mt-0.5 text-xs text-slate-500">
-              {appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'}{appointment.professional ? ` · ${appointment.professional.name}` : ''}
-            </p>
-          </div>
-          <Badge className={cn('shrink-0 text-xs', config.badgeClass)}>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onClick(appointment)}
+      onKeyDown={(e) => e.key === 'Enter' && onClick(appointment)}
+      className={cn('relative w-full cursor-pointer rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md', config.cardClass)}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-slate-950">
+            {appointment.customer?.name ?? '—'}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            {appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'}{appointment.professional ? ` · ${appointment.professional.name}` : ''}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Badge className={cn('text-xs', config.badgeClass)}>
             {config.label}
           </Badge>
+          {onEdit && isActive && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(appointment) }}
+              className="rounded-md border border-slate-200 p-1 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 transition"
+              aria-label="Editar agendamento"
+            >
+              <Pencil className="size-3.5" />
+            </button>
+          )}
         </div>
-        <p className="mt-3 text-xs font-medium text-slate-600">
-          {formatTime(appointment.startsAt)} – {formatTime(appointment.endsAt)}
-        </p>
-      </button>
+      </div>
 
-      {/* Quick actions — visíveis apenas em mobile (sm:hidden) */}
+      <p className="mt-3 text-xs font-medium text-slate-600">
+        {formatTime(appointment.startsAt)} – {formatTime(appointment.endsAt)}
+      </p>
+
+      {/* Quick actions — visíveis apenas em mobile */}
       {(() => {
         const showConfirm = !!onConfirm && appointment.status === 'SCHEDULED'
         const showPay = !!onPay && appointment.status === 'CONFIRMED' && appointment.paymentStatus !== 'PAID'
         if (!showConfirm && !showPay) return null
         return (
-          <div className="mt-3 flex flex-col gap-2 sm:hidden border-t border-slate-100 pt-3">
+          <div
+            className="mt-3 flex flex-col gap-2 sm:hidden border-t border-slate-100 pt-3"
+            onClick={(e) => e.stopPropagation()}
+          >
             {showConfirm && (
               <button
-                onClick={(e) => { e.stopPropagation(); onConfirm?.(appointment) }}
+                onClick={() => onConfirm?.(appointment)}
                 className="flex w-full items-center justify-center rounded-xl bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 transition min-h-11"
               >
                 Confirmar
@@ -92,7 +112,7 @@ export function AppointmentCard({ appointment, onClick, onConfirm, onPay }: Prop
             )}
             {showPay && (
               <button
-                onClick={(e) => { e.stopPropagation(); onPay?.(appointment) }}
+                onClick={() => onPay?.(appointment)}
                 className="flex w-full items-center justify-center rounded-xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition min-h-11"
               >
                 Fechar pagamento
