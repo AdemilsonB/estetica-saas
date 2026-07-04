@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CurrencyInput } from '@/components/ui/currency-input'
@@ -103,7 +104,14 @@ export function PackageFormModal({ open, onClose, pkg }: Props) {
 
           <div className="space-y-2">
             <Label htmlFor="pkg-description">Descrição (opcional)</Label>
-            <Input id="pkg-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descreva o que está incluído" maxLength={500} />
+            <Textarea
+              id="pkg-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Descreva o que está incluído"
+              maxLength={500}
+              className="min-h-20 resize-none"
+            />
           </div>
 
           <div className="space-y-2">
