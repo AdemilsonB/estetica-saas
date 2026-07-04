@@ -1,20 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, ChevronsUpDown, Users } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from '@/components/ui/command'
 import { cn } from '@/lib/utils'
 import { useTeamMembers } from '@/hooks/iam/use-team'
 
@@ -29,7 +14,6 @@ export function ProfessionalFilter({
   onChange,
   currentUserId,
 }: ProfessionalFilterProps) {
-  const [open, setOpen] = useState(false)
   const { data: members = [] } = useTeamMembers()
 
   const allIds = members.map((m) => m.id)
@@ -47,15 +31,6 @@ export function ProfessionalFilter({
     }
   }
 
-  const label =
-    selectedIds.length === 0
-      ? 'Todos os profissionais'
-      : selectedIds.length <= 2
-        ? selectedIds
-            .map((id) => members.find((m) => m.id === id)?.name ?? id)
-            .join(', ')
-        : `${selectedIds.length} profissionais`
-
   const sorted = [...members].sort((a, b) => {
     if (a.id === currentUserId) return -1
     if (b.id === currentUserId) return 1
@@ -63,48 +38,35 @@ export function ProfessionalFilter({
   })
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="max-w-[220px] justify-between"
-        >
-          <Users className="mr-2 size-4 shrink-0" />
-          <span className="truncate">{open ? '' : label}</span>
-          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[220px] p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Buscar profissional..." />
-          <CommandEmpty>Nenhum profissional encontrado.</CommandEmpty>
-          <CommandGroup>
-            <CommandItem value="__all__" onSelect={toggleAll}>
-              <Check
-                className={cn('mr-2 size-4', allSelected ? 'opacity-100' : 'opacity-0')}
-              />
-              <span className="font-medium">Todos</span>
-            </CommandItem>
-            {sorted.map((member) => {
-              const isSelected = selectedIds.includes(member.id)
-              return (
-                <CommandItem
-                  key={member.id}
-                  value={member.name}
-                  onSelect={() => toggle(member.id)}
-                >
-                  <Check
-                    className={cn('mr-2 size-4', isSelected ? 'opacity-100' : 'opacity-0')}
-                  />
-                  <span className="truncate">{member.name}</span>
-                </CommandItem>
-              )
-            })}
-          </CommandGroup>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <div className="flex flex-wrap gap-1.5">
+      <button
+        onClick={toggleAll}
+        className={cn(
+          'rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors',
+          allSelected
+            ? 'border-primary bg-primary text-primary-foreground'
+            : 'border-slate-200 bg-white text-slate-600 hover:border-primary/40 hover:text-slate-900',
+        )}
+      >
+        Todos
+      </button>
+      {sorted.map((member) => {
+        const isSelected = selectedIds.includes(member.id)
+        return (
+          <button
+            key={member.id}
+            onClick={() => toggle(member.id)}
+            className={cn(
+              'rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors',
+              isSelected
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-primary/40 hover:text-slate-900',
+            )}
+          >
+            {member.name}
+          </button>
+        )
+      })}
+    </div>
   )
 }
