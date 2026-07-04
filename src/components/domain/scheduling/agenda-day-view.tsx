@@ -115,13 +115,37 @@ export function AgendaDayView() {
   const { data: currentUser } = useCurrentUser()
   const canViewAll = can('agenda', 'view_all')
   const { data: teamMembers = [] } = useTeamMembers()
-  const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>([])
+
+  const FILTER_KEY = 'agenda:professional-filter'
+
+  const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return []
+    try {
+      const saved = localStorage.getItem(FILTER_KEY)
+      return saved ? (JSON.parse(saved) as string[]) : []
+    } catch {
+      return []
+    }
+  })
+
+  // Só aplica "todos selecionados" quando não há preferência salva ainda
+  const [hasStoredPreference] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem(FILTER_KEY) !== null
+  })
 
   useEffect(() => {
-    if (!canViewAll || teamMembers.length === 0 || selectedProfessionalIds.length > 0) return
-    setSelectedProfessionalIds(teamMembers.map((m) => m.id))
+    if (!canViewAll || teamMembers.length === 0 || hasStoredPreference) return
+    const allIds = teamMembers.map((m) => m.id)
+    setSelectedProfessionalIds(allIds)
+    localStorage.setItem(FILTER_KEY, JSON.stringify(allIds))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canViewAll, teamMembers])
+
+  function handleFilterChange(ids: string[]) {
+    setSelectedProfessionalIds(ids)
+    localStorage.setItem(FILTER_KEY, JSON.stringify(ids))
+  }
 
   const queryProfessionalId = !canViewAll
     ? currentUser?.roleId
@@ -252,7 +276,7 @@ export function AgendaDayView() {
           {canViewAll && currentUser && (
             <ProfessionalFilter
               selectedIds={selectedProfessionalIds}
-              onChange={setSelectedProfessionalIds}
+              onChange={handleFilterChange}
               currentUserId={currentUser.id}
             />
           )}
