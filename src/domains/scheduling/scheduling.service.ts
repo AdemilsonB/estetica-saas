@@ -634,6 +634,24 @@ export class SchedulingService {
       },
     };
   }
+
+  async emitAppointmentCreated(
+    tenantId: string,
+    appointmentId: string,
+    origin: "panel" | "public" = "public",
+  ): Promise<void> {
+    const appointmentDetails = await appointmentRepository.findById(tenantId, appointmentId);
+    if (!appointmentDetails) {
+      throw new AppointmentNotFoundError();
+    }
+    eventBus.publish({
+      type: "scheduling.appointment.created",
+      payload: {
+        ...this.toAppointmentEventPayload(tenantId, appointmentDetails),
+        origin,
+      },
+    });
+  }
 }
 
 export const schedulingService = new SchedulingService();

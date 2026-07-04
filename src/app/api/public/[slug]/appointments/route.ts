@@ -227,6 +227,10 @@ export async function POST(req: Request, context: RouteContext) {
           data: { anamneseId: input.anamneseId },
         })
       }
+
+      // Publica o mesmo evento do serviço avulso: notifica a equipe e dispara
+      // a confirmação (WhatsApp/e-mail) ao cliente também para pacotes.
+      await schedulingService.emitAppointmentCreated(tenant.id, appointment.id, 'public')
     } else {
       // Serviço avulso: usar scheduling service existente
       appointment = await schedulingService.createAppointment(

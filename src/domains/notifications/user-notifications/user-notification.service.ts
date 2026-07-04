@@ -15,7 +15,7 @@ import type {
 
 type AppointmentPayload = {
   tenantId: string;
-  appointment: { id: string; createdByUserId: string | null; startsAt: Date };
+  appointment: { id: string; createdByUserId: string | null; startsAt: Date; packageId?: string | null };
   customer: { id: string; name: string };
   service: { id: string; name: string };
   professional: { id: string; name: string; email: string };
@@ -83,6 +83,8 @@ export class UserNotificationService {
     }
 
     const dateTime = formatDateTime(appointment.startsAt);
+    // Pacotes não têm `service` (nome vazio) — usa rótulo com fallback.
+    const serviceLabel = service.name || (appointment.packageId ? "Pacote" : "Atendimento");
     const type: UserNotificationType =
       kind === "created" ? "appointment_created" : "appointment_cancelled";
 
@@ -116,8 +118,8 @@ export class UserNotificationService {
               : "Novo agendamento na sua agenda";
       const body =
         kind === "cancelled"
-          ? `O agendamento de ${customer.name} (${service.name}) para ${dateTime} foi cancelado.`
-          : `${customer.name} • ${service.name} • ${dateTime}`;
+          ? `O agendamento de ${customer.name} (${serviceLabel}) para ${dateTime} foi cancelado.`
+          : `${customer.name} • ${serviceLabel} • ${dateTime}`;
 
       rows.push({
         userId: c.id,
@@ -127,7 +129,7 @@ export class UserNotificationService {
         data: {
           appointmentId: appointment.id,
           customerName: customer.name,
-          serviceName: service.name,
+          serviceName: serviceLabel,
           startsAt: appointment.startsAt.toISOString(),
           origin: isPublic ? "public" : "panel",
         },

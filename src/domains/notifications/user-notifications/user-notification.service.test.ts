@@ -23,6 +23,8 @@ function makePayload(
     profId: string;
     profEmail: string;
     origin: "panel" | "public";
+    serviceName: string;
+    packageId: string | null;
   }> = {},
 ) {
   return {
@@ -31,9 +33,10 @@ function makePayload(
       id: "a1",
       createdByUserId: over.createdByUserId ?? null,
       startsAt: new Date("2026-07-04T14:00:00Z"),
+      packageId: over.packageId ?? null,
     },
     customer: { id: "c1", name: "Maria", phone: null, email: null },
-    service: { id: "s1", name: "Corte", duration: 30 },
+    service: { id: "s1", name: over.serviceName ?? "Corte", duration: 30 },
     professional: { id: over.profId ?? "prof1", name: "Ana", email: over.profEmail ?? "ana@x.com" },
     origin: over.origin ?? "panel",
   } as never;
@@ -127,6 +130,16 @@ describe("UserNotificationService.notifyAppointment", () => {
     const rows = repo.createMany.mock.calls[0][1];
     expect(rows.find((r: { userId: string }) => r.userId === "prof1")).toBeDefined();
     expect(rows[0].type).toBe("appointment_cancelled");
+  });
+
+  it("pacote (service.name vazio) usa 'Pacote' como rótulo no body e no data", async () => {
+    await service.notifyAppointment(
+      makePayload({ serviceName: "", packageId: "pkg1" }),
+      "created",
+    );
+    const rows = repo.createMany.mock.calls[0][1];
+    expect(rows[0].data.serviceName).toBe("Pacote");
+    expect(rows[0].body).toContain("Pacote");
   });
 
   it("profissional comum (não gestor) com notifyOwnAppointments=true recebe o próprio agendamento", async () => {
