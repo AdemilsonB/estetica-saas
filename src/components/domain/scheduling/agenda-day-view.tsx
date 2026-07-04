@@ -20,6 +20,7 @@ import { useCurrentUser } from '@/hooks/use-current-user'
 import { useTeamMembers } from '@/hooks/iam/use-team'
 import type { TeamMember } from '@/hooks/iam/use-team'
 import { ProfessionalFilter } from './ProfessionalFilter'
+import { cn } from '@/lib/utils'
 
 function startOfDay(d: Date) {
   const r = new Date(d)
@@ -84,16 +85,8 @@ function toHour(appt: Appointment) {
 
 type ViewMode = 'day' | 'week' | 'month'
 
-type Props = {
-  date?: Date
-}
-
-export function AgendaDayView({ date: dateProp }: Props = {}) {
-  const [internalDate, setInternalDate] = useState(new Date())
-  const selectedDate = dateProp ?? internalDate
-  const setSelectedDate = (d: Date) => {
-    if (!dateProp) setInternalDate(d)
-  }
+export function AgendaDayView() {
+  const [selectedDate, setSelectedDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<ViewMode>('day')
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null)
@@ -103,6 +96,13 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   const [confirmModalAppointment, setConfirmModalAppointment] = useState<Appointment | null>(null)
   const { can } = usePermissions()
+
+  // Esconde o bottom nav quando o drawer está aberto
+  useEffect(() => {
+    document.dispatchEvent(
+      new CustomEvent('agenda:drawer-toggle', { detail: { open: drawerOpen } })
+    )
+  }, [drawerOpen])
 
   function handleConfirmInline(appt: Appointment) {
     setConfirmModalAppointment(appt)
@@ -126,9 +126,6 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canViewAll, teamMembers])
 
-  // Sem view_all: comportamento original — profissional vê só seus agendamentos
-  // Com view_all e 1 selecionado: filtra por esse profissional na API
-  // Com view_all e múltiplos: busca todos e filtra localmente
   const queryProfessionalId = !canViewAll
     ? currentUser?.roleId
       ? currentUser.id
@@ -167,11 +164,9 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
     (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
   )
 
-  // Dados para modo dia
   const groups = groupByHour(sorted)
   const hours = Object.keys(groups).sort()
 
-  // Dados para modo semana (fallback — lista antiga)
   const dayGroups = groupByDay(sorted)
   const dayKeys = Object.keys(dayGroups).sort(
     (a, b) => new Date(a).getTime() - new Date(b).getTime(),
@@ -179,7 +174,6 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
 
   const isEmpty = viewMode === 'day' ? hours.length === 0 : dayKeys.length === 0
 
-  // Dados para o layout de colunas (modo Dia com múltiplos profissionais)
   const byProfessional = selectedProfessionalIds.map((profId) => ({
     professional: teamMembers.find((m) => m.id === profId) ?? ({
       id: profId,
@@ -209,67 +203,63 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
     setDrawerOpen(true)
   }
 
+  function handleSelectDay(d: Date) {
+    setSelectedDate(d)
+    setViewMode('day')
+  }
+
   return (
-    <div className="flex flex-col gap-4">
-      {/* Header da agenda */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1">
+    <div className="flex flex-col gap-3">
+      {/* Linha principal: week strip + botões de visão */}
+      <div className="flex items-center gap-2">
+        {viewMode !== 'month' && (
+          <AgendaWeekStrip
+            selectedDate={selectedDate}
+            onSelectDate={handleSelectDay}
+          />
+        )}
+
+        {/* Botões de visão — à direita da strip ou sozinhos no modo mês */}
+        <div className={cn(
+          'flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5 shrink-0',
+          viewMode === 'month' && 'ml-auto',
+        )}>
           <Button
             variant={viewMode === 'day' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setViewMode('day')}
-            className="rounded-full"
+            className="rounded-md px-2.5 h-8"
           >
             <LayoutList className="size-4" />
-            <span className="hidden sm:inline">Dia</span>
+            <span className="hidden sm:inline ml-1 text-xs">Dia</span>
           </Button>
           <Button
             variant={viewMode === 'week' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setViewMode('week')}
-            className="rounded-full"
+            className="rounded-md px-2.5 h-8"
           >
             <CalendarRange className="size-4" />
-            <span className="hidden sm:inline">Semana</span>
+            <span className="hidden sm:inline ml-1 text-xs">Semana</span>
           </Button>
           <Button
             variant={viewMode === 'month' ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setViewMode('month')}
-            className="rounded-full"
+            onClick={() => setViewMode(viewMode === 'month' ? 'day' : 'month')}
+            className="rounded-md px-2.5 h-8"
+            aria-label="Calendário mensal"
           >
             <CalendarDays className="size-4" />
-            <span className="hidden sm:inline">Mês</span>
           </Button>
         </div>
-
-        {canViewAll && currentUser && (
-          <ProfessionalFilter
-            selectedIds={selectedProfessionalIds}
-            onChange={setSelectedProfessionalIds}
-            currentUserId={currentUser.id}
-          />
-        )}
-
-        {can('agenda', 'create') && (
-          <Button
-            onClick={() => setCreateModalOpen(true)}
-            className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="size-4" />
-            <span className="hidden sm:inline">Novo agendamento</span>
-          </Button>
-        )}
       </div>
 
-      {/* Strip semanal (apenas quando gerenciado internamente e fora do modo mês) */}
-      {!dateProp && viewMode !== 'month' && (
-        <AgendaWeekStrip
-          selectedDate={selectedDate}
-          onSelectDate={(d) => {
-            setSelectedDate(d)
-            setViewMode('day')
-          }}
+      {/* Filtro de profissionais (chips inline) */}
+      {canViewAll && currentUser && (
+        <ProfessionalFilter
+          selectedIds={selectedProfessionalIds}
+          onChange={setSelectedProfessionalIds}
+          currentUserId={currentUser.id}
         />
       )}
 
@@ -284,9 +274,7 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
       {viewMode === 'month' && (
         <AgendaMonthView
           selectedDate={selectedDate}
-          onSelectDate={(d) => {
-            if (!dateProp) setInternalDate(d)
-          }}
+          onSelectDate={(d) => setSelectedDate(d)}
           onSelectDayView={() => setViewMode('day')}
         />
       )}
@@ -336,17 +324,15 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
             <AgendaWeekGrid
               selectedDate={selectedDate}
               onSelectDate={(d) => {
-                if (!dateProp) setInternalDate(d)
+                setSelectedDate(d)
                 setViewMode('day')
               }}
               onAppointmentClick={handleCardClick}
               professionalId={queryProfessionalId}
             />
           ) : viewMode === 'day' && canViewAll && selectedProfessionalIds.length > 1 ? (
-            // Layout de colunas com scroll horizontal — funciona em mobile e desktop
             <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
               <div className="inline-flex min-w-full flex-col">
-                {/* Cabeçalho com nomes dos profissionais */}
                 <div className="mb-2 flex">
                   <div className="w-10 sm:w-14 shrink-0" />
                   {byProfessional.map(({ professional }) => (
@@ -362,7 +348,6 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
                     </div>
                   ))}
                 </div>
-                {/* Linhas por horário */}
                 {allColumnHours.map((hour) => (
                   <div key={hour} className="flex items-start border-t border-slate-100/80">
                     <div className="sticky left-0 z-10 w-10 sm:w-14 shrink-0 bg-background pt-1.5">
@@ -381,7 +366,8 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
                             <AppointmentCard
                               key={appt.id}
                               appointment={appt}
-                              onClick={handleCardClick}                          onConfirm={handleConfirmInline}
+                              onClick={handleCardClick}
+                              onConfirm={handleConfirmInline}
                               onPay={handlePayInline}
                             />
                           ))}
@@ -413,33 +399,7 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
                 </div>
               ))}
             </div>
-          ) : (
-            // Fallback lista semanal — nunca alcançado com os modos atuais
-            <div className="space-y-6">
-              {dayKeys.map((key) => (
-                <div key={key}>
-                  <p className="mb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase capitalize">
-                    {new Date(key).toLocaleDateString('pt-BR', {
-                      weekday: 'long',
-                      day: '2-digit',
-                      month: 'long',
-                    })}
-                  </p>
-                  <div className="space-y-2">
-                    {dayGroups[key].map((appt) => (
-                      <AppointmentCard
-                        key={appt.id}
-                        appointment={appt}
-                        onClick={handleCardClick}
-                        onConfirm={handleConfirmInline}
-                        onPay={handlePayInline}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          ) : null}
         </>
       )}
 
@@ -476,17 +436,6 @@ export function AgendaDayView({ date: dateProp }: Props = {}) {
           open={!!confirmModalAppointment}
           onClose={() => setConfirmModalAppointment(null)}
         />
-      )}
-
-      {/* FAB — novo agendamento, mobile only */}
-      {can('agenda', 'create') && (
-        <button
-          onClick={() => setCreateModalOpen(true)}
-          className="fixed bottom-20 right-4 z-50 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 active:scale-95 transition sm:hidden"
-          aria-label="Novo agendamento"
-        >
-          <Plus className="size-6" />
-        </button>
       )}
     </div>
   )

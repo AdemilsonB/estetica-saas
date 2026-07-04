@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Calendar, Scissors, Plus, Users, LogOut, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useBillingStatus } from '@/hooks/billing/use-billing-status'
@@ -32,6 +32,16 @@ export function BottomNav({ onNewAppointment }: BottomNavProps) {
   const { user } = usePermissions()
   const { data: billingStatus } = useBillingStatus()
   const [profileOpen, setProfileOpen] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
+  useEffect(() => {
+    function handleToggle(e: Event) {
+      const detail = (e as CustomEvent<{ open: boolean }>).detail
+      setDrawerOpen(detail.open)
+    }
+    document.addEventListener('agenda:drawer-toggle', handleToggle)
+    return () => document.removeEventListener('agenda:drawer-toggle', handleToggle)
+  }, [])
 
   async function handleLogout() {
     const supabase = createSupabaseBrowserClient()
@@ -45,7 +55,10 @@ export function BottomNav({ onNewAppointment }: BottomNavProps) {
     <>
       <nav
         aria-label="Navegação principal mobile"
-        className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around bg-background md:hidden"
+        className={cn(
+          'fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around bg-background md:hidden transition-transform duration-200',
+          drawerOpen && 'translate-y-full',
+        )}
         style={{
           height: 'calc(72px + env(safe-area-inset-bottom))',
           paddingBottom: 'env(safe-area-inset-bottom)',
