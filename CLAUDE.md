@@ -204,7 +204,7 @@ Nunca entregar componente de UI sem passar pelo checklist do `agent-mobile`.
 | CRM | ✅ | ✅ | Filtros avançados, badge VIP, anamnese digital; CPF do cliente validado por dígito verificador no cadastro público (`cpfSchema` em `domains/crm/schemas.ts`) — login por CPF não exige dígito válido, só formato, para não travar contas antigas |
 | Scheduling | ✅ | ✅ | Agenda semanal, slots, filtro profissional, quick actions mobile; disponibilidade pública respeita `minAdvanceMinutes`/`maxAdvanceDays` da policy (painel não — só bloqueia data passada, com switch "lançar atendimento esquecido" — ADR-014) |
 | Financial | ✅ | ✅ | Checkout, despesas, comissões, taxas, estornos |
-| Notifications | ✅ | ✅ | Evolution API primário (WhatsApp), email fallback via Resend, 6 templates |
+| Notifications | ✅ | ✅ | **Cliente:** Evolution API primário (WhatsApp), email fallback via Resend, 6 templates. **Equipe (central in-app):** submódulo `user-notifications/` com model próprio `UserNotification` (feed por usuário), sino com bolinha de alerta no topo (MobileHeader + sidebar), painel com filtro por tipo/data + preferências (engrenagem); tipos v1 = novo agendamento, cancelamento, novo cliente, aniversariantes da semana (job pg-boss semanal p/ gestores); destinatários = profissional do atendimento + gestores (OWNER/MANAGER), auto-skip só no painel, origem vitrine via flag `origin` no evento, e-mail opt-in via Resend, polling 30s — ver ADR-015 |
 | Dashboard | ✅ | ✅ | Métricas + polling 30s |
 | Reports | ✅ | ✅ | 4 páginas (Visão Geral, Financeiro, Agendamentos, Clientes); KPIs com % de variação vs. período anterior; gráficos Recharts (line, donut, heatmap de sazonalidade); filtro de categoria; clientes inativos com ação WhatsApp; paginação server-side; feature gate `reports_advanced` com upsell inline |
 | Settings | ✅ | ✅ | Cargos, Meu Link (QR Code, WhatsApp, Instagram) |
@@ -223,8 +223,9 @@ Nunca entregar componente de UI sem passar pelo checklist do `agent-mobile`.
 
 Produção e escala:
 1. Configurar `PUBLIC_SESSION_SECRET` no Vercel (obrigatório para o portal do cliente)
-2. Fase 2 — Automation: regras de pós-atendimento, campanhas de reengajamento
-3. Relatórios avançados com filtros por profissional + exportação agendada
+2. **Aplicar a migration `20260704120000_add_user_notifications`** no banco (`prisma migrate deploy` / `resolve --applied`) — criada aditiva mas não aplicada (banco de dev inacessível na sessão da central de notificações)
+3. Fase 2 — Automation: regras de pós-atendimento, campanhas de reengajamento
+4. Relatórios avançados com filtros por profissional + exportação agendada
 
 ---
 

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { ChevronLeft, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { NotificationBell } from '@/components/domain/notifications/notification-bell'
 
 interface MobileHeaderProps {
   logoUrl: string | null
@@ -61,27 +62,30 @@ export function MobileHeader({ logoUrl, businessName, onOpenSidebar }: MobileHea
         </button>
       )}
 
-      <Link
-        href="/dashboard"
-        className="flex items-center gap-2"
-        aria-label="Ir para o Dashboard"
-      >
-        <span className="max-w-[140px] truncate text-sm font-semibold text-foreground">
-          {businessName || 'Meu negócio'}
-        </span>
-        {logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={logoUrl}
-            alt={businessName}
-            className="size-8 shrink-0 rounded-lg object-contain"
-          />
-        ) : (
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-pink-600 text-sm font-extrabold text-white">
-            A
-          </div>
-        )}
-      </Link>
+      <div className="flex items-center gap-1">
+        <NotificationBell />
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2"
+          aria-label="Ir para o Dashboard"
+        >
+          <span className="max-w-[140px] truncate text-sm font-semibold text-foreground">
+            {businessName || 'Meu negócio'}
+          </span>
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt={businessName}
+              className="size-8 shrink-0 rounded-lg object-contain"
+            />
+          ) : (
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-pink-600 text-sm font-extrabold text-white">
+              A
+            </div>
+          )}
+        </Link>
+      </div>
     </header>
   )
 }

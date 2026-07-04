@@ -104,6 +104,7 @@ export class SchedulingService {
     tenantId: string,
     userId: string,
     input: CreateAppointmentInput,
+    origin: "panel" | "public" = "panel",
   ) {
     const appointmentCount = await appointmentRepository.countThisMonth(tenantId);
     await featureGuard.assertWithinLimit(tenantId, "appointments_month", appointmentCount);
@@ -227,6 +228,7 @@ export class SchedulingService {
       payload: {
         ...this.toAppointmentEventPayload(tenantId, appointmentDetails),
         notificationMessage: input.notificationMessage,
+        origin,
       },
     });
 
@@ -659,6 +661,24 @@ export class SchedulingService {
         email: appointment.professional.email,
       },
     };
+  }
+
+  async emitAppointmentCreated(
+    tenantId: string,
+    appointmentId: string,
+    origin: "panel" | "public" = "public",
+  ): Promise<void> {
+    const appointmentDetails = await appointmentRepository.findById(tenantId, appointmentId);
+    if (!appointmentDetails) {
+      throw new AppointmentNotFoundError();
+    }
+    eventBus.publish({
+      type: "scheduling.appointment.created",
+      payload: {
+        ...this.toAppointmentEventPayload(tenantId, appointmentDetails),
+        origin,
+      },
+    });
   }
 }
 

@@ -78,3 +78,39 @@ export function bookingCancelledHtml(data: EmailTemplateData): string {
     ${data.tenantPhone ? `<p style="color:#64748b;font-size:14px;margin:0;">Para reagendar, entre em contato: ${escapeHtml(data.tenantPhone)}</p>` : ''}
   `, 'Agendamento cancelado')
 }
+
+type ProfessionalEmailData = {
+  professionalName: string;
+  customerName: string;
+  serviceName: string;
+  dateTime: string;
+  tenantName: string;
+};
+
+export function professionalNewAppointmentHtml(data: ProfessionalEmailData): string {
+  return baseLayout(`
+    <p style="color:#7c3aed;font-size:28px;margin:0 0 16px;">📅</p>
+    <h1 style="color:#0f172a;font-size:20px;margin:0 0 8px;">Novo agendamento</h1>
+    <p style="color:#64748b;font-size:14px;margin:0 0 24px;">Olá, ${escapeHtml(data.professionalName)}!</p>
+    <div style="background:#f8fafc;border-radius:8px;padding:16px;margin-bottom:24px;">
+      <p style="margin:0 0 8px;font-weight:600;color:#0f172a;">${escapeHtml(data.customerName)}</p>
+      <p style="margin:0 0 4px;color:#64748b;font-size:14px;">${escapeHtml(data.serviceName)}</p>
+      <p style="margin:0;font-weight:600;color:#334155;font-size:14px;">${data.dateTime}</p>
+    </div>
+    <p style="color:#64748b;font-size:14px;margin:0;">— ${escapeHtml(data.tenantName)}</p>
+  `, 'Novo agendamento')
+}
+
+export function professionalCancelledAppointmentHtml(data: ProfessionalEmailData): string {
+  return baseLayout(`
+    <p style="color:#ef4444;font-size:28px;margin:0 0 16px;">❌</p>
+    <h1 style="color:#0f172a;font-size:20px;margin:0 0 8px;">Agendamento cancelado</h1>
+    <p style="color:#64748b;font-size:14px;margin:0 0 24px;">Olá, ${escapeHtml(data.professionalName)}!</p>
+    <div style="background:#f8fafc;border-radius:8px;padding:16px;margin-bottom:24px;">
+      <p style="margin:0 0 8px;font-weight:600;color:#0f172a;">${escapeHtml(data.customerName)}</p>
+      <p style="margin:0 0 4px;color:#64748b;font-size:14px;">${escapeHtml(data.serviceName)}</p>
+      <p style="margin:0;font-weight:600;color:#334155;font-size:14px;">${data.dateTime}</p>
+    </div>
+    <p style="color:#64748b;font-size:14px;margin:0;">— ${escapeHtml(data.tenantName)}</p>
+  `, 'Agendamento cancelado')
+}

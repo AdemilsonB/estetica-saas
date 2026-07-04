@@ -181,6 +181,7 @@ model Tenant {
   professionalServices   ProfessionalService[]
   serviceCategories      ServiceCategory[]
   usageSnapshots         UsageSnapshot[]
+  userNotifications      UserNotification[]
 }
 
 model BrandingConfig {
@@ -259,29 +260,33 @@ model PlanLimitConfig {
 }
 
 model User {
-  id                   String                @id @default(cuid())
-  tenantId             String
-  email                String
-  name                 String
-  phone                String?
-  cpf                  String?
-  role                 UserRole              @default(PROFESSIONAL)
-  permissions          String[]
-  avatarUrl            String?
-  avatarCropX          Float?
-  avatarCropY          Float?
-  avatarCropZoom       Float?
-  bio                  String?
-  showOnPublicPage     Boolean               @default(true)
-  roleId               String?
-  customRole           Role?                 @relation("UserCustomRole", fields: [roleId], references: [id])
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  appointmentsAssigned Appointment[]         @relation("ProfessionalAppointments")
-  createdAppointments  Appointment[]         @relation("AppointmentCreatedBy")
-  stockMovements       StockMovement[]
-  professionalServices ProfessionalService[]
+  id                      String                @id @default(cuid())
+  tenantId                String
+  email                   String
+  name                    String
+  phone                   String?
+  cpf                     String?
+  role                    UserRole              @default(PROFESSIONAL)
+  permissions             String[]
+  avatarUrl               String?
+  avatarCropX             Float?
+  avatarCropY             Float?
+  avatarCropZoom          Float?
+  bio                     String?
+  showOnPublicPage        Boolean               @default(true)
+  notifyEmailAppointments Boolean               @default(false)
+  notifyOwnAppointments   Boolean               @default(false)
+  notifyTeamAppointments  Boolean               @default(true)
+  roleId                  String?
+  customRole              Role?                 @relation("UserCustomRole", fields: [roleId], references: [id])
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  tenant                  Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointmentsAssigned    Appointment[]         @relation("ProfessionalAppointments")
+  createdAppointments     Appointment[]         @relation("AppointmentCreatedBy")
+  stockMovements          StockMovement[]
+  professionalServices    ProfessionalService[]
+  userNotifications       UserNotification[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -353,31 +358,31 @@ model TenantInvite {
 }
 
 model Customer {
-  id            String            @id @default(cuid())
-  tenantId      String
-  name          String
-  phone         String?
-  email         String?
-  notes         String?
-  tags          String[]
-  consentGiven  Boolean           @default(false)
-  consentDate   DateTime?
-  consentOrigin String?
-  birthDate     DateTime?
-  cpf           String?
-  isVip         Boolean           @default(false)
-  vipUpdatedAt  DateTime?
-  isBlocked     Boolean           @default(false)
-  blockedReason String?
-  blockedAt     DateTime?
-  favoriteServiceIds String[]     @default([])
-  favoritePackageIds String[]     @default([])
-  deletedAt     DateTime?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  appointments  Appointment[]
-  anamnese      CustomerAnamnese?
+  id                 String            @id @default(cuid())
+  tenantId           String
+  name               String
+  phone              String?
+  email              String?
+  notes              String?
+  tags               String[]
+  consentGiven       Boolean           @default(false)
+  consentDate        DateTime?
+  consentOrigin      String?
+  birthDate          DateTime?
+  cpf                String?
+  isVip              Boolean           @default(false)
+  vipUpdatedAt       DateTime?
+  isBlocked          Boolean           @default(false)
+  blockedReason      String?
+  blockedAt          DateTime?
+  favoriteServiceIds String[]          @default([])
+  favoritePackageIds String[]          @default([])
+  deletedAt          DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments       Appointment[]
+  anamnese           CustomerAnamnese?
 
   @@index([tenantId])
   @@index([tenantId, phone])
@@ -536,6 +541,24 @@ model NotificationLog {
   @@index([customerId])
 }
 
+model UserNotification {
+  id        String    @id @default(cuid())
+  tenantId  String
+  userId    String
+  type      String
+  title     String
+  body      String
+  data      Json
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId, readAt])
+  @@index([tenantId, userId, createdAt])
+}
+
 model WhatsAppAutoReplyLog {
   id        String   @id @default(cuid())
   tenantId  String
@@ -631,22 +654,22 @@ enum PromoDiscountType {
 }
 
 model ServicePackage {
-  id           String               @id @default(cuid())
-  tenantId     String
-  name         String
-  description  String?
-  price        Decimal              @db.Decimal(10, 2)
-  imageUrl     String?
-  imageCropX   Float?
-  imageCropY   Float?
+  id            String               @id @default(cuid())
+  tenantId      String
+  name          String
+  description   String?
+  price         Decimal              @db.Decimal(10, 2)
+  imageUrl      String?
+  imageCropX    Float?
+  imageCropY    Float?
   imageCropZoom Float?
-  active       Boolean              @default(true)
-  items        ServicePackageItem[]
-  promotions   PromotionItem[]
-  appointments Appointment[]
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  active        Boolean              @default(true)
+  items         ServicePackageItem[]
+  promotions    PromotionItem[]
+  appointments  Appointment[]
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  tenant        Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }
@@ -727,21 +750,21 @@ model ProductCategory {
 }
 
 model Product {
-  id            String   @id @default(cuid())
-  tenantId      String
-  name          String
-  categoryId    String?
-  costPrice     Decimal  @db.Decimal(10, 2)
-  salePrice     Decimal  @db.Decimal(10, 2)
-  stockQuantity Int      @default(0)
-  lowStockAlert Int      @default(5)
-  active              Boolean  @default(true)
-  availableForSale    Boolean  @default(false)
-  imageUrl            String?
-  imageCropX          Float?
-  imageCropY          Float?
-  imageCropZoom       Float?
-  catalogProductId    String?
+  id               String   @id @default(cuid())
+  tenantId         String
+  name             String
+  categoryId       String?
+  costPrice        Decimal  @db.Decimal(10, 2)
+  salePrice        Decimal  @db.Decimal(10, 2)
+  stockQuantity    Int      @default(0)
+  lowStockAlert    Int      @default(5)
+  active           Boolean  @default(true)
+  availableForSale Boolean  @default(false)
+  imageUrl         String?
+  imageCropX       Float?
+  imageCropY       Float?
+  imageCropZoom    Float?
+  catalogProductId String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

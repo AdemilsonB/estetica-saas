@@ -31,6 +31,7 @@ type AppointmentEventPayload = {
     email: string;
   };
   notificationMessage?: string;
+  origin?: "panel" | "public";
 };
 
 type RescheduledEventPayload = {
