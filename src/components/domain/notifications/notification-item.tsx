@@ -51,25 +51,25 @@ export function NotificationItem({
   }
 
   return (
-    <button
-      type="button"
-      onClick={toggle}
+    <div
       className={cn(
-        "flex w-full min-h-11 flex-col gap-1 rounded-lg px-3 py-2.5 text-left transition-colors",
+        "flex min-h-11 flex-col gap-1 rounded-lg px-3 py-2.5 transition-colors",
         unread ? "bg-primary/5" : "hover:bg-muted/50",
       )}
     >
-      <div className="flex items-center gap-2.5">
-        {unread && <span className="size-2 shrink-0 rounded-full bg-red-500" aria-label="Não lida" />}
-        <Icon className={cn("size-4 shrink-0", ICON_COLOR[notification.type])} />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-          {notification.title}
-        </span>
-        <span className="shrink-0 text-xs text-muted-foreground">{relativeTime(notification.createdAt)}</span>
-      </div>
-      <p className={cn("pl-9 text-xs text-muted-foreground", expanded ? "" : "line-clamp-1")}>
-        {notification.body}
-      </p>
+      <button type="button" onClick={toggle} className="flex w-full flex-col gap-1 text-left">
+        <div className="flex items-center gap-2.5">
+          {unread && <span className="size-2 shrink-0 rounded-full bg-red-500" aria-label="Não lida" />}
+          <Icon className={cn("size-4 shrink-0", ICON_COLOR[notification.type])} />
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+            {notification.title}
+          </span>
+          <span className="shrink-0 text-xs text-muted-foreground">{relativeTime(notification.createdAt)}</span>
+        </div>
+        <p className={cn("pl-9 text-xs text-muted-foreground", expanded ? "" : "line-clamp-1")}>
+          {notification.body}
+        </p>
+      </button>
       {expanded && appointmentId && (
         <Link href="/agenda" className="pl-9 text-xs font-medium text-primary hover:underline">
           Ver na agenda →
@@ -80,6 +80,6 @@ export function NotificationItem({
           Ver cliente →
         </Link>
       )}
-    </button>
+    </div>
   );
 }
