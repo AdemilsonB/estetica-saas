@@ -82,4 +82,42 @@ describe("UserNotificationRepository", () => {
       }),
     );
   });
+
+  it("findUserPrefs busca por id e tenant", async () => {
+    prismaMock.user.findFirst.mockResolvedValue({
+      id: "u1",
+      email: "u1@e.com",
+      name: "U1",
+      role: "OWNER",
+      notifyEmailAppointments: true,
+      notifyOwnAppointments: false,
+      notifyTeamAppointments: true,
+    } as never);
+
+    const prefs = await repo.findUserPrefs("t1", "u1");
+
+    expect(prefs).not.toBeNull();
+    expect(prismaMock.user.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "u1", tenantId: "t1" } }),
+    );
+  });
+
+  it("updatePrefs filtra tenantId no where e retorna as prefs", async () => {
+    prismaMock.user.update.mockResolvedValue({
+      notifyEmailAppointments: true,
+      notifyOwnAppointments: false,
+      notifyTeamAppointments: true,
+    } as never);
+
+    const prefs = await repo.updatePrefs("t1", "u1", { notifyEmailAppointments: true });
+
+    expect(prefs).toEqual({
+      notifyEmailAppointments: true,
+      notifyOwnAppointments: false,
+      notifyTeamAppointments: true,
+    });
+    expect(prismaMock.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "u1", tenantId: "t1" } }),
+    );
+  });
 });

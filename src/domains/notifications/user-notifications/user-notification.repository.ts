@@ -94,7 +94,7 @@ export class UserNotificationRepository {
     prefs: Partial<NotificationPrefs>,
   ): Promise<NotificationPrefs> {
     const updated = await prisma.user.update({
-      where: { id: userId },
+      where: { id: userId, tenantId },
       data: prefs,
       select: {
         notifyEmailAppointments: true,
