@@ -20,7 +20,6 @@ import { useCurrentUser } from '@/hooks/use-current-user'
 import { useTeamMembers } from '@/hooks/iam/use-team'
 import type { TeamMember } from '@/hooks/iam/use-team'
 import { ProfessionalFilter } from './ProfessionalFilter'
-import { cn } from '@/lib/utils'
 
 function startOfDay(d: Date) {
   const r = new Date(d)
@@ -114,10 +113,8 @@ export function AgendaDayView() {
   }
 
   const { data: currentUser } = useCurrentUser()
-
   const canViewAll = can('agenda', 'view_all')
   const { data: teamMembers = [] } = useTeamMembers()
-
   const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>([])
 
   useEffect(() => {
@@ -209,59 +206,69 @@ export function AgendaDayView() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Linha principal: week strip + botões de visão */}
-      <div className="flex items-center gap-2">
-        {viewMode !== 'month' && (
-          <AgendaWeekStrip
-            selectedDate={selectedDate}
-            onSelectDate={handleSelectDay}
-          />
-        )}
+    <div className="flex flex-col gap-4">
+      {/* Strip semanal (oculto no modo mês) */}
+      {viewMode !== 'month' && (
+        <AgendaWeekStrip
+          selectedDate={selectedDate}
+          onSelectDate={handleSelectDay}
+        />
+      )}
 
-        {/* Botões de visão — à direita da strip ou sozinhos no modo mês */}
-        <div className={cn(
-          'flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5 shrink-0',
-          viewMode === 'month' && 'ml-auto',
-        )}>
+      {/* Linha de controles: [Dia|Semana|Mês] + [filtro prof] + [+] */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1">
           <Button
             variant={viewMode === 'day' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setViewMode('day')}
-            className="rounded-md px-2.5 h-8"
+            className="rounded-full"
           >
             <LayoutList className="size-4" />
-            <span className="hidden sm:inline ml-1 text-xs">Dia</span>
+            <span className="hidden sm:inline">Dia</span>
           </Button>
           <Button
             variant={viewMode === 'week' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setViewMode('week')}
-            className="rounded-md px-2.5 h-8"
+            className="rounded-full"
           >
             <CalendarRange className="size-4" />
-            <span className="hidden sm:inline ml-1 text-xs">Semana</span>
+            <span className="hidden sm:inline">Semana</span>
           </Button>
+          {/* Mês → abre AgendaMonthView com anéis de ocupação (sem bolinhas simples) */}
           <Button
             variant={viewMode === 'month' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setViewMode(viewMode === 'month' ? 'day' : 'month')}
-            className="rounded-md px-2.5 h-8"
-            aria-label="Calendário mensal"
+            className="rounded-full"
           >
             <CalendarDays className="size-4" />
+            <span className="hidden sm:inline">Mês</span>
           </Button>
         </div>
-      </div>
 
-      {/* Filtro de profissionais (chips inline) */}
-      {canViewAll && currentUser && (
-        <ProfessionalFilter
-          selectedIds={selectedProfessionalIds}
-          onChange={setSelectedProfessionalIds}
-          currentUserId={currentUser.id}
-        />
-      )}
+        <div className="flex items-center gap-2 ml-auto">
+          {canViewAll && currentUser && (
+            <ProfessionalFilter
+              selectedIds={selectedProfessionalIds}
+              onChange={setSelectedProfessionalIds}
+              currentUserId={currentUser.id}
+            />
+          )}
+
+          {can('agenda', 'create') && (
+            <Button
+              onClick={() => setCreateModalOpen(true)}
+              size="icon"
+              className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 size-8 shrink-0"
+              aria-label="Novo agendamento"
+            >
+              <Plus className="size-4" />
+            </Button>
+          )}
+        </div>
+      </div>
 
       {/* Label do dia selecionado (só no modo dia) */}
       {viewMode === 'day' && (
@@ -270,7 +277,7 @@ export function AgendaDayView() {
         </p>
       )}
 
-      {/* Modo Mês */}
+      {/* Modo Mês — AgendaMonthView com anéis de ocupação */}
       {viewMode === 'month' && (
         <AgendaMonthView
           selectedDate={selectedDate}
