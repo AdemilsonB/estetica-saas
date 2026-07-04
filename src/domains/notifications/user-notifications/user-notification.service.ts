@@ -44,21 +44,24 @@ export class UserNotificationService {
 
   async notifyAppointment(payload: AppointmentPayload, kind: "created" | "cancelled"): Promise<void> {
     const { tenantId, appointment, customer, service, professional } = payload;
-    const managers = await this.repo.findManagers(tenantId);
+    const [managers, proPrefs] = await Promise.all([
+      this.repo.findManagers(tenantId),
+      this.repo.findUserPrefs(tenantId, professional.id),
+    ]);
 
     // Monta candidatos: profissional do atendimento + gestores, deduplicado por id.
     const byId = new Map<string, Candidate>();
 
-    const proProfile = managers.find((m) => m.id === professional.id);
+    // Prefs reais do profissional (mesmo que não seja OWNER/MANAGER).
     byId.set(professional.id, {
       id: professional.id,
       name: professional.name,
       email: professional.email,
       isProfessional: true,
-      isManager: Boolean(proProfile),
-      notifyEmailAppointments: proProfile?.notifyEmailAppointments ?? false,
-      notifyOwnAppointments: proProfile?.notifyOwnAppointments ?? false,
-      notifyTeamAppointments: proProfile?.notifyTeamAppointments ?? true,
+      isManager: proPrefs?.role === "OWNER" || proPrefs?.role === "MANAGER",
+      notifyEmailAppointments: proPrefs?.notifyEmailAppointments ?? false,
+      notifyOwnAppointments: proPrefs?.notifyOwnAppointments ?? false,
+      notifyTeamAppointments: proPrefs?.notifyTeamAppointments ?? true,
     });
 
     for (const m of managers) {
@@ -122,9 +125,12 @@ export class UserNotificationService {
       if (c.notifyEmailAppointments) emailTargets.push(c);
     }
 
-    await this.repo.createMany(tenantId, rows);
+    if (rows.length > 0) await this.repo.createMany(tenantId, rows);
+
+    if (emailTargets.length === 0) return;
 
     // E-mail transacional (opt-in). Falhas não quebram o fluxo.
+    const tenantName = (await this.repo.findTenantName(tenantId)) ?? "";
     for (const c of emailTargets) {
       const html =
         kind === "created"
@@ -133,14 +139,14 @@ export class UserNotificationService {
               customerName: customer.name,
               serviceName: service.name,
               dateTime,
-              tenantName: "",
+              tenantName,
             })
           : professionalCancelledAppointmentHtml({
               professionalName: c.name,
               customerName: customer.name,
               serviceName: service.name,
               dateTime,
-              tenantName: "",
+              tenantName,
             });
       const subject = kind === "created" ? "Novo agendamento" : "Agendamento cancelado";
       try {

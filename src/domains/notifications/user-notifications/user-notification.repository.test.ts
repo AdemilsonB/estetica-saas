@@ -83,6 +83,23 @@ describe("UserNotificationRepository", () => {
     );
   });
 
+  it("findTenantName retorna o nome do tenant", async () => {
+    prismaMock.tenant.findFirst.mockResolvedValue({ name: "Estúdio X" } as never);
+
+    const name = await repo.findTenantName("t1");
+
+    expect(name).toBe("Estúdio X");
+    expect(prismaMock.tenant.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "t1" } }),
+    );
+  });
+
+  it("findTenantName retorna null quando tenant não existe", async () => {
+    prismaMock.tenant.findFirst.mockResolvedValue(null as never);
+    const name = await repo.findTenantName("t1");
+    expect(name).toBeNull();
+  });
+
   it("findUserPrefs busca por id e tenant", async () => {
     prismaMock.user.findFirst.mockResolvedValue({
       id: "u1",

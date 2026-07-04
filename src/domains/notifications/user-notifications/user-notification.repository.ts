@@ -73,6 +73,14 @@ export class UserNotificationRepository {
     });
   }
 
+  async findTenantName(tenantId: string): Promise<string | null> {
+    const tenant = await prisma.tenant.findFirst({
+      where: { id: tenantId },
+      select: { name: true },
+    });
+    return tenant?.name ?? null;
+  }
+
   async findUserPrefs(tenantId: string, userId: string): Promise<UserPrefsRow | null> {
     return prisma.user.findFirst({
       where: { id: userId, tenantId },

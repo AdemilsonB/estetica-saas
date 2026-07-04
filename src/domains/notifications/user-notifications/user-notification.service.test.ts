@@ -7,6 +7,7 @@ const repo = {
   findManyForUser: vi.fn(),
   countUnread: vi.fn(),
   findUserPrefs: vi.fn(),
+  findTenantName: vi.fn(),
   markRead: vi.fn(),
   updatePrefs: vi.fn(),
 };
@@ -38,6 +39,17 @@ describe("UserNotificationService.notifyAppointment", () => {
     service = new UserNotificationService(repo as never);
     repo.findManagers.mockResolvedValue([]);
     repo.createMany.mockResolvedValue(1);
+    repo.findTenantName.mockResolvedValue("Estúdio X");
+    // Profissional comum por padrão (não gestor), toggles no default.
+    repo.findUserPrefs.mockResolvedValue({
+      id: "prof1",
+      email: "ana@x.com",
+      name: "Ana",
+      role: "PROFESSIONAL",
+      notifyEmailAppointments: false,
+      notifyOwnAppointments: false,
+      notifyTeamAppointments: true,
+    });
   });
 
   it("agendamento público (createdByUserId null) notifica o profissional", async () => {
@@ -96,6 +108,35 @@ describe("UserNotificationService.notifyAppointment", () => {
     const rows = repo.createMany.mock.calls[0][1];
     expect(rows.find((r: { userId: string }) => r.userId === "prof1")).toBeDefined();
     expect(rows[0].type).toBe("appointment_cancelled");
+  });
+
+  it("profissional comum (não gestor) com notifyOwnAppointments=true recebe o próprio agendamento", async () => {
+    repo.findManagers.mockResolvedValue([]);
+    repo.findUserPrefs.mockResolvedValue({
+      id: "prof1",
+      email: "ana@x.com",
+      name: "Ana",
+      role: "PROFESSIONAL",
+      notifyEmailAppointments: false,
+      notifyOwnAppointments: true,
+      notifyTeamAppointments: true,
+    });
+    await service.notifyAppointment(
+      makePayload({ createdByUserId: "prof1", profId: "prof1" }),
+      "created",
+    );
+    const rows = repo.createMany.mock.calls[0][1];
+    expect(rows.find((r: { userId: string }) => r.userId === "prof1")).toBeDefined();
+  });
+
+  it("cancelamento: gestor puro com notifyTeamAppointments=false é pulado; profissional ainda recebe", async () => {
+    repo.findManagers.mockResolvedValue([
+      { id: "owner1", email: "o@x.com", name: "Dono", notifyEmailAppointments: false, notifyOwnAppointments: false, notifyTeamAppointments: false },
+    ]);
+    await service.notifyAppointment(makePayload(), "cancelled");
+    const rows = repo.createMany.mock.calls[0][1];
+    expect(rows.find((r: { userId: string }) => r.userId === "owner1")).toBeUndefined();
+    expect(rows.find((r: { userId: string }) => r.userId === "prof1")).toBeDefined();
   });
 });
 
