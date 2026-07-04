@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { useCommissions, useUpsertCommission } from "@/hooks/settings/use-commissions";
@@ -23,21 +24,42 @@ export function CommissionsGrid() {
   const { data: professionals = [] } = useQuery({ queryKey: ["professionals"], queryFn: fetchProfessionals });
   const upsert = useUpsertCommission();
 
-  function handleRateChange(serviceId: string, professionalId: string, rate: string) {
-    const parsed = parseFloat(rate);
-    if (isNaN(parsed) || parsed < 0 || parsed > 100) return;
-    upsert.mutate(
-      { serviceId, professionalId, rate: parsed },
-      { onError: () => toast.error("Erro ao salvar comissão") },
-    );
+  const [localValues, setLocalValues] = useState<Record<string, string>>({});
+
+  function getCellKey(serviceId: string, professionalId: string) {
+    return `${serviceId}:${professionalId}`;
   }
 
-  function getRate(serviceId: string, professionalId: string): string {
+  function getCommittedRate(serviceId: string, professionalId: string): string {
     const found = commissions.find(
       (c: { serviceId: string; professionalId: string; rate: number }) =>
         c.serviceId === serviceId && c.professionalId === professionalId,
     );
     return found ? String(Number(found.rate)) : "";
+  }
+
+  function getCellValue(serviceId: string, professionalId: string): string {
+    const key = getCellKey(serviceId, professionalId);
+    return key in localValues ? localValues[key] : getCommittedRate(serviceId, professionalId);
+  }
+
+  function handleChange(serviceId: string, professionalId: string, value: string) {
+    setLocalValues((prev) => ({ ...prev, [getCellKey(serviceId, professionalId)]: value }));
+  }
+
+  function handleBlur(serviceId: string, professionalId: string, value: string) {
+    setLocalValues((prev) => {
+      const next = { ...prev };
+      delete next[getCellKey(serviceId, professionalId)];
+      return next;
+    });
+    if (value === "") return;
+    const parsed = parseFloat(value);
+    if (isNaN(parsed) || parsed < 0 || parsed > 100) return;
+    upsert.mutate(
+      { serviceId, professionalId, rate: parsed },
+      { onError: () => toast.error("Erro ao salvar comissão") },
+    );
   }
 
   if (!services.length || !professionals.length) {
@@ -67,24 +89,27 @@ export function CommissionsGrid() {
             {professionals
               .filter((p: { role: string }) => p.role === "PROFESSIONAL")
               .map((p: { id: string; name: string }) => (
-              <tr key={p.id}>
-                <td className="px-4 py-2 font-medium text-slate-800">{p.name}</td>
-                {services.map((s: { id: string }) => (
-                  <td key={s.id} className="px-3 py-2 text-center">
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={1}
-                      className="h-7 w-16 text-center text-xs"
-                      value={getRate(s.id, p.id)}
-                      placeholder="—"
-                      onBlur={(e) => handleRateChange(s.id, p.id, e.target.value)}
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
+                <tr key={p.id}>
+                  <td className="px-4 py-2 font-medium text-slate-800">{p.name}</td>
+                  {services.map((s: { id: string }) => (
+                    <td key={s.id} className="px-3 py-2 text-center">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={1}
+                        className="h-8 w-16 text-center"
+                        style={{ fontSize: '16px' }}
+                        value={getCellValue(s.id, p.id)}
+                        placeholder="—"
+                        onChange={(e) => handleChange(s.id, p.id, e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        onBlur={(e) => handleBlur(s.id, p.id, e.target.value)}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>

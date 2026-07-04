@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -138,7 +139,14 @@ export function PromotionFormModal({ open, onClose, promotion }: Props) {
 
           <div className="space-y-2">
             <Label htmlFor="promo-desc">Descrição (opcional)</Label>
-            <Input id="promo-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} />
+            <Textarea
+              id="promo-desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Descreva a promoção"
+              maxLength={500}
+              className="min-h-20 resize-none"
+            />
           </div>
 
           {isEditing ? (

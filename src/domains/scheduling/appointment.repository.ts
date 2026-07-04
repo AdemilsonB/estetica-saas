@@ -45,7 +45,15 @@ export class AppointmentRepository {
         customer: true,
         professional: true,
         service: true,
-        package: true,
+        package: {
+          include: {
+            items: {
+              include: {
+                service: { select: { duration: true } },
+              },
+            },
+          },
+        },
         promotion: true,
       },
     });

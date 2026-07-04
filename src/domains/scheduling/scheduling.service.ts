@@ -108,9 +108,35 @@ export class SchedulingService {
     const appointmentCount = await appointmentRepository.countThisMonth(tenantId);
     await featureGuard.assertWithinLimit(tenantId, "appointments_month", appointmentCount);
 
-    const service = await catalogServiceRepository.findById(tenantId, input.serviceId);
-    if (!service) {
-      throw new ServiceNotFoundError();
+    let duration: number;
+    let price: Prisma.Decimal;
+    let serviceIdForAppointment: string | undefined = input.serviceId;
+    let packageIdForAppointment: string | undefined = input.packageId;
+
+    if (input.packageId) {
+      const pkg = await packageRepository.findById(tenantId, input.packageId);
+      if (!pkg) throw new ServiceNotFoundError();
+      duration = pkg.items.reduce((s: number, i: { service: { duration: number } }) => s + i.service.duration, 0) || 60;
+      price = new Prisma.Decimal(pkg.price);
+      serviceIdForAppointment = undefined;
+    } else {
+      const service = await catalogServiceRepository.findById(tenantId, input.serviceId!);
+      if (!service) throw new ServiceNotFoundError();
+      duration = service.duration;
+      if (input.promotionId) {
+        const promo = await promotionRepository.findById(tenantId, input.promotionId);
+        if (promo) {
+          const discountedPrice = promo.discountType === 'PERCENTAGE'
+            ? Number(service.price) * (1 - Number(promo.discountValue) / 100)
+            : Math.max(0, Number(service.price) - Number(promo.discountValue));
+          price = new Prisma.Decimal(discountedPrice.toFixed(2));
+        } else {
+          price = new Prisma.Decimal(service.price);
+        }
+      } else {
+        price = new Prisma.Decimal(service.price);
+      }
+      packageIdForAppointment = undefined;
     }
 
     const customer = await prisma.customer.findFirst({
@@ -131,7 +157,7 @@ export class SchedulingService {
     }
 
     const startsAt = new Date(input.startsAt);
-    const endsAt = new Date(startsAt.getTime() + service.duration * 60 * 1000);
+    const endsAt = new Date(startsAt.getTime() + duration * 60 * 1000);
 
     // Painel não aplica minAdvanceMinutes/maxAdvanceDays (regra é do fluxo público,
     // que já valida isso antes de chegar aqui) — só impede data passada, com escape
@@ -166,11 +192,13 @@ export class SchedulingService {
             {
               customerId: input.customerId,
               professionalId: input.professionalId,
-              serviceId: input.serviceId,
+              serviceId: serviceIdForAppointment,
+              packageId: packageIdForAppointment,
+              promotionId: input.promotionId,
               startsAt,
               endsAt,
               notes: input.notes,
-              price: new Prisma.Decimal(service.price),
+              price,
               createdByUserId: userId,
               allowOverlap: input.allowOverlap ?? false,
             },
@@ -315,7 +343,7 @@ export class SchedulingService {
         customerId: updated.customerId,
         customerName: current.customer.name,
         customerPhone: current.customer.phone,
-        serviceName: current.service?.name ?? "",
+        serviceName: current.service?.name ?? current.package?.name ?? current.promotion?.name ?? "",
         professionalName: updated.professional.name,
         oldStartsAt: current.startsAt,
         newStartsAt: updated.startsAt,
@@ -432,7 +460,7 @@ export class SchedulingService {
 
       await recordAppointmentPayment(tx, tenantId, {
         appointmentId,
-        serviceName: appointment.service?.name ?? null,
+        serviceName: appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? null,
         customerName: appointment.customer?.name ?? null,
         paymentMethod: input.paymentMethod,
         grossAmount,
@@ -495,7 +523,7 @@ export class SchedulingService {
 
       await recordAppointmentRefund(tx, tenantId, {
         appointmentId,
-        serviceName: appointment.service?.name ?? null,
+        serviceName: appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? null,
         customerName: appointment.customer?.name ?? null,
       });
     });
@@ -622,8 +650,8 @@ export class SchedulingService {
       },
       service: {
         id: appointment.service?.id ?? "",
-        name: appointment.service?.name ?? "",
-        duration: appointment.service?.duration ?? 0,
+        name: appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? "",
+        duration: appointment.service?.duration ?? (appointment.package?.items?.reduce((s: number, i: { service: { duration: number } }) => s + i.service.duration, 0) ?? 0),
       },
       professional: {
         id: appointment.professional.id,

@@ -34,7 +34,9 @@ export type Appointment = {
 export type CreateAppointmentInput = {
   customerId: string
   professionalId: string
-  serviceId: string
+  serviceId?: string
+  packageId?: string
+  promotionId?: string
   startsAt: string
   notes?: string
   allowOverlap?: boolean

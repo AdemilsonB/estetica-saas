@@ -1,8 +1,13 @@
 'use client'
 
 import type { PublicPackage, PublicPromotion, PublicService } from '@/app/(public)/agendar/[slug]/types'
-import { ServicePickerWithCategories, type PickerService } from '@/components/domain/services/service-picker-with-categories'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  ServicePickerWithCategories,
+  type PickerService,
+  type PickerPackage,
+  type PickerPromotion,
+  type PickerSelection,
+} from '@/components/domain/services/service-picker-with-categories'
 
 function deriveCategories(services: PublicService[]): Array<{ id: string; name: string }> {
   const seen = new Set<string>()
@@ -26,8 +31,45 @@ function toPickerService(s: PublicService): PickerService {
     priceMax: s.priceMax,
     description: s.description,
     imageUrl: s.imageUrl,
+    imageCropX: s.imageCropX,
+    imageCropY: s.imageCropY,
+    imageCropZoom: s.imageCropZoom,
     categoryId: s.categoryId,
     categoryName: s.categoryName,
+  }
+}
+
+function toPickerPackage(p: PublicPackage): PickerPackage {
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    price: p.price,
+    imageUrl: p.imageUrl ?? null,
+    imageCropX: p.imageCropX ?? null,
+    imageCropY: p.imageCropY ?? null,
+    imageCropZoom: p.imageCropZoom ?? null,
+    items: p.services.map((s) => ({
+      service: { id: s.id, name: s.name, duration: s.duration },
+    })),
+  }
+}
+
+function toPickerPromotion(p: PublicPromotion): PickerPromotion {
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description ?? null,
+    discountType: p.discountType,
+    discountValue: p.discountValue,
+    imageUrl: p.imageUrl ?? null,
+    imageCropX: p.imageCropX ?? null,
+    imageCropY: p.imageCropY ?? null,
+    imageCropZoom: p.imageCropZoom ?? null,
+    items: p.services.map((s) => ({
+      serviceId: s.id,
+      service: { id: s.id, name: s.name, price: String(s.originalPrice), duration: s.duration },
+    })),
   }
 }
 
@@ -55,154 +97,44 @@ export function ServiceStep({
   onPromotionServiceSelect?: (promotionId: string, service: PromotionServiceSelection) => void
 }) {
   const categories = deriveCategories(services)
-  const pickerServices = services.map(toPickerService)
 
-  const hasPackages = packages && packages.length > 0
-  const hasPromotions = promotions && promotions.length > 0
-  const showTabs = hasPackages || hasPromotions
-
-  function handleSelect(picked: PickerService) {
-    const original = services.find((s) => s.id === picked.id)
-    if (original) onSelect(original)
-  }
-
-  const servicesContent = (
-    <ServicePickerWithCategories
-      services={pickerServices}
-      categories={categories}
-      onSelect={handleSelect}
-    />
-  )
-
-  if (!showTabs) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900">Escolha o serviço</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Selecione o serviço que deseja agendar
-          </p>
-        </div>
-        {servicesContent}
-      </div>
-    )
+  function handleSelect(selection: PickerSelection) {
+    if (selection.type === 'service') {
+      const original = services.find((s) => s.id === selection.item.id)
+      if (original) onSelect(original)
+    } else if (selection.type === 'package') {
+      const original = packages?.find((p) => p.id === selection.item.id)
+      if (original) onPackageSelect?.(original)
+    } else if (selection.type === 'promotion') {
+      const promo = promotions?.find((p) => p.id === selection.promotionId)
+      if (!promo) return
+      const svc = promo.services.find((s) => s.id === selection.service.id)
+      if (!svc) return
+      const discountedPrice = promo.discountType === 'PERCENTAGE'
+        ? svc.originalPrice * (1 - promo.discountValue / 100)
+        : Math.max(0, svc.originalPrice - promo.discountValue)
+      onPromotionServiceSelect?.(promo.id, {
+        id: svc.id,
+        name: svc.name,
+        duration: svc.duration,
+        discountedPrice,
+      })
+    }
   }
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-slate-900">Escolha o serviço</h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Selecione o serviço que deseja agendar
-        </p>
+        <p className="text-sm text-slate-500 mt-1">Selecione o serviço que deseja agendar</p>
       </div>
-
-      <Tabs defaultValue="services">
-        <TabsList className="w-full">
-          <TabsTrigger value="services" className="flex-1">Serviços</TabsTrigger>
-          {hasPackages && (
-            <TabsTrigger value="packages" className="flex-1">Pacotes</TabsTrigger>
-          )}
-          {hasPromotions && (
-            <TabsTrigger value="promotions" className="flex-1">Promoções</TabsTrigger>
-          )}
-        </TabsList>
-
-        <TabsContent value="services" className="mt-4">
-          {servicesContent}
-        </TabsContent>
-
-        {hasPackages && (
-          <TabsContent value="packages" className="mt-4 space-y-3">
-            {packages.map((pkg) => (
-              <button
-                key={pkg.id}
-                onClick={() => onPackageSelect?.(pkg)}
-                className="w-full text-left p-4 rounded-lg border border-slate-200 hover:border-[--booking-primary,#191919] transition-colors bg-white"
-              >
-                <div className="font-medium text-slate-900">{pkg.name}</div>
-                {pkg.description && (
-                  <p className="text-sm text-slate-500 mt-0.5 whitespace-pre-line">{pkg.description}</p>
-                )}
-                <div className="text-sm text-slate-600 mt-1">
-                  {pkg.services.map((s) => s.name).join(' + ')}
-                  {' · '}
-                  {pkg.duration} min
-                  {' · '}
-                  R$ {Number(pkg.price).toFixed(2).replace('.', ',')}
-                </div>
-              </button>
-            ))}
-          </TabsContent>
-        )}
-
-        {hasPromotions && (
-          <TabsContent value="promotions" className="mt-4 space-y-3">
-            {promotions.map((promo) => (
-              <div key={promo.id} className="p-4 rounded-lg border border-slate-200 bg-white">
-                <div className="font-medium text-slate-900">{promo.name}</div>
-                {promo.description && (
-                  <p className="text-sm text-slate-500 mt-0.5 whitespace-pre-line">{promo.description}</p>
-                )}
-                <div className="text-xs text-slate-400 mt-1">
-                  Desconto:{' '}
-                  {promo.discountType === 'PERCENTAGE'
-                    ? `${promo.discountValue}%`
-                    : `R$ ${Number(promo.discountValue).toFixed(2).replace('.', ',')}`}
-                </div>
-                <div className="mt-2 space-y-2">
-                  {promo.services.map((s) => {
-                    const discountedPrice =
-                      promo.discountType === 'PERCENTAGE'
-                        ? s.originalPrice * (1 - promo.discountValue / 100)
-                        : Math.max(0, s.originalPrice - promo.discountValue)
-                    return (
-                      <button
-                        key={s.id}
-                        onClick={() => {
-                          if (onPromotionServiceSelect) {
-                            onPromotionServiceSelect(promo.id, {
-                              id: s.id,
-                              name: s.name,
-                              duration: s.duration,
-                              discountedPrice,
-                            })
-                          } else {
-                            onSelect({
-                              id: s.id,
-                              name: s.name,
-                              duration: s.duration,
-                              price: discountedPrice,
-                              priceType: 'FIXED',
-                              anamneseMode: 'NONE',
-                              anamneseBlocks: [],
-                              anamneseValidityDays: 90,
-                            })
-                          }
-                        }}
-                        className="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-[--booking-primary,#191919] transition-colors"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-medium text-slate-900 text-sm">{s.name}</span>
-                          <span className="shrink-0 text-sm font-semibold text-green-700">
-                            R$ {discountedPrice.toFixed(2).replace('.', ',')}
-                          </span>
-                        </div>
-                        <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
-                          <span>{s.duration} min</span>
-                          <span className="line-through text-slate-400">
-                            R$ {Number(s.originalPrice).toFixed(2).replace('.', ',')}
-                          </span>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </TabsContent>
-        )}
-      </Tabs>
+      <ServicePickerWithCategories
+        services={services.map(toPickerService)}
+        packages={packages?.map(toPickerPackage)}
+        promotions={promotions?.map(toPickerPromotion)}
+        categories={categories}
+        onSelect={handleSelect}
+      />
     </div>
   )
 }

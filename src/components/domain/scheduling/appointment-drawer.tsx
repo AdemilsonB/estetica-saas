@@ -319,6 +319,17 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
                       ))}
                     </div>
                   )}
+                  {/* Horário personalizado — alternativa aos chips */}
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs text-slate-400">— ou informe um horário —</p>
+                    <input
+                      type="time"
+                      value={editTime}
+                      onChange={(e) => setEditTime(e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      style={{ fontSize: '16px' }}
+                    />
+                  </div>
                 </div>
 
                 {/* Mensagem WhatsApp */}
@@ -387,7 +398,20 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
                       {appointment.customer.name}
                     </p>
                     {appointment.customer.phone && (
-                      <p className="text-xs text-slate-500">{appointment.customer.phone}</p>
+                      <div className="mt-0.5 flex items-center gap-2">
+                        <p className="text-xs text-slate-500">{appointment.customer.phone}</p>
+                        <a
+                          href={`https://wa.me/55${appointment.customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                            `Olá, ${appointment.customer.name.split(' ')[0]}! Lembrando do seu agendamento de ${appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'serviço'} em ${new Date(appointment.startsAt).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })} às ${new Date(appointment.startsAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}h. Te esperamos! 🤍`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition"
+                        >
+                          WhatsApp ↗
+                        </a>
+                      </div>
                     )}
                   </div>
                   <Separator />

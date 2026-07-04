@@ -63,6 +63,8 @@ export class ReportsService {
             include: {
               professional: { select: { id: true, name: true } },
               service: { select: { id: true, name: true } },
+              package: { select: { id: true, name: true } },
+              promotion: { select: { id: true, name: true } },
             },
           },
         },
@@ -85,11 +87,11 @@ export class ReportsService {
       const groupId =
         input.groupBy === 'profissional'
           ? (tx.appointment?.professional?.id ?? null)
-          : (tx.appointment?.service?.id ?? null)
+          : (tx.appointment?.service?.id ?? tx.appointment?.package?.id ?? tx.appointment?.promotion?.id ?? null)
       const label =
         input.groupBy === 'profissional'
           ? (tx.appointment?.professional?.name ?? 'Sem profissional')
-          : (tx.appointment?.service?.name ?? 'Sem serviço')
+          : (tx.appointment?.service?.name ?? tx.appointment?.package?.name ?? tx.appointment?.promotion?.name ?? 'Sem serviço')
       const key = groupId ?? label
       const prev = byGroup.get(key) ?? { groupId, label, quantidade: 0, receita: 0 }
       byGroup.set(key, {
@@ -179,6 +181,8 @@ export class ReportsService {
       include: {
         professional: { select: { id: true, name: true } },
         service: { select: { id: true, name: true } },
+        package: { select: { id: true, name: true } },
+        promotion: { select: { id: true, name: true } },
       },
     })
 
@@ -212,7 +216,7 @@ export class ReportsService {
     for (const apt of appointments) {
       const label =
         input.groupBy === 'servico'
-          ? (apt.service?.name ?? 'Sem serviço')
+          ? (apt.service?.name ?? apt.package?.name ?? apt.promotion?.name ?? 'Sem serviço')
           : (apt.professional?.name ?? 'Sem profissional')
       const prevRow = byGroup.get(label) ?? { label, total: 0, concluidos: 0, cancelados: 0, naoCompareceu: 0 }
       byGroup.set(label, {
