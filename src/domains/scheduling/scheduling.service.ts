@@ -315,7 +315,7 @@ export class SchedulingService {
         customerId: updated.customerId,
         customerName: current.customer.name,
         customerPhone: current.customer.phone,
-        serviceName: current.service?.name ?? "",
+        serviceName: current.service?.name ?? current.package?.name ?? current.promotion?.name ?? "",
         professionalName: updated.professional.name,
         oldStartsAt: current.startsAt,
         newStartsAt: updated.startsAt,
@@ -432,7 +432,7 @@ export class SchedulingService {
 
       await recordAppointmentPayment(tx, tenantId, {
         appointmentId,
-        serviceName: appointment.service?.name ?? null,
+        serviceName: appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? null,
         customerName: appointment.customer?.name ?? null,
         paymentMethod: input.paymentMethod,
         grossAmount,
@@ -495,7 +495,7 @@ export class SchedulingService {
 
       await recordAppointmentRefund(tx, tenantId, {
         appointmentId,
-        serviceName: appointment.service?.name ?? null,
+        serviceName: appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? null,
         customerName: appointment.customer?.name ?? null,
       });
     });
@@ -622,8 +622,8 @@ export class SchedulingService {
       },
       service: {
         id: appointment.service?.id ?? "",
-        name: appointment.service?.name ?? "",
-        duration: appointment.service?.duration ?? 0,
+        name: appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? "",
+        duration: appointment.service?.duration ?? (appointment.package?.items?.reduce((s: number, i: { service: { duration: number } }) => s + i.service.duration, 0) ?? 0),
       },
       professional: {
         id: appointment.professional.id,
