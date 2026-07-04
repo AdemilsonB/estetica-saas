@@ -78,7 +78,7 @@ export function AppointmentCard({ appointment, onClick, onConfirm, onPay }: Prop
       {/* Quick actions — visíveis apenas em mobile (sm:hidden) */}
       {(() => {
         const showConfirm = !!onConfirm && appointment.status === 'SCHEDULED'
-        const showPay = !!onPay && (appointment.status === 'CONFIRMED' || appointment.status === 'SCHEDULED')
+        const showPay = !!onPay && appointment.status === 'CONFIRMED' && appointment.paymentStatus !== 'PAID'
         if (!showConfirm && !showPay) return null
         return (
           <div className="mt-3 flex flex-col gap-2 sm:hidden border-t border-slate-100 pt-3">

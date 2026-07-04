@@ -39,9 +39,11 @@ type Props = {
   appointment: Appointment | null;
   open: boolean;
   onClose: () => void;
+  onAfterCheckout?: () => void;
 };
 
-export function RegisterPaymentModal({ appointment, open, onClose }: Props) {
+export function RegisterPaymentModal({ appointment, open, onClose, onAfterCheckout }: Props) {
+  const [baseAmount, setBaseAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [discountTypeId, setDiscountTypeId] = useState<string | undefined>();
   const [discountApplyType, setDiscountApplyType] = useState<"PERCENTAGE" | "FIXED_VALUE">("PERCENTAGE");
@@ -53,25 +55,29 @@ export function RegisterPaymentModal({ appointment, open, onClose }: Props) {
   const markCourtesy = useMarkCourtesy();
   const { data: discountTypes = [] } = useDiscountTypes(true);
 
-  const gross = appointment
+  const originalAmount = appointment
     ? appointment.confirmedPrice
       ? Number(appointment.confirmedPrice)
       : Number(appointment.price)
     : 0;
-  const computedDiscount = discountApplyType === "PERCENTAGE"
-    ? gross * discountValue / 100
-    : discountValue;
-  const subtotal = gross - computedDiscount;
-  const net = subtotal + tipAmount;
 
   useEffect(() => {
-    if (!open) {
+    if (open && appointment) {
+      setBaseAmount(originalAmount);
       setPaymentMethod("");
       setDiscountTypeId(undefined);
       setDiscountValue(0);
       setTipAmount(0);
     }
-  }, [open]);
+  }, [open, appointment]);
+
+  const computedDiscount = discountApplyType === "PERCENTAGE"
+    ? baseAmount * discountValue / 100
+    : discountValue;
+  const subtotal = baseAmount - computedDiscount;
+  const net = subtotal + tipAmount;
+
+  const baseChanged = baseAmount !== originalAmount;
 
   function handleSelectDiscount(id: string) {
     const found = discountTypes.find((d: { id: string; type: string; defaultValue: number | null }) => d.id === id);
@@ -87,9 +93,25 @@ export function RegisterPaymentModal({ appointment, open, onClose }: Props) {
     e.preventDefault();
     if (!appointment || !paymentMethod) return;
     checkout.mutate(
-      { appointmentId: appointment.id, input: { paymentMethod, discountTypeId, discountValue: discountValue || undefined, tipAmount } },
       {
-        onSuccess: () => { toast.success("Pagamento registrado"); onClose(); },
+        appointmentId: appointment.id,
+        input: {
+          paymentMethod,
+          discountTypeId,
+          discountValue: discountValue || undefined,
+          tipAmount,
+          ...(baseChanged && { baseAmount }),
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("Pagamento registrado");
+          if (onAfterCheckout) {
+            onAfterCheckout();
+          } else {
+            onClose();
+          }
+        },
         onError: (err) => toast.error(err instanceof Error ? err.message : "Erro"),
       },
     );
@@ -98,7 +120,14 @@ export function RegisterPaymentModal({ appointment, open, onClose }: Props) {
   function handleCourtesy() {
     if (!appointment) return;
     markCourtesy.mutate(appointment.id, {
-      onSuccess: () => { toast.success("Marcado como cortesia"); onClose(); },
+      onSuccess: () => {
+        toast.success("Marcado como cortesia");
+        if (onAfterCheckout) {
+          onAfterCheckout();
+        } else {
+          onClose();
+        }
+      },
       onError: (err) => toast.error(err instanceof Error ? err.message : "Erro"),
     });
   }
@@ -111,23 +140,16 @@ export function RegisterPaymentModal({ appointment, open, onClose }: Props) {
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Checkout — {appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'}</DialogTitle>
+          <DialogTitle>
+            Concluir atendimento — {appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          {/* Resumo */}
+          {/* Resumo cliente */}
           <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm">
-            <p className="text-slate-500">{appointment.customer.name}</p>
+            <p className="font-medium text-slate-900">{appointment.customer.name}</p>
             <div className="mt-2 space-y-1">
-              <div className="flex justify-between">
-                <span className="text-slate-500">
-                  {appointment.confirmedPrice &&
-                  Number(appointment.confirmedPrice) !== Number(appointment.price)
-                    ? 'Valor confirmado'
-                    : 'Valor original'}
-                </span>
-                <span className="font-medium">{fmt(gross)}</span>
-              </div>
               {computedDiscount > 0 && (
                 <div className="flex justify-between text-rose-600">
                   <span>Desconto</span>
@@ -145,6 +167,30 @@ export function RegisterPaymentModal({ appointment, open, onClose }: Props) {
                 <span className="text-emerald-700">{fmt(net)}</span>
               </div>
             </div>
+          </div>
+
+          {/* Valor do serviço — editável */}
+          <div className="space-y-1.5">
+            <Label htmlFor="base-amount">
+              Valor do serviço (R$)
+              {baseChanged && (
+                <span className="ml-2 text-xs font-normal text-amber-600">
+                  original: {fmt(originalAmount)}
+                </span>
+              )}
+            </Label>
+            <Input
+              id="base-amount"
+              type="number"
+              min={0}
+              step={0.01}
+              value={baseAmount}
+              onChange={(e) => {
+                setBaseAmount(Number(e.target.value));
+                setDiscountValue(0);
+                setDiscountTypeId(undefined);
+              }}
+            />
           </div>
 
           {/* Desconto */}

@@ -5,6 +5,7 @@ export type CheckoutInput = {
   discountTypeId?: string;
   discountValue?: number;
   tipAmount?: number;
+  baseAmount?: number;
 };
 
 async function postCheckout(appointmentId: string, input: CheckoutInput) {
