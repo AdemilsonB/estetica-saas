@@ -27,6 +27,7 @@ import type { NavSection } from '@/shared/permissions/nav-registry'
 import { BottomNav } from '@/components/app/bottom-nav'
 import { MobileHeader } from '@/components/app/mobile-header'
 import { SwipeNavWrapper } from '@/components/app/swipe-nav-wrapper'
+import { NotificationBell } from '@/components/domain/notifications/notification-bell'
 import { CreateAppointmentModal } from '@/components/domain/scheduling/create-appointment-modal'
 
 function getInitials(name: string): string {
@@ -203,7 +204,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
     )
   }
 
-  function SidebarContent({ showLabel, onNavigate }: { showLabel: boolean; onNavigate?: () => void }) {
+  function SidebarContent({ showLabel, onNavigate, showBell = false }: { showLabel: boolean; onNavigate?: () => void; showBell?: boolean }) {
     return (
       <div>
         <div className="flex h-full flex-col">
@@ -212,20 +213,24 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
             {showLabel ? (
               <>
                 <LogoBrand />
-                {/* Toggle só visível em xl+ (desktop) */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="hidden xl:inline-flex size-8 shrink-0 text-muted-foreground"
-                  onClick={toggleCollapsed}
-                  aria-label="Recolher sidebar"
-                >
-                  <Menu className="size-4" />
-                </Button>
+                <div className="flex shrink-0 items-center gap-1">
+                  {showBell && <NotificationBell />}
+                  {/* Toggle só visível em xl+ (desktop) */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hidden xl:inline-flex size-8 shrink-0 text-muted-foreground"
+                    onClick={toggleCollapsed}
+                    aria-label="Recolher sidebar"
+                  >
+                    <Menu className="size-4" />
+                  </Button>
+                </div>
               </>
             ) : (
               <div className="flex flex-col items-center gap-2">
                 <LogoBrand size="small" />
+                {showBell && <NotificationBell />}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -355,7 +360,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
             collapsed ? 'w-[64px]' : 'w-[220px]',
           )}
         >
-          <SidebarContent showLabel={!collapsed} />
+          <SidebarContent showLabel={!collapsed} showBell />
         </aside>
 
         {/* Área principal */}
