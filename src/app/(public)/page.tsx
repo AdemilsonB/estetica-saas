@@ -1,5 +1,6 @@
 // src/app/(public)/page.tsx
 import { prisma } from '@/shared/database/prisma'
+import { getPublicPlans } from '@/domains/billing/plan-catalog.service'
 import { LandingNav } from '@/components/domain/landing/landing-nav'
 import { LandingHero } from '@/components/domain/landing/landing-hero'
 import { LandingProofBar } from '@/components/domain/landing/landing-proof-bar'
@@ -22,21 +23,9 @@ export const metadata = {
 
 export async function getLandingData() {
   const [plans, metrics, testimonials] = await Promise.all([
-    // Mesma fonte de /planos: planos ativos, benefícios de Plan.description,
-    // trial parametrizado — nunca hardcoded.
-    prisma.plan.findMany({
-      where: { isActive: true },
-      orderBy: { displayOrder: 'asc' },
-      select: { name: true, displayName: true, price: true, description: true, trialDays: true },
-    }),
-    prisma.landingMetric.findMany({
-      where: { isActive: true },
-      orderBy: { order: 'asc' },
-    }),
-    prisma.landingTestimonial.findMany({
-      where: { isActive: true },
-      orderBy: { order: 'asc' },
-    }),
+    getPublicPlans(),
+    prisma.landingMetric.findMany({ where: { isActive: true }, orderBy: { order: 'asc' } }),
+    prisma.landingTestimonial.findMany({ where: { isActive: true }, orderBy: { order: 'asc' } }),
   ])
 
   const starterPlan = plans.find((p) => p.name === 'STARTER') ?? null
@@ -49,17 +38,16 @@ export default async function LandingPage() {
 
   const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT_NUMBER ?? ''
   const trialDays = starterPlan?.trialDays ?? null
-  const starterPrice = starterPlan?.price ? Number(starterPlan.price) : null
+  const starterPrice = starterPlan?.price ?? null
 
   const plansForCards = plans.map((p) => ({
     name: p.name,
     displayName: p.displayName,
-    price: Number(p.price),
-    features: p.description
-      ? p.description.split('\n').map((l) => l.trim()).filter(Boolean)
-      : [],
+    price: p.price,
+    features: p.benefits,
+    highlights: p.highlights,
     trialDays: p.trialDays,
-    isPopular: p.name === 'PRO',
+    isPopular: p.isPopular,
   }))
 
   return (
