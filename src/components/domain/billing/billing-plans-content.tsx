@@ -42,14 +42,6 @@ function buildTableRows(plans: PlanData[]) {
         return v === 0 ? '—' : formatLimitValue(v, 99999)
       },
     },
-    {
-      label: 'Múltiplas unidades',
-      getVal: (p: PlanData) => {
-        const v = p.limits.max_units ?? 1
-        if (v >= 999) return 'Ilimitado'
-        return v <= 1 ? '—' : `${v}`
-      },
-    },
   ]
 }
 
