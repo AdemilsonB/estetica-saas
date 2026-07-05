@@ -206,9 +206,8 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
 
   function SidebarContent({ showLabel, onNavigate, showBell = false }: { showLabel: boolean; onNavigate?: () => void; showBell?: boolean }) {
     return (
-      <div>
-        <div className="flex h-full flex-col">
-          {/* Logo */}
+      <div className="flex h-full flex-col">
+        {/* Logo */}
           <div className={cn('flex items-center border-b border-border/50 py-4', showLabel ? 'px-4 justify-between' : 'px-3 justify-center')}>
             {showLabel ? (
               <>
@@ -245,7 +244,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
           </div>
 
           {/* Nav */}
-          <nav className={cn('flex-1 overflow-y-auto space-y-1 py-4', showLabel ? 'px-3' : 'px-2')}>
+          <nav className={cn('min-h-0 flex-1 overflow-y-auto space-y-1 py-4', showLabel ? 'px-3' : 'px-2')}>
             {isLoading || navSectionsLoading
               ? Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className={cn('rounded-xl', showLabel ? 'h-12 w-full' : 'size-10')} />
@@ -336,7 +335,6 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
                 <TooltipContent side="right">Sair da conta</TooltipContent>
               </Tooltip>
             )}
-          </div>
         </div>
       </div>
     )

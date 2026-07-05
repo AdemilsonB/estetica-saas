@@ -116,7 +116,7 @@ export function AgendaWeekGrid({
                   isSelected && 'bg-primary/5',
                 )}
               >
-                <span className="text-[10px] font-medium uppercase text-slate-400">
+                <span className="text-[10px] font-medium uppercase text-slate-600">
                   {d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
                 </span>
                 <span
@@ -148,7 +148,7 @@ export function AgendaWeekGrid({
             <div key={hour} className="flex border-t border-slate-50 min-h-12">
               {/* Label de hora — sticky à esquerda */}
               <div className="sticky left-0 z-10 w-12 shrink-0 bg-white pt-1 pr-2">
-                <span className="text-[10px] font-semibold text-slate-300">
+                <span className="text-[10px] font-semibold text-slate-700">
                   {HOUR_LABELS[hi]}
                 </span>
               </div>

@@ -1,11 +1,14 @@
 // src/components/domain/scheduling/agenda-week-strip.tsx
 'use client'
 
+import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAppointments } from '@/hooks/scheduling/use-appointments'
 import { cn } from '@/lib/utils'
+
+const DRAG_THRESHOLD = 40
 
 function startOfWeek(d: Date) {
   const r = new Date(d)
@@ -62,7 +65,17 @@ export function AgendaWeekStrip({ selectedDate, onSelectDate }: Props) {
         <ChevronLeft className="size-4" />
       </Button>
 
-      <div className="grid flex-1 grid-cols-7 gap-0.5">
+      <motion.div
+        className="grid flex-1 grid-cols-7 gap-0.5"
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.15}
+        dragMomentum={false}
+        onDragEnd={(_, { offset }) => {
+          if (offset.x <= -DRAG_THRESHOLD) nextWeek()
+          else if (offset.x >= DRAG_THRESHOLD) prevWeek()
+        }}
+      >
         {days.map((d, i) => {
           const isSelected = d.toDateString() === selectedDate.toDateString()
           const isToday = d.toDateString() === new Date().toDateString()
@@ -102,7 +115,7 @@ export function AgendaWeekStrip({ selectedDate, onSelectDate }: Props) {
             </button>
           )
         })}
-      </div>
+      </motion.div>
 
       <Button variant="outline" size="icon" onClick={nextWeek} className="rounded-full shrink-0">
         <ChevronRight className="size-4" />

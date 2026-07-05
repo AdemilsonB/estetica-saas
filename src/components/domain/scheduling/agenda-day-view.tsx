@@ -389,7 +389,7 @@ export function AgendaDayView() {
                 {allColumnHours.map((hour) => (
                   <div key={hour} className="flex items-start border-t border-slate-100/80">
                     <div className="sticky left-0 z-10 w-10 sm:w-14 shrink-0 bg-background pt-1.5">
-                      <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-700">
                         {hour}
                       </span>
                     </div>
@@ -421,7 +421,7 @@ export function AgendaDayView() {
             <div className="space-y-6">
               {hours.map((hour) => (
                 <div key={hour}>
-                  <p className="mb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase">
+                  <p className="mb-2 text-xs font-semibold tracking-wide text-slate-700 uppercase">
                     {hour}
                   </p>
                   <div className="space-y-2">

@@ -15,14 +15,20 @@ type Props = {
   canManage: boolean
 }
 
+const MAX_SERVICES_VISIVEIS = 2
+
 export function TeamMemberCard({ member, canManage }: Props) {
   const { data: currentUser } = useCurrentUser()
   const [editOpen, setEditOpen] = useState(false)
+  const [servicesExpanded, setServicesExpanded] = useState(false)
 
   const isCurrentUser = currentUser?.id === member.id
   const canEdit = canManage || isCurrentUser
 
   const initials = member.name.slice(0, 2).toUpperCase()
+
+  const hiddenServicesCount = member.services.length - MAX_SERVICES_VISIVEIS
+  const visibleServices = servicesExpanded ? member.services : member.services.slice(0, MAX_SERVICES_VISIVEIS)
 
   return (
     <>
@@ -50,8 +56,8 @@ export function TeamMemberCard({ member, canManage }: Props) {
           <p className="text-xs text-slate-500">{member.email}</p>
 
           {member.services.length > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {member.services.map((svc) => (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1">
+              {visibleServices.map((svc) => (
                 <span
                   key={svc.id}
                   className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
@@ -59,6 +65,24 @@ export function TeamMemberCard({ member, canManage }: Props) {
                   {svc.name}
                 </span>
               ))}
+              {!servicesExpanded && hiddenServicesCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setServicesExpanded(true)}
+                  className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500 hover:bg-slate-100"
+                >
+                  +{hiddenServicesCount}
+                </button>
+              )}
+              {servicesExpanded && member.services.length > MAX_SERVICES_VISIVEIS && (
+                <button
+                  type="button"
+                  onClick={() => setServicesExpanded(false)}
+                  className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500 hover:bg-slate-100"
+                >
+                  ver menos
+                </button>
+              )}
             </div>
           )}
         </div>
