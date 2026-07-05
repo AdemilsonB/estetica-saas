@@ -8,6 +8,7 @@ export type SharedPlanData = {
   displayName: string
   price: number
   features: string[]
+  highlights?: string[]
   trialDays?: number
   isPopular?: boolean
 }
@@ -65,6 +66,14 @@ export function SharedPlanCard({ plan, action, badge }: Props) {
           <p className="text-xs text-slate-500 mt-1">{trialDays} dias grátis · cancele a qualquer momento</p>
         )}
       </div>
+
+      {plan.highlights && plan.highlights.length > 0 && (
+        <div data-testid="plan-highlights" className="space-y-1">
+          {plan.highlights.map((h) => (
+            <p key={h} className="text-sm font-semibold text-slate-900">{h}</p>
+          ))}
+        </div>
+      )}
 
       <ul className="space-y-2 flex-1">
         {plan.features.map((f) => (
