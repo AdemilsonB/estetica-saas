@@ -244,7 +244,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
           </div>
 
           {/* Nav */}
-          <nav className={cn('min-h-0 flex-1 overflow-y-auto space-y-1 py-4', showLabel ? 'px-3' : 'px-2')}>
+          <nav className={cn('scrollbar-hide min-h-0 flex-1 overflow-y-auto space-y-1 py-4', showLabel ? 'px-3' : 'px-2')}>
             {isLoading || navSectionsLoading
               ? Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className={cn('rounded-xl', showLabel ? 'h-12 w-full' : 'size-10')} />
