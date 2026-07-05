@@ -48,8 +48,10 @@ type ApiPlan = {
   name: string
   displayName: string
   price: number
-  description: string
   trialDays: number
+  isPopular: boolean
+  highlights: string[]
+  benefits: string[]
 }
 
 function apiPlanToShared(plan: ApiPlan, isPopular: boolean): SharedPlanData {
@@ -59,9 +61,8 @@ function apiPlanToShared(plan: ApiPlan, isPopular: boolean): SharedPlanData {
     price: plan.price,
     trialDays: plan.trialDays,
     isPopular,
-    features: plan.description
-      ? plan.description.split('\n').map((l) => l.trim()).filter(Boolean)
-      : [],
+    highlights: plan.highlights,
+    features: plan.benefits,
   }
 }
 
@@ -371,7 +372,7 @@ function OnboardingContent() {
                     key={plan.name}
                     plan={apiPlanToShared(
                       plan,
-                      hasPaidPrePlan && !showAllPlans ? true : plan.name === 'PRO',
+                      hasPaidPrePlan && !showAllPlans ? true : plan.isPopular,
                     )}
                     badge={hasPaidPrePlan && !showAllPlans ? 'Plano selecionado' : undefined}
                     action={{
