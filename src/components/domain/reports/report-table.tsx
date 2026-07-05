@@ -17,6 +17,29 @@ type Props = {
   emptyMessage?: string
 }
 
+function HeaderHint({ header, hint }: { header: string; hint: string }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={`O que é ${header}`}
+          className="text-slate-400 hover:text-slate-600"
+        >
+          <HelpCircle className="size-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 text-xs text-slate-600" side="top">
+        {hint}
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function cellValue(col: ReportColumn, row: Record<string, unknown>) {
+  return col.format ? col.format(row[col.key]) : String(row[col.key] ?? '—')
+}
+
 export function ReportTable({ columns, rows, isLoading, emptyMessage = 'Nenhum dado no período.' }: Props) {
   if (isLoading) {
     return (
@@ -36,70 +59,66 @@ export function ReportTable({ columns, rows, isLoading, emptyMessage = 'Nenhum d
     )
   }
 
-  const hasManyColumns = columns.length > 3
+  const [firstCol, ...restCols] = columns
 
   return (
-    <div className="space-y-1.5">
-      {hasManyColumns && (
-        <p className="px-1 text-xs text-slate-400 sm:hidden">← arraste a tabela para o lado para ver mais →</p>
-      )}
-      <div className="relative overflow-hidden rounded-2xl border border-border">
-        <div className="overflow-x-auto">
-          <table className="min-w-120 w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50">
-                {columns.map((col, i) => (
-                  <th
+    <>
+      {/* Mobile — cards empilhados, sem depender de scroll horizontal */}
+      <div className="space-y-2 sm:hidden">
+        {rows.map((row, i) => (
+          <div key={Object.values(row).join('-') + i} className="rounded-2xl border border-border bg-white p-3">
+            <p className="text-sm font-semibold text-slate-900">{cellValue(firstCol, row)}</p>
+            <dl className="mt-2 space-y-1">
+              {restCols.map((col) => (
+                <div key={col.key} className="flex items-center justify-between text-xs">
+                  <dt className="inline-flex items-center gap-1 text-slate-500">
+                    {col.header}
+                    {col.headerHint && <HeaderHint header={col.header} hint={col.headerHint} />}
+                  </dt>
+                  <dd className="tabular-nums font-medium text-slate-700">{cellValue(col, row)}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop/tablet — tabela tradicional */}
+      <div className="hidden overflow-x-auto rounded-2xl border border-border sm:block">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-100 bg-slate-50">
+              {columns.map((col) => (
+                <th
+                  key={col.key}
+                  className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 ${
+                    col.align === 'right' ? 'text-right' : 'text-left'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {col.header}
+                    {col.headerHint && <HeaderHint header={col.header} hint={col.headerHint} />}
+                  </span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {rows.map((row, i) => (
+              <tr key={Object.values(row).join('-') + i} className="bg-white transition hover:bg-slate-50">
+                {columns.map((col) => (
+                  <td
                     key={col.key}
-                    className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 ${
-                      col.align === 'right' ? 'text-right' : 'text-left'
-                    } ${i === 0 ? 'sticky left-0 z-10 bg-slate-50' : ''}`}
+                    className={`px-4 py-3 text-slate-700 ${col.align === 'right' ? 'text-right tabular-nums' : ''}`}
                   >
-                    <span className="inline-flex items-center gap-1">
-                      {col.header}
-                      {col.headerHint && (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button
-                              type="button"
-                              aria-label={`O que é ${col.header}`}
-                              className="text-slate-400 hover:text-slate-600"
-                            >
-                              <HelpCircle className="size-3.5" />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-64 text-xs text-slate-600" side="top">
-                            {col.headerHint}
-                          </PopoverContent>
-                        </Popover>
-                      )}
-                    </span>
-                  </th>
+                    {cellValue(col, row)}
+                  </td>
                 ))}
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {rows.map((row, i) => (
-                <tr key={Object.values(row).join('-') + i} className="group bg-white transition hover:bg-slate-50">
-                  {columns.map((col, j) => (
-                    <td
-                      key={col.key}
-                      className={`px-4 py-3 text-slate-700 ${
-                        col.align === 'right' ? 'text-right tabular-nums' : ''
-                      } ${j === 0 ? 'sticky left-0 z-10 bg-white group-hover:bg-slate-50' : ''}`}
-                    >
-                      {col.format ? col.format(row[col.key]) : String(row[col.key] ?? '—')}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {hasManyColumns && (
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent sm:hidden" />
-        )}
+            ))}
+          </tbody>
+        </table>
       </div>
-    </div>
+    </>
   )
 }
