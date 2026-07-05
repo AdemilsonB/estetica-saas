@@ -137,8 +137,10 @@ describe('getLandingData', () => {
 
     expect(result.plans[0].isPopular).toBe(false)
     expect(result.plans[0].benefits).toEqual(['Agenda completa'])
+    expect(result.plans[0].highlights).toEqual(['Ideal para começar'])
     expect(result.plans[1].isPopular).toBe(true)
     expect(result.plans[1].benefits).toEqual(['Agenda completa', 'Relatórios avançados'])
+    expect(result.plans[1].highlights).toEqual([])
   })
 
   it('consulta apenas métricas ativas ordenadas', async () => {

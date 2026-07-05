@@ -11,8 +11,10 @@ type ApiPlan = {
   name: string
   displayName: string
   price: number
-  description: string
   trialDays: number
+  isPopular: boolean
+  highlights: string[]
+  benefits: string[]
 }
 
 function apiPlanToShared(plan: ApiPlan, isPopular: boolean): SharedPlanData {
@@ -22,9 +24,8 @@ function apiPlanToShared(plan: ApiPlan, isPopular: boolean): SharedPlanData {
     price: plan.price,
     trialDays: plan.trialDays,
     isPopular,
-    features: plan.description
-      ? plan.description.split('\n').map((l) => l.trim()).filter(Boolean)
-      : [],
+    features: plan.benefits,
+    highlights: plan.highlights,
   }
 }
 
@@ -121,7 +122,7 @@ export function SubscriptionLockedScreen({ isOwner, originalPlan }: Props) {
               {plans.map((plan) => (
                 <SharedPlanCard
                   key={plan.name}
-                  plan={apiPlanToShared(plan, plan.name === 'PRO')}
+                  plan={apiPlanToShared(plan, plan.isPopular)}
                   action={{ type: 'onboarding', onSelect: handleSelectPlan, loadingKey, allowTrial: false }}
                 />
               ))}

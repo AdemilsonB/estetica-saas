@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { buildPlanBenefits } from './plan-benefits'
+import { CAPABILITY_GROUPS } from './capability-registry'
 
 describe('buildPlanBenefits', () => {
   it('inclui capacidades essenciais e não-essenciais habilitadas (status ga)', () => {
@@ -35,10 +36,28 @@ describe('buildPlanBenefits', () => {
     expect(benefits.indexOf('Gestão de equipe')).toBeLessThan(benefits.indexOf('WhatsApp automático'))
   })
 
-  it('exclui capacidades com status soon (não vendáveis ainda)', () => {
-    // whatsapp_premium/campaigns são status ga hoje; este teste protege o filtro por status.
-    // Usa uma capacidade real com status ga e confirma que o filtro é por status, não por chave.
-    const benefits = buildPlanBenefits({ enabledCapabilityKeys: ['whatsapp_basic'], limits: {} })
+  it('exclui capacidades com status soon (não vendáveis ainda)', async () => {
+    // Nenhuma capacidade real tem status 'soon' hoje — injeta uma via mock do registry
+    // para provar de fato que o filtro por status exclui capacidades não-GA.
+    vi.resetModules()
+    vi.doMock('./capability-registry', () => ({
+      CAPABILITY_REGISTRY: [
+        { key: 'whatsapp_basic', label: 'WhatsApp Básico', category: 'capability', essential: false, benefitLabel: 'WhatsApp automático', status: 'ga', group: CAPABILITY_GROUPS.COMUNICACAO },
+        { key: 'whatsapp_futuro', label: 'WhatsApp Futuro', category: 'capability', essential: false, benefitLabel: 'WhatsApp do futuro', status: 'soon', group: CAPABILITY_GROUPS.COMUNICACAO },
+      ],
+      CAPABILITY_GROUPS,
+    }))
+
+    const { buildPlanBenefits: buildPlanBenefitsMocked } = await import('./plan-benefits')
+    const benefits = buildPlanBenefitsMocked({
+      enabledCapabilityKeys: ['whatsapp_basic', 'whatsapp_futuro'],
+      limits: {},
+    })
+
     expect(benefits).toEqual(['WhatsApp automático'])
+    expect(benefits).not.toContain('WhatsApp do futuro')
+
+    vi.doUnmock('./capability-registry')
+    vi.resetModules()
   })
 })

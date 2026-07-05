@@ -1,4 +1,4 @@
-import { CAPABILITY_REGISTRY, CAPABILITY_GROUPS, getCapability } from './capability-registry'
+import { CAPABILITY_REGISTRY, CAPABILITY_GROUPS } from './capability-registry'
 import { LIMIT_REGISTRY } from './limit-registry'
 
 const GROUP_ORDER: string[] = Object.values(CAPABILITY_GROUPS)
@@ -22,7 +22,6 @@ export function buildPlanBenefits(input: {
       if (cap.group !== group) continue
       if (!enabled.has(cap.key)) continue
       if (cap.status !== 'ga') continue
-      if (!getCapability(cap.key)) continue
       benefits.push(cap.benefitLabel)
     }
     // 2) Limites com valor > 0 deste grupo.
