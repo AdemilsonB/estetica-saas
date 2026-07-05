@@ -13,8 +13,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { usePlans, useUpdatePlan } from '@/hooks/admin/use-plans'
 import { usePlanFeatures, useUpdatePlanFeatures } from '@/hooks/admin/use-plan-features'
 import { usePlanLimits, useUpdatePlanLimits } from '@/hooks/admin/use-plan-limits'
-import { CAPABILITY_REGISTRY, getCapability } from '@/shared/permissions/capability-registry'
-import { LIMIT_REGISTRY, getLimitsByGroup } from '@/shared/permissions/limit-registry'
+import { CAPABILITY_REGISTRY } from '@/shared/permissions/capability-registry'
+import { getLimitsByGroup } from '@/shared/permissions/limit-registry'
 
 export default function PlanEditorPage() {
   const { planName } = useParams<{ planName: string }>()

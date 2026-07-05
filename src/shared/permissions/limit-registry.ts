@@ -19,7 +19,7 @@ function fmt(value: number): string {
   return value.toLocaleString('pt-BR')
 }
 
-export const LIMIT_REGISTRY: Record<string, LimitMeta> = {
+export const LIMIT_REGISTRY = {
   max_roles: {
     label: 'Máximo de cargos',
     unit: 'cargos',
@@ -65,7 +65,7 @@ export const LIMIT_REGISTRY: Record<string, LimitMeta> = {
     group: CAPABILITY_GROUPS.COMUNICACAO,
     defaults: { FREE: 100, STARTER: 500, PRO: 5000, ENTERPRISE: UNLIMITED },
   },
-}
+} satisfies Record<string, LimitMeta>
 
 export type LimitKey = keyof typeof LIMIT_REGISTRY
 

@@ -24,12 +24,14 @@ export const CAPABILITY_GROUPS = {
 } as const
 
 // Metadados de gating por chave de nav. As essenciais nunca podem ser desligadas.
-const NAV_META: Record<string, { essential: boolean; benefitLabel: string; group: string }> = {
+// `label` é opcional e sobrescreve o label vindo do NAV_REGISTRY (útil quando a sidebar
+// usa uma abreviação otimizada para espaço, mas o admin precisa do rótulo completo).
+const NAV_META: Record<string, { label?: string; essential: boolean; benefitLabel: string; group: string }> = {
   agenda:        { essential: true,  benefitLabel: 'Agenda completa',            group: CAPABILITY_GROUPS.OPERACAO },
   servicos:      { essential: true,  benefitLabel: 'Serviços, pacotes e promoções', group: CAPABILITY_GROUPS.OPERACAO },
   clientes:      { essential: true,  benefitLabel: 'CRM de clientes',            group: CAPABILITY_GROUPS.CLIENTES },
   equipe:        { essential: true,  benefitLabel: 'Gestão de equipe',           group: CAPABILITY_GROUPS.ACESSO },
-  configuracoes: { essential: true,  benefitLabel: 'Configurações',              group: CAPABILITY_GROUPS.ACESSO },
+  configuracoes: { label: 'Configurações', essential: true,  benefitLabel: 'Configurações',  group: CAPABILITY_GROUPS.ACESSO },
   produtos:      { essential: false, benefitLabel: 'Estoque de produtos',        group: CAPABILITY_GROUPS.CATALOGO },
   financeiro:    { essential: false, benefitLabel: 'Financeiro e caixa',         group: CAPABILITY_GROUPS.OPERACAO },
   relatorios:    { essential: false, benefitLabel: 'Relatórios',                 group: CAPABILITY_GROUPS.RELATORIOS },
@@ -48,7 +50,7 @@ const NAV_ENTRIES: Capability[] = NAV_REGISTRY.map((s) => {
   const meta = NAV_META[s.key] ?? { essential: false, benefitLabel: s.label, group: CAPABILITY_GROUPS.OPERACAO }
   return {
     key: s.key,
-    label: s.label,
+    label: meta.label ?? s.label,
     category: 'nav' as const,
     essential: meta.essential,
     benefitLabel: meta.benefitLabel,
