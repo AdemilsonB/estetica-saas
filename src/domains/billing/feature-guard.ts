@@ -2,6 +2,7 @@ import { PlanName, SubscriptionStatus } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { PlanFeatureError, NotFoundError } from '@/shared/errors'
 import { planLimitsService } from '@/domains/billing/plan-limits.service'
+import { getPlanOrder } from './plan-order'
 import type { LimitKey } from '@/shared/permissions/limit-registry'
 
 export const FEATURES = {
@@ -19,8 +20,6 @@ const LIMIT_TYPE_MAP: Record<string, LimitKey> = {
   users:              'max_users',
   appointments_month: 'max_appointments_month',
 }
-
-const PLAN_ORDER: PlanName[] = [PlanName.FREE, PlanName.STARTER, PlanName.PRO, PlanName.ENTERPRISE]
 
 export class FeatureGuard {
   async canAccess(tenantId: string, feature: FeatureName): Promise<boolean> {
@@ -70,13 +69,37 @@ export class FeatureGuard {
     return { plan: tenant.subscription?.plan ?? PlanName.FREE, status }
   }
 
+  async resolveGate(
+    tenantId: string,
+    feature: FeatureName,
+  ): Promise<{
+    allowed: boolean
+    currentPlan: PlanName
+    requiredPlan: PlanName | null
+    requiredPlanLabel: string | null
+  }> {
+    const { plan: currentPlan } = await this.getSubscriptionState(tenantId)
+    const allowed = await this.canAccess(tenantId, feature)
+    if (allowed) {
+      return { allowed: true, currentPlan, requiredPlan: null, requiredPlanLabel: null }
+    }
+    const requiredPlan = await this.findMinPlanForFeature(feature)
+    const requiredPlanLabel = requiredPlan
+      ? (await prisma.plan.findUnique({ where: { name: requiredPlan }, select: { displayName: true } }))?.displayName ?? null
+      : null
+    return { allowed: false, currentPlan, requiredPlan, requiredPlanLabel }
+  }
+
   private async findMinPlanForFeature(feature: FeatureName): Promise<PlanName | null> {
-    const configs = await prisma.planFeatureConfig.findMany({
-      where: { sectionKey: feature, enabled: true },
-      select: { plan: true },
-    })
+    const [configs, order] = await Promise.all([
+      prisma.planFeatureConfig.findMany({
+        where: { sectionKey: feature, enabled: true },
+        select: { plan: true },
+      }),
+      getPlanOrder(),
+    ])
     const enabledPlans = new Set(configs.map((c) => c.plan))
-    return PLAN_ORDER.find((p) => enabledPlans.has(p)) ?? null
+    return order.find((p) => enabledPlans.has(p)) ?? null
   }
 
   private isActive(status: SubscriptionStatus): boolean {

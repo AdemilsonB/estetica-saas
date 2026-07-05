@@ -79,4 +79,27 @@ describe('FeatureGuard', () => {
       await expect(guard.assertWithinLimit(TENANT_ID, 'users', 5)).rejects.toThrow('Limite')
     })
   })
+
+  describe('resolveGate', () => {
+    it('permitido: allowed true e requiredPlan null', async () => {
+      prismaMock.planFeatureConfig.findFirst.mockResolvedValue({ enabled: true } as any)
+      const r = await guard.resolveGate(TENANT_ID, 'whatsapp_basic')
+      expect(r.allowed).toBe(true)
+      expect(r.requiredPlan).toBeNull()
+    })
+
+    it('bloqueado: aponta o menor plano que habilita a feature', async () => {
+      prismaMock.planFeatureConfig.findFirst.mockResolvedValue({ enabled: false } as any)
+      prismaMock.planFeatureConfig.findMany.mockResolvedValue([{ plan: PlanName.PRO } as any])
+      prismaMock.plan.findMany.mockResolvedValue([
+        { name: PlanName.FREE }, { name: PlanName.STARTER },
+        { name: PlanName.PRO }, { name: PlanName.ENTERPRISE },
+      ] as any)
+      prismaMock.plan.findUnique.mockResolvedValue({ displayName: 'Pro' } as any)
+      const r = await guard.resolveGate(TENANT_ID, 'reports_advanced')
+      expect(r.allowed).toBe(false)
+      expect(r.requiredPlan).toBe(PlanName.PRO)
+      expect(r.requiredPlanLabel).toBe('Pro')
+    })
+  })
 })
