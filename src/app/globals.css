@@ -133,6 +133,15 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Mantém o scroll funcional escondendo a barra nativa (usado na navegação lateral) */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 @keyframes pulse-slow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5); }
   50% { box-shadow: 0 0 0 10px rgba(37, 211, 102, 0); }
