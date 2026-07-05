@@ -160,7 +160,7 @@ export function AgendaMonthView({ selectedDate, onSelectDate, onSelectDayView }:
         {WEEKDAYS.map((wd) => (
           <div
             key={wd}
-            className="py-1 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-400"
+            className="py-1 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-600"
           >
             {wd}
           </div>

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { FinancialDaySummary } from "@/components/domain/financial/day-summary";
 import { TransactionList } from "@/components/domain/financial/transaction-list";
+import { PeriodFilter, type PeriodValue } from "@/components/domain/reports/period-filter";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePendingPayments, useFinancialSummary } from "@/hooks/financial/use-checkout";
 import { FINANCIAL_CATEGORIES } from "@/domains/financial/categories";
@@ -64,6 +65,10 @@ export default function FinanceiroPage() {
   const { data: pending = [] } = usePendingPayments();
   const [txType, setTxType] = useState<"all" | TransactionType>("all");
   const [txCategory, setTxCategory] = useState("all");
+  const [period, setPeriod] = useState<PeriodValue>(() => ({
+    from: startOfMonth(new Date()).toISOString(),
+    to: endOfDay(new Date()).toISOString(),
+  }));
 
   const today = new Date();
   const from = startOfMonth(today).toISOString();
@@ -81,10 +86,6 @@ export default function FinanceiroPage() {
       </div>
     );
   }
-
-  const dayFrom = new Date();
-  dayFrom.setHours(0, 0, 0, 0);
-  const dayTo = endOfDay(today);
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -186,11 +187,14 @@ export default function FinanceiroPage() {
         </div>
       )}
 
-      <FinancialDaySummary />
+      <div className="space-y-4 rounded-2xl border border-slate-100 bg-white/60 p-4">
+        <PeriodFilter onChange={setPeriod} />
+        <FinancialDaySummary from={period.from} to={period.to} />
+      </div>
 
       <div>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-950">Transações de hoje</h2>
+          <h2 className="text-lg font-semibold text-slate-950">Transações no período</h2>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
               <Link href="/financeiro/despesas" className="flex items-center gap-1 text-slate-500">
@@ -242,8 +246,8 @@ export default function FinanceiroPage() {
         </div>
 
         <TransactionList
-          from={dayFrom.toISOString()}
-          to={dayTo.toISOString()}
+          from={period.from}
+          to={period.to}
           type={txType === "all" ? undefined : txType}
           category={txCategory === "all" ? undefined : txCategory}
           pageSize={10}

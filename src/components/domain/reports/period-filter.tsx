@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   startOfDay, endOfDay, addDays,
   startOfMonth, startOfPrevMonth, endOfPrevMonth, startOfYear,
@@ -28,13 +29,12 @@ function presetToPeriod(preset: Exclude<Preset, 'personalizado'>): PeriodValue {
   return map[preset]
 }
 
-const PRESETS: { key: Preset; label: string }[] = [
+const PRESETS: { key: Exclude<Preset, 'personalizado'>; label: string }[] = [
   { key: 'hoje', label: 'Hoje' },
   { key: '7dias', label: '7 dias' },
   { key: 'mes', label: 'Este mês' },
   { key: 'mes-passado', label: 'Mês passado' },
   { key: 'ano', label: 'Este ano' },
-  { key: 'personalizado', label: 'Personalizado' },
 ]
 
 type Props = {
@@ -46,11 +46,9 @@ export function PeriodFilter({ onChange }: Props) {
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
 
-  function handlePreset(preset: Preset) {
+  function handlePreset(preset: Exclude<Preset, 'personalizado'>) {
     setActive(preset)
-    if (preset !== 'personalizado') {
-      onChange(presetToPeriod(preset))
-    }
+    onChange(presetToPeriod(preset))
   }
 
   function handleCustomChange(from: string, to: string) {
@@ -64,22 +62,29 @@ export function PeriodFilter({ onChange }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        {PRESETS.map(({ key, label }) => (
-          <button
-            type="button"
-            key={key}
-            onClick={() => handlePreset(key)}
-            className={cn(
-              'rounded-full px-4 py-1.5 text-xs font-medium transition',
-              active === key
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
-            )}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-2">
+        <Select
+          value={active === 'personalizado' ? undefined : active}
+          onValueChange={(v) => handlePreset(v as Exclude<Preset, 'personalizado'>)}
+        >
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue placeholder="Período" />
+          </SelectTrigger>
+          <SelectContent>
+            {PRESETS.map(({ key, label }) => (
+              <SelectItem key={key} value={key}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Button
+          type="button"
+          variant={active === 'personalizado' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setActive('personalizado')}
+        >
+          Personalizado
+        </Button>
       </div>
 
       {active === 'personalizado' && (

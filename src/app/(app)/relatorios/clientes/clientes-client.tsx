@@ -39,7 +39,12 @@ function whatsappHref(telefone: string): string {
 
 const RANKING_COLUMNS: ReportColumn[] = [
   { key: 'clienteNome', header: 'Cliente' },
-  { key: 'atendimentos', header: 'Atendimentos', align: 'right' },
+  {
+    key: 'atendimentos',
+    header: 'Atend.',
+    headerHint: 'Atendimentos: quantidade de vezes que o cliente foi atendido no período selecionado.',
+    align: 'right',
+  },
   { key: 'receita', header: 'Receita', align: 'right', format: (v) => fmtBRL(Number(v)) },
   { key: 'ticketMedio', header: 'Ticket médio', align: 'right', format: (v) => fmtBRL(Number(v)) },
   { key: 'ultimoAtendimento', header: 'Último atendimento', align: 'right', format: (v) => fmtDate(String(v)) },
