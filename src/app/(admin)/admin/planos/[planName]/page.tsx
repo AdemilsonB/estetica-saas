@@ -15,6 +15,7 @@ import { usePlanFeatures, useUpdatePlanFeatures } from '@/hooks/admin/use-plan-f
 import { usePlanLimits, useUpdatePlanLimits } from '@/hooks/admin/use-plan-limits'
 import { CAPABILITY_REGISTRY } from '@/shared/permissions/capability-registry'
 import { getLimitsByGroup } from '@/shared/permissions/limit-registry'
+import { buildPlanBenefits } from '@/shared/permissions/plan-benefits'
 
 export default function PlanEditorPage() {
   const { planName } = useParams<{ planName: string }>()
@@ -75,6 +76,11 @@ export default function PlanEditorPage() {
   const navCaps = CAPABILITY_REGISTRY.filter((c) => c.category === 'nav')
   const otherCaps = CAPABILITY_REGISTRY.filter((c) => c.category === 'capability')
 
+  const enabledCapabilityKeys = Object.entries(featureState)
+    .filter(([, enabled]) => enabled)
+    .map(([key]) => key)
+  const previewBenefits = buildPlanBenefits({ enabledCapabilityKeys, limits: limitState })
+
   function handleSaveMetadata() {
     updatePlan.mutate(
       { name: planName, displayName, price: parseFloat(price) || 0, description: description || null, trialDays: parseInt(trialDays) || 0, stripePriceId: stripePriceId.trim() || null, isActive },
@@ -127,15 +133,41 @@ export default function PlanEditorPage() {
               <Input type="number" min={0} step={0.01} value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Benefícios do plano</Label>
+              <Label>Destaques (opcional)</Label>
               <Textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={5}
-                placeholder={'5 profissionais\n300 agendamentos/mês\nWhatsApp automático'}
+                onChange={(e) => {
+                  const linhas = e.target.value.split('\n').slice(0, 3)
+                  setDescription(linhas.join('\n'))
+                }}
+                rows={3}
+                placeholder={'Ideal para quem está começando\nSuporte humano por WhatsApp'}
                 className="resize-none font-mono text-sm"
               />
-              <p className="text-xs text-slate-400">Um benefício por linha — exibido como bullets no onboarding e na página de planos.</p>
+              <p className="text-xs text-slate-400">
+                Até 3 linhas de copy de marketing, exibidas em destaque no topo do card.
+                Os benefícios abaixo são gerados automaticamente da configuração — não precisa digitá-los.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-slate-500">Benefícios exibidos ao cliente (automático)</Label>
+              <ul className="space-y-1 rounded-lg border border-slate-100 bg-slate-50 p-3">
+                {previewBenefits.length === 0 ? (
+                  <li className="text-xs text-slate-400">
+                    Nenhum benefício ainda — ligue capacidades ou defina limites nas abas Funcionalidades e Limites.
+                  </li>
+                ) : (
+                  previewBenefits.map((b) => (
+                    <li key={b} className="flex items-start gap-2 text-sm text-slate-600">
+                      <span className="mt-0.5 text-green-500">✓</span>
+                      {b}
+                    </li>
+                  ))
+                )}
+              </ul>
+              <p className="text-xs text-slate-400">
+                Prévia da lista que aparece em /planos, no onboarding e na landing. Atualiza ao salvar Funcionalidades/Limites.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label>Dias de trial grátis</Label>
