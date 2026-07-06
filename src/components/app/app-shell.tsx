@@ -213,6 +213,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
       return (
         <button
           type="button"
+          aria-label={`${item.label} — disponível no plano ${item.requiredPlanLabel ?? 'superior'}`}
           onClick={() => {
             openUpgrade({
               capabilityKey: item.key,

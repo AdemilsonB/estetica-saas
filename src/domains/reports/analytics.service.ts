@@ -167,6 +167,7 @@ export class AnalyticsService {
     tenantId: string,
     input: SeasonalityReportInput,
   ): Promise<SeasonalityReport> {
+    await featureGuard.assertAccess(tenantId, 'relatorios')
     await featureGuard.assertAccess(tenantId, FEATURES.REPORTS_ADVANCED)
 
     const { from, to, tz } = await this.resolvePeriodTz(tenantId, input)
@@ -198,6 +199,7 @@ export class AnalyticsService {
     tenantId: string,
     input: InactiveCustomersInput,
   ): Promise<InactiveCustomersReport> {
+    await featureGuard.assertAccess(tenantId, 'relatorios')
     await featureGuard.assertAccess(tenantId, FEATURES.REPORTS_ADVANCED)
 
     const days = input.days ?? 90
@@ -269,6 +271,8 @@ export class AnalyticsService {
     tenantId: string,
     input: OverviewReportInput,
   ): Promise<OverviewReport> {
+    await featureGuard.assertAccess(tenantId, 'relatorios')
+
     const { from, to, tz } = await this.resolvePeriodTz(tenantId, input)
     const atual: Janela = { from, to }
     const anterior = previousWindow(from, to)

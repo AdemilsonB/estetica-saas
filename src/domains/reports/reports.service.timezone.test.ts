@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { monthBoundsInTz, dayBoundsInTz } from '@/lib/dates'
 import { prisma } from '@/shared/database/prisma'
+
+vi.mock('@/domains/billing/feature-guard', () => ({
+  featureGuard: {
+    assertAccess: vi.fn().mockResolvedValue(undefined),
+  },
+}))
+
 import { ReportsService } from './reports.service'
 
 const service = new ReportsService()

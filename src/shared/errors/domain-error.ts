@@ -154,7 +154,14 @@ export class PlanLimitError extends DomainError {
       `Limite de ${limitType} atingido (${current}/${limit})`,
       "PLAN_LIMIT_EXCEEDED",
       402,
-      { limitType, limit, current, capability: LIMIT_TYPE_TO_CAPABILITY[limitType] ?? null },
+      {
+        limitType,
+        limit,
+        current,
+        // `null` quando o limitType não tem capability gateável mapeada ainda é intencional:
+        // os demais limites ganham capability real na Fase D.
+        capability: LIMIT_TYPE_TO_CAPABILITY[limitType] ?? null,
+      },
     );
   }
 }
