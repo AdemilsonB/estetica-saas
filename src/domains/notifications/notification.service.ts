@@ -39,6 +39,11 @@ export class NotificationService {
     if (draft.channel === NotificationChannel.WHATSAPP) {
       delivery = await whatsAppGateway.send(draft);
     } else if (draft.channel === NotificationChannel.EMAIL) {
+      // DÉBITO TÉCNICO: este assertWithinLimit lança PlanLimitError (402) ao exceder a cota.
+      // Hoje `logAndDispatch` só é chamado no caminho HTTP para EMAIL (nenhum job pg-boss usa
+      // canal EMAIL). Se algum job passar a enviar e-mail (ex.: automação/campanhas da Fase 2),
+      // o 402 propagado FARÁ O JOB FALHAR em vez de virar upsell — nesse caso, tratar o limite
+      // no contexto do job (catch/skip silencioso + log), não deixar propagar.
       const emailCount = await notificationRepository.countEmailsThisMonth(draft.tenantId);
       await featureGuard.assertWithinLimit(draft.tenantId, "email_month", emailCount);
 
