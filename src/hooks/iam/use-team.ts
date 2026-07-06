@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { apiFetch } from '@/shared/http/api-fetch'
 
 export type UserRole = 'OWNER' | 'MANAGER' | 'PROFESSIONAL' | 'RECEPTIONIST'
 
@@ -60,15 +61,11 @@ async function fetchInvites(): Promise<TeamInvite[]> {
 }
 
 async function createInvite(input: { email: string; roleId: string }): Promise<TeamInvite> {
-  const res = await fetch('/api/iam/invites', {
+  const res = await apiFetch('/api/iam/invites', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.error?.message ?? 'Falha ao enviar convite')
-  }
   return res.json()
 }
 

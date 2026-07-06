@@ -138,6 +138,12 @@ export class TrialAlreadyUsedError extends DomainError {
   }
 }
 
+const LIMIT_TYPE_TO_CAPABILITY: Record<string, string> = {
+  users: "equipe",
+  appointments_month: "agenda",
+  // demais limites entram na Fase D
+};
+
 export class PlanLimitError extends DomainError {
   constructor(
     public readonly limitType: string,
@@ -148,7 +154,7 @@ export class PlanLimitError extends DomainError {
       `Limite de ${limitType} atingido (${current}/${limit})`,
       "PLAN_LIMIT_EXCEEDED",
       402,
-      { limitType, limit, current },
+      { limitType, limit, current, capability: LIMIT_TYPE_TO_CAPABILITY[limitType] ?? null },
     );
   }
 }

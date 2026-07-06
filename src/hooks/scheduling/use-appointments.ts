@@ -1,5 +1,6 @@
 // src/hooks/scheduling/use-appointments.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { apiFetch } from '@/shared/http/api-fetch'
 
 export type AppointmentStatus =
   | 'SCHEDULED'
@@ -70,15 +71,11 @@ async function listAppointments(params: ListParams): Promise<Appointment[]> {
 }
 
 async function createAppointment(input: CreateAppointmentInput): Promise<Appointment> {
-  const res = await fetch('/api/scheduling/appointments', {
+  const res = await apiFetch('/api/scheduling/appointments', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.error?.message ?? 'Falha ao criar agendamento')
-  }
   return res.json()
 }
 
