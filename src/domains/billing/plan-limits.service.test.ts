@@ -113,6 +113,16 @@ describe('PlanLimitsService', () => {
       expect((await service.checkUsage(TENANT_ID, 'max_users', 50)).status).toBe('ok')
     })
 
+    it('retorna exceeded e percent 100 quando o limite é zero (ex.: whatsapp no FREE)', async () => {
+      prismaMock.tenant.findFirst.mockResolvedValue(activeTenant(PlanName.FREE) as any)
+      prismaMock.planLimitConfig.findFirst.mockResolvedValue({ value: 0 } as any)
+
+      const result = await service.checkUsage(TENANT_ID, 'max_whatsapp_month', 0)
+      expect(result.status).toBe('exceeded')
+      expect(result.percent).toBe(100)
+      expect(Number.isFinite(result.percent)).toBe(true)
+    })
+
     it('retorna ok e percent 0 quando o limite é ilimitado', async () => {
       prismaMock.tenant.findFirst.mockResolvedValue(activeTenant(PlanName.ENTERPRISE) as any)
       prismaMock.planLimitConfig.findFirst.mockResolvedValue({ value: 999999 } as any)

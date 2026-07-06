@@ -48,6 +48,12 @@ export class PlanLimitsService {
       return { status: 'ok', percent: 0, limit, current }
     }
 
+    // Guard: limite zero (ex.: max_whatsapp_month no FREE) bloqueia de imediato —
+    // sem isso, current/limit daria Infinity/NaN e quebraria o widget de uso.
+    if (limit <= 0) {
+      return { status: 'exceeded', percent: 100, limit, current }
+    }
+
     const percent = (current / limit) * 100
     const status = percent >= 100 ? 'exceeded' : percent >= 80 ? 'warning' : 'ok'
 
