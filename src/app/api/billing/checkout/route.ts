@@ -62,6 +62,19 @@ export async function POST(req: Request) {
       )
     }
 
+    // Tenant que nunca passou pelo trial (checkout direto no onboarding) ainda não
+    // tem Subscription no banco — cria um placeholder sem entitlement antes do Stripe,
+    // já que setStripeIds/changePlan (aqui e no webhook) fazem update assumindo a linha existir.
+    if (!sub) {
+      await billingRepository.createSubscription({
+        tenantId: session.tenantId,
+        plan: planName as PlanName,
+        status: SubscriptionStatus.EXPIRED,
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(),
+      })
+    }
+
     const user = await iamRepository.findUserById(session.tenantId, session.userId)
     if (!user) throw new DomainError('Usuário não encontrado', 'NOT_FOUND', 404)
 
