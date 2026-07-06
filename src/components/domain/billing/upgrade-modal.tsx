@@ -1,74 +1,73 @@
-"use client"
+'use client'
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { useEffect } from 'react'
+import { Check, Loader2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { useUpgradeModal } from '@/stores/upgrade-modal.store'
+import { usePublicPlans } from '@/hooks/billing/use-capabilities'
+import { useBillingActions } from '@/hooks/billing/use-billing-actions'
+import { getCapability } from '@/shared/permissions/capability-registry'
 
-type UpgradeModalProps = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  feature?: string
-  requiredPlan?: string
-}
+export function UpgradeModal() {
+  const { open, context, close } = useUpgradeModal()
+  const { data: plans } = usePublicPlans()
+  const { startUpgrade, isLoading } = useBillingActions()
 
-const PLAN_LABEL: Record<string, string> = {
-  FREE: "Free",
-  STARTER: "Starter",
-  PRO: "Pro",
-  ENTERPRISE: "Enterprise",
-}
+  // Registra interesse ao abrir a partir de um lock/402 (fire-and-forget).
+  useEffect(() => {
+    if (open && context?.capabilityKey) {
+      fetch('/api/billing/capability-interest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ capabilityKey: context.capabilityKey }),
+      }).catch(() => {})
+    }
+  }, [open, context?.capabilityKey])
 
-const FEATURE_LABEL: Record<string, string> = {
-  whatsapp_basic:   "WhatsApp (envio de mensagens)",
-  whatsapp_premium: "WhatsApp Premium (Meta Cloud API)",
-  reports_advanced: "Relatórios avançados",
-  campaigns:        "Campanhas de marketing",
-  multi_unit:       "Multi-unidade",
-}
-
-export function UpgradeModal({ open, onOpenChange, feature, requiredPlan }: UpgradeModalProps) {
-  const featureLabel = feature ? (FEATURE_LABEL[feature] ?? feature) : "esta funcionalidade"
-  const planLabel = requiredPlan ? (PLAN_LABEL[requiredPlan] ?? requiredPlan) : "um plano superior"
+  const requiredPlan = context?.requiredPlan ?? null
+  const requiredPlanLabel = context?.requiredPlanLabel ?? 'um plano superior'
+  const targetPlan = plans?.find((p) => p.name === requiredPlan) ?? null
+  const capabilityLabel = context?.capabilityKey
+    ? (getCapability(context.capabilityKey)?.label ?? 'este recurso')
+    : 'este recurso'
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) close() }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Upgrade necessário</DialogTitle>
+          <DialogTitle>Desbloqueie {capabilityLabel}</DialogTitle>
           <DialogDescription>
-            <span className="font-medium">{featureLabel}</span> requer o plano{" "}
-            <Badge variant="secondary">{planLabel}</Badge> ou superior.
+            Disponível no plano <Badge variant="secondary">{requiredPlanLabel}</Badge> ou superior.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-2 text-sm text-muted-foreground">
-          <p>Faça upgrade do seu plano para desbloquear esta e outras funcionalidades:</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>WhatsApp automático de confirmação e lembrete</li>
-            <li>Relatórios avançados por profissional</li>
-            <li>Campanhas de marketing segmentadas</li>
+        {targetPlan && targetPlan.benefits.length > 0 && (
+          <ul className="space-y-1.5 text-sm text-slate-600">
+            {targetPlan.benefits.slice(0, 6).map((b) => (
+              <li key={b} className="flex items-start gap-2">
+                <Check className="mt-0.5 size-4 shrink-0 text-green-500" />
+                {b}
+              </li>
+            ))}
           </ul>
-        </div>
+        )}
+
+        <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
+          O upgrade é <span className="font-medium text-slate-700">imediato</span> — o recurso libera na hora.
+          Você paga apenas a <span className="font-medium text-slate-700">diferença proporcional</span> (proration)
+          do período atual; não há cobrança dupla. O plano anterior é substituído automaticamente.
+        </p>
 
         <DialogFooter className="flex-col gap-2 sm:flex-row">
-          <Button variant="outline" asChild>
-            <a
-              href="https://wa.me/5500000000000?text=Quero+fazer+upgrade+do+meu+plano"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Falar com suporte
-            </a>
-          </Button>
-          <Button asChild>
-            <a href="/configuracoes/planos">Ver planos</a>
+          <Button variant="outline" onClick={close} disabled={isLoading}>Agora não</Button>
+          <Button
+            onClick={() => requiredPlan && startUpgrade(requiredPlan)}
+            disabled={isLoading || !requiredPlan}
+            className="bg-slate-950 text-white hover:bg-slate-800"
+          >
+            {isLoading ? (<><Loader2 className="mr-2 size-4 animate-spin" />Redirecionando...</>) : `Fazer upgrade para ${requiredPlanLabel}`}
           </Button>
         </DialogFooter>
       </DialogContent>
