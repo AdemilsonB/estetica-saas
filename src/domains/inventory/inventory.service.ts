@@ -2,6 +2,7 @@
 import { Prisma } from '@prisma/client'
 import { eventBus } from '@/shared/events/event-bus'
 import { prisma } from '@/shared/database/prisma'
+import { featureGuard } from '@/domains/billing/feature-guard'
 import {
   ProductNotFoundError,
   InsufficientStockError,
@@ -29,6 +30,9 @@ export class InventoryService {
   }
 
   async createProduct(tenantId: string, input: CreateProductInput) {
+    const productCount = await productRepository.count(tenantId)
+    await featureGuard.assertWithinLimit(tenantId, 'products', productCount)
+
     return productRepository.create(tenantId, input)
   }
 

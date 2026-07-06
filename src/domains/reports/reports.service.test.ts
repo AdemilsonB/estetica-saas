@@ -24,26 +24,28 @@ describe('ReportsService — gate de plano da seção relatorios', () => {
     } as never)
   })
 
-  it('getFinancialReport exige acesso à seção relatorios antes de consultar', async () => {
+  it('getFinancialReport exige acesso a report_financeiro antes de consultar', async () => {
     vi.mocked(featureGuard.assertAccess).mockRejectedValue(new Error('PLAN_FEATURE_REQUIRED'))
 
     await expect(service.getFinancialReport('tenant-1', {})).rejects.toThrow()
     expect(prismaMock.transaction.findMany).not.toHaveBeenCalled()
-    expect(featureGuard.assertAccess).toHaveBeenCalledWith('tenant-1', 'relatorios')
+    expect(featureGuard.assertAccess).toHaveBeenCalledWith('tenant-1', 'report_financeiro')
   })
 
-  it('getAppointmentsReport exige acesso à seção relatorios antes de consultar', async () => {
+  it('getAppointmentsReport exige acesso a report_agendamentos antes de consultar', async () => {
     vi.mocked(featureGuard.assertAccess).mockRejectedValue(new Error('PLAN_FEATURE_REQUIRED'))
 
     await expect(service.getAppointmentsReport('tenant-1', {})).rejects.toThrow()
     expect(prismaMock.appointment.findMany).not.toHaveBeenCalled()
+    expect(featureGuard.assertAccess).toHaveBeenCalledWith('tenant-1', 'report_agendamentos')
   })
 
-  it('getCustomersReport exige acesso à seção relatorios antes de consultar', async () => {
+  it('getCustomersReport exige acesso a report_clientes antes de consultar', async () => {
     vi.mocked(featureGuard.assertAccess).mockRejectedValue(new Error('PLAN_FEATURE_REQUIRED'))
 
     await expect(service.getCustomersReport('tenant-1', {})).rejects.toThrow()
     expect(prismaMock.$queryRaw).not.toHaveBeenCalled()
+    expect(featureGuard.assertAccess).toHaveBeenCalledWith('tenant-1', 'report_clientes')
   })
 })
 

@@ -26,9 +26,38 @@ export class PlanLimitsService {
 
   async assertWithinLimit(tenantId: string, limitKey: LimitKey, currentCount: number): Promise<void> {
     const limit = await this.get(tenantId, limitKey)
-    if (limit !== 999999 && currentCount >= limit) {
+    if (limit === 999999) return
+
+    const { kind } = LIMIT_REGISTRY[limitKey]
+    const threshold = kind === 'soft' ? Math.floor(limit * 1.1) : limit
+
+    if (currentCount >= threshold) {
       throw new PlanLimitError(LIMIT_REGISTRY[limitKey].label, limit, currentCount)
     }
+  }
+
+  async checkUsage(
+    tenantId: string,
+    limitKey: LimitKey,
+    current: number
+  ): Promise<{ status: 'ok' | 'warning' | 'exceeded'; percent: number; limit: number; current: number }> {
+    const limit = await this.get(tenantId, limitKey)
+    const { unlimitedThreshold } = LIMIT_REGISTRY[limitKey]
+
+    if (limit >= unlimitedThreshold) {
+      return { status: 'ok', percent: 0, limit, current }
+    }
+
+    // Guard: limite zero (ex.: max_whatsapp_month no FREE) bloqueia de imediato —
+    // sem isso, current/limit daria Infinity/NaN e quebraria o widget de uso.
+    if (limit <= 0) {
+      return { status: 'exceeded', percent: 100, limit, current }
+    }
+
+    const percent = (current / limit) * 100
+    const status = percent >= 100 ? 'exceeded' : percent >= 80 ? 'warning' : 'ok'
+
+    return { status, percent, limit, current }
   }
 
   private resolveEffectivePlan(tenant: {

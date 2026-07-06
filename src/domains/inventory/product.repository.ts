@@ -4,6 +4,10 @@ import { prisma } from '@/shared/database/prisma'
 import type { CreateProductInput, UpdateProductInput, ListProductsQuery } from './types'
 
 export class ProductRepository {
+  async count(tenantId: string): Promise<number> {
+    return prisma.product.count({ where: { tenantId, active: true } })
+  }
+
   async findById(tenantId: string, id: string, db: Prisma.TransactionClient = prisma) {
     return db.product.findFirst({ where: { id, tenantId, active: true }, include: { category: true } })
   }

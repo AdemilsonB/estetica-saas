@@ -7,6 +7,7 @@ vi.mock('../product.repository', () => ({
   productRepository: {
     findById: vi.fn(),
     list: vi.fn(),
+    count: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     softDelete: vi.fn(),
@@ -35,10 +36,15 @@ vi.mock('@/shared/events/event-bus', () => ({
   eventBus: { publish: vi.fn(), subscribe: vi.fn() },
 }))
 
+vi.mock('@/domains/billing/feature-guard', () => ({
+  featureGuard: { assertWithinLimit: vi.fn() },
+}))
+
 import { productRepository } from '../product.repository'
 import { stockRepository } from '../stock.repository'
 import { eventBus } from '@/shared/events/event-bus'
 import { prisma } from '@/shared/database/prisma'
+import { featureGuard } from '@/domains/billing/feature-guard'
 
 const service = new InventoryService()
 
@@ -50,6 +56,31 @@ beforeEach(() => {
   ;(prisma as unknown as { $transaction: unknown }).$transaction = vi.fn(
     (cb: (tx: unknown) => unknown) => cb(prisma),
   )
+})
+
+describe('createProduct', () => {
+  it('conta os produtos do tenant e assevera o limite antes de criar', async () => {
+    vi.mocked(productRepository.count).mockResolvedValue(2)
+    vi.mocked(featureGuard.assertWithinLimit).mockResolvedValue(undefined)
+    vi.mocked(productRepository.create).mockResolvedValue(makeProduct())
+
+    await service.createProduct('t1', { name: 'Shampoo', salePrice: 10, costPrice: 5 } as never)
+
+    expect(productRepository.count).toHaveBeenCalledWith('t1')
+    expect(featureGuard.assertWithinLimit).toHaveBeenCalledWith('t1', 'products', 2)
+    expect(productRepository.create).toHaveBeenCalled()
+  })
+
+  it('propaga o erro do featureGuard e não cria o produto quando o limite é excedido', async () => {
+    vi.mocked(productRepository.count).mockResolvedValue(20)
+    vi.mocked(featureGuard.assertWithinLimit).mockRejectedValue(new Error('Limite atingido'))
+
+    await expect(
+      service.createProduct('t1', { name: 'Shampoo', salePrice: 10, costPrice: 5 } as never),
+    ).rejects.toThrow('Limite atingido')
+
+    expect(productRepository.create).not.toHaveBeenCalled()
+  })
 })
 
 describe('recordSale', () => {

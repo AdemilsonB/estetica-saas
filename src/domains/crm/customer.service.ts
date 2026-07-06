@@ -2,6 +2,7 @@ import type { Customer } from "@prisma/client";
 
 import { eventBus } from "@/shared/events/event-bus";
 import { ConflictError, CustomerNotFoundError } from "@/shared/errors";
+import { featureGuard } from "@/domains/billing/feature-guard";
 
 import { customerRepository, type CustomerFilters } from "./customer.repository";
 import type { CreateCustomerInput, UpdateCustomerInput } from "./types";
@@ -12,6 +13,9 @@ export class CustomerService {
   }
 
   async create(tenantId: string, input: CreateCustomerInput) {
+    const customerCount = await customerRepository.count(tenantId);
+    await featureGuard.assertWithinLimit(tenantId, "customers", customerCount);
+
     if (input.phone) {
       const existing = await customerRepository.findByPhone(tenantId, input.phone);
       if (existing) {

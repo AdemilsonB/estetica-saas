@@ -22,7 +22,7 @@ export async function handleUsageSnapshot(_jobs: Job<Record<string, never>>[]): 
   const tenants = await prisma.tenant.findMany({ select: { id: true } })
 
   for (const tenant of tenants) {
-    const [appointments, whatsapp, customers, users] = await Promise.all([
+    const [appointments, whatsapp, customers, users, services, products, emailMonth] = await Promise.all([
       prisma.appointment.count({
         where: { tenantId: tenant.id, createdAt: { gte: startOfPrevMonth, lte: endOfPrevMonth } },
       }),
@@ -35,6 +35,15 @@ export async function handleUsageSnapshot(_jobs: Job<Record<string, never>>[]): 
       }),
       prisma.customer.count({ where: { tenantId: tenant.id } }),
       prisma.user.count({ where: { tenantId: tenant.id } }),
+      prisma.service.count({ where: { tenantId: tenant.id } }),
+      prisma.product.count({ where: { tenantId: tenant.id } }),
+      prisma.notificationLog.count({
+        where: {
+          tenantId: tenant.id,
+          channel: 'EMAIL',
+          createdAt: { gte: startOfPrevMonth, lte: endOfPrevMonth },
+        },
+      }),
     ])
 
     const snapshots = [
@@ -42,6 +51,9 @@ export async function handleUsageSnapshot(_jobs: Job<Record<string, never>>[]): 
       { limitKey: 'whatsapp_month', count: whatsapp },
       { limitKey: 'customers_total', count: customers },
       { limitKey: 'users_total', count: users },
+      { limitKey: 'services_total', count: services },
+      { limitKey: 'products_total', count: products },
+      { limitKey: 'email_month', count: emailMonth },
     ]
 
     for (const snap of snapshots) {

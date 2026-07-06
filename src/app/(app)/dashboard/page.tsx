@@ -1,5 +1,6 @@
 import { DashboardMetrics } from '@/components/domain/dashboard/dashboard-metrics'
 import { AgendaDayView } from '@/components/domain/scheduling/agenda-day-view'
+import { UsageWidget } from '@/components/domain/billing/usage-widget'
 
 export const metadata = { title: 'Dashboard · Estética SaaS' }
 
@@ -16,6 +17,13 @@ export default function DashboardPage() {
       </div>
 
       <DashboardMetrics />
+
+      <div>
+        <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-slate-950">
+          Uso do plano
+        </h2>
+        <UsageWidget />
+      </div>
 
       <div>
         <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-slate-950">

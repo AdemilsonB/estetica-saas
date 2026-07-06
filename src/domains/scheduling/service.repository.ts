@@ -11,6 +11,10 @@ export class CatalogServiceRepository {
     });
   }
 
+  async count(tenantId: string): Promise<number> {
+    return prisma.service.count({ where: { tenantId } });
+  }
+
   async findById(tenantId: string, serviceId: string) {
     return prisma.service.findFirst({
       where: { id: serviceId, tenantId },

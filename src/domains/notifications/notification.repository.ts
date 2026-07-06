@@ -16,6 +16,15 @@ export class NotificationRepository {
     });
   }
 
+  async countEmailsThisMonth(tenantId: string): Promise<number> {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return prisma.notificationLog.count({
+      where: { tenantId, channel: "EMAIL", createdAt: { gte: start, lt: end } },
+    });
+  }
+
   async findMany(tenantId: string, filter: NotificationLogFilter) {
     const { template, status, startDate, endDate, page = 1, limit = 20 } = filter;
     const skip = (page - 1) * limit;

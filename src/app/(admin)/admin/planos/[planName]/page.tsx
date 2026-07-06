@@ -75,6 +75,7 @@ export default function PlanEditorPage() {
 
   const navCaps = CAPABILITY_REGISTRY.filter((c) => c.category === 'nav')
   const otherCaps = CAPABILITY_REGISTRY.filter((c) => c.category === 'capability')
+  const reportCaps = CAPABILITY_REGISTRY.filter((c) => c.category === 'report')
 
   const enabledCapabilityKeys = Object.entries(featureState)
     .filter(([, enabled]) => enabled)
@@ -227,6 +228,16 @@ export default function PlanEditorPage() {
               ))}
               <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-400">Capacidades</p>
               {otherCaps.map((cap) => (
+                <div key={cap.key} className="flex items-center justify-between">
+                  <Label>{cap.label}</Label>
+                  <Switch
+                    checked={featureState[cap.key] ?? false}
+                    onCheckedChange={(v) => setFeatureState((s) => ({ ...s, [cap.key]: v }))}
+                  />
+                </div>
+              ))}
+              <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-400">Relatórios</p>
+              {reportCaps.map((cap) => (
                 <div key={cap.key} className="flex items-center justify-between">
                   <Label>{cap.label}</Label>
                   <Switch

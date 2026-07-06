@@ -65,6 +65,24 @@ export const LIMIT_REGISTRY = {
     group: CAPABILITY_GROUPS.COMUNICACAO,
     defaults: { FREE: 100, STARTER: 500, PRO: 5000, ENTERPRISE: UNLIMITED },
   },
+  max_services: {
+    label: 'Máximo de serviços', unit: 'serviços',
+    benefitLabel: (v) => (v >= UNLIMITED ? 'Serviços ilimitados' : `${fmt(v)} serviços`),
+    unlimitedThreshold: UNLIMITED, kind: 'hard', group: CAPABILITY_GROUPS.OPERACAO,
+    defaults: { FREE: 10, STARTER: 50, PRO: 200, ENTERPRISE: UNLIMITED },
+  },
+  max_products: {
+    label: 'Máximo de produtos', unit: 'produtos',
+    benefitLabel: (v) => (v >= UNLIMITED ? 'Produtos ilimitados' : `${fmt(v)} produtos`),
+    unlimitedThreshold: UNLIMITED, kind: 'hard', group: CAPABILITY_GROUPS.CATALOGO,
+    defaults: { FREE: 10, STARTER: 100, PRO: 500, ENTERPRISE: UNLIMITED },
+  },
+  max_customers: {
+    label: 'Máximo de clientes', unit: 'clientes',
+    benefitLabel: (v) => (v >= UNLIMITED ? 'Clientes ilimitados' : `${fmt(v)} clientes`),
+    unlimitedThreshold: UNLIMITED, kind: 'hard', group: CAPABILITY_GROUPS.CLIENTES,
+    defaults: { FREE: 200, STARTER: 2000, PRO: 20000, ENTERPRISE: UNLIMITED },
+  },
 } satisfies Record<string, LimitMeta>
 
 export type LimitKey = keyof typeof LIMIT_REGISTRY
