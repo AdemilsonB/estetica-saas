@@ -28,11 +28,12 @@ beforeEach(() => {
 })
 
 describe('AnalyticsService.getSeasonalityReport', () => {
-  it('exige reports_advanced antes de consultar', async () => {
+  it('exige report_agendamentos e reports_advanced antes de consultar', async () => {
     vi.mocked(featureGuard.assertAccess).mockRejectedValue(new Error('PLAN_FEATURE_REQUIRED'))
 
     await expect(service.getSeasonalityReport('tenant-1', {})).rejects.toThrow()
     expect(prismaMock.$queryRaw).not.toHaveBeenCalled()
+    expect(featureGuard.assertAccess).toHaveBeenCalledWith('tenant-1', 'report_agendamentos')
   })
 
   it('retorna células e o total máximo para escala do heatmap', async () => {
@@ -58,11 +59,12 @@ describe('AnalyticsService.getInactiveCustomersReport', () => {
     vi.useRealTimers()
   })
 
-  it('exige reports_advanced', async () => {
+  it('exige report_clientes e reports_advanced', async () => {
     vi.mocked(featureGuard.assertAccess).mockRejectedValue(new Error('PLAN_FEATURE_REQUIRED'))
 
     await expect(service.getInactiveCustomersReport('tenant-1', { days: 90, page: 1 })).rejects.toThrow()
     expect(prismaMock.$queryRaw).not.toHaveBeenCalled()
+    expect(featureGuard.assertAccess).toHaveBeenCalledWith('tenant-1', 'report_clientes')
   })
 
   it('retorna inativos com dias calculados e paginação', async () => {
@@ -109,12 +111,12 @@ describe('AnalyticsService.getOverviewReport', () => {
       .mockResolvedValueOnce(25 as never) // anterior
   }
 
-  it('exige acesso à seção relatorios antes de consultar', async () => {
+  it('exige acesso a report_visao_geral antes de consultar', async () => {
     vi.mocked(featureGuard.assertAccess).mockRejectedValue(new Error('PLAN_FEATURE_REQUIRED'))
 
     await expect(service.getOverviewReport('tenant-1', janela)).rejects.toThrow()
     expect(prismaMock.$queryRaw).not.toHaveBeenCalled()
-    expect(featureGuard.assertAccess).toHaveBeenCalledWith('tenant-1', 'relatorios')
+    expect(featureGuard.assertAccess).toHaveBeenCalledWith('tenant-1', 'report_visao_geral')
   })
 
   it('monta KPIs com variação (% e p.p.)', async () => {

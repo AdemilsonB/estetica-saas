@@ -42,7 +42,7 @@ export class ReportsService {
     tenantId: string,
     input: FinancialReportInput,
   ): Promise<FinancialReport> {
-    await featureGuard.assertAccess(tenantId, 'relatorios')
+    await featureGuard.assertAccess(tenantId, 'report_financeiro')
 
     const { from, to } = await this.resolvePeriod(tenantId, input)
 
@@ -168,7 +168,7 @@ export class ReportsService {
     tenantId: string,
     input: AppointmentsReportInput,
   ): Promise<AppointmentsReport> {
-    await featureGuard.assertAccess(tenantId, 'relatorios')
+    await featureGuard.assertAccess(tenantId, 'report_agendamentos')
 
     const { from, to } = await this.resolvePeriod(tenantId, input)
 
@@ -255,7 +255,7 @@ export class ReportsService {
     tenantId: string,
     input: CustomersReportInput,
   ): Promise<CustomersReport> {
-    await featureGuard.assertAccess(tenantId, 'relatorios')
+    await featureGuard.assertAccess(tenantId, 'report_clientes')
 
     const { from, to } = await this.resolvePeriod(tenantId, input)
     const page = input.page ?? 1
