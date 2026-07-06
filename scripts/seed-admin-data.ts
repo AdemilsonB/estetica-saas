@@ -40,6 +40,15 @@ const BILLING_FEATURES: Array<{ sectionKey: string; plans: Partial<Record<PlanNa
   { sectionKey: 'reports_advanced',  plans: { FREE: false, STARTER: false, PRO: true,  ENTERPRISE: true  } },
   { sectionKey: 'whatsapp_premium',  plans: { FREE: false, STARTER: false, PRO: true,  ENTERPRISE: true  } },
   { sectionKey: 'multi_unit',        plans: { FREE: false, STARTER: false, PRO: true,  ENTERPRISE: true  } },
+  // report_* gateiam as páginas/rotas de relatório (server-side, ver ADR da Fase C).
+  // Capacidade opt-in: sem linha aqui a página fica BLOQUEADA. Habilitado para
+  // TODOS os planos para não causar regressão (todos os 4 relatórios já eram
+  // visíveis antes do gate). Diferenciação por plano fica a critério do admin,
+  // via editor de PlanFeatureConfig.
+  { sectionKey: 'report_visao_geral',   plans: { FREE: true, STARTER: true, PRO: true, ENTERPRISE: true } },
+  { sectionKey: 'report_financeiro',    plans: { FREE: true, STARTER: true, PRO: true, ENTERPRISE: true } },
+  { sectionKey: 'report_agendamentos',  plans: { FREE: true, STARTER: true, PRO: true, ENTERPRISE: true } },
+  { sectionKey: 'report_clientes',      plans: { FREE: true, STARTER: true, PRO: true, ENTERPRISE: true } },
 ]
 
 async function main() {
