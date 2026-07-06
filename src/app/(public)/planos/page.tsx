@@ -1,38 +1,25 @@
-import { prisma } from '@/shared/database/prisma'
+import { getPublicPlans } from '@/domains/billing/plan-catalog.service'
 import { PricingToggle } from '@/components/domain/billing/pricing-toggle'
 
 // Sempre renderizar no request: os planos são editáveis pelo admin e precisam
-// refletir imediatamente. Sem isto, o Next renderiza estaticamente no build
-// (chamadas Prisma não são sinal de dinamismo) e congela os valores do seed.
+// refletir imediatamente (chamadas Prisma não são sinal de dinamismo no Next 15).
 export const dynamic = 'force-dynamic'
 
-async function getPlans() {
-  return prisma.plan.findMany({
-    where: { isActive: true },
-    orderBy: { displayOrder: 'asc' },
-  })
-}
-
 export default async function PlansPage() {
-  const plans = await getPlans()
+  const plans = await getPublicPlans()
 
-  const plansWithFeatures = plans.map(p => ({
+  const plansForCards = plans.map((p) => ({
     name: p.name,
     displayName: p.displayName,
-    price: Number(p.price),
-    description: p.description,
-    // Benefícios vêm do que o admin configurou em Plan.description (1 por linha) —
-    // mesma fonte usada no onboarding, nunca uma lista hardcoded no frontend.
-    features: p.description ? p.description.split('\n').map(l => l.trim()).filter(Boolean) : [],
-    // Trial parametrizado no banco — nunca cravar "14" no frontend.
+    price: p.price,
+    features: p.benefits,
+    highlights: p.highlights,
     trialDays: p.trialDays,
-    isPopular: p.name === 'PRO',
+    isPopular: p.isPopular,
   }))
 
-  // Duração do trial exibida nos textos genéricos: usa o STARTER como referência
-  // (mesmo plano que a landing destaca), com fallback ao maior trial disponível.
   const trialDays =
-    plans.find(p => p.name === 'STARTER')?.trialDays ??
+    plans.find((p) => p.name === 'STARTER')?.trialDays ??
     plans.reduce((max, p) => Math.max(max, p.trialDays), 0)
 
   return (
@@ -50,7 +37,7 @@ export default async function PlansPage() {
           <p className="mt-4 text-lg text-slate-500">{trialDays} dias grátis em qualquer plano pago. Sem cartão de crédito.</p>
         </div>
 
-        <PricingToggle plans={plansWithFeatures} />
+        <PricingToggle plans={plansForCards} />
 
         <div className="mt-20 max-w-2xl mx-auto">
           <h2 className="text-xl font-semibold text-slate-900 mb-6 text-center">Dúvidas frequentes</h2>

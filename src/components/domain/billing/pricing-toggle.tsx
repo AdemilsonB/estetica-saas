@@ -6,8 +6,8 @@ export type PlanData = {
   name: string
   displayName: string
   price: number
-  description?: string | null
   features: string[]
+  highlights?: string[]
   trialDays: number
   isPopular?: boolean
 }

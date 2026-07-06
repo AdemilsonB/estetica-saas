@@ -1,24 +1,45 @@
 // src/app/(public)/landing.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock do Prisma (padrão do projeto)
+// Mock do Prisma (padrão do projeto) — agora só metrics/testimonials passam por aqui,
+// planos vêm de getPublicPlans (mockado abaixo).
 const mockPrisma = {
-  plan: { findMany: vi.fn() },
   landingMetric: { findMany: vi.fn() },
   landingTestimonial: { findMany: vi.fn() },
 }
 
 vi.mock('@/shared/database/prisma', () => ({ prisma: mockPrisma }))
 
+const mockGetPublicPlans = vi.fn()
+vi.mock('@/domains/billing/plan-catalog.service', () => ({
+  getPublicPlans: mockGetPublicPlans,
+}))
+
 const { getLandingData } = await import('./page')
 
 describe('getLandingData', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('retorna dados quando banco tem planos, métricas e depoimentos', async () => {
-    mockPrisma.plan.findMany.mockResolvedValue([
-      { name: 'STARTER', displayName: 'Starter', price: '49.90', description: 'Agenda\nCRM', trialDays: 14 },
-      { name: 'PRO', displayName: 'Pro', price: '99.90', description: 'Tudo do Starter', trialDays: 7 },
+  it('retorna dados quando o catálogo tem planos e o banco tem métricas e depoimentos', async () => {
+    mockGetPublicPlans.mockResolvedValue([
+      {
+        name: 'STARTER',
+        displayName: 'Starter',
+        price: 49,
+        trialDays: 14,
+        isPopular: false,
+        highlights: ['Ideal para começar'],
+        benefits: ['Agenda completa'],
+      },
+      {
+        name: 'PRO',
+        displayName: 'Pro',
+        price: 89,
+        trialDays: 14,
+        isPopular: true,
+        highlights: [],
+        benefits: ['Agenda completa', 'Relatórios avançados'],
+      },
     ])
     mockPrisma.landingMetric.findMany.mockResolvedValue([
       { id: '1', value: '+1.200', label: 'salões ativos' },
@@ -30,13 +51,13 @@ describe('getLandingData', () => {
     const result = await getLandingData()
 
     expect(result.plans).toHaveLength(2)
-    expect(result.starterPlan?.price).toBe('49.90')
+    expect(result.starterPlan?.price).toBe(49)
     expect(result.metrics).toHaveLength(1)
     expect(result.testimonials).toHaveLength(1)
   })
 
-  it('retorna starterPlan nulo e arrays vazios quando banco não tem dados', async () => {
-    mockPrisma.plan.findMany.mockResolvedValue([])
+  it('retorna starterPlan nulo e arrays vazios quando o catálogo e o banco não têm dados', async () => {
+    mockGetPublicPlans.mockResolvedValue([])
     mockPrisma.landingMetric.findMany.mockResolvedValue([])
     mockPrisma.landingTestimonial.findMany.mockResolvedValue([])
 
@@ -48,24 +69,37 @@ describe('getLandingData', () => {
     expect(result.testimonials).toHaveLength(0)
   })
 
-  it('busca trialDays dos planos ativos ordenados (fonte do trial parametrizado)', async () => {
-    mockPrisma.plan.findMany.mockResolvedValue([])
+  it('chama getPublicPlans para montar o catálogo (fonte única de benefícios/trial)', async () => {
+    mockGetPublicPlans.mockResolvedValue([])
     mockPrisma.landingMetric.findMany.mockResolvedValue([])
     mockPrisma.landingTestimonial.findMany.mockResolvedValue([])
 
     await getLandingData()
 
-    expect(mockPrisma.plan.findMany).toHaveBeenCalledWith({
-      where: { isActive: true },
-      orderBy: { displayOrder: 'asc' },
-      select: { name: true, displayName: true, price: true, description: true, trialDays: true },
-    })
+    expect(mockGetPublicPlans).toHaveBeenCalledTimes(1)
+    expect(mockGetPublicPlans).toHaveBeenCalledWith()
   })
 
-  it('deriva starterPlan a partir da lista de planos', async () => {
-    mockPrisma.plan.findMany.mockResolvedValue([
-      { name: 'PRO', displayName: 'Pro', price: '99.90', description: null, trialDays: 7 },
-      { name: 'STARTER', displayName: 'Starter', price: '49.90', description: null, trialDays: 14 },
+  it('deriva starterPlan a partir da lista de planos do catálogo', async () => {
+    mockGetPublicPlans.mockResolvedValue([
+      {
+        name: 'PRO',
+        displayName: 'Pro',
+        price: 89,
+        trialDays: 7,
+        isPopular: true,
+        highlights: [],
+        benefits: [],
+      },
+      {
+        name: 'STARTER',
+        displayName: 'Starter',
+        price: 49,
+        trialDays: 14,
+        isPopular: false,
+        highlights: [],
+        benefits: [],
+      },
     ])
     mockPrisma.landingMetric.findMany.mockResolvedValue([])
     mockPrisma.landingTestimonial.findMany.mockResolvedValue([])
@@ -75,8 +109,42 @@ describe('getLandingData', () => {
     expect(result.starterPlan?.trialDays).toBe(14)
   })
 
+  it('preserva isPopular e benefits/highlights de cada plano vindos do catálogo', async () => {
+    mockGetPublicPlans.mockResolvedValue([
+      {
+        name: 'STARTER',
+        displayName: 'Starter',
+        price: 49,
+        trialDays: 14,
+        isPopular: false,
+        highlights: ['Ideal para começar'],
+        benefits: ['Agenda completa'],
+      },
+      {
+        name: 'PRO',
+        displayName: 'Pro',
+        price: 89,
+        trialDays: 14,
+        isPopular: true,
+        highlights: [],
+        benefits: ['Agenda completa', 'Relatórios avançados'],
+      },
+    ])
+    mockPrisma.landingMetric.findMany.mockResolvedValue([])
+    mockPrisma.landingTestimonial.findMany.mockResolvedValue([])
+
+    const result = await getLandingData()
+
+    expect(result.plans[0].isPopular).toBe(false)
+    expect(result.plans[0].benefits).toEqual(['Agenda completa'])
+    expect(result.plans[0].highlights).toEqual(['Ideal para começar'])
+    expect(result.plans[1].isPopular).toBe(true)
+    expect(result.plans[1].benefits).toEqual(['Agenda completa', 'Relatórios avançados'])
+    expect(result.plans[1].highlights).toEqual([])
+  })
+
   it('consulta apenas métricas ativas ordenadas', async () => {
-    mockPrisma.plan.findMany.mockResolvedValue([])
+    mockGetPublicPlans.mockResolvedValue([])
     mockPrisma.landingMetric.findMany.mockResolvedValue([])
     mockPrisma.landingTestimonial.findMany.mockResolvedValue([])
 
