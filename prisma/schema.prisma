@@ -341,6 +341,18 @@ model ProcessedStripeEvent {
   createdAt DateTime @default(now())
 }
 
+// Registra sinais de interesse do tenant em capabilities bloqueadas pelo plano
+// (ex: clique em item travado no gating), usado para priorizar upsell e roadmap.
+model CapabilityInterestLog {
+  id            String   @id @default(cuid())
+  tenantId      String
+  capabilityKey String
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([capabilityKey])
+}
+
 model TenantInvite {
   id        String       @id @default(cuid())
   tenantId  String

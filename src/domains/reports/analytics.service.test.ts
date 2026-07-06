@@ -89,6 +89,7 @@ describe('AnalyticsService.getInactiveCustomersReport', () => {
 
 describe('AnalyticsService.getOverviewReport', () => {
   function mockQueries(opts: { canAccess: boolean }) {
+    vi.mocked(featureGuard.assertAccess).mockResolvedValue(undefined)
     vi.mocked(featureGuard.canAccess).mockResolvedValue(opts.canAccess)
     // Ordem dos $queryRaw no service:
     // 1) receita atual  2) receita anterior  3) novos vs recorrentes atual
@@ -107,6 +108,14 @@ describe('AnalyticsService.getOverviewReport', () => {
       .mockResolvedValueOnce(30 as never) // atual
       .mockResolvedValueOnce(25 as never) // anterior
   }
+
+  it('exige acesso à seção relatorios antes de consultar', async () => {
+    vi.mocked(featureGuard.assertAccess).mockRejectedValue(new Error('PLAN_FEATURE_REQUIRED'))
+
+    await expect(service.getOverviewReport('tenant-1', janela)).rejects.toThrow()
+    expect(prismaMock.$queryRaw).not.toHaveBeenCalled()
+    expect(featureGuard.assertAccess).toHaveBeenCalledWith('tenant-1', 'relatorios')
+  })
 
   it('monta KPIs com variação (% e p.p.)', async () => {
     mockQueries({ canAccess: false })

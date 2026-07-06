@@ -16,14 +16,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Lock } from 'lucide-react'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useBillingStatus } from '@/hooks/billing/use-billing-status'
 import { EntityImage } from '@/components/domain/shared/entity-image'
-import { useNavSections } from '@/hooks/iam/use-nav-sections'
+import { useNavSections, type NavSectionWithLock } from '@/hooks/iam/use-nav-sections'
 import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
 import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
+import { useUpgradeModal } from '@/stores/upgrade-modal.store'
 import { cn } from '@/lib/utils'
-import type { NavSection } from '@/shared/permissions/nav-registry'
 import { BottomNav } from '@/components/app/bottom-nav'
 import { MobileHeader } from '@/components/app/mobile-header'
 import { SwipeNavWrapper } from '@/components/app/swipe-nav-wrapper'
@@ -49,6 +50,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { canAccess, user, isLoading } = usePermissions()
+  const openUpgrade = useUpgradeModal((s) => s.openUpgrade)
   const { data: billingStatus } = useBillingStatus()
   const { data: planNavSections, isLoading: navSectionsLoading } = useNavSections()
   const { data: evolutionStatus, isLoading: evolutionLoading } = useEvolutionStatus()
@@ -152,22 +154,14 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
     )
   }
 
-  function NavLink({ item, showLabel, hasBadge, onClick }: { item: NavSection; showLabel: boolean; hasBadge?: boolean; onClick?: () => void }) {
+  function NavLink({ item, showLabel, hasBadge, onClick }: { item: NavSectionWithLock; showLabel: boolean; hasBadge?: boolean; onClick?: () => void }) {
     const Icon = (Icons as unknown as Record<string, React.ElementType>)[item.icon] ?? Icons.Circle
     const isActive = pathname.startsWith(item.href)
-    return (
-      <Link
-        href={item.href}
-        onClick={onClick}
-        className={cn(
-          'relative flex items-center rounded-xl transition',
-          showLabel ? 'gap-3 px-3 py-2.5' : 'size-10 justify-center',
-          isActive
-            ? 'bg-accent text-primary font-semibold'
-            : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
-        )}
-      >
-        {isActive && showLabel && (
+    const locked = item.locked
+
+    const content = (
+      <>
+        {isActive && showLabel && !locked && (
           <span
             aria-hidden="true"
             className="pointer-events-none absolute left-0 top-[20%] h-[60%] w-[3px] rounded-r"
@@ -178,18 +172,20 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
           className={cn(
             'inline-flex shrink-0 items-center justify-center rounded-lg',
             showLabel ? 'size-8' : 'size-6',
-            isActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground',
+            isActive && !locked ? 'bg-primary/15 text-primary' : 'text-muted-foreground',
           )}
         >
-          <Icon className="size-4" />
+          {locked ? <Lock className="size-4" /> : <Icon className="size-4" />}
         </span>
         {showLabel && (
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-medium">{item.label}</span>
-            <span className="block text-xs text-muted-foreground">{item.description}</span>
+            <span className="block text-xs text-muted-foreground">
+              {locked ? `Disponível no plano ${item.requiredPlanLabel ?? 'superior'}` : item.description}
+            </span>
           </span>
         )}
-        {showLabel && hasBadge && (
+        {showLabel && hasBadge && !locked && (
           <span
             aria-label="Configuração pendente"
             className="ml-auto inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-green-500 text-[9px] font-bold leading-none text-white"
@@ -197,9 +193,45 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
             !
           </span>
         )}
-        {!showLabel && hasBadge && (
+        {!showLabel && hasBadge && !locked && (
           <span aria-hidden="true" className="absolute right-0.5 top-0.5 size-2 rounded-full bg-green-500" />
         )}
+      </>
+    )
+
+    const className = cn(
+      'relative flex w-full items-center rounded-xl transition',
+      showLabel ? 'gap-3 px-3 py-2.5' : 'size-10 justify-center',
+      locked
+        ? 'text-muted-foreground/70 cursor-pointer'
+        : isActive
+          ? 'bg-accent text-primary font-semibold'
+          : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
+    )
+
+    if (locked) {
+      return (
+        <button
+          type="button"
+          aria-label={`${item.label} — disponível no plano ${item.requiredPlanLabel ?? 'superior'}`}
+          onClick={() => {
+            openUpgrade({
+              capabilityKey: item.key,
+              requiredPlan: item.requiredPlan,
+              requiredPlanLabel: item.requiredPlanLabel,
+            })
+            onClick?.()
+          }}
+          className={className}
+        >
+          {content}
+        </button>
+      )
+    }
+
+    return (
+      <Link href={item.href} onClick={onClick} className={className}>
+        {content}
       </Link>
     )
   }

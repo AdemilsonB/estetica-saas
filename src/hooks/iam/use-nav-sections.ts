@@ -1,7 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import type { NavSection } from '@/shared/permissions/nav-registry'
 
-async function fetchNavSections(): Promise<NavSection[]> {
+export type NavSectionWithLock = NavSection & {
+  locked: boolean
+  requiredPlan: string | null
+  requiredPlanLabel: string | null
+}
+
+async function fetchNavSections(): Promise<NavSectionWithLock[]> {
   const res = await fetch('/api/iam/nav-sections')
   if (!res.ok) throw new Error('Falha ao carregar seções')
   return res.json()

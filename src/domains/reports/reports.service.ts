@@ -3,6 +3,7 @@ import { AppointmentStatus, Prisma, TransactionType } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { dayBoundsInTz, monthBoundsInTz } from '@/lib/dates'
 import { isReversal } from '@/domains/financial/categories'
+import { featureGuard } from '@/domains/billing/feature-guard'
 import { percentDelta, pointsDelta, previousWindow } from './analytics-utils'
 
 import { CUSTOMERS_PAGE_SIZE } from './types'
@@ -41,6 +42,8 @@ export class ReportsService {
     tenantId: string,
     input: FinancialReportInput,
   ): Promise<FinancialReport> {
+    await featureGuard.assertAccess(tenantId, 'relatorios')
+
     const { from, to } = await this.resolvePeriod(tenantId, input)
 
     const appointmentFilter = {
@@ -165,6 +168,8 @@ export class ReportsService {
     tenantId: string,
     input: AppointmentsReportInput,
   ): Promise<AppointmentsReport> {
+    await featureGuard.assertAccess(tenantId, 'relatorios')
+
     const { from, to } = await this.resolvePeriod(tenantId, input)
 
     const appointmentWhere = {
@@ -250,6 +255,8 @@ export class ReportsService {
     tenantId: string,
     input: CustomersReportInput,
   ): Promise<CustomersReport> {
+    await featureGuard.assertAccess(tenantId, 'relatorios')
+
     const { from, to } = await this.resolvePeriod(tenantId, input)
     const page = input.page ?? 1
     const sortBy = input.sortBy ?? 'receita'

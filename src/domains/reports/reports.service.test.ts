@@ -1,9 +1,51 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { AppointmentStatus, TransactionType } from '@prisma/client'
 import { prismaMock } from '@/shared/test/prisma-mock'
+
+vi.mock('@/domains/billing/feature-guard', () => ({
+  featureGuard: {
+    assertAccess: vi.fn(),
+  },
+}))
+
+import { featureGuard } from '@/domains/billing/feature-guard'
 import { ReportsService } from './reports.service'
 
 const service = new ReportsService()
+
+beforeEach(() => {
+  vi.mocked(featureGuard.assertAccess).mockReset().mockResolvedValue(undefined)
+})
+
+describe('ReportsService — gate de plano da seção relatorios', () => {
+  beforeEach(() => {
+    prismaMock.tenant.findFirstOrThrow.mockResolvedValue({
+      timezone: 'America/Sao_Paulo',
+    } as never)
+  })
+
+  it('getFinancialReport exige acesso à seção relatorios antes de consultar', async () => {
+    vi.mocked(featureGuard.assertAccess).mockRejectedValue(new Error('PLAN_FEATURE_REQUIRED'))
+
+    await expect(service.getFinancialReport('tenant-1', {})).rejects.toThrow()
+    expect(prismaMock.transaction.findMany).not.toHaveBeenCalled()
+    expect(featureGuard.assertAccess).toHaveBeenCalledWith('tenant-1', 'relatorios')
+  })
+
+  it('getAppointmentsReport exige acesso à seção relatorios antes de consultar', async () => {
+    vi.mocked(featureGuard.assertAccess).mockRejectedValue(new Error('PLAN_FEATURE_REQUIRED'))
+
+    await expect(service.getAppointmentsReport('tenant-1', {})).rejects.toThrow()
+    expect(prismaMock.appointment.findMany).not.toHaveBeenCalled()
+  })
+
+  it('getCustomersReport exige acesso à seção relatorios antes de consultar', async () => {
+    vi.mocked(featureGuard.assertAccess).mockRejectedValue(new Error('PLAN_FEATURE_REQUIRED'))
+
+    await expect(service.getCustomersReport('tenant-1', {})).rejects.toThrow()
+    expect(prismaMock.$queryRaw).not.toHaveBeenCalled()
+  })
+})
 
 // Helpers para montar transações mínimas que o relatório consome.
 function income(amount: number, netAmount: number | null, appointmentId = 'apt-1') {
