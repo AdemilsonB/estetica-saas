@@ -102,4 +102,38 @@ describe('PlanLimitsService', () => {
       await expect(service.assertWithinLimit(TENANT_ID, 'max_roles', 9999)).resolves.not.toThrow()
     })
   })
+
+  describe('checkUsage', () => {
+    it('warning a partir de 80%, exceeded em 100%', async () => {
+      prismaMock.tenant.findFirst.mockResolvedValue(activeTenant(PlanName.PRO) as any)
+      prismaMock.planLimitConfig.findFirst.mockResolvedValue({ value: 100 } as any)
+
+      expect((await service.checkUsage(TENANT_ID, 'max_users', 80)).status).toBe('warning')
+      expect((await service.checkUsage(TENANT_ID, 'max_users', 100)).status).toBe('exceeded')
+      expect((await service.checkUsage(TENANT_ID, 'max_users', 50)).status).toBe('ok')
+    })
+
+    it('retorna ok e percent 0 quando o limite é ilimitado', async () => {
+      prismaMock.tenant.findFirst.mockResolvedValue(activeTenant(PlanName.ENTERPRISE) as any)
+      prismaMock.planLimitConfig.findFirst.mockResolvedValue({ value: 999999 } as any)
+
+      const result = await service.checkUsage(TENANT_ID, 'max_roles', 500)
+      expect(result.status).toBe('ok')
+      expect(result.percent).toBe(0)
+    })
+  })
+
+  describe('assertWithinLimit soft', () => {
+    it('soft: permite até +10% de folga, bloqueia acima', async () => {
+      prismaMock.tenant.findFirst.mockResolvedValue(activeTenant(PlanName.STARTER) as any)
+      prismaMock.planLimitConfig.findFirst.mockResolvedValue({ value: 300 } as any)
+
+      await expect(
+        service.assertWithinLimit(TENANT_ID, 'max_appointments_month', 320)
+      ).resolves.not.toThrow()
+      await expect(
+        service.assertWithinLimit(TENANT_ID, 'max_appointments_month', 331)
+      ).rejects.toThrow()
+    })
+  })
 })
