@@ -22,7 +22,7 @@ const LIMIT_TYPE_MAP: Record<string, LimitKey> = {
 }
 
 export class FeatureGuard {
-  async canAccess(tenantId: string, feature: FeatureName): Promise<boolean> {
+  async canAccess(tenantId: string, feature: string): Promise<boolean> {
     const { plan, status } = await this.getSubscriptionState(tenantId)
     if (!this.isActive(status)) return false
     const config = await prisma.planFeatureConfig.findFirst({
@@ -31,7 +31,7 @@ export class FeatureGuard {
     return config?.enabled ?? false
   }
 
-  async assertAccess(tenantId: string, feature: FeatureName): Promise<void> {
+  async assertAccess(tenantId: string, feature: string): Promise<void> {
     const has = await this.canAccess(tenantId, feature)
     if (!has) {
       const minPlan = await this.findMinPlanForFeature(feature)
@@ -71,7 +71,7 @@ export class FeatureGuard {
 
   async resolveGate(
     tenantId: string,
-    feature: FeatureName,
+    feature: string,
   ): Promise<{
     allowed: boolean
     currentPlan: PlanName
@@ -90,7 +90,7 @@ export class FeatureGuard {
     return { allowed: false, currentPlan, requiredPlan, requiredPlanLabel }
   }
 
-  private async findMinPlanForFeature(feature: FeatureName): Promise<PlanName | null> {
+  private async findMinPlanForFeature(feature: string): Promise<PlanName | null> {
     const [configs, order] = await Promise.all([
       prisma.planFeatureConfig.findMany({
         where: { sectionKey: feature, enabled: true },
