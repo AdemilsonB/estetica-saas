@@ -57,3 +57,25 @@ describe("NotificationRepository.findMany", () => {
     );
   });
 });
+
+describe("NotificationRepository.countEmailsThisMonth", () => {
+  let repo: NotificationRepository;
+
+  beforeEach(() => {
+    repo = new NotificationRepository();
+    vi.clearAllMocks();
+  });
+
+  it("conta apenas logs de canal EMAIL do tenant no mês corrente", async () => {
+    prismaMock.notificationLog.count.mockResolvedValue(7);
+
+    const result = await repo.countEmailsThisMonth("tenant1");
+
+    expect(result).toBe(7);
+    expect(prismaMock.notificationLog.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ tenantId: "tenant1", channel: "EMAIL" }),
+      }),
+    );
+  });
+});

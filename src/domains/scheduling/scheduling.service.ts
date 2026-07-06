@@ -69,6 +69,9 @@ export class SchedulingService {
   }
 
   async createService(tenantId: string, input: CreateServiceInput) {
+    const serviceCount = await catalogServiceRepository.count(tenantId);
+    await featureGuard.assertWithinLimit(tenantId, "services", serviceCount);
+
     return catalogServiceRepository.create(tenantId, {
       name: input.name,
       duration: input.duration,

@@ -19,7 +19,13 @@ export type FeatureName = (typeof FEATURES)[keyof typeof FEATURES]
 const LIMIT_TYPE_MAP: Record<string, LimitKey> = {
   users:              'max_users',
   appointments_month: 'max_appointments_month',
+  services:           'max_services',
+  products:           'max_products',
+  customers:          'max_customers',
+  email_month:        'max_email_month',
 }
+
+export type LimitType = keyof typeof LIMIT_TYPE_MAP
 
 export class FeatureGuard {
   async canAccess(tenantId: string, feature: string): Promise<boolean> {
@@ -41,7 +47,7 @@ export class FeatureGuard {
 
   async assertWithinLimit(
     tenantId: string,
-    limitType: 'users' | 'appointments_month',
+    limitType: LimitType,
     currentCount: number,
   ): Promise<void> {
     const limitKey = LIMIT_TYPE_MAP[limitType]

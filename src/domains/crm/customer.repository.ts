@@ -123,6 +123,10 @@ export class CustomerRepository {
     return { data, total, page, pageSize };
   }
 
+  async count(tenantId: string): Promise<number> {
+    return prisma.customer.count({ where: { tenantId, deletedAt: null } });
+  }
+
   async findById(tenantId: string, customerId: string) {
     return prisma.customer.findFirst({
       where: { id: customerId, tenantId, deletedAt: null },

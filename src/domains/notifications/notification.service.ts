@@ -1,5 +1,6 @@
 import { NotificationChannel, NotificationStatus } from "@prisma/client";
 import { eventBus } from "@/shared/events/event-bus";
+import { featureGuard } from "@/domains/billing/feature-guard";
 import { notificationRepository } from "./notification.repository";
 import { whatsAppGateway } from "./providers/whatsapp.gateway";
 import { getEmailProvider } from "./providers/email.provider";
@@ -38,6 +39,9 @@ export class NotificationService {
     if (draft.channel === NotificationChannel.WHATSAPP) {
       delivery = await whatsAppGateway.send(draft);
     } else if (draft.channel === NotificationChannel.EMAIL) {
+      const emailCount = await notificationRepository.countEmailsThisMonth(draft.tenantId);
+      await featureGuard.assertWithinLimit(draft.tenantId, "email_month", emailCount);
+
       const subject = EMAIL_SUBJECTS[draft.template] ?? "Notificação";
       const html = buildEmailHtml(draft.template, draft.payload as Record<string, unknown>);
       delivery = await getEmailProvider().send({ to: draft.recipient, subject, html });
