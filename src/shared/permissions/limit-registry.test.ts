@@ -22,4 +22,10 @@ describe('limit-registry', () => {
     const acesso = groups['Acesso & Equipe']?.map(([k]) => k) ?? []
     expect(acesso).toContain('max_users')
   })
+
+  it('inclui max_services/products/customers como hard nos grupos certos', () => {
+    expect(LIMIT_REGISTRY.max_services.kind).toBe('hard')
+    expect(LIMIT_REGISTRY.max_products.group).toBe('Catálogo & Estoque')
+    expect(LIMIT_REGISTRY.max_customers.benefitLabel(2000)).toBe('2.000 clientes')
+  })
 })
