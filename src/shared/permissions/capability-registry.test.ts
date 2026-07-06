@@ -45,4 +45,14 @@ describe('capability-registry', () => {
     expect(agenda?.category).toBe('nav')
     expect(agenda?.label).toBe('Agenda')
   })
+
+  it('inclui as 4 capacidades de relatório com category report e gateáveis', () => {
+    for (const key of ['report_visao_geral', 'report_financeiro', 'report_agendamentos', 'report_clientes']) {
+      const cap = getCapability(key)
+      expect(cap?.category).toBe('report')
+      expect(cap?.essential).toBe(false)
+    }
+    const gateableKeys = getGateableCapabilities().map((c) => c.key)
+    expect(gateableKeys).toContain('report_financeiro')
+  })
 })

@@ -59,7 +59,14 @@ const NAV_ENTRIES: Capability[] = NAV_REGISTRY.map((s) => {
   }
 })
 
-export const CAPABILITY_REGISTRY: Capability[] = [...NAV_ENTRIES, ...CAPABILITY_ENTRIES]
+const REPORT_ENTRIES: Capability[] = [
+  { key: 'report_visao_geral',  label: 'Relatório: Visão Geral',  category: 'report', essential: false, benefitLabel: 'Relatório de visão geral',   status: 'ga', group: CAPABILITY_GROUPS.RELATORIOS },
+  { key: 'report_financeiro',   label: 'Relatório: Financeiro',   category: 'report', essential: false, benefitLabel: 'Relatório financeiro',        status: 'ga', group: CAPABILITY_GROUPS.RELATORIOS },
+  { key: 'report_agendamentos', label: 'Relatório: Agendamentos', category: 'report', essential: false, benefitLabel: 'Relatório de agendamentos',   status: 'ga', group: CAPABILITY_GROUPS.RELATORIOS },
+  { key: 'report_clientes',     label: 'Relatório: Clientes',     category: 'report', essential: false, benefitLabel: 'Relatório de clientes',        status: 'ga', group: CAPABILITY_GROUPS.RELATORIOS },
+]
+
+export const CAPABILITY_REGISTRY: Capability[] = [...NAV_ENTRIES, ...CAPABILITY_ENTRIES, ...REPORT_ENTRIES]
 
 export const ESSENTIAL_KEYS: string[] = CAPABILITY_REGISTRY.filter((c) => c.essential).map((c) => c.key)
 
