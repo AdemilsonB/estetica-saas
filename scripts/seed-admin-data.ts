@@ -76,7 +76,7 @@ async function main() {
       })
     }
   }
-  console.log('PlanLimitConfig: 24 registros inseridos/atualizados')
+  console.log(`PlanLimitConfig: ${planNames.length * limitKeys.length} registros inseridos/atualizados`)
 
   // 3. Seed billing features em PlanFeatureConfig
   for (const { sectionKey, plans } of BILLING_FEATURES) {
