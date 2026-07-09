@@ -57,6 +57,15 @@ export class BillingService {
     // Atômico: a mudança de plano e o registro no histórico ocorrem juntos,
     // evitando trilha de auditoria incompleta caso o segundo write falhe.
     const updated = await prisma.$transaction(async (tx) => {
+      // Admin pode mudar o plano de um tenant que nunca teve Subscription (nunca passou
+      // por trial nem checkout direto) — cria a linha antes do update assumir que existe.
+      if (!current) {
+        await billingRepository.createSubscription(
+          { tenantId, plan: newPlan, status: newStatus, currentPeriodStart: periodStart, currentPeriodEnd: periodEnd },
+          tx,
+        );
+      }
+
       const sub = await billingRepository.updateSubscription(
         tenantId,
         {
@@ -118,6 +127,22 @@ export class BillingService {
     const current = await billingRepository.getSubscription(tenantId)
 
     return prisma.$transaction(async (tx) => {
+      // Admin pode resetar o trial de um tenant que nunca teve Subscription — cria a
+      // linha antes do update assumir que existe.
+      if (!current) {
+        await billingRepository.createSubscription(
+          {
+            tenantId,
+            plan: PlanName.STARTER,
+            status: SubscriptionStatus.TRIALING,
+            trialEndsAt,
+            currentPeriodStart: now,
+            currentPeriodEnd: trialEndsAt,
+          },
+          tx,
+        )
+      }
+
       const updated = await billingRepository.updateSubscription(
         tenantId,
         {
