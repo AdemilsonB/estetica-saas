@@ -94,4 +94,60 @@ describe('BillingService', () => {
       expect(billingRepository.createSubscription).not.toHaveBeenCalled()
     })
   })
+
+  describe('changePlan', () => {
+    it('cria Subscription placeholder antes de atualizar quando o tenant nunca teve uma (mudança de plano pelo admin)', async () => {
+      vi.mocked(billingRepository.getSubscription).mockResolvedValue(null)
+      vi.mocked(billingRepository.updateSubscription).mockResolvedValue({ id: 'sub-1' } as any)
+
+      await billingService.changePlan(TENANT_ID, PlanName.PRO, SubscriptionStatus.ACTIVE, 'admin-1', 'admin_change_plan')
+
+      expect(billingRepository.createSubscription).toHaveBeenCalledWith(
+        expect.objectContaining({ tenantId: TENANT_ID, plan: PlanName.PRO, status: SubscriptionStatus.ACTIVE }),
+        expect.anything(),
+      )
+    })
+
+    it('não recria Subscription quando o tenant já possui uma', async () => {
+      vi.mocked(billingRepository.getSubscription).mockResolvedValue({
+        plan: PlanName.STARTER,
+        status: SubscriptionStatus.ACTIVE,
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(),
+      } as any)
+      vi.mocked(billingRepository.updateSubscription).mockResolvedValue({ id: 'sub-1' } as any)
+
+      await billingService.changePlan(TENANT_ID, PlanName.PRO, SubscriptionStatus.ACTIVE, 'admin-1', 'admin_change_plan')
+
+      expect(billingRepository.createSubscription).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('resetTrial', () => {
+    it('cria Subscription placeholder antes de resetar quando o tenant nunca teve uma', async () => {
+      vi.mocked(billingRepository.getSubscription).mockResolvedValue(null)
+      prismaMock.plan.findUnique.mockResolvedValue({ trialDays: 14 } as any)
+      vi.mocked(billingRepository.updateSubscription).mockResolvedValue({ id: 'sub-1' } as any)
+
+      await billingService.resetTrial(TENANT_ID, 'admin-1')
+
+      expect(billingRepository.createSubscription).toHaveBeenCalledWith(
+        expect.objectContaining({ tenantId: TENANT_ID, plan: PlanName.STARTER, status: SubscriptionStatus.TRIALING }),
+        expect.anything(),
+      )
+    })
+
+    it('não recria Subscription quando o tenant já possui uma', async () => {
+      vi.mocked(billingRepository.getSubscription).mockResolvedValue({
+        plan: PlanName.STARTER,
+        status: SubscriptionStatus.EXPIRED,
+      } as any)
+      prismaMock.plan.findUnique.mockResolvedValue({ trialDays: 14 } as any)
+      vi.mocked(billingRepository.updateSubscription).mockResolvedValue({ id: 'sub-1' } as any)
+
+      await billingService.resetTrial(TENANT_ID, 'admin-1')
+
+      expect(billingRepository.createSubscription).not.toHaveBeenCalled()
+    })
+  })
 })
