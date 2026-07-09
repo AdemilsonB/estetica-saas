@@ -31,8 +31,11 @@ type CreateHistoryData = {
 };
 
 export class BillingRepository {
-  async createSubscription(data: CreateSubscriptionData) {
-    return prisma.subscription.create({ data });
+  async createSubscription(
+    data: CreateSubscriptionData,
+    client: Prisma.TransactionClient | typeof prisma = prisma,
+  ) {
+    return client.subscription.create({ data });
   }
 
   async getSubscription(tenantId: string) {
