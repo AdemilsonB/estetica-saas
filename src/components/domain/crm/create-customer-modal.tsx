@@ -18,9 +18,12 @@ type Props = {
   open: boolean
   onClose: () => void
   onCreated?: (customer: { id: string; name: string }) => void
+  /** false quando este modal é aberto empilhado sobre outro Dialog — evita o bug do Radix
+   * em que dois Dialogs modais simultâneos deixam `aria-hidden` preso na tela ao fechar o de baixo. */
+  modal?: boolean
 }
 
-export function CreateCustomerModal({ open, onClose, onCreated }: Props) {
+export function CreateCustomerModal({ open, onClose, onCreated, modal = true }: Props) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
@@ -60,7 +63,7 @@ export function CreateCustomerModal({ open, onClose, onCreated }: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && handleClose()} modal={modal}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Novo cliente</DialogTitle>
