@@ -231,13 +231,34 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
     })
     const minPrice = Math.min(...withPrices.map((w) => w.discountedPrice))
     const isSelected = withPrices.some((w) => selectedId === w.item.serviceId)
-    const isExpanded = expandedPromoId === promo.id || isSelected
+    const isExpanded = expandedPromoId === promo.id
+
+    function selectDefault() {
+      const cheapest = withPrices.reduce((min, w) => (w.discountedPrice < min.discountedPrice ? w : min), withPrices[0])
+      onSelect({
+        type: 'promotion',
+        promotionId: promo.id,
+        service: {
+          id: cheapest.item.serviceId,
+          name: cheapest.item.service.name,
+          price: cheapest.discountedPrice,
+          duration: cheapest.item.service.duration ?? 0,
+        },
+      })
+    }
 
     return (
       <div key={promo.id} className="w-32 shrink-0 sm:w-36">
         <button
           type="button"
-          onClick={() => setExpandedPromoId(isExpanded ? null : promo.id)}
+          onClick={() => {
+            if (isExpanded) {
+              setExpandedPromoId(null)
+              return
+            }
+            setExpandedPromoId(promo.id)
+            if (!isSelected) selectDefault()
+          }}
           className={cn(
             'group relative flex w-full flex-col overflow-hidden rounded-2xl border text-left transition-all',
             isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border/50 hover:border-primary/40',
@@ -302,6 +323,9 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
   }
 
   const hasResults = visibleServices.length > 0 || visiblePackages.length > 0 || visiblePromotions.length > 0
+  const visibleGroupCount = [visibleServices.length > 0, visiblePackages.length > 0, visiblePromotions.length > 0]
+    .filter(Boolean).length
+  const showGroupLabels = visibleGroupCount > 1
 
   return (
     <div className="min-w-0 space-y-3">
@@ -340,20 +364,35 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
           {isSearching ? `Nenhum item encontrado para "${search.trim()}".` : 'Nenhum item disponível.'}
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {visibleServices.length > 0 && (
-            <div className="flex min-w-0 touch-pan-x gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
-              {visibleServices.map((s) => renderServiceCard(s))}
+            <div className="space-y-2">
+              {showGroupLabels && (
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Serviços</p>
+              )}
+              <div className="flex min-w-0 touch-pan-x gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
+                {visibleServices.map((s) => renderServiceCard(s))}
+              </div>
             </div>
           )}
           {visiblePackages.length > 0 && (
-            <div className="flex min-w-0 flex-wrap items-start gap-3">
-              {visiblePackages.map((p) => renderPackageCard(p))}
+            <div className="space-y-2">
+              {showGroupLabels && (
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pacotes</p>
+              )}
+              <div className="flex min-w-0 flex-wrap items-start gap-3">
+                {visiblePackages.map((p) => renderPackageCard(p))}
+              </div>
             </div>
           )}
           {visiblePromotions.length > 0 && (
-            <div className="flex min-w-0 flex-wrap items-start gap-3">
-              {visiblePromotions.map((p) => renderPromotionCard(p))}
+            <div className="space-y-2">
+              {showGroupLabels && (
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Promoções</p>
+              )}
+              <div className="flex min-w-0 flex-wrap items-start gap-3">
+                {visiblePromotions.map((p) => renderPromotionCard(p))}
+              </div>
             </div>
           )}
         </div>
