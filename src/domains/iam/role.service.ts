@@ -2,6 +2,7 @@ import { PlanName } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { ForbiddenError, ValidationError, NotFoundError } from '@/shared/errors'
 import { NAV_REGISTRY, buildDefaultRolePermissions } from '@/shared/permissions/nav-registry'
+import { EXTRA_PERMISSION_REGISTRY, buildDefaultExtraPermissions } from '@/shared/permissions/extra-permission-registry'
 import { planLimitsService } from '@/domains/billing/plan-limits.service'
 import type { RoleRepository } from './role.repository'
 
@@ -29,7 +30,10 @@ export class RoleService {
         tenantId,
         name,
         isDefault: true,
-        permissions: buildDefaultRolePermissions(preset),
+        permissions: {
+          ...buildDefaultRolePermissions(preset),
+          ...buildDefaultExtraPermissions(preset),
+        },
       })),
       skipDuplicates: true,
     })
@@ -81,7 +85,9 @@ export class RoleService {
     })
     const disabledKeys = new Set(disabledSections.map((s) => s.sectionKey))
 
-    const registryMap = new Map(NAV_REGISTRY.map((s) => [s.key, s.actions]))
+    const registryMap = new Map(
+      [...NAV_REGISTRY, ...EXTRA_PERMISSION_REGISTRY].map((s) => [s.key, s.actions]),
+    )
 
     for (const [sectionKey, actions] of Object.entries(permissions)) {
       if (actions.length === 0) continue
