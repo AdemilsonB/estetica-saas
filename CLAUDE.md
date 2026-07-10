@@ -223,10 +223,11 @@ Nunca entregar componente de UI sem passar pelo checklist do `agent-mobile`.
 
 Produção e escala:
 1. Configurar `PUBLIC_SESSION_SECRET` no Vercel (obrigatório para o portal do cliente)
-2. **Aplicar as migrations `20260704120000_add_user_notifications` e `20260710120000_add_public_page_enabled`** no banco (`prisma migrate deploy` / `resolve --applied`) — criadas aditivas mas não aplicadas (banco de dev inacessível nas sessões correspondentes)
-3. Rodar `node scripts/seed-plan-features-comissoes-descontos.mjs` em produção antes de considerar Comissões/Descontos liberados (sem isso, FeatureLock bloqueia os dois para todo mundo)
-4. Fase 2 — Automation: regras de pós-atendimento, campanhas de reengajamento
-5. Relatórios avançados com filtros por profissional + exportação agendada
+2. Fase 2 — Automation: regras de pós-atendimento, campanhas de reengajamento
+3. Relatórios avançados com filtros por profissional + exportação agendada
+
+> ✅ 2026-07-10: todas as migrations pendentes (`add_transaction_type_paidat_index`, `add_public_trust_fields`, `add_user_notifications`, `add_capability_interest_log`, `add_public_page_enabled`) foram sincronizadas em produção — `prisma migrate status` limpo.
+> ✅ 2026-07-10: `scripts/seed-plan-features-comissoes-descontos.mjs` rodado em produção (Comissões/Descontos liberados nos 4 planos) — o script estava desatualizado (`new PrismaClient()` sem adapter, quebrava com `PrismaClientInitializationError`); corrigido para usar `PrismaPg` como os demais seeds do projeto.
 
 ---
 
