@@ -7,19 +7,6 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import type { TeamMember } from '@/hooks/iam/use-team'
 
 vi.mock('@/hooks/use-current-user', () => ({ useCurrentUser: () => ({ data: { id: 'other' } }) }))
-vi.mock('@/hooks/iam/use-roles', () => ({
-  useRoles: () => ({
-    data: [{ id: 'r1', name: 'Recepção', permissions: { agenda: ['view'], clientes: ['view', 'edit'] }, _count: { users: 1 } }],
-  }),
-}))
-vi.mock('@/hooks/iam/use-nav-sections', () => ({
-  useNavSections: () => ({
-    data: [
-      { key: 'agenda', label: 'Agenda', actions: ['view'] },
-      { key: 'clientes', label: 'Clientes', actions: ['view', 'edit'] },
-    ],
-  }),
-}))
 vi.mock('./edit-member-modal', () => ({ EditMemberModal: () => null }))
 
 import { TeamMemberCard } from './team-member-card'
@@ -47,10 +34,12 @@ function renderWithTooltip(ui: ReactElement) {
   return render(<TooltipProvider>{ui}</TooltipProvider>)
 }
 
-describe('TeamMemberCard — resumo de permissões', () => {
-  it('mostra o resumo textual calculado do cargo', () => {
-    renderWithTooltip(<TeamMemberCard member={member} canManage />)
-    expect(screen.getByText('Pode ver Agenda, Clientes; pode editar Clientes')).toBeInTheDocument()
+describe('TeamMemberCard — links de permissões e serviços', () => {
+  it('mostra apenas os links "Ver permissões" e "Configurar Serviços", sem prévia de texto', () => {
+    renderWithTooltip(<TeamMemberCard member={member} canManage onViewRolePermissions={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Ver permissões' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Configurar Serviços' })).toBeInTheDocument()
+    expect(screen.queryByText('Pode ver Agenda, Clientes; pode editar Clientes')).not.toBeInTheDocument()
   })
 
   it('chama onViewRolePermissions com o roleId ao clicar em "Ver permissões"', () => {
@@ -60,11 +49,16 @@ describe('TeamMemberCard — resumo de permissões', () => {
     expect(onView).toHaveBeenCalledWith('r1')
   })
 
-  it('para o dono, mostra "Acesso total" e não exibe link', () => {
+  it('para o dono, não exibe "Ver permissões" mas exibe "Configurar Serviços"', () => {
     const owner: TeamMember = { ...member, isOwner: true, roleId: null, roleName: 'Dono' }
     const onView = vi.fn()
     renderWithTooltip(<TeamMemberCard member={owner} canManage onViewRolePermissions={onView} />)
-    expect(screen.getByText('Acesso total a todas as telas')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Ver permissões' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Configurar Serviços' })).toBeInTheDocument()
+  })
+
+  it('sem permissão de gestão e não sendo o próprio usuário, não exibe "Configurar Serviços"', () => {
+    renderWithTooltip(<TeamMemberCard member={member} canManage={false} onViewRolePermissions={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: 'Configurar Serviços' })).not.toBeInTheDocument()
   })
 })

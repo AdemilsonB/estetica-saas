@@ -85,6 +85,7 @@ function normalize(text: string): string {
 export function ServicePickerWithCategories({ services, packages = [], promotions = [], categories, selectedId, onSelect }: Props) {
   const [search, setSearch] = useState('')
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
+  const [expandedPromoId, setExpandedPromoId] = useState<string | null>(null)
 
   function formatPrice(price: string | number, priceType?: string): string {
     const num = Number(price)
@@ -181,88 +182,121 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
         type="button"
         onClick={() => onSelect({ type: 'package', item: pkg })}
         className={cn(
-          'w-full text-left rounded-2xl border p-4 transition-all',
-          isSelected ? 'border-primary ring-2 ring-primary/20 bg-white' : 'border-border/50 bg-white hover:border-primary/40',
+          'group relative flex w-32 shrink-0 flex-col overflow-hidden rounded-2xl border text-left transition-all sm:w-36',
+          isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border/50 hover:border-primary/40',
         )}
       >
-        <div className="flex items-start gap-3">
-          {pkg.imageUrl && (
-            <EntityImage
-              src={pkg.imageUrl}
-              alt={pkg.name}
-              shape="portrait"
-              cropX={pkg.imageCropX}
-              cropY={pkg.imageCropY}
-              cropZoom={pkg.imageCropZoom}
-              className="w-14 shrink-0 rounded-xl"
-            />
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="font-medium text-slate-900">{pkg.name}</p>
-            {pkg.description && (
-              <p className="text-xs text-slate-500 mt-0.5 whitespace-pre-line line-clamp-2">{pkg.description}</p>
-            )}
-            <p className="text-xs text-slate-500 mt-1">
-              {pkg.items.map((i) => i.service.name).join(' + ')}
-              {' · '}
-              {formatDuration(totalDuration)}
-            </p>
-            <p className="text-sm font-semibold text-primary mt-1">{formatPrice(pkg.price)}</p>
+        <EntityImage
+          src={pkg.imageUrl}
+          alt={pkg.name}
+          shape="portrait"
+          cropX={pkg.imageCropX}
+          cropY={pkg.imageCropY}
+          cropZoom={pkg.imageCropZoom}
+          className="w-full rounded-none"
+          fallback={<span className="text-2xl text-muted-foreground/30">🎁</span>}
+        />
+        <div className="flex flex-1 flex-col gap-1 p-3">
+          <span className="text-sm font-medium leading-tight line-clamp-2">{pkg.name}</span>
+          <span className="text-xs text-muted-foreground line-clamp-2">
+            {pkg.items.map((i) => i.service.name).join(' + ')}
+          </span>
+          <div className="mt-auto pt-1">
+            <span className="text-xs font-semibold text-primary">{formatPrice(pkg.price)}</span>
+            <span className="block text-xs text-muted-foreground">{formatDuration(totalDuration)}</span>
           </div>
         </div>
+        {isSelected && (
+          <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+            <span className="text-[10px] text-primary-foreground">✓</span>
+          </div>
+        )}
       </button>
     )
   }
 
   function renderPromotionCard(promo: PickerPromotion) {
-    const serviceItems = promo.items.filter((i) => i.service !== null)
+    const serviceItems = promo.items.filter(
+      (i): i is { serviceId: string; service: NonNullable<PickerPromotion['items'][number]['service']> } =>
+        i.service !== null && i.serviceId !== null,
+    )
+    if (serviceItems.length === 0) return null
+
+    const withPrices = serviceItems.map((item) => {
+      const originalPrice = Number(item.service.price)
+      const discountedPrice = promo.discountType === 'PERCENTAGE'
+        ? originalPrice * (1 - Number(promo.discountValue) / 100)
+        : Math.max(0, originalPrice - Number(promo.discountValue))
+      return { item, originalPrice, discountedPrice }
+    })
+    const minPrice = Math.min(...withPrices.map((w) => w.discountedPrice))
+    const isSelected = withPrices.some((w) => selectedId === w.item.serviceId)
+    const isExpanded = expandedPromoId === promo.id || isSelected
+
     return (
-      <div key={promo.id} className="rounded-2xl border border-border/50 bg-white p-4">
-        <div className="mb-2">
-          <p className="font-medium text-slate-900">{promo.name}</p>
-          {promo.description && (
-            <p className="text-xs text-slate-500 mt-0.5 whitespace-pre-line">{promo.description}</p>
+      <div key={promo.id} className="w-32 shrink-0 sm:w-36">
+        <button
+          type="button"
+          onClick={() => setExpandedPromoId(isExpanded ? null : promo.id)}
+          className={cn(
+            'group relative flex w-full flex-col overflow-hidden rounded-2xl border text-left transition-all',
+            isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border/50 hover:border-primary/40',
           )}
-          <p className="text-xs text-emerald-600 mt-0.5">
-            {promo.discountType === 'PERCENTAGE' ? `${promo.discountValue}% de desconto` : `R$ ${Number(promo.discountValue).toFixed(2)} de desconto`}
-          </p>
-        </div>
-        <div className="space-y-2">
-          {serviceItems.map((item) => {
-            if (!item.service || !item.serviceId) return null
-            const originalPrice = Number(item.service.price)
-            const discountedPrice = promo.discountType === 'PERCENTAGE'
-              ? originalPrice * (1 - Number(promo.discountValue) / 100)
-              : Math.max(0, originalPrice - Number(promo.discountValue))
-            return (
-              <button
-                key={item.serviceId}
-                type="button"
-                onClick={() => onSelect({
-                  type: 'promotion',
-                  promotionId: promo.id,
-                  service: {
-                    id: item.serviceId!,
-                    name: item.service!.name,
-                    price: discountedPrice,
-                    duration: item.service!.duration ?? 0,
-                  },
-                })}
-                className="w-full text-left rounded-xl border border-slate-100 p-3 hover:border-primary/40 transition-all"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-slate-900">{item.service.name}</span>
-                  <span className="shrink-0 text-sm font-semibold text-emerald-600">
-                    R$ {discountedPrice.toFixed(2).replace('.', ',')}
-                  </span>
-                </div>
-                <span className="text-xs text-slate-400 line-through">
-                  R$ {originalPrice.toFixed(2).replace('.', ',')}
-                </span>
-              </button>
-            )
-          })}
-        </div>
+        >
+          <EntityImage
+            src={promo.imageUrl}
+            alt={promo.name}
+            shape="portrait"
+            cropX={promo.imageCropX}
+            cropY={promo.imageCropY}
+            cropZoom={promo.imageCropZoom}
+            className="w-full rounded-none"
+            fallback={<span className="text-2xl text-muted-foreground/30">%</span>}
+          />
+          <div className="flex flex-1 flex-col gap-1 p-3">
+            <span className="text-sm font-medium leading-tight line-clamp-2">{promo.name}</span>
+            <div className="mt-auto pt-1">
+              <span className="text-xs font-semibold text-emerald-600">A partir de {formatPrice(minPrice)}</span>
+            </div>
+          </div>
+          {isSelected && (
+            <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+              <span className="text-[10px] text-primary-foreground">✓</span>
+            </div>
+          )}
+        </button>
+
+        {isExpanded && (
+          <div className="mt-2 space-y-1.5">
+            {withPrices.map(({ item, originalPrice, discountedPrice }) => {
+              const itemSelected = selectedId === item.serviceId
+              return (
+                <button
+                  key={item.serviceId}
+                  type="button"
+                  onClick={() => onSelect({
+                    type: 'promotion',
+                    promotionId: promo.id,
+                    service: {
+                      id: item.serviceId,
+                      name: item.service.name,
+                      price: discountedPrice,
+                      duration: item.service.duration ?? 0,
+                    },
+                  })}
+                  className={cn(
+                    'w-full min-h-11 rounded-xl border p-2.5 text-left transition-all',
+                    itemSelected ? 'border-primary ring-1 ring-primary/20' : 'border-slate-100 hover:border-primary/40',
+                  )}
+                >
+                  <span className="block text-xs font-medium text-slate-900 line-clamp-1">{item.service.name}</span>
+                  <span className="text-xs font-semibold text-emerald-600">{formatPrice(discountedPrice)}</span>{' '}
+                  <span className="text-[11px] text-slate-400 line-through">{formatPrice(originalPrice)}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
     )
   }
@@ -313,12 +347,12 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
             </div>
           )}
           {visiblePackages.length > 0 && (
-            <div className="space-y-2">
+            <div className="flex min-w-0 flex-wrap items-start gap-3">
               {visiblePackages.map((p) => renderPackageCard(p))}
             </div>
           )}
           {visiblePromotions.length > 0 && (
-            <div className="space-y-3">
+            <div className="flex min-w-0 flex-wrap items-start gap-3">
               {visiblePromotions.map((p) => renderPromotionCard(p))}
             </div>
           )}

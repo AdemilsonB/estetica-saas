@@ -1,3 +1,5 @@
+import { EXTRA_PERMISSION_REGISTRY } from './extra-permission-registry'
+
 export type NavAction = 'view' | 'create' | 'edit' | 'delete' | 'view_all'
 
 export type NavSection = {
@@ -135,4 +137,19 @@ export function buildDefaultRolePermissions(
   return Object.fromEntries(
     NAV_REGISTRY.map((s) => [s.key, [...s.defaultPermissions[preset]]])
   )
+}
+
+/**
+ * Cargo único semeado automaticamente em tenants novos: todas as permissões
+ * liberadas, exceto gerenciar outros membros da equipe (só "ver" em `equipe`,
+ * já que editar o próprio perfil não depende de permissão de cargo).
+ */
+export function buildSoleProfessionalPermissions(): Record<string, string[]> {
+  const nav = Object.fromEntries(
+    NAV_REGISTRY.map((s) => [s.key, s.key === 'equipe' ? ['view'] : [...s.actions]])
+  )
+  const extra = Object.fromEntries(
+    EXTRA_PERMISSION_REGISTRY.map((s) => [s.key, [...s.actions]])
+  )
+  return { ...nav, ...extra }
 }

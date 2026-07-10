@@ -1,8 +1,8 @@
 import { PlanName } from '@prisma/client'
 import { prisma } from '@/shared/database/prisma'
 import { ForbiddenError, ValidationError, NotFoundError } from '@/shared/errors'
-import { NAV_REGISTRY, buildDefaultRolePermissions } from '@/shared/permissions/nav-registry'
-import { EXTRA_PERMISSION_REGISTRY, buildDefaultExtraPermissions } from '@/shared/permissions/extra-permission-registry'
+import { NAV_REGISTRY, buildSoleProfessionalPermissions } from '@/shared/permissions/nav-registry'
+import { EXTRA_PERMISSION_REGISTRY } from '@/shared/permissions/extra-permission-registry'
 import { planLimitsService } from '@/domains/billing/plan-limits.service'
 import type { RoleRepository } from './role.repository'
 
@@ -18,24 +18,14 @@ export class RoleService {
     const existing = await this.repo.findAll(tenantId)
     if (existing.length > 0) return existing
 
-    // Tenant sem cargos: semeia os 3 padrão automaticamente
-    await prisma.role.createMany({
-      data: (
-        [
-          { preset: 'MANAGER' as const,      name: 'Gerente' },
-          { preset: 'PROFESSIONAL' as const, name: 'Profissional' },
-          { preset: 'RECEPTIONIST' as const, name: 'Recepcionista' },
-        ] as const
-      ).map(({ preset, name }) => ({
+    // Tenant sem cargos: semeia o cargo único padrão "Profissional"
+    await prisma.role.create({
+      data: {
         tenantId,
-        name,
+        name: 'Profissional',
         isDefault: true,
-        permissions: {
-          ...buildDefaultRolePermissions(preset),
-          ...buildDefaultExtraPermissions(preset),
-        },
-      })),
-      skipDuplicates: true,
+        permissions: buildSoleProfessionalPermissions(),
+      },
     })
     return this.repo.findAll(tenantId)
   }

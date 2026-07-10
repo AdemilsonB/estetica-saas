@@ -310,9 +310,9 @@ export class XService {
 
 | Domínio | Backend | Frontend | Observação |
 |---------|---------|----------|------------|
-| IAM | ✅ | ✅ | Cargos dinâmicos, RBAC, edição de membros, foto com enquadramento (zoom/posição) ajustável, vínculo de serviços; cadastro de novo tenant exige CPF/CNPJ único na plataforma (dígito verificador validado; tenants legados sem documento não são afetados — ADR-013) |
+| IAM | ✅ | ✅ | Cargos dinâmicos, RBAC, edição de membros, foto com enquadramento (zoom/posição) ajustável, vínculo de serviços; cadastro de novo tenant exige CPF/CNPJ único na plataforma (dígito verificador validado; tenants legados sem documento não são afetados — ADR-013); tenant novo é semeado com um único cargo padrão "Profissional" com todas as permissões exceto gerenciar outros membros; convite de membro permite criar cargo personalizado inline (botão "+", só para o dono); card de membro simplificado (só "Ver permissões" e "Configurar Serviços") |
 | CRM | ✅ | ✅ | Filtros avançados, badge VIP, anamnese; CPF do cliente validado por dígito verificador no cadastro público — login por CPF só exige formato, não dígito válido, para não travar contas antigas |
-| Scheduling | ✅ | ✅ | Agenda semanal, slots configuráveis por tenant; disponibilidade pública respeita `minAdvanceMinutes`/`maxAdvanceDays` da policy (painel não — só bloqueia data passada, com switch "lançar atendimento esquecido" — ADR-014) |
+| Scheduling | ✅ | ✅ | Agenda semanal, slots configuráveis por tenant; disponibilidade pública respeita `minAdvanceMinutes`/`maxAdvanceDays` da policy (painel não — só bloqueia data passada, com switch "lançar atendimento esquecido" — ADR-014); picker de agendamento unifica visual de Serviço/Pacote/Promoção; corrigido bug de desconto perdido em promoção de serviço avulso agendada pela vitrine pública |
 | Financial | ✅ | ✅ | Checkout, despesas, comissões, taxas, estornos |
 | Notifications | ✅ | ✅ | Evolution API primário (WhatsApp), 6 templates |
 | Dashboard | ✅ | ✅ | Métricas + polling 30s |
