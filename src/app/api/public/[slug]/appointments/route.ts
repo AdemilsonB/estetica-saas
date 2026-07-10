@@ -244,6 +244,7 @@ export async function POST(req: Request, context: RouteContext) {
           customerId: customer.id,
           professionalId,
           serviceId: input.serviceId!,
+          promotionId: input.promotionId,
           startsAt: input.startsAt,
           notes: input.notes,
           allowOverlap: false,
