@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -31,9 +31,10 @@ type Props = {
   member: TeamMember | null
   open: boolean
   onClose: () => void
+  focusSection?: 'services'
 }
 
-export function EditMemberModal({ member, open, onClose }: Props) {
+export function EditMemberModal({ member, open, onClose, focusSection }: Props) {
   const { data: roles = [] } = useRoles()
   const { data: memberServices = EMPTY_SERVICES, isLoading: loadingServices } = useGetMemberServices(
     member?.id ?? null,
@@ -49,6 +50,7 @@ export function EditMemberModal({ member, open, onClose }: Props) {
   const [roleId, setRoleId] = useState('')
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const servicesRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (member) {
@@ -63,6 +65,15 @@ export function EditMemberModal({ member, open, onClose }: Props) {
   useEffect(() => {
     setSelectedServiceIds(memberServices.map((s) => s.id))
   }, [memberServices])
+
+  useEffect(() => {
+    if (open && focusSection === 'services' && !loadingServices) {
+      const timer = setTimeout(() => {
+        servicesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [open, focusSection, loadingServices])
 
   function handleClose() {
     onClose()
@@ -195,7 +206,7 @@ export function EditMemberModal({ member, open, onClose }: Props) {
               </div>
             )}
 
-            <div className="space-y-1.5">
+            <div ref={servicesRef} className="space-y-1.5 scroll-mt-4">
               <Label>Serviços que realiza</Label>
               {loadingServices ? (
                 <p className="text-sm text-slate-400">Carregando serviços...</p>
