@@ -57,6 +57,7 @@ export default function EquipePage() {
   const canManage = can('equipe', 'edit')
   const canInvite = can('equipe', 'create')
 
+  const [roleFocusId, setRoleFocusId] = useState<string | null>(null)
   const [cancelingInviteId, setCancelingInviteId] = useState<string | null>(null)
   const cancelMutation = useCancelInvite()
 
@@ -98,12 +99,15 @@ export default function EquipePage() {
           <p className="mt-1 text-sm text-slate-500">
             Gerencie os membros e convites do seu negócio
           </p>
+          <p className="mt-1 text-xs text-slate-400">
+            Cargos controlam o que cada pessoa vê e pode fazer em cada tela (visualizar, criar, editar, excluir).
+          </p>
         </div>
         <div className="flex w-full gap-2 sm:w-auto sm:justify-end">
           {user?.isOwner && (
             <Button
               variant="outline"
-              onClick={() => setRolesOpen(true)}
+              onClick={() => { setRoleFocusId(null); setRolesOpen(true) }}
               className="flex-1 rounded-full sm:flex-none"
             >
               <Settings2 className="size-4" />
@@ -163,6 +167,11 @@ export default function EquipePage() {
                 key={member.id}
                 member={member}
                 canManage={canManage}
+                onViewRolePermissions={
+                  user?.isOwner
+                    ? (roleId) => { setRoleFocusId(roleId); setRolesOpen(true) }
+                    : undefined
+                }
               />
             ))}
           </div>
@@ -252,7 +261,7 @@ export default function EquipePage() {
               Defina o que cada cargo pode ver e fazer no sistema.
             </DialogDescription>
           </DialogHeader>
-          <RolesManager />
+          <RolesManager key={roleFocusId ?? 'all'} initialRoleId={roleFocusId ?? undefined} />
         </DialogContent>
       </Dialog>
 
