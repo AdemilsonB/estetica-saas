@@ -58,7 +58,7 @@ function DialogContent({
   children,
   showCloseButton = true,
   onOpenAutoFocus,
-  onPointerDownCapture,
+  onClick,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
@@ -76,12 +76,12 @@ function DialogContent({
           event.preventDefault()
           onOpenAutoFocus?.(event)
         }}
-        onPointerDownCapture={(event) => {
+        onClick={(event) => {
           const active = document.activeElement
           if (isTextEntryElement(active) && !isTextEntryElement(event.target as Element)) {
             active.blur()
           }
-          onPointerDownCapture?.(event)
+          onClick?.(event)
         }}
         {...props}
       >
