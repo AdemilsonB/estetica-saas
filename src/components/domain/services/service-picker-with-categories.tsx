@@ -71,8 +71,7 @@ type Props = {
   onSelect: (selection: PickerSelection) => void
 }
 
-const PACOTE_ID = '__pacote__'
-const PROMO_ID = '__promo__'
+const PACOTES_PROMO_ID = '__pacotes_promocoes__'
 const OUTROS_ID = '__outros__'
 
 function normalize(text: string): string {
@@ -99,17 +98,18 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
 
   const chips: Array<{ id: string | null; label: string }> = [
     { id: null, label: 'Todos' },
+    ...(packages.length > 0 || promotions.length > 0
+      ? [{ id: PACOTES_PROMO_ID, label: 'Pacotes e Promoções' }]
+      : []),
     ...categorized.map((cat) => ({ id: cat.id, label: cat.name })),
     ...(uncategorized.length > 0 ? [{ id: OUTROS_ID, label: 'Outros' }] : []),
-    ...(packages.length > 0 ? [{ id: PACOTE_ID, label: 'Pacote' }] : []),
-    ...(promotions.length > 0 ? [{ id: PROMO_ID, label: 'Promoção' }] : []),
   ]
 
   const isSearching = search.trim().length > 0
   const term = normalize(search.trim())
 
   const visibleServices = useMemo(() => {
-    if (activeCategoryId === PACOTE_ID || activeCategoryId === PROMO_ID) return []
+    if (activeCategoryId === PACOTES_PROMO_ID) return []
     if (isSearching) {
       return services.filter(
         (s) => normalize(s.name).includes(term) || (s.description ? normalize(s.description).includes(term) : false),
@@ -121,14 +121,14 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
   }, [isSearching, term, services, activeCategoryId, uncategorized])
 
   const visiblePackages = useMemo(() => {
-    if (activeCategoryId !== null && activeCategoryId !== PACOTE_ID) return []
     if (isSearching) return packages.filter((p) => normalize(p.name).includes(term))
+    if (activeCategoryId !== null && activeCategoryId !== PACOTES_PROMO_ID) return []
     return packages
   }, [isSearching, term, packages, activeCategoryId])
 
   const visiblePromotions = useMemo(() => {
-    if (activeCategoryId !== null && activeCategoryId !== PROMO_ID) return []
     if (isSearching) return promotions.filter((p) => normalize(p.name).includes(term))
+    if (activeCategoryId !== null && activeCategoryId !== PACOTES_PROMO_ID) return []
     return promotions
   }, [isSearching, term, promotions, activeCategoryId])
 
@@ -323,9 +323,6 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
   }
 
   const hasResults = visibleServices.length > 0 || visiblePackages.length > 0 || visiblePromotions.length > 0
-  const visibleGroupCount = [visibleServices.length > 0, visiblePackages.length > 0, visiblePromotions.length > 0]
-    .filter(Boolean).length
-  const showGroupLabels = visibleGroupCount > 1
 
   return (
     <div className="min-w-0 space-y-3">
@@ -364,37 +361,10 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
           {isSearching ? `Nenhum item encontrado para "${search.trim()}".` : 'Nenhum item disponível.'}
         </p>
       ) : (
-        <div className="space-y-4">
-          {visibleServices.length > 0 && (
-            <div className="space-y-2">
-              {showGroupLabels && (
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Serviços</p>
-              )}
-              <div className="flex min-w-0 touch-pan-x gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
-                {visibleServices.map((s) => renderServiceCard(s))}
-              </div>
-            </div>
-          )}
-          {visiblePackages.length > 0 && (
-            <div className="space-y-2">
-              {showGroupLabels && (
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pacotes</p>
-              )}
-              <div className="flex min-w-0 flex-wrap items-start gap-3">
-                {visiblePackages.map((p) => renderPackageCard(p))}
-              </div>
-            </div>
-          )}
-          {visiblePromotions.length > 0 && (
-            <div className="space-y-2">
-              {showGroupLabels && (
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Promoções</p>
-              )}
-              <div className="flex min-w-0 flex-wrap items-start gap-3">
-                {visiblePromotions.map((p) => renderPromotionCard(p))}
-              </div>
-            </div>
-          )}
+        <div className="flex min-w-0 touch-pan-x items-start gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
+          {visibleServices.map((s) => renderServiceCard(s))}
+          {visiblePackages.map((p) => renderPackageCard(p))}
+          {visiblePromotions.map((p) => renderPromotionCard(p))}
         </div>
       )}
     </div>

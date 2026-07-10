@@ -2,7 +2,12 @@
 import '@testing-library/jest-dom/vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { ServicePickerWithCategories, type PickerService } from '../service-picker-with-categories'
+import {
+  ServicePickerWithCategories,
+  type PickerService,
+  type PickerPackage,
+  type PickerPromotion,
+} from '../service-picker-with-categories'
 
 const categories = [
   { id: 'cat-1', name: 'Alisamento' },
@@ -16,10 +21,34 @@ const services: PickerService[] = [
   { id: 's4', name: 'Consultoria de imagem', duration: 30, price: '50', categoryId: null },
 ]
 
+const packages: PickerPackage[] = [
+  {
+    id: 'p1',
+    name: 'Corte com Hidratação',
+    price: '230',
+    items: [{ service: { id: 's3', name: 'Corte Feminino', duration: 60 } }],
+  },
+]
+
+const promotions: PickerPromotion[] = [
+  {
+    id: 'promo1',
+    name: 'Mês de Julho OFF',
+    discountType: 'PERCENTAGE',
+    discountValue: '20',
+    items: [
+      {
+        serviceId: 's1',
+        service: { id: 's1', name: 'Alisamento + Hidratação', price: '170', duration: 60 },
+      },
+    ],
+  },
+]
+
 describe('ServicePickerWithCategories', () => {
   afterEach(() => cleanup())
 
-  it('mostra todos os serviços num único carrossel quando "Todos" está ativo', () => {
+  it('mostra todos os serviços numa única listagem quando "Todos" está ativo', () => {
     render(
       <ServicePickerWithCategories services={services} categories={categories} onSelect={() => {}} />,
     )
@@ -27,6 +56,53 @@ describe('ServicePickerWithCategories', () => {
     expect(screen.getByText('Selagem')).toBeInTheDocument()
     expect(screen.getByText('Corte Feminino')).toBeInTheDocument()
     expect(screen.getByText('Consultoria de imagem')).toBeInTheDocument()
+  })
+
+  it('mostra pacotes e promoções junto com os serviços na mesma listagem em "Todos"', () => {
+    render(
+      <ServicePickerWithCategories
+        services={services}
+        categories={categories}
+        packages={packages}
+        promotions={promotions}
+        onSelect={() => {}}
+      />,
+    )
+    expect(screen.getAllByText('Corte Feminino').length).toBeGreaterThan(0)
+    expect(screen.getByText('Corte com Hidratação')).toBeInTheDocument()
+    expect(screen.getByText('Mês de Julho OFF')).toBeInTheDocument()
+  })
+
+  it('chips seguem a sequência Todos, Pacotes e Promoções e depois categorias', () => {
+    render(
+      <ServicePickerWithCategories
+        services={services}
+        categories={categories}
+        packages={packages}
+        promotions={promotions}
+        onSelect={() => {}}
+      />,
+    )
+    const chipLabels = screen.getAllByRole('button').map((btn) => btn.textContent)
+    expect(chipLabels.slice(0, 5)).toEqual(['Todos', 'Pacotes e Promoções', 'Alisamento', 'Corte', 'Outros'])
+  })
+
+  it('chip "Pacotes e Promoções" mostra só pacotes e promoções juntos, sem serviços avulsos', () => {
+    render(
+      <ServicePickerWithCategories
+        services={services}
+        categories={categories}
+        packages={packages}
+        promotions={promotions}
+        onSelect={() => {}}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Pacotes e Promoções' }))
+
+    expect(screen.getByText('Corte com Hidratação')).toBeInTheDocument()
+    expect(screen.getByText('Mês de Julho OFF')).toBeInTheDocument()
+    expect(screen.queryByText('Selagem')).not.toBeInTheDocument()
+    expect(screen.queryByText('Consultoria de imagem')).not.toBeInTheDocument()
   })
 
   it('mostra apenas os serviços da categoria selecionada ao clicar num chip', () => {
@@ -73,12 +149,28 @@ describe('ServicePickerWithCategories', () => {
     expect(screen.queryByText('Corte Feminino')).not.toBeInTheDocument()
   })
 
-  it('mostra mensagem quando a busca não encontra nenhum serviço', () => {
+  it('busca também encontra pacotes e promoções pelo nome', () => {
+    render(
+      <ServicePickerWithCategories
+        services={services}
+        categories={categories}
+        packages={packages}
+        promotions={promotions}
+        onSelect={() => {}}
+      />,
+    )
+    fireEvent.change(screen.getByPlaceholderText('Buscar serviço...'), { target: { value: 'julho' } })
+
+    expect(screen.getByText('Mês de Julho OFF')).toBeInTheDocument()
+    expect(screen.queryByText('Corte Feminino')).not.toBeInTheDocument()
+  })
+
+  it('mostra mensagem quando a busca não encontra nenhum item', () => {
     render(
       <ServicePickerWithCategories services={services} categories={categories} onSelect={() => {}} />,
     )
     fireEvent.change(screen.getByPlaceholderText('Buscar serviço...'), { target: { value: 'zzz-inexistente' } })
-    expect(screen.getByText('Nenhum serviço encontrado para "zzz-inexistente".')).toBeInTheDocument()
+    expect(screen.getByText('Nenhum item encontrado para "zzz-inexistente".')).toBeInTheDocument()
   })
 
   it('chama onSelect com o serviço clicado', () => {
@@ -87,13 +179,15 @@ describe('ServicePickerWithCategories', () => {
       <ServicePickerWithCategories services={services} categories={categories} onSelect={onSelect} />,
     )
     fireEvent.click(screen.getByText('Corte Feminino'))
-    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 's3' }))
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'service', item: expect.objectContaining({ id: 's3' }) }),
+    )
   })
 
-  it('mostra "Nenhum serviço disponível." quando a lista está vazia', () => {
+  it('mostra "Nenhum item disponível." quando a lista está vazia', () => {
     render(
       <ServicePickerWithCategories services={[]} categories={categories} onSelect={() => {}} />,
     )
-    expect(screen.getByText('Nenhum serviço disponível.')).toBeInTheDocument()
+    expect(screen.getByText('Nenhum item disponível.')).toBeInTheDocument()
   })
 })

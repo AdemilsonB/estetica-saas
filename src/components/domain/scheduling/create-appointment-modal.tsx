@@ -541,6 +541,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
           <CreateCustomerModal
             open={newCustomerOpen}
             onClose={() => setNewCustomerOpen(false)}
+            modal={false}
             onCreated={(customer) => {
               setCustomerId(customer.id)
               setCreatedCustomerName(customer.name)
