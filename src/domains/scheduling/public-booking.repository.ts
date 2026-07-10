@@ -23,6 +23,7 @@ export class PublicBookingRepository {
         bio: true,
         segments: true,
         createdAt: true,
+        publicPageEnabled: true,
         brandingConfig: {
           select: {
             logoUrl: true,

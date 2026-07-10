@@ -1,4 +1,5 @@
 import { Prisma, TenantDocumentType, UserRole } from "@prisma/client";
+import { revalidateTag } from "next/cache";
 
 import { prisma } from "@/shared/database/prisma";
 import { supabaseAdmin } from "@/integrations/supabase/admin";
@@ -420,6 +421,7 @@ export class IamService {
       whatsappContactEnabled?: boolean
       googleBusinessUrl?: string | null
       googlePlaceId?: string | null
+      publicPageEnabled?: boolean
     },
   ) {
     const payload = { ...data }
@@ -428,7 +430,11 @@ export class IamService {
         ? await resolveGooglePlaceId(data.googleBusinessUrl)
         : null
     }
-    return iamRepository.updateTenant(tenantId, payload)
+    const tenant = await iamRepository.updateTenant(tenantId, payload)
+    if ('publicPageEnabled' in data) {
+      revalidateTag(`vitrine:${tenant.slug}`, 'default')
+    }
+    return tenant
   }
 
   async getBusinessHours(tenantId: string) {

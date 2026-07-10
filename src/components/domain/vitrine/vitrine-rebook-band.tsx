@@ -20,6 +20,7 @@ type Props = {
   slug: string
   bookingUrl: string
   primaryColor: string
+  allowPublicBooking: boolean
 }
 
 function relativeTime(iso: string): string {
@@ -32,7 +33,7 @@ function relativeTime(iso: string): string {
   return `há ${months} ${months === 1 ? 'mês' : 'meses'}`
 }
 
-export function VitrineRebookBand({ slug, bookingUrl, primaryColor }: Props) {
+export function VitrineRebookBand({ slug, bookingUrl, primaryColor, allowPublicBooking }: Props) {
   const [data, setData] = useState<MeData | null>(null)
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export function VitrineRebookBand({ slug, bookingUrl, primaryColor }: Props) {
 
   const last = data?.appointments[0]
   const rebookable = last && (last.serviceId || last.packageId)
-  if (!data || !rebookable) return null
+  if (!data || !rebookable || !allowPublicBooking) return null
 
   const firstName = data.name.split(' ')[0]
   const params = new URLSearchParams()

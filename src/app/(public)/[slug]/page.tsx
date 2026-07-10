@@ -23,6 +23,25 @@ export default async function VitrinePage({
   const data = await getPublicVitrine(slug)
   if (!data) notFound()
 
+  if ('disabled' in data && data.disabled) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-3 px-6 text-center">
+        {data.tenant.branding?.logoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={data.tenant.branding.logoUrl}
+            alt={data.tenant.name}
+            className="size-14 rounded-xl border object-contain"
+          />
+        )}
+        <h1 className="text-lg font-bold">{data.tenant.name}</h1>
+        <p className="max-w-xs text-sm text-muted-foreground">
+          Esta página está temporariamente indisponível. Volte mais tarde.
+        </p>
+      </div>
+    )
+  }
+
   const { tenant, team, products } = data
   const primary = tenant.branding?.primaryColor ?? '#7C3AED'
   const accent = tenant.branding?.accentColor ?? '#c084fc'
@@ -50,6 +69,7 @@ export default async function VitrinePage({
         whatsappContactEnabled={tenant.whatsappContactEnabled}
         slug={slug}
         bookingBaseUrl={bookingUrl}
+        allowPublicBooking={tenant.allowPublicBooking}
         services={tenant.services}
         packages={tenant.packages}
         promotions={tenant.promotions}
@@ -98,6 +118,7 @@ export default async function VitrinePage({
         slug={slug}
         primaryColor={primary}
         bookingBaseUrl={bookingUrl}
+        allowPublicBooking={tenant.allowPublicBooking}
         team={team}
         services={tenant.services}
       >

@@ -6,12 +6,14 @@ export type TenantSettings = {
   slug: string
   phone: string | null
   address: string | null
+  publicPageEnabled: boolean
 }
 
 export type UpdateTenantInput = {
   name?: string
   phone?: string | null
   address?: string | null
+  publicPageEnabled?: boolean
 }
 
 async function fetchTenantSettings(): Promise<TenantSettings> {

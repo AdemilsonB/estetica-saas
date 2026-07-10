@@ -5,6 +5,10 @@ vi.mock('@/lib/google-places', () => ({
   resolveGooglePlaceId: vi.fn(),
 }))
 
+vi.mock('next/cache', () => ({
+  revalidateTag: vi.fn(),
+}))
+
 vi.mock('./iam.repository', () => ({
   iamRepository: {
     deleteInvite: vi.fn(),
@@ -53,6 +57,7 @@ import { IamService, iamService } from './iam.service'
 import { prisma } from '@/shared/database/prisma'
 import { supabaseAdmin } from '@/integrations/supabase/admin'
 import { resolveGooglePlaceId } from '@/lib/google-places'
+import { revalidateTag } from 'next/cache'
 
 const TENANT_ID = 'tenant-abc'
 const INVITE_ID = 'invite-xyz'
@@ -439,5 +444,21 @@ describe('updateTenant', () => {
       googleBusinessUrl: null,
       googlePlaceId: null,
     })
+  })
+
+  it('revalida o cache da vitrine ao alterar publicPageEnabled', async () => {
+    vi.mocked(iamRepository.updateTenant).mockResolvedValue({ id: 't1', slug: 'salao-teste' } as never)
+
+    await iamService.updateTenant('t1', { publicPageEnabled: false })
+
+    expect(revalidateTag).toHaveBeenCalledWith('vitrine:salao-teste', 'default')
+  })
+
+  it('não revalida o cache da vitrine quando publicPageEnabled não muda', async () => {
+    vi.mocked(iamRepository.updateTenant).mockResolvedValue({ id: 't1', slug: 'salao-teste' } as never)
+
+    await iamService.updateTenant('t1', { whatsappContactEnabled: true })
+
+    expect(revalidateTag).not.toHaveBeenCalled()
   })
 })
