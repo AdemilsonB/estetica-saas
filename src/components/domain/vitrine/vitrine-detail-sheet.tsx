@@ -51,6 +51,7 @@ type Props = {
   professionals: TeamMember[]
   slug: string
   primaryColor: string
+  allowPublicBooking: boolean
   onClose: () => void
   onSelectProfessional: (id: string) => void
 }
@@ -60,6 +61,7 @@ export function VitrineDetailSheet({
   professionals,
   slug,
   primaryColor,
+  allowPublicBooking,
   onClose,
   onSelectProfessional,
 }: Props) {
@@ -165,15 +167,17 @@ export function VitrineDetailSheet({
               )}
             </div>
 
-            <div className="sticky bottom-0 mt-4 border-t bg-popover p-4">
-              <a
-                href={data.bookingHref}
-                className="flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold text-white"
-                style={{ backgroundColor: primaryColor }}
-              >
-                Agendar
-              </a>
-            </div>
+            {allowPublicBooking && (
+              <div className="sticky bottom-0 mt-4 border-t bg-popover p-4">
+                <a
+                  href={data.bookingHref}
+                  className="flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold text-white"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  Agendar
+                </a>
+              </div>
+            )}
           </>
         )}
       </SheetContent>

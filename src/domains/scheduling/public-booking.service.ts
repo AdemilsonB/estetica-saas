@@ -26,6 +26,17 @@ async function loadVitrine(slug: string) {
     throw error
   }
 
+  if (!tenant.publicPageEnabled) {
+    return {
+      disabled: true as const,
+      tenant: {
+        name: tenant.name,
+        slug: tenant.slug,
+        branding: tenant.brandingConfig,
+      },
+    }
+  }
+
   const [services, professionals, packages, promotions, team, products] = await Promise.all([
     publicBookingRepository.findPublicServices(tenant.id),
     publicBookingRepository.findPublicProfessionals(tenant.id),

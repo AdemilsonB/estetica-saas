@@ -5,6 +5,7 @@ import { prisma } from '@/shared/database/prisma'
 import {
   CustomerBlockedError,
   PublicBookingDisabledError,
+  PublicPageDisabledError,
   SlotUnavailableError,
   ValidationError,
 } from '@/shared/errors/domain-error'
@@ -102,7 +103,10 @@ export async function POST(req: Request, context: RouteContext) {
     const { slug } = await context.params
     const tenant = await publicBookingRepository.findTenantBySlug(slug)
 
-    // 6. Verificar política de agendamento público
+    // 6. Verificar visibilidade da vitrine e política de agendamento público
+    if (!tenant.publicPageEnabled) {
+      throw new PublicPageDisabledError()
+    }
     const policy = await schedulingPolicyService.getPolicy(tenant.id)
     if (!policy.allowPublicBooking) {
       throw new PublicBookingDisabledError()

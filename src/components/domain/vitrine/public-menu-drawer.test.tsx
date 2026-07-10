@@ -43,6 +43,7 @@ describe('PublicMenuDrawer', () => {
         primaryColor="#7C3AED"
         slug="salao-teste"
         bookingBaseUrl="/agendar/salao-teste"
+        allowPublicBooking
         services={[]}
         packages={[]}
         promotions={[]}

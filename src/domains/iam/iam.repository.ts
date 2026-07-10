@@ -334,6 +334,7 @@ export class IamRepository {
         whatsappContactEnabled: true,
         googleBusinessUrl: true,
         onboardingCompleted: true,
+        publicPageEnabled: true,
       },
     });
   }
@@ -357,6 +358,7 @@ export class IamRepository {
       whatsappContactEnabled?: boolean
       googleBusinessUrl?: string | null
       googlePlaceId?: string | null
+      publicPageEnabled?: boolean
     },
   ) {
     return prisma.tenant.update({
@@ -374,6 +376,7 @@ export class IamRepository {
         whatsappContactEnabled: true,
         googleBusinessUrl: true,
         googlePlaceId: true,
+        publicPageEnabled: true,
       },
     })
   }

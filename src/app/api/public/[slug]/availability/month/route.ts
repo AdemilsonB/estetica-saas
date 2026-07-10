@@ -35,7 +35,7 @@ export async function GET(
     const tenant = await publicBookingRepository.findTenantBySlug(slug)
     const policy = await schedulingPolicyService.getPolicy(tenant.id)
 
-    if (!policy.allowPublicBooking) {
+    if (!tenant.publicPageEnabled || !policy.allowPublicBooking) {
       return Response.json({ days: [] })
     }
 

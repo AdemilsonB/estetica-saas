@@ -29,6 +29,7 @@ describe('VitrineTeam', () => {
         slug="salao-teste"
         primaryColor="#7C3AED"
         bookingBaseUrl="/agendar/salao-teste"
+        allowPublicBooking
         team={team}
         services={services}
       >

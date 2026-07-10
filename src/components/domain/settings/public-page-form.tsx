@@ -2,12 +2,16 @@
 
 import { useState, useRef } from 'react'
 import { toast } from 'sonner'
-import { AtSign, Upload, MapPin, Trash2 } from 'lucide-react'
+import { AtSign, Upload, MapPin, Trash2, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 type Props = {
   initial: {
@@ -17,6 +21,7 @@ type Props = {
     phone: string | null
     whatsappContactEnabled: boolean
     googleBusinessUrl: string | null
+    publicPageEnabled: boolean
   }
 }
 
@@ -26,10 +31,39 @@ export function PublicPageForm({ initial }: Props) {
   const [coverImageUrl, setCoverImageUrl] = useState(initial.coverImageUrl ?? '')
   const [whatsappOn, setWhatsappOn] = useState(initial.whatsappContactEnabled)
   const [googleUrl, setGoogleUrl] = useState(initial.googleBusinessUrl ?? '')
+  const [publicPageEnabled, setPublicPageEnabled] = useState(initial.publicPageEnabled)
+  const [confirmDisableOpen, setConfirmDisableOpen] = useState(false)
+  const [togglingVisibility, setTogglingVisibility] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [removing, setRemoving] = useState(false)
   const [saving, setSaving] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  async function persistVisibility(enabled: boolean) {
+    setTogglingVisibility(true)
+    try {
+      const res = await fetch('/api/iam/tenant', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicPageEnabled: enabled }),
+      })
+      if (!res.ok) throw new Error('Erro ao atualizar')
+      setPublicPageEnabled(enabled)
+      toast.success(enabled ? 'Vitrine reaberta ao público' : 'Vitrine fechada ao público')
+    } catch {
+      toast.error('Falha ao atualizar visibilidade da vitrine')
+    } finally {
+      setTogglingVisibility(false)
+    }
+  }
+
+  function handleToggleVisibility(next: boolean) {
+    if (!next) {
+      setConfirmDisableOpen(true)
+      return
+    }
+    persistVisibility(true)
+  }
 
   async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -96,6 +130,53 @@ export function PublicPageForm({ initial }: Props) {
 
   return (
     <form onSubmit={handleSave} className="space-y-5">
+      {/* Visibilidade da vitrine — desliga o acesso público inteiro (catálogo + agendamento) */}
+      <div
+        className={`flex items-center justify-between gap-3 rounded-lg border p-4 ${
+          publicPageEnabled ? 'border-border' : 'border-amber-200 bg-amber-50'
+        }`}
+      >
+        <div className="space-y-0.5">
+          <Label htmlFor="vitrine-toggle" className="flex items-center gap-1.5">
+            {!publicPageEnabled && <EyeOff className="size-3.5 text-amber-600" />}
+            Vitrine pública ativa
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            {publicPageEnabled
+              ? 'Clientes conseguem acessar seu catálogo e agendar online.'
+              : 'Vitrine fechada — nenhum cliente consegue acessar sua página pública.'}
+          </p>
+        </div>
+        <Switch
+          id="vitrine-toggle"
+          checked={publicPageEnabled}
+          onCheckedChange={handleToggleVisibility}
+          disabled={togglingVisibility}
+        />
+      </div>
+
+      <AlertDialog open={confirmDisableOpen} onOpenChange={setConfirmDisableOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Fechar a vitrine pública?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Nenhum cliente novo ou visitante vai conseguir acessar seu catálogo ou agendar online
+              enquanto estiver fechada. O Portal do Cliente continua funcionando normalmente para
+              quem já é cliente cadastrado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => persistVisibility(false)}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              Fechar vitrine
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Foto de capa */}
       <div className="space-y-2">
         <Label>Foto de capa</Label>

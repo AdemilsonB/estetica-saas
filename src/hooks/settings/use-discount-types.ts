@@ -25,6 +25,14 @@ async function updateDiscountType(id: string, data: { name?: string; type?: stri
   if (!res.ok) throw new Error("Erro ao atualizar tipo de desconto");
 }
 
+async function deleteDiscountType(id: string) {
+  const res = await fetch(`/api/settings/discount-types/${id}`, { method: "DELETE" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error?.message ?? "Erro ao excluir tipo de desconto");
+  }
+}
+
 export function useDiscountTypes(onlyActive = false) {
   return useQuery({
     queryKey: ["discount-types", onlyActive],
@@ -45,6 +53,14 @@ export function useUpdateDiscountType() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateDiscountType>[1] }) =>
       updateDiscountType(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["discount-types"] }),
+  });
+}
+
+export function useDeleteDiscountType() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteDiscountType,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["discount-types"] }),
   });
 }
