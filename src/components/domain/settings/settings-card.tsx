@@ -18,6 +18,8 @@ interface SettingsCardProps {
   pending?: boolean
   children?: ReactNode
   defaultExpanded?: boolean
+  /** Chamado quando o card é expandido pela primeira vez (ex: marcar pendência como vista). */
+  onExpand?: () => void
 }
 
 const BADGE_STYLES: Record<StatusBadge['variant'], string> = {
@@ -35,6 +37,7 @@ export function SettingsCard({
   pending,
   children,
   defaultExpanded = false,
+  onExpand,
 }: SettingsCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const isInteractive = Boolean(children)
@@ -43,7 +46,14 @@ export function SettingsCard({
     <div className="rounded-2xl border border-white/80 bg-white/85 shadow-sm">
       <button
         type="button"
-        onClick={() => { if (isInteractive) setExpanded(v => !v) }}
+        onClick={() => {
+          if (!isInteractive) return
+          setExpanded((v) => {
+            const next = !v
+            if (next) onExpand?.()
+            return next
+          })
+        }}
         className={cn(
           'flex w-full items-start gap-3 p-4 text-left sm:p-5',
           isInteractive && 'cursor-pointer transition hover:bg-black/2',

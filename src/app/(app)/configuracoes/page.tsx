@@ -26,6 +26,7 @@ import { TeamVisibilityList } from '@/components/domain/settings/team-visibility
 import { usePermissions } from '@/hooks/use-permissions'
 import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
 import { useActivationStatus } from '@/hooks/activation/use-activation-status'
+import { useActivationSeenStore } from '@/stores/activation-seen.store'
 import { Button } from '@/components/ui/button'
 
 type BrandingConfig = {
@@ -92,6 +93,8 @@ export default function ConfiguracoesPage() {
   const router = useRouter()
   const { data: evolutionStatus } = useEvolutionStatus()
   const { data: activation } = useActivationStatus()
+  const seenConfig = useActivationSeenStore((s) => s.seen.configuracoes)
+  const markConfigSectionSeen = useActivationSeenStore((s) => s.markConfigSectionSeen)
 
   const [tenantPublicInfo, setTenantPublicInfo] = useState<TenantPublicInfo | null>(null)
 
@@ -151,7 +154,8 @@ export default function ConfiguracoesPage() {
               ? { label: '✓ Completo', variant: 'ok' }
               : { label: '⚠ Pendente', variant: 'warn' }
           }
-          pending={activation ? !activation.configuracoes.dadosNegocio : false}
+          pending={activation ? !activation.configuracoes.dadosNegocio && !seenConfig.dadosNegocio : false}
+          onExpand={() => markConfigSectionSeen('dadosNegocio')}
         >
           <BusinessInfoForm />
         </SettingsCard>
@@ -160,7 +164,8 @@ export default function ConfiguracoesPage() {
           icon={Clock}
           title="Horários de funcionamento"
           subtitle="Dias e horários em que seu negócio está aberto para atendimentos"
-          pending={activation ? !activation.configuracoes.horarios : false}
+          pending={activation ? !activation.configuracoes.horarios && !seenConfig.horarios : false}
+          onExpand={() => markConfigSectionSeen('horarios')}
         >
           <p className="mb-4 text-sm text-muted-foreground">
             Configure os dias e horários em que seu negócio está aberto. Esses horários definem os slots disponíveis para agendamento.
@@ -172,7 +177,8 @@ export default function ConfiguracoesPage() {
           icon={Palette}
           title="Identidade visual"
           subtitle="Logo e cores do seu negócio — aparecem no agendamento online"
-          pending={activation ? !activation.configuracoes.branding : false}
+          pending={activation ? !activation.configuracoes.branding && !seenConfig.branding : false}
+          onExpand={() => markConfigSectionSeen('branding')}
         >
           <BrandingCardContent />
         </SettingsCard>
@@ -241,7 +247,8 @@ export default function ConfiguracoesPage() {
                 : { label: 'Inativo', variant: 'neutral' }
               : undefined
           }
-          pending={activation ? !activation.configuracoes.whatsapp : false}
+          pending={activation ? !activation.configuracoes.whatsapp && !seenConfig.whatsapp : false}
+          onExpand={() => markConfigSectionSeen('whatsapp')}
         >
           <WhatsAppSettingsForm />
           <div className="mt-6">
