@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Plus, ChevronLeft } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -88,7 +89,12 @@ export function InviteMemberModal({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className={creatingRole === 'permissions' ? 'sm:max-w-xl' : 'sm:max-w-sm'}>
+      <DialogContent
+        className={cn(
+          'max-h-[90vh] overflow-y-auto',
+          creatingRole === 'permissions' ? 'sm:max-w-xl' : 'sm:max-w-sm',
+        )}
+      >
         <DialogHeader>
           <DialogTitle>
             {creatingRole ? 'Novo cargo' : 'Convidar membro'}
