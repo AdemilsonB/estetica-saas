@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
-import { ensurePermission, PERMISSIONS } from "@/shared/auth/permissions";
+import { ensurePermission } from "@/shared/auth/permissions";
 import { getSessionContext } from "@/shared/auth/session";
 import { handleApiError } from "@/shared/http/handle-api-error";
 import { validateInput } from "@/shared/http/validate-input";
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   initializeDomainRuntime();
   try {
     const session = await getSessionContext(request);
-    ensurePermission(session, PERMISSIONS.settings.view);
+    ensurePermission(session, "comissoes", "view");
     const result = await commissionRepository.listByTenant(session.tenantId);
     return Response.json(result);
   } catch (error) {
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   initializeDomainRuntime();
   try {
     const session = await getSessionContext(request);
-    ensurePermission(session, PERMISSIONS.settings.manage);
+    ensurePermission(session, "comissoes", "edit");
     const input = await validateInput(request, upsertSchema);
     const result = await commissionRepository.upsert(
       session.tenantId, input.serviceId, input.professionalId, input.rate,

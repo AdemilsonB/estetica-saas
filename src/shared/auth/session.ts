@@ -16,9 +16,9 @@ const authorizationHeaderName = 'authorization'
 const devSessionHeaderName = 'x-auth-mode'
 
 const LEGACY_ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
-  MANAGER:      { agenda: ['view','create','edit','delete'], servicos: ['view','create','edit','delete'], clientes: ['view','create','edit'], financeiro: ['view','create','edit'], relatorios: ['view'], equipe: ['view'], configuracoes: ['view','edit'] },
-  PROFESSIONAL: { agenda: ['view','create'], servicos: ['view'], clientes: ['view'] },
-  RECEPTIONIST: { agenda: ['view','create','edit'], servicos: ['view'], clientes: ['view','create','edit'] },
+  MANAGER:      { agenda: ['view','create','edit','delete'], servicos: ['view','create','edit','delete'], clientes: ['view','create','edit'], financeiro: ['view','create','edit'], relatorios: ['view'], equipe: ['view'], configuracoes: ['view','edit'], comissoes: ['view','edit'], descontos: ['view','edit'] },
+  PROFESSIONAL: { agenda: ['view','create'], servicos: ['view'], clientes: ['view'], descontos: ['view','edit'] },
+  RECEPTIONIST: { agenda: ['view','create','edit'], servicos: ['view'], clientes: ['view','create','edit'], descontos: ['view'] },
 }
 
 function buildLegacyPermissions(role: string): Record<string, string[]> {

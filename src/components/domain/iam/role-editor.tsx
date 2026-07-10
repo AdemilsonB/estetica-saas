@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { RolePermissionMatrix } from './role-permission-matrix'
 import { RoleFilterPermissions } from './role-filter-permissions'
 import { useUpdateRole, type Role } from '@/hooks/iam/use-roles'
+import { useExtraPermissions } from '@/hooks/iam/use-extra-permissions'
 import type { NavSection } from '@/shared/permissions/nav-registry'
 
 type Props = {
@@ -20,6 +21,7 @@ export function RoleEditor({ role, sections, onCancel }: Props) {
   const [name, setName] = useState(role.name)
   const [permissions, setPermissions] = useState<Record<string, string[]>>(role.permissions)
   const updateRole = useUpdateRole()
+  const { data: extraSections = [] } = useExtraPermissions()
 
   function handleSave() {
     updateRole.mutate(
@@ -55,6 +57,18 @@ export function RoleEditor({ role, sections, onCancel }: Props) {
           disabled={updateRole.isPending}
         />
       </div>
+
+      {extraSections.length > 0 && (
+        <div>
+          <p className="mb-3 text-sm font-medium text-slate-700">Permissões extras</p>
+          <RolePermissionMatrix
+            sections={extraSections}
+            permissions={permissions}
+            onChange={setPermissions}
+            disabled={updateRole.isPending}
+          />
+        </div>
+      )}
 
       {sections.some((s) => s.filterLabel) && (
         <div>

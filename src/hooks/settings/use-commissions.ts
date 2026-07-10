@@ -68,3 +68,21 @@ export function useSaveCardFees() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["card-fees"] }),
   });
 }
+
+async function applyCommissionToRole(input: { roleId: string; rate: number }) {
+  const res = await fetch("/api/settings/commissions/apply-role", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error("Erro ao aplicar comissão ao cargo");
+  return res.json() as Promise<{ applied: number }>;
+}
+
+export function useApplyCommissionToRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: applyCommissionToRole,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["commissions"] }),
+  });
+}

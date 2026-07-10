@@ -43,6 +43,8 @@ const CAPABILITY_ENTRIES: Capability[] = [
   { key: 'whatsapp_premium', label: 'WhatsApp Premium',   category: 'capability', essential: false, benefitLabel: 'WhatsApp premium (chatbot)',     status: 'ga', group: CAPABILITY_GROUPS.COMUNICACAO },
   { key: 'campaigns',        label: 'Campanhas',          category: 'capability', essential: false, benefitLabel: 'Campanhas de marketing',         status: 'ga', group: CAPABILITY_GROUPS.COMUNICACAO },
   { key: 'reports_advanced', label: 'Relatórios Avançados', category: 'capability', essential: false, benefitLabel: 'Relatórios avançados',        status: 'ga', group: CAPABILITY_GROUPS.RELATORIOS },
+  { key: 'comissoes', label: 'Comissões da equipe', category: 'capability', essential: false, benefitLabel: 'Comissão por profissional e por cargo', status: 'ga', group: CAPABILITY_GROUPS.ACESSO },
+  { key: 'descontos', label: 'Descontos configuráveis', category: 'capability', essential: false, benefitLabel: 'Tipos de desconto no atendimento', status: 'ga', group: CAPABILITY_GROUPS.OPERACAO },
 ]
 
 // Seções de navegação: derivadas do NAV_REGISTRY (chave/label) + metadados de gating.

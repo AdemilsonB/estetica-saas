@@ -61,7 +61,7 @@ function DiscountForm({ initial, onSubmit, loading }: {
   );
 }
 
-export function DiscountTypesManager() {
+export function DiscountTypesManager({ readOnly = false }: { readOnly?: boolean }) {
   const { data: types = [], isLoading } = useDiscountTypes();
   const create = useCreateDiscountType();
   const update = useUpdateDiscountType();
@@ -87,17 +87,19 @@ export function DiscountTypesManager() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-slate-700">Tipos de desconto</p>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline" className="gap-1.5">
-              <Plus className="size-3.5" /> Novo
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-sm">
-            <DialogHeader><DialogTitle>Novo tipo de desconto</DialogTitle></DialogHeader>
-            <DiscountForm onSubmit={handleCreate} loading={create.isPending} />
-          </DialogContent>
-        </Dialog>
+        {!readOnly && (
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline" className="gap-1.5">
+                <Plus className="size-3.5" /> Novo
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader><DialogTitle>Novo tipo de desconto</DialogTitle></DialogHeader>
+              <DiscountForm onSubmit={handleCreate} loading={create.isPending} />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {types.length === 0 ? (
@@ -116,7 +118,7 @@ export function DiscountTypesManager() {
                 <Badge className={d.active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}>
                   {d.active ? "Ativo" : "Arquivado"}
                 </Badge>
-                {d.active && (
+                {!readOnly && d.active && (
                   <Button size="icon" variant="ghost" className="size-7" onClick={() => handleArchive(d.id)}>
                     <Archive className="size-3.5" />
                   </Button>

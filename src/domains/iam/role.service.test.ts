@@ -119,6 +119,27 @@ describe('RoleService', () => {
       })
       expect(result).toEqual(fakeRole)
     })
+
+    it('aceita seção extra "comissoes" (fora do NAV_REGISTRY)', async () => {
+      vi.mocked(repo.countByTenant).mockResolvedValue(1)
+      vi.mocked(repo.create).mockResolvedValue(fakeRole as any)
+      await expect(
+        service.createRole(TENANT_ID, {
+          name: 'Novo',
+          permissions: { comissoes: ['view', 'edit'] },
+        })
+      ).resolves.toBeDefined()
+    })
+
+    it('lança ValidationError quando a ação não existe para a seção extra "comissoes"', async () => {
+      vi.mocked(repo.countByTenant).mockResolvedValue(1)
+      await expect(
+        service.createRole(TENANT_ID, {
+          name: 'Novo',
+          permissions: { comissoes: ['delete' as any] },
+        })
+      ).rejects.toThrow(ValidationError)
+    })
   })
 
   describe('deleteRole', () => {
