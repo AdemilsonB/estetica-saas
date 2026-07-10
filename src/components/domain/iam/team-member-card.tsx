@@ -8,17 +8,23 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { EntityImage } from '@/components/domain/shared/entity-image'
 import { type TeamMember } from '@/hooks/iam/use-team'
 import { useCurrentUser } from '@/hooks/use-current-user'
+import { useRoles } from '@/hooks/iam/use-roles'
+import { useNavSections } from '@/hooks/iam/use-nav-sections'
+import { describeRolePermissions } from '@/shared/permissions/describe-role-permissions'
 import { EditMemberModal } from './edit-member-modal'
 
 type Props = {
   member: TeamMember
   canManage: boolean
+  onViewRolePermissions?: (roleId: string) => void
 }
 
 const MAX_SERVICES_VISIVEIS = 2
 
-export function TeamMemberCard({ member, canManage }: Props) {
+export function TeamMemberCard({ member, canManage, onViewRolePermissions }: Props) {
   const { data: currentUser } = useCurrentUser()
+  const { data: roles = [] } = useRoles()
+  const { data: sections = [] } = useNavSections()
   const [editOpen, setEditOpen] = useState(false)
   const [servicesExpanded, setServicesExpanded] = useState(false)
 
@@ -26,6 +32,13 @@ export function TeamMemberCard({ member, canManage }: Props) {
   const canEdit = canManage || isCurrentUser
 
   const initials = member.name.slice(0, 2).toUpperCase()
+
+  const memberRole = roles.find((r) => r.id === member.roleId)
+  const permissionSummary = member.isOwner
+    ? 'Acesso total a todas as telas'
+    : memberRole
+      ? describeRolePermissions(memberRole.permissions, sections)
+      : null
 
   const hiddenServicesCount = member.services.length - MAX_SERVICES_VISIVEIS
   const visibleServices = servicesExpanded ? member.services : member.services.slice(0, MAX_SERVICES_VISIVEIS)
@@ -54,6 +67,21 @@ export function TeamMemberCard({ member, canManage }: Props) {
             )}
           </div>
           <p className="text-xs text-slate-500">{member.email}</p>
+
+          {permissionSummary && (
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span className="text-xs text-slate-500">{permissionSummary}</span>
+              {!member.isOwner && member.roleId && onViewRolePermissions && (
+                <button
+                  type="button"
+                  onClick={() => onViewRolePermissions(member.roleId as string)}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Ver permissões
+                </button>
+              )}
+            </div>
+          )}
 
           {member.services.length > 0 && (
             <div className="mt-1.5 flex flex-wrap items-center gap-1">
