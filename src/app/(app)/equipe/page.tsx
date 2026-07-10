@@ -2,7 +2,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Settings2, UserPlus, Users, Mail, X, Loader2 } from 'lucide-react'
+import { Settings2, UserPlus, Users, Mail, X, Loader2, Percent } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +27,8 @@ import { toast } from 'sonner'
 import { TeamMemberCard } from '@/components/domain/iam/team-member-card'
 import { InviteMemberModal } from '@/components/domain/iam/invite-member-modal'
 import { RolesManager } from '@/components/domain/iam/roles-manager'
+import { CommissionsGrid } from '@/components/domain/settings/commissions-grid'
+import { FeatureLock } from '@/components/domain/billing/feature-lock'
 import { useTeamMembers, useTeamInvites, useCancelInvite, type UserRole } from '@/hooks/iam/use-team'
 import { usePermissions } from '@/hooks/use-permissions'
 
@@ -40,7 +42,10 @@ const ROLE_LABELS: Record<UserRole, string> = {
 export default function EquipePage() {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [rolesOpen, setRolesOpen] = useState(false)
+  const [commissionsOpen, setCommissionsOpen] = useState(false)
   const { can, user } = usePermissions()
+  const canViewCommissions = can('comissoes', 'view')
+  const canEditCommissions = can('comissoes', 'edit')
   const {
     data: members,
     isLoading: loadingMembers,
@@ -103,6 +108,16 @@ export default function EquipePage() {
             >
               <Settings2 className="size-4" />
               Cargos
+            </Button>
+          )}
+          {canViewCommissions && (
+            <Button
+              variant="outline"
+              onClick={() => setCommissionsOpen(true)}
+              className="flex-1 rounded-full sm:flex-none"
+            >
+              <Percent className="size-4" />
+              Comissões
             </Button>
           )}
           {canInvite && (
@@ -238,6 +253,20 @@ export default function EquipePage() {
             </DialogDescription>
           </DialogHeader>
           <RolesManager />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={commissionsOpen} onOpenChange={setCommissionsOpen}>
+        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Comissões</DialogTitle>
+            <DialogDescription>
+              Defina a comissão de cada profissional por serviço.
+            </DialogDescription>
+          </DialogHeader>
+          <FeatureLock capability="comissoes">
+            <CommissionsGrid readOnly={!canEditCommissions} />
+          </FeatureLock>
         </DialogContent>
       </Dialog>
 
