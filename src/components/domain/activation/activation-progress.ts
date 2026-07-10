@@ -1,6 +1,6 @@
 import type { ActivationStatus } from '@/domains/activation/types'
 
-export type ActivationStepKey = 'categorias' | 'servicos' | 'clientes' | 'equipe' | 'configuracoes'
+export type ActivationStepKey = 'servicos' | 'clientes' | 'equipe' | 'configuracoes'
 
 export interface ActivationStep {
   key: ActivationStepKey
@@ -9,11 +9,14 @@ export interface ActivationStep {
   done: boolean
 }
 
-/** Monta os 5 passos do checklist na ordem canônica da spec. */
+/**
+ * Monta os passos do checklist. Categorias e Serviços contam como um único
+ * passo — não faz sentido cobrar os dois separadamente, já que categoria
+ * sem serviço não ativa nada sozinha.
+ */
 export function buildActivationSteps(status: ActivationStatus): ActivationStep[] {
   return [
-    { key: 'categorias', label: 'Crie categorias de serviço', href: '/servicos', done: status.categorias },
-    { key: 'servicos', label: 'Cadastre seus serviços', href: '/servicos', done: status.servicos },
+    { key: 'servicos', label: 'Cadastre suas categorias e serviços', href: '/servicos', done: status.categorias && status.servicos },
     { key: 'clientes', label: 'Adicione seus clientes', href: '/clientes', done: status.clientes },
     { key: 'equipe', label: 'Configure cargos da equipe', href: '/equipe', done: status.equipe },
     { key: 'configuracoes', label: 'Complete os dados do negócio', href: '/configuracoes', done: status.configuracoes.done },
@@ -37,6 +40,6 @@ export function shouldShowActivationCard(input: { status: ActivationStatus; dism
   const { status, dismissed } = input
   const hasPending = buildActivationSteps(status).some((s) => !s.done)
   if (!hasPending) return false
-  const criticalPending = !status.clientes || !status.servicos
+  const criticalPending = !status.clientes || !status.categorias || !status.servicos
   return !dismissed || criticalPending
 }

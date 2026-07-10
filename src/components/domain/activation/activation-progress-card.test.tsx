@@ -4,9 +4,9 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import type { ActivationStatus } from '@/domains/activation/types'
 
-const useActivationStatus = vi.fn()
-vi.mock('@/hooks/activation/use-activation-status', () => ({
-  useActivationStatus: () => useActivationStatus(),
+const useEffectiveActivationStatus = vi.fn()
+vi.mock('@/hooks/activation/use-effective-activation-status', () => ({
+  useEffectiveActivationStatus: () => useEffectiveActivationStatus(),
 }))
 
 import { ActivationProgressCard } from './activation-progress-card'
@@ -27,35 +27,35 @@ afterEach(cleanup)
 describe('ActivationProgressCard', () => {
   beforeEach(() => {
     localStorage.clear()
-    useActivationStatus.mockReset()
+    useEffectiveActivationStatus.mockReset()
   })
 
   it('não renderiza nada enquanto o status não carregou', () => {
-    useActivationStatus.mockReturnValue({ data: undefined })
+    useEffectiveActivationStatus.mockReturnValue({ data: undefined })
     const { container } = render(<ActivationProgressCard />)
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('mostra o percentual e os 5 passos quando há pendência', () => {
-    useActivationStatus.mockReturnValue({ data: status() })
+  it('mostra o percentual e os 4 passos quando há pendência', () => {
+    useEffectiveActivationStatus.mockReturnValue({ data: status() })
     render(<ActivationProgressCard />)
-    expect(screen.getByText(/20%/)).toBeInTheDocument()
-    expect(screen.getByText('Cadastre seus serviços')).toBeInTheDocument()
+    expect(screen.getByText(/0%/)).toBeInTheDocument()
+    expect(screen.getByText('Cadastre suas categorias e serviços')).toBeInTheDocument()
     expect(screen.getByText('Complete os dados do negócio')).toBeInTheDocument()
   })
 
   it('esconde ao dispensar e persiste o dismissal', () => {
-    useActivationStatus.mockReturnValue({ data: status() })
+    useEffectiveActivationStatus.mockReturnValue({ data: status() })
     render(<ActivationProgressCard />)
     fireEvent.click(screen.getByLabelText('Dispensar'))
-    expect(screen.queryByText('Cadastre seus serviços')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cadastre suas categorias e serviços')).not.toBeInTheDocument()
     expect(localStorage.getItem('agende:activation-card-dismissed')).toBe('1')
   })
 
   it('não renderiza quando dispensado e só os passos não-críticos estão pendentes', () => {
     localStorage.setItem('agende:activation-card-dismissed', '1')
-    useActivationStatus.mockReturnValue({
-      data: status({ servicos: true, clientes: true, categorias: false }),
+    useEffectiveActivationStatus.mockReturnValue({
+      data: status({ servicos: true, clientes: true, categorias: true }),
     })
     const { container } = render(<ActivationProgressCard />)
     expect(container).toBeEmptyDOMElement()

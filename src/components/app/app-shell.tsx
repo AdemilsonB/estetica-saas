@@ -21,7 +21,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { useBillingStatus } from '@/hooks/billing/use-billing-status'
 import { EntityImage } from '@/components/domain/shared/entity-image'
 import { useNavSections, type NavSectionWithLock } from '@/hooks/iam/use-nav-sections'
-import { useActivationStatus } from '@/hooks/activation/use-activation-status'
+import { useEffectiveActivationStatus } from '@/hooks/activation/use-effective-activation-status'
 import { isSectionPending } from '@/components/app/activation-badges'
 import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
 import { useUpgradeModal } from '@/stores/upgrade-modal.store'
@@ -54,7 +54,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
   const openUpgrade = useUpgradeModal((s) => s.openUpgrade)
   const { data: billingStatus } = useBillingStatus()
   const { data: planNavSections, isLoading: navSectionsLoading } = useNavSections()
-  const { data: activationStatus } = useActivationStatus()
+  const { data: activationStatus } = useEffectiveActivationStatus()
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     // Tablet (< xl) nunca colapsa

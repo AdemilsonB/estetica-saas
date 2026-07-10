@@ -90,11 +90,32 @@ export function CommissionsGrid({ readOnly = false }: Props) {
     return <div className="h-24 animate-pulse rounded-xl bg-slate-100" />;
   }
 
+  const activeProfessionals = professionals.filter((p: { role: string }) => p.role === "PROFESSIONAL");
+
+  function renderCell(serviceId: string, professionalId: string, className: string) {
+    return (
+      <Input
+        type="number"
+        min={0}
+        max={100}
+        step={1}
+        disabled={readOnly}
+        className={className}
+        style={{ fontSize: '16px' }}
+        value={getCellValue(serviceId, professionalId)}
+        placeholder="—"
+        onChange={(e) => handleChange(serviceId, professionalId, e.target.value)}
+        onFocus={(e) => e.target.select()}
+        onBlur={(e) => handleBlur(serviceId, professionalId, e.target.value)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4">
       {!readOnly && (
-        <div className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
-          <div className="min-w-40 flex-1 space-y-1">
+        <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:flex-row sm:flex-wrap sm:items-end">
+          <div className="min-w-0 flex-1 space-y-1">
             <p className="text-xs font-medium text-slate-500">Aplicar a todos do cargo</p>
             <Select value={bulkRoleId} onValueChange={setBulkRoleId}>
               <SelectTrigger><SelectValue placeholder="Escolha um cargo..." /></SelectTrigger>
@@ -105,31 +126,54 @@ export function CommissionsGrid({ readOnly = false }: Props) {
               </SelectContent>
             </Select>
           </div>
-          <Input
-            type="number"
-            min={0}
-            max={100}
-            step={1}
-            placeholder="%"
-            className="w-20"
-            value={bulkRate}
-            onChange={(e) => setBulkRate(e.target.value)}
-          />
-          <Button
-            type="button"
-            size="sm"
-            disabled={!bulkRoleId || !bulkRate || applyToRole.isPending}
-            onClick={handleApplyToRole}
-          >
-            {applyToRole.isPending ? "Aplicando..." : "Aplicar"}
-          </Button>
+          <div className="flex items-end gap-2">
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              placeholder="%"
+              className="h-10 w-20 shrink-0"
+              style={{ fontSize: '16px' }}
+              value={bulkRate}
+              onChange={(e) => setBulkRate(e.target.value)}
+            />
+            <Button
+              type="button"
+              size="sm"
+              className="h-10 flex-1 sm:flex-none"
+              disabled={!bulkRoleId || !bulkRate || applyToRole.isPending}
+              onClick={handleApplyToRole}
+            >
+              {applyToRole.isPending ? "Aplicando..." : "Aplicar"}
+            </Button>
+          </div>
         </div>
       )}
 
       <div className="space-y-3">
         <p className="text-sm font-semibold text-slate-700">Comissões por profissional × serviço (%)</p>
+
+        {/* Mobile: card por profissional, serviço + input empilhados */}
+        <div className="space-y-3 lg:hidden">
+          {activeProfessionals.map((p: { id: string; name: string }) => (
+            <div key={p.id} className="rounded-xl border border-white/80 bg-white/85 p-3">
+              <p className="mb-2 text-sm font-semibold text-slate-800">{p.name}</p>
+              <div className="space-y-2">
+                {services.map((s: { id: string; name: string }) => (
+                  <div key={s.id} className="flex items-center justify-between gap-3">
+                    <span className="min-w-0 flex-1 text-sm text-slate-600">{s.name}</span>
+                    {renderCell(s.id, p.id, "h-11 w-20 shrink-0 text-center")}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop: tabela profissional × serviço */}
         <div
-          className="overflow-x-auto rounded-xl border border-white/80 bg-white/85"
+          className="hidden overflow-x-auto rounded-xl border border-white/80 bg-white/85 lg:block"
           style={{
             maskImage: 'linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent)',
             WebkitMaskImage: 'linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent)',
@@ -140,36 +184,21 @@ export function CommissionsGrid({ readOnly = false }: Props) {
               <tr className="border-b border-slate-100">
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500">Profissional</th>
                 {services.map((s: { id: string; name: string }) => (
-                  <th key={s.id} className="px-3 py-2 text-center text-xs font-semibold text-slate-500">{s.name}</th>
+                  <th key={s.id} className="px-3 py-2 text-center text-xs font-semibold text-slate-500 whitespace-nowrap">{s.name}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {professionals
-                .filter((p: { role: string }) => p.role === "PROFESSIONAL")
-                .map((p: { id: string; name: string }) => (
-                  <tr key={p.id}>
-                    <td className="px-4 py-2 font-medium text-slate-800">{p.name}</td>
-                    {services.map((s: { id: string }) => (
-                      <td key={s.id} className="px-3 py-2 text-center">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={100}
-                          step={1}
-                          disabled={readOnly}
-                          className="h-8 w-16 text-center"
-                          style={{ fontSize: '16px' }}
-                          value={getCellValue(s.id, p.id)}
-                          placeholder="—"
-                          onChange={(e) => handleChange(s.id, p.id, e.target.value)}
-                          onFocus={(e) => e.target.select()}
-                          onBlur={(e) => handleBlur(s.id, p.id, e.target.value)}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+              {activeProfessionals.map((p: { id: string; name: string }) => (
+                <tr key={p.id}>
+                  <td className="px-4 py-2 font-medium text-slate-800 whitespace-nowrap">{p.name}</td>
+                  {services.map((s: { id: string }) => (
+                    <td key={s.id} className="px-3 py-2 text-center">
+                      {renderCell(s.id, p.id, "h-8 w-16 text-center")}
+                    </td>
+                  ))}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

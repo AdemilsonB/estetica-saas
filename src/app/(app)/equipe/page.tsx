@@ -1,7 +1,7 @@
 // src/app/(app)/equipe/page.tsx
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Settings2, UserPlus, Users, Mail, X, Loader2, Percent } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -31,6 +31,7 @@ import { CommissionsGrid } from '@/components/domain/settings/commissions-grid'
 import { FeatureLock } from '@/components/domain/billing/feature-lock'
 import { useTeamMembers, useTeamInvites, useCancelInvite, type UserRole } from '@/hooks/iam/use-team'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useActivationSeenStore } from '@/stores/activation-seen.store'
 
 const ROLE_LABELS: Record<UserRole, string> = {
   OWNER: 'Dono',
@@ -46,6 +47,11 @@ export default function EquipePage() {
   const { can, user } = usePermissions()
   const canViewCommissions = can('comissoes', 'view')
   const canEditCommissions = can('comissoes', 'edit')
+  const markEquipeSeen = useActivationSeenStore((s) => s.markEquipeSeen)
+
+  useEffect(() => {
+    markEquipeSeen()
+  }, [markEquipeSeen])
   const {
     data: members,
     isLoading: loadingMembers,
@@ -267,7 +273,7 @@ export default function EquipePage() {
 
       <Dialog open={commissionsOpen} onOpenChange={setCommissionsOpen}>
         <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-4xl">
-          <DialogHeader>
+          <DialogHeader className="pr-8">
             <DialogTitle>Comissões</DialogTitle>
             <DialogDescription>
               Defina a comissão de cada profissional por serviço.

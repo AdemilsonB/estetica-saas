@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Check, ChevronRight, Rocket, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useActivationStatus } from '@/hooks/activation/use-activation-status'
+import { useEffectiveActivationStatus } from '@/hooks/activation/use-effective-activation-status'
 import {
   buildActivationSteps,
   activationProgressPercent,
@@ -14,7 +14,7 @@ import {
 const DISMISSED_KEY = 'agende:activation-card-dismissed'
 
 export function ActivationProgressCard() {
-  const { data: status } = useActivationStatus()
+  const { data: status } = useEffectiveActivationStatus()
   // Lê o dismissal persistido apenas na montagem (não muda durante a sessão).
   const [dismissed] = useState(() => {
     if (typeof window === 'undefined') return false
