@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { DiscountApplyType } from "@prisma/client";
 import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
-import { ensurePermission, PERMISSIONS } from "@/shared/auth/permissions";
+import { ensurePermission } from "@/shared/auth/permissions";
 import { getSessionContext } from "@/shared/auth/session";
 import { handleApiError } from "@/shared/http/handle-api-error";
 import { validateInput } from "@/shared/http/validate-input";
@@ -21,7 +21,7 @@ export async function PATCH(
   initializeDomainRuntime();
   try {
     const session = await getSessionContext(request);
-    ensurePermission(session, PERMISSIONS.settings.manage);
+    ensurePermission(session, "descontos", "edit");
     const { id } = await params;
     const input = await validateInput(request, patchSchema);
     await discountTypeRepository.update(session.tenantId, id, input);
@@ -38,7 +38,7 @@ export async function DELETE(
   initializeDomainRuntime();
   try {
     const session = await getSessionContext(request);
-    ensurePermission(session, PERMISSIONS.settings.manage);
+    ensurePermission(session, "descontos", "edit");
     const { id } = await params;
     await discountTypeRepository.delete(session.tenantId, id);
     return new Response(null, { status: 204 });
