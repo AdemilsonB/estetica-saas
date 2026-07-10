@@ -18,10 +18,16 @@ function status(overrides: Partial<ActivationStatus> = {}): ActivationStatus {
 }
 
 describe('buildActivationSteps', () => {
-  it('devolve 5 passos na ordem Categorias → Serviços → Clientes → Equipe → Configurações', () => {
+  it('devolve 4 passos na ordem Categorias+Serviços → Clientes → Equipe → Configurações', () => {
     const steps = buildActivationSteps(status())
-    expect(steps.map((s) => s.key)).toEqual(['categorias', 'servicos', 'clientes', 'equipe', 'configuracoes'])
+    expect(steps.map((s) => s.key)).toEqual(['servicos', 'clientes', 'equipe', 'configuracoes'])
     expect(steps.every((s) => s.done === false)).toBe(true)
+  })
+
+  it('o passo de categorias+serviços só fica concluído quando AMBOS estão prontos', () => {
+    expect(buildActivationSteps(status({ categorias: true })).find((s) => s.key === 'servicos')?.done).toBe(false)
+    expect(buildActivationSteps(status({ servicos: true })).find((s) => s.key === 'servicos')?.done).toBe(false)
+    expect(buildActivationSteps(status({ categorias: true, servicos: true })).find((s) => s.key === 'servicos')?.done).toBe(true)
   })
 
   it('reflete configuracoes.done no passo de Configurações', () => {
@@ -37,8 +43,8 @@ describe('activationProgressPercent', () => {
     expect(activationProgressPercent(status())).toBe(0)
   })
 
-  it('retorna 40 com 2 de 5 passos concluídos', () => {
-    expect(activationProgressPercent(status({ categorias: true, servicos: true }))).toBe(40)
+  it('retorna 25 com 1 de 4 passos concluídos', () => {
+    expect(activationProgressPercent(status({ categorias: true, servicos: true }))).toBe(25)
   })
 
   it('retorna 100 quando todos os passos estão concluídos', () => {
@@ -73,14 +79,15 @@ describe('shouldShowActivationCard', () => {
     expect(shouldShowActivationCard({ status: status({ clientes: false }), dismissed: false })).toBe(true)
   })
 
-  it('reaparece mesmo dispensado enquanto Clientes OU Serviços estiverem pendentes', () => {
+  it('reaparece mesmo dispensado enquanto Clientes, Categorias OU Serviços estiverem pendentes', () => {
     expect(shouldShowActivationCard({ status: status({ servicos: false }), dismissed: true })).toBe(true)
+    expect(shouldShowActivationCard({ status: status({ categorias: false }), dismissed: true })).toBe(true)
     expect(shouldShowActivationCard({ status: status({ clientes: false }), dismissed: true })).toBe(true)
   })
 
-  it('permanece escondido quando dispensado e só os 3 não-críticos estão pendentes', () => {
+  it('permanece escondido quando dispensado e só os passos não-críticos estão pendentes', () => {
     const onlyNonCritical = status({
-      categorias: false,
+      categorias: true,
       servicos: true,
       clientes: true,
       equipe: false,
