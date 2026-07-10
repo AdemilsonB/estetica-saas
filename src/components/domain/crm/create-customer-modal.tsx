@@ -17,7 +17,7 @@ import { useCreateCustomer } from '@/hooks/crm/use-customers'
 type Props = {
   open: boolean
   onClose: () => void
-  onCreated?: (id: string) => void
+  onCreated?: (customer: { id: string; name: string }) => void
 }
 
 export function CreateCustomerModal({ open, onClose, onCreated }: Props) {
@@ -49,7 +49,7 @@ export function CreateCustomerModal({ open, onClose, onCreated }: Props) {
       {
         onSuccess: (customer) => {
           toast.success(`${customer.name} cadastrado com sucesso`)
-          onCreated?.(customer.id)
+          onCreated?.({ id: customer.id, name: customer.name })
           handleClose()
         },
         onError: (err) => {

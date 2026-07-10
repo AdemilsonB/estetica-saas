@@ -25,6 +25,7 @@ import { PublicPageForm } from '@/components/domain/settings/public-page-form'
 import { TeamVisibilityList } from '@/components/domain/settings/team-visibility-list'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
+import { useActivationStatus } from '@/hooks/activation/use-activation-status'
 import { Button } from '@/components/ui/button'
 
 type BrandingConfig = {
@@ -90,6 +91,7 @@ export default function ConfiguracoesPage() {
   const { can, user, isLoading } = usePermissions()
   const router = useRouter()
   const { data: evolutionStatus } = useEvolutionStatus()
+  const { data: activation } = useActivationStatus()
 
   const [tenantPublicInfo, setTenantPublicInfo] = useState<TenantPublicInfo | null>(null)
 
@@ -149,6 +151,7 @@ export default function ConfiguracoesPage() {
               ? { label: '✓ Completo', variant: 'ok' }
               : { label: '⚠ Pendente', variant: 'warn' }
           }
+          pending={activation ? !activation.configuracoes.dadosNegocio : false}
         >
           <BusinessInfoForm />
         </SettingsCard>
@@ -157,6 +160,7 @@ export default function ConfiguracoesPage() {
           icon={Clock}
           title="Horários de funcionamento"
           subtitle="Dias e horários em que seu negócio está aberto para atendimentos"
+          pending={activation ? !activation.configuracoes.horarios : false}
         >
           <p className="mb-4 text-sm text-muted-foreground">
             Configure os dias e horários em que seu negócio está aberto. Esses horários definem os slots disponíveis para agendamento.
@@ -168,6 +172,7 @@ export default function ConfiguracoesPage() {
           icon={Palette}
           title="Identidade visual"
           subtitle="Logo e cores do seu negócio — aparecem no agendamento online"
+          pending={activation ? !activation.configuracoes.branding : false}
         >
           <BrandingCardContent />
         </SettingsCard>
@@ -236,6 +241,7 @@ export default function ConfiguracoesPage() {
                 : { label: 'Inativo', variant: 'neutral' }
               : undefined
           }
+          pending={activation ? !activation.configuracoes.whatsapp : false}
         >
           <WhatsAppSettingsForm />
           <div className="mt-6">

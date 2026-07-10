@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -28,6 +29,7 @@ import { usePackages } from '@/hooks/scheduling/use-packages'
 import { usePromotions } from '@/hooks/scheduling/use-promotions'
 import { ServicePickerWithCategories, type PickerSelection } from '@/components/domain/services/service-picker-with-categories'
 import { useCustomersSearch } from '@/hooks/crm/use-customers-search'
+import { CreateCustomerModal } from '@/components/domain/crm/create-customer-modal'
 import { useCreateAppointment } from '@/hooks/scheduling/use-appointments'
 import { useAvailableSlots } from '@/hooks/scheduling/use-availability'
 import { useTeamMembers, useProfessionalsByService } from '@/hooks/iam/use-team'
@@ -102,6 +104,8 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
   const [customTime, setCustomTime] = useState('')
   const [customerSearch, setCustomerSearch] = useState('')
   const [customerId, setCustomerId] = useState('')
+  const [newCustomerOpen, setNewCustomerOpen] = useState(false)
+  const [createdCustomerName, setCreatedCustomerName] = useState('')
   const [allowOverlap, setAllowOverlap] = useState(false)
   const [allowPastDate, setAllowPastDate] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState('')
@@ -197,6 +201,8 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
     setCustomTime('')
     setCustomerSearch('')
     setCustomerId(defaultCustomerId ?? '')
+    setNewCustomerOpen(false)
+    setCreatedCustomerName('')
     setAllowOverlap(false)
     setAllowPastDate(false)
     setNotificationMessage('')
@@ -440,14 +446,28 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
               </div>
             ) : (
               <>
-                <Input
-                  placeholder="Buscar por nome ou telefone..."
-                  value={selectedCustomer ? selectedCustomer.name : customerSearch}
-                  onChange={(e) => {
-                    setCustomerSearch(e.target.value)
-                    setCustomerId('')
-                  }}
-                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Buscar por nome ou telefone..."
+                    value={selectedCustomer ? selectedCustomer.name : (createdCustomerName || customerSearch)}
+                    onChange={(e) => {
+                      setCustomerSearch(e.target.value)
+                      setCustomerId('')
+                      setCreatedCustomerName('')
+                    }}
+                    className="min-w-0 flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setNewCustomerOpen(true)}
+                    aria-label="Novo cliente"
+                    className="size-9 shrink-0"
+                  >
+                    <Plus className="size-4" />
+                  </Button>
+                </div>
                 {customerSearch.length >= 2 && !customerId && (
                   <div className="rounded-xl border bg-white shadow-sm max-h-40 overflow-y-auto">
                     {searchingCustomers ? (
@@ -462,6 +482,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
                           onClick={() => {
                             setCustomerId(c.id)
                             setCustomerSearch(c.name)
+                            setCreatedCustomerName('')
                           }}
                           className="w-full px-4 py-2 text-left text-sm hover:bg-primary/5"
                         >
@@ -516,6 +537,17 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
             </Button>
           </div>
         </form>
+
+          <CreateCustomerModal
+            open={newCustomerOpen}
+            onClose={() => setNewCustomerOpen(false)}
+            onCreated={(customer) => {
+              setCustomerId(customer.id)
+              setCreatedCustomerName(customer.name)
+              setCustomerSearch('')
+              setNewCustomerOpen(false)
+            }}
+          />
       </DialogContent>
     </Dialog>
   )

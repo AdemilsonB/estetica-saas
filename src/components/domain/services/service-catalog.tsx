@@ -12,6 +12,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { useActivateService, useDeactivateService, useServices, type Service } from '@/hooks/scheduling/use-services'
 import { useServiceCategories } from '@/hooks/scheduling/use-service-categories'
 import { EntityImage } from '@/components/domain/shared/entity-image'
@@ -41,16 +52,6 @@ export function ServiceCatalog() {
   function handleCreate() {
     setEditingService(undefined)
     setModalOpen(true)
-  }
-
-  function handleDeactivate(service: Service) {
-    if (!confirm(`Desativar "${service.name}"?`)) return
-    deactivate(service.id)
-  }
-
-  function handleActivate(service: Service) {
-    if (!confirm(`Reativar "${service.name}"?`)) return
-    activate(service.id)
   }
 
   if (isLoading) {
@@ -170,25 +171,63 @@ export function ServiceCatalog() {
                       <Edit2 className="size-3.5" />
                     </Button>
                     {service.active ? (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeactivate(service)}
-                        className="size-8 text-muted-foreground hover:text-destructive"
-                        title="Desativar"
-                      >
-                        <Power className="size-3.5" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-muted-foreground hover:text-destructive"
+                            aria-label={`Desativar ${service.name}`}
+                          >
+                            <Power className="size-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Desativar &quot;{service.name}&quot;?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Este serviço deixa de aparecer na vitrine e na criação de agendamentos,
+                              mas o histórico de atendimentos é preservado. Você pode reativar quando quiser.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-white hover:bg-destructive/90"
+                              onClick={() => deactivate(service.id)}
+                            >
+                              Desativar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     ) : (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleActivate(service)}
-                        className="size-8 text-muted-foreground hover:text-green-600"
-                        title="Reativar"
-                      >
-                        <Power className="size-3.5" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-muted-foreground hover:text-green-600"
+                            aria-label={`Reativar ${service.name}`}
+                          >
+                            <Power className="size-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Reativar &quot;{service.name}&quot;?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              O serviço volta a aparecer na vitrine e na criação de agendamentos.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => activate(service.id)}>
+                              Reativar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                   </div>
                 </div>

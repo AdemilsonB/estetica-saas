@@ -13,14 +13,18 @@ import { useRoles, useCreateRole } from '@/hooks/iam/use-roles'
 import { useNavSections } from '@/hooks/iam/use-nav-sections'
 import type { NavSection } from '@/shared/permissions/nav-registry'
 
-export function RolesManager() {
+type Props = {
+  initialRoleId?: string
+}
+
+export function RolesManager({ initialRoleId }: Props = {}) {
   const { data: roles, isLoading: loadingRoles } = useRoles()
   const { data: sections = [], isLoading: loadingSections } = useNavSections()
   const createRole = useCreateRole()
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(initialRoleId ?? null)
   const [creatingNew, setCreatingNew] = useState(false)
   const [newName, setNewName] = useState('')
-  const [mobileView, setMobileView] = useState<'list' | 'editor'>('list')
+  const [mobileView, setMobileView] = useState<'list' | 'editor'>(initialRoleId ? 'editor' : 'list')
 
   function handleCreateSubmit(e: React.FormEvent) {
     e.preventDefault()

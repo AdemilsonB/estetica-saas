@@ -5,6 +5,17 @@ import { ChevronDown, ChevronUp, Edit2, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { useServiceCategories, useDeleteCategory, useUpdateCategory, type ServiceCategory } from '@/hooks/scheduling/use-service-categories'
 import { CategoryFormModal } from './category-form-modal'
 
@@ -14,13 +25,6 @@ export function CategoryCatalog() {
   const { mutate: updateCategory } = useUpdateCategory()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<ServiceCategory | undefined>()
-
-  function handleDelete(cat: ServiceCategory) {
-    if (!confirm(`Remover a categoria "${cat.name}"?`)) return
-    deleteCategory(cat.id, {
-      onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao remover categoria.'),
-    })
-  }
 
   function handleMove(cat: ServiceCategory, direction: 'up' | 'down') {
     const newOrder = direction === 'up' ? Math.max(0, cat.order - 1) : cat.order + 1
@@ -74,9 +78,41 @@ export function CategoryCatalog() {
               <Button variant="ghost" size="icon" className="size-8" onClick={() => { setEditing(cat); setModalOpen(true) }}>
                 <Edit2 className="size-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(cat)}>
-                <Trash2 className="size-3.5" />
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-muted-foreground hover:text-destructive"
+                    aria-label={`Excluir categoria ${cat.name}`}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir a categoria &quot;{cat.name}&quot;?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      A categoria deixa de aparecer para novos serviços. Só é possível excluir
+                      categorias sem serviços vinculados — caso contrário, remova o vínculo antes.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-white hover:bg-destructive/90"
+                      onClick={() =>
+                        deleteCategory(cat.id, {
+                          onError: (err) =>
+                            toast.error(err instanceof Error ? err.message : 'Erro ao remover categoria.'),
+                        })
+                      }
+                    >
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           ))}
         </div>

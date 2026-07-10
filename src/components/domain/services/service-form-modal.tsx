@@ -15,7 +15,7 @@ import { ImageUploadField } from '@/components/ui/image-upload-field'
 import type { CropValues } from '@/components/domain/shared/image-crop-editor'
 import { useCreateService, useUpdateService, type Service } from '@/hooks/scheduling/use-services'
 import { ServiceAnamneseConfig } from './service-anamnese-config'
-import { useServiceCategories } from '@/hooks/scheduling/use-service-categories'
+import { useServiceCategories, useCreateCategory } from '@/hooks/scheduling/use-service-categories'
 import { useProducts } from '@/hooks/inventory/use-products'
 import { minutesToHHMM, hhmmToMinutes } from '@/lib/format-duration'
 
@@ -32,9 +32,12 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
   const { mutate: create, isPending: creating } = useCreateService()
   const { mutate: update, isPending: updating } = useUpdateService()
   const { data: categories = [] } = useServiceCategories()
+  const { mutate: createCategory, isPending: creatingCategory } = useCreateCategory()
 
   const [name, setName] = useState('')
   const [categoryId, setCategoryId] = useState<string | null>(null)
+  const [addingCategory, setAddingCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
   const [description, setDescription] = useState('')
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [crop, setCrop] = useState<CropValues | null>(null)
@@ -170,6 +173,22 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
     }
   }
 
+  function handleCreateCategoryInline() {
+    const trimmed = newCategoryName.trim()
+    if (!trimmed) return
+    createCategory(
+      { name: trimmed },
+      {
+        onSuccess: (created) => {
+          setCategoryId(created.id)
+          setNewCategoryName('')
+          setAddingCategory(false)
+        },
+        onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao criar categoria'),
+      },
+    )
+  }
+
   function addProduct(productId: string) {
     if (productItems.find((i) => i.productId === productId)) return
     const product = allProducts.find((p) => p.id === productId)
@@ -215,16 +234,71 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
           {/* Categoria */}
           <div className="space-y-2">
             <Label htmlFor="service-category">Categoria</Label>
-            <ComboboxField
-              options={[
-                { value: '__none__', label: 'Sem categoria' },
-                ...categories.map((cat) => ({ value: cat.id, label: cat.name })),
-              ]}
-              value={categoryId ?? '__none__'}
-              onChange={(v) => setCategoryId(v === '__none__' || !v ? null : v)}
-              placeholder="Selecionar categoria..."
-              searchPlaceholder="Buscar categoria..."
-            />
+            {addingCategory ? (
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  autoFocus
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="Nome da nova categoria"
+                  maxLength={60}
+                  className="flex-1"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleCreateCategoryInline()
+                    }
+                  }}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleCreateCategoryInline}
+                    disabled={!newCategoryName.trim() || creatingCategory}
+                    aria-label="Adicionar categoria"
+                    className="flex-1 sm:flex-none"
+                  >
+                    {creatingCategory ? 'Salvando...' : 'Adicionar'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setAddingCategory(false); setNewCategoryName('') }}
+                    disabled={creatingCategory}
+                    className="flex-1 sm:flex-none"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <ComboboxField
+                    options={[
+                      { value: '__none__', label: 'Sem categoria' },
+                      ...categories.map((cat) => ({ value: cat.id, label: cat.name })),
+                    ]}
+                    value={categoryId ?? '__none__'}
+                    onChange={(v) => setCategoryId(v === '__none__' || !v ? null : v)}
+                    placeholder="Selecionar categoria..."
+                    searchPlaceholder="Buscar categoria..."
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setAddingCategory(true)}
+                  aria-label="Nova categoria"
+                  className="size-9 shrink-0"
+                >
+                  <Plus className="size-4" />
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Descrição */}
