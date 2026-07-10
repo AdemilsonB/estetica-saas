@@ -200,7 +200,7 @@ Nunca entregar componente de UI sem passar pelo checklist do `agent-mobile`.
 
 | Domínio | Backend | Frontend | Observação |
 |---------|---------|----------|------------|
-| IAM | ✅ | ✅ | Cargos dinâmicos, RBAC, edição completa de membros, foto com enquadramento (zoom/posição) ajustável, vínculo de serviços; cadastro de novo tenant exige CPF/CNPJ único na plataforma (dígito verificador validado; tenants legados sem documento não são afetados — ADR-013) |
+| IAM | ✅ | ✅ | Cargos dinâmicos, RBAC, edição completa de membros, foto com enquadramento (zoom/posição) ajustável, vínculo de serviços; cadastro de novo tenant exige CPF/CNPJ único na plataforma (dígito verificador validado; tenants legados sem documento não são afetados — ADR-013); página Equipe ganhou botão dedicado de Comissões (saiu de Serviços) com grid editável por serviço/profissional + aplicar em massa por cargo, permissão extra própria `comissoes` (`view`/`edit`, antes coberto pela `configuracoes` genérica) |
 | CRM | ✅ | ✅ | Filtros avançados, badge VIP, anamnese digital; CPF do cliente validado por dígito verificador no cadastro público (`cpfSchema` em `domains/crm/schemas.ts`) — login por CPF não exige dígito válido, só formato, para não travar contas antigas |
 | Scheduling | ✅ | ✅ | Agenda semanal, slots, filtro profissional, quick actions mobile; disponibilidade pública respeita `minAdvanceMinutes`/`maxAdvanceDays` da policy (painel não — só bloqueia data passada, com switch "lançar atendimento esquecido" — ADR-014) |
 | Financial | ✅ | ✅ | Checkout, despesas, comissões, taxas, estornos |
@@ -208,7 +208,7 @@ Nunca entregar componente de UI sem passar pelo checklist do `agent-mobile`.
 | Dashboard | ✅ | ✅ | Métricas + polling 30s |
 | Reports | ✅ | ✅ | 4 páginas (Visão Geral, Financeiro, Agendamentos, Clientes); KPIs com % de variação vs. período anterior; gráficos Recharts (line, donut, heatmap de sazonalidade); filtro de categoria; clientes inativos com ação WhatsApp; paginação server-side; feature gate `reports_advanced` com upsell inline |
 | Settings | ✅ | ✅ | Cargos, Meu Link (QR Code, WhatsApp, Instagram) |
-| Serviços | ✅ | ✅ | 3 abas: Serviços, Pacotes, Promoções; anamnese por serviço; imagens em proporção retrato 4:5 padronizada com editor de enquadramento (zoom/posição) |
+| Serviços | ✅ | ✅ | 3 abas: Serviços, Pacotes, Promoções (sub-aba de Precificação/Comissões removida — migrou para a página Equipe); botão dedicado de Descontos no header abre lista editável de tipos de desconto, permissão extra própria `descontos` (`view`/`edit`, antes coberto pela `configuracoes` genérica); anamnese por serviço; imagens em proporção retrato 4:5 padronizada com editor de enquadramento (zoom/posição) |
 | Produtos/Estoque | ✅ | ✅ | Catálogo, movimentação, reflexo financeiro; imagem com editor de enquadramento (zoom/posição) |
 | Branding | ✅ | ✅ | 6 tokens warm, logo |
 | Billing (Stripe) | ✅ | ✅ | FeatureGuard, startTrial, Checkout/Portal/Webhook, planos dinâmicos do DB; `Subscription.plan` é a única fonte de verdade (Tenant.plan removido); plano FREE não é mais vendido (`isActive: false`) — trial/assinatura expirada bloqueia o painel via `SubscriptionLockedScreen` em vez de rebaixar para FREE (ver ADR-010) |
@@ -224,8 +224,9 @@ Nunca entregar componente de UI sem passar pelo checklist do `agent-mobile`.
 Produção e escala:
 1. Configurar `PUBLIC_SESSION_SECRET` no Vercel (obrigatório para o portal do cliente)
 2. **Aplicar a migration `20260704120000_add_user_notifications`** no banco (`prisma migrate deploy` / `resolve --applied`) — criada aditiva mas não aplicada (banco de dev inacessível na sessão da central de notificações)
-3. Fase 2 — Automation: regras de pós-atendimento, campanhas de reengajamento
-4. Relatórios avançados com filtros por profissional + exportação agendada
+3. Rodar `node scripts/seed-plan-features-comissoes-descontos.mjs` em produção antes de considerar Comissões/Descontos liberados (sem isso, FeatureLock bloqueia os dois para todo mundo)
+4. Fase 2 — Automation: regras de pós-atendimento, campanhas de reengajamento
+5. Relatórios avançados com filtros por profissional + exportação agendada
 
 ---
 
