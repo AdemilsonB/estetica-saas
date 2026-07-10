@@ -3,6 +3,7 @@
 import { useState, type ElementType, type ReactNode } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PendingDot } from '@/components/domain/shared/pending-dot'
 
 interface StatusBadge {
   label: string
@@ -14,6 +15,7 @@ interface SettingsCardProps {
   title: string
   subtitle: string
   statusBadge?: StatusBadge
+  pending?: boolean
   children?: ReactNode
   defaultExpanded?: boolean
 }
@@ -30,6 +32,7 @@ export function SettingsCard({
   title,
   subtitle,
   statusBadge,
+  pending,
   children,
   defaultExpanded = false,
 }: SettingsCardProps) {
@@ -54,6 +57,7 @@ export function SettingsCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-foreground">{title}</span>
+            {pending && <PendingDot label={`${title} pendente`} />}
             {statusBadge && (
               <span className={cn(
                 'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium',
