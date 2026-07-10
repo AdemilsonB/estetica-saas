@@ -26,10 +26,17 @@ type Props = {
   professional: ResolvedProfessional | null
   primaryColor: string
   bookingBaseUrl: string
+  allowPublicBooking: boolean
   onClose: () => void
 }
 
-export function VitrineProfessionalSheet({ professional, primaryColor, bookingBaseUrl, onClose }: Props) {
+export function VitrineProfessionalSheet({
+  professional,
+  primaryColor,
+  bookingBaseUrl,
+  allowPublicBooking,
+  onClose,
+}: Props) {
   return (
     <Sheet open={!!professional} onOpenChange={(v) => !v && onClose()}>
       <SheetContent
@@ -94,15 +101,17 @@ export function VitrineProfessionalSheet({ professional, primaryColor, bookingBa
               )}
             </div>
 
-            <div className="sticky bottom-0 mt-4 border-t bg-popover p-4">
-              <a
-                href={`${bookingBaseUrl}?professionalId=${professional.id}`}
-                className="flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold text-white"
-                style={{ backgroundColor: primaryColor }}
-              >
-                Agendar com {professional.name.split(' ')[0]}
-              </a>
-            </div>
+            {allowPublicBooking && (
+              <div className="sticky bottom-0 mt-4 border-t bg-popover p-4">
+                <a
+                  href={`${bookingBaseUrl}?professionalId=${professional.id}`}
+                  className="flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold text-white"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  Agendar com {professional.name.split(' ')[0]}
+                </a>
+              </div>
+            )}
           </>
         )}
       </SheetContent>

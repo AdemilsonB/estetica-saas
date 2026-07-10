@@ -277,7 +277,12 @@ export function VitrineHero({
           )}
         </div>
 
-        <VitrineRebookBand slug={slug} bookingUrl={bookingUrl} primaryColor={primaryColor} />
+        <VitrineRebookBand
+          slug={slug}
+          bookingUrl={bookingUrl}
+          primaryColor={primaryColor}
+          allowPublicBooking={allowPublicBooking}
+        />
 
         {bio && (
           <div className="mt-4">

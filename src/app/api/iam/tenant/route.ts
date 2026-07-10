@@ -16,6 +16,7 @@ const updateTenantSchema = z.object({
   instagramUrl: z.string().trim().url().max(200).nullable().optional(),
   coverImageUrl: z.string().trim().url().max(500).nullable().optional(),
   whatsappContactEnabled: z.boolean().optional(),
+  publicPageEnabled: z.boolean().optional(),
   googleBusinessUrl: z
     .string()
     .trim()

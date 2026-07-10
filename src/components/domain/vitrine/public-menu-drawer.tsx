@@ -35,6 +35,7 @@ type Props = {
   whatsappContactEnabled?: boolean
   slug: string
   bookingBaseUrl: string
+  allowPublicBooking: boolean
   services: PublicService[]
   packages: PublicPackage[]
   promotions: PublicPromotion[]
@@ -148,6 +149,7 @@ export function PublicMenuDrawer({
   whatsappContactEnabled,
   slug,
   bookingBaseUrl,
+  allowPublicBooking,
   services,
   packages,
   promotions,
@@ -208,16 +210,22 @@ export function PublicMenuDrawer({
 
   const hasMultipleCategories = categoryOrder.length > 1
 
-  function navigate(path: string) {
-    setOpen(false)
-    setTimeout(() => { window.location.href = `${bookingBaseUrl}${path}` }, 150)
-  }
-
   function scrollTo(id: string) {
     setOpen(false)
     setTimeout(() => {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 200)
+  }
+
+  function navigate(path: string) {
+    // Vitrine com agendamento online desativado: leva para a lista de serviços em vez do
+    // link de agendamento, evitando que o cliente caia num 404 de /agendar.
+    if (!allowPublicBooking) {
+      scrollTo('servicos')
+      return
+    }
+    setOpen(false)
+    setTimeout(() => { window.location.href = `${bookingBaseUrl}${path}` }, 150)
   }
 
   return (

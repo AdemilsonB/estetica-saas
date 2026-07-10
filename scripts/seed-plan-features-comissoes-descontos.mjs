@@ -1,7 +1,9 @@
 // scripts/seed-plan-features-comissoes-descontos.mjs
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 
-const prisma = new PrismaClient()
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+const prisma = new PrismaClient({ adapter })
 
 const KEYS = ['comissoes', 'descontos']
 const PLANS = ['FREE', 'STARTER', 'PRO', 'ENTERPRISE']

@@ -32,7 +32,7 @@ export default async function BookingPage({
   const sp = await searchParams
 
   const data = await fetchTenantData(slug)
-  if (!data || !data.allowPublicBooking) notFound()
+  if (!data || !data.publicPageEnabled || !data.allowPublicBooking) notFound()
 
   const cookieStore = await cookies()
   const token = cookieStore.get(COOKIE_NAME)?.value ?? null

@@ -50,6 +50,7 @@ type TenantPublicInfo = {
   whatsappEnabled: boolean
   whatsappContactEnabled: boolean
   googleBusinessUrl: string | null
+  publicPageEnabled: boolean
 }
 
 function BrandingCardContent() {

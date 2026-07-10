@@ -37,6 +37,7 @@ type Props = {
   slug: string
   primaryColor: string
   bookingBaseUrl: string
+  allowPublicBooking: boolean
   team: TeamMember[]
   services: ServiceLite[]
   children: ReactNode
@@ -46,6 +47,7 @@ export function VitrineInteractionProvider({
   slug,
   primaryColor,
   bookingBaseUrl,
+  allowPublicBooking,
   team,
   services,
   children,
@@ -129,6 +131,7 @@ export function VitrineInteractionProvider({
         professionals={professionals}
         slug={slug}
         primaryColor={primaryColor}
+        allowPublicBooking={allowPublicBooking}
         onClose={() => setDetail(null)}
         onSelectProfessional={setProfessionalId}
       />
@@ -136,6 +139,7 @@ export function VitrineInteractionProvider({
         professional={selectedProfessional}
         primaryColor={primaryColor}
         bookingBaseUrl={bookingBaseUrl}
+        allowPublicBooking={allowPublicBooking}
         onClose={() => setProfessionalId(null)}
       />
     </VitrineInteractionContext.Provider>
