@@ -21,7 +21,8 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { useBillingStatus } from '@/hooks/billing/use-billing-status'
 import { EntityImage } from '@/components/domain/shared/entity-image'
 import { useNavSections, type NavSectionWithLock } from '@/hooks/iam/use-nav-sections'
-import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
+import { useActivationStatus } from '@/hooks/activation/use-activation-status'
+import { isSectionPending } from '@/components/app/activation-badges'
 import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
 import { useUpgradeModal } from '@/stores/upgrade-modal.store'
 import { cn } from '@/lib/utils'
@@ -53,8 +54,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
   const openUpgrade = useUpgradeModal((s) => s.openUpgrade)
   const { data: billingStatus } = useBillingStatus()
   const { data: planNavSections, isLoading: navSectionsLoading } = useNavSections()
-  const { data: evolutionStatus, isLoading: evolutionLoading } = useEvolutionStatus()
-  const whatsappPending = !evolutionLoading && evolutionStatus?.connected === false
+  const { data: activationStatus } = useActivationStatus()
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     // Tablet (< xl) nunca colapsa
@@ -187,14 +187,14 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
         )}
         {showLabel && hasBadge && !locked && (
           <span
-            aria-label="Configuração pendente"
-            className="ml-auto inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-green-500 text-[9px] font-bold leading-none text-white"
+            aria-label="Cadastro pendente"
+            className="ml-auto inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold leading-none text-white"
           >
             !
           </span>
         )}
         {!showLabel && hasBadge && !locked && (
-          <span aria-hidden="true" className="absolute right-0.5 top-0.5 size-2 rounded-full bg-green-500" />
+          <span aria-hidden="true" className="absolute right-0.5 top-0.5 size-2 rounded-full bg-amber-500" />
         )}
       </>
     )
@@ -283,11 +283,24 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
                 ))
               : mainItems.map((item) =>
                   showLabel ? (
-                    <NavLink key={item.href} item={item} showLabel onClick={onNavigate} />
+                    <NavLink
+                      key={item.href}
+                      item={item}
+                      showLabel
+                      hasBadge={isSectionPending(activationStatus, item.key)}
+                      onClick={onNavigate}
+                    />
                   ) : (
                     <Tooltip key={item.href}>
                       <TooltipTrigger asChild>
-                        <div><NavLink item={item} showLabel={false} onClick={onNavigate} /></div>
+                        <div>
+                          <NavLink
+                            item={item}
+                            showLabel={false}
+                            hasBadge={isSectionPending(activationStatus, item.key)}
+                            onClick={onNavigate}
+                          />
+                        </div>
                       </TooltipTrigger>
                       <TooltipContent side="right">{item.label}</TooltipContent>
                     </Tooltip>
@@ -299,11 +312,23 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
           <div className={cn('border-t border-border/50 py-3', showLabel ? 'px-3 space-y-1' : 'px-2 space-y-2 flex flex-col items-center')}>
             {configItem && (
               showLabel ? (
-                <NavLink item={configItem} showLabel hasBadge={whatsappPending} onClick={onNavigate} />
+                <NavLink
+                  item={configItem}
+                  showLabel
+                  hasBadge={isSectionPending(activationStatus, 'configuracoes')}
+                  onClick={onNavigate}
+                />
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div><NavLink item={configItem} showLabel={false} hasBadge={whatsappPending} onClick={onNavigate} /></div>
+                    <div>
+                      <NavLink
+                        item={configItem}
+                        showLabel={false}
+                        hasBadge={isSectionPending(activationStatus, 'configuracoes')}
+                        onClick={onNavigate}
+                      />
+                    </div>
                   </TooltipTrigger>
                   <TooltipContent side="right">{configItem.label}</TooltipContent>
                 </Tooltip>
