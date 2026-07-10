@@ -245,6 +245,28 @@ export class PublicBookingDisabledError extends DomainError {
   }
 }
 
+export class PublicPageDisabledError extends DomainError {
+  constructor() {
+    super(
+      'Esta vitrine não está disponível no momento.',
+      'PUBLIC_PAGE_DISABLED',
+      403,
+    )
+  }
+}
+
+// --- Financial ---
+
+export class DiscountTypeInUseError extends DomainError {
+  constructor() {
+    super(
+      'Não é possível excluir um tipo de desconto já usado em agendamentos. Arquive-o em vez de excluir.',
+      'DISCOUNT_TYPE_IN_USE',
+      409,
+    )
+  }
+}
+
 // --- Catalog ---
 
 export class CatalogItemNotFoundError extends DomainError {

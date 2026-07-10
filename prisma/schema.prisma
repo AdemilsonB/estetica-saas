@@ -153,6 +153,7 @@ model Tenant {
   googleBusinessUrl      String?
   googlePlaceId          String?
   bio                    String?
+  publicPageEnabled      Boolean                @default(true)
   isBlocked              Boolean                @default(false)
   blockedReason          String?
   schedulingPolicy       SchedulingPolicy?
