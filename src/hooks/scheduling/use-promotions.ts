@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-export type PromoItemService = { id: string; name: string; price: string }
+export type PromoItemService = { id: string; name: string; price: string; duration: number }
 export type PromoItemPackage = { id: string; name: string; price: string }
 
 export type PromotionItem = {

@@ -1,11 +1,12 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
+import { Eye, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatDuration } from '@/lib/format-duration'
 import { Input } from '@/components/ui/input'
 import { EntityImage } from '@/components/domain/shared/entity-image'
+import { PickerDetailModal, type PickerDetailItem } from './picker-detail-modal'
 
 export type PickerService = {
   id: string
@@ -81,17 +82,49 @@ function normalize(text: string): string {
     .replace(/[̀-ͯ]/g, '')
 }
 
+export function formatCurrency(value: string | number): string {
+  return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function formatPrice(price: string | number, priceType?: string): string {
+  const formatted = formatCurrency(price)
+  if (priceType === 'STARTING_FROM') return `A partir de ${formatted}`
+  return formatted
+}
+
+export type PromoPricedItem = {
+  serviceId: string
+  service: { id: string; name: string; price: string | number; duration?: number }
+  originalPrice: number
+  discountedPrice: number
+}
+
+export function computePromotionPricing(promo: PickerPromotion): PromoPricedItem[] {
+  return promo.items
+    .filter(
+      (i): i is { serviceId: string; service: NonNullable<PickerPromotion['items'][number]['service']> } =>
+        i.service !== null && i.serviceId !== null,
+    )
+    .map((item) => {
+      const originalPrice = Number(item.service.price)
+      const discountedPrice = promo.discountType === 'PERCENTAGE'
+        ? originalPrice * (1 - Number(promo.discountValue) / 100)
+        : Math.max(0, originalPrice - Number(promo.discountValue))
+      return { serviceId: item.serviceId, service: item.service, originalPrice, discountedPrice }
+    })
+}
+
+export function cheapestPromotionOption(promo: PickerPromotion): PromoPricedItem | null {
+  const priced = computePromotionPricing(promo)
+  if (priced.length === 0) return null
+  return priced.reduce((min, w) => (w.discountedPrice < min.discountedPrice ? w : min), priced[0])
+}
+
 export function ServicePickerWithCategories({ services, packages = [], promotions = [], categories, selectedId, onSelect }: Props) {
   const [search, setSearch] = useState('')
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
   const [expandedPromoId, setExpandedPromoId] = useState<string | null>(null)
-
-  function formatPrice(price: string | number, priceType?: string): string {
-    const num = Number(price)
-    const formatted = num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-    if (priceType === 'STARTING_FROM') return `A partir de ${formatted}`
-    return formatted
-  }
+  const [detailItem, setDetailItem] = useState<PickerDetailItem | null>(null)
 
   const uncategorized = services.filter((s) => !s.categoryId)
   const categorized = categories.filter((cat) => services.some((s) => s.categoryId === cat.id))
@@ -120,164 +153,68 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
     return services.filter((s) => s.categoryId === activeCategoryId)
   }, [isSearching, term, services, activeCategoryId, uncategorized])
 
+  // Pacotes e Promoções só entram na listagem quando o usuário filtra por eles
+  // explicitamente (chip "Pacotes e Promoções") ou busca por nome — "Todos" mostra só Serviços.
   const visiblePackages = useMemo(() => {
     if (isSearching) return packages.filter((p) => normalize(p.name).includes(term))
-    if (activeCategoryId !== null && activeCategoryId !== PACOTES_PROMO_ID) return []
+    if (activeCategoryId !== PACOTES_PROMO_ID) return []
     return packages
   }, [isSearching, term, packages, activeCategoryId])
 
   const visiblePromotions = useMemo(() => {
     if (isSearching) return promotions.filter((p) => normalize(p.name).includes(term))
-    if (activeCategoryId !== null && activeCategoryId !== PACOTES_PROMO_ID) return []
+    if (activeCategoryId !== PACOTES_PROMO_ID) return []
     return promotions
   }, [isSearching, term, promotions, activeCategoryId])
+
+  function renderEyeButton(label: string, onOpen: () => void) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          onOpen()
+        }}
+        aria-label={label}
+        className="group/eye absolute left-0 top-0 z-10 flex h-11 w-11 items-center justify-center"
+      >
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors group-hover/eye:bg-black/60">
+          <Eye className="size-3.5" />
+        </span>
+      </button>
+    )
+  }
 
   function renderServiceCard(service: PickerService) {
     const isSelected = selectedId === service.id
     return (
-      <button
-        key={service.id}
-        type="button"
-        onClick={() => onSelect({ type: 'service', item: service })}
-        className={cn(
-          'group relative flex w-32 shrink-0 flex-col overflow-hidden rounded-2xl border text-left transition-all sm:w-36',
-          isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border/50 hover:border-primary/40',
-        )}
-      >
-        <EntityImage
-          src={service.imageUrl}
-          alt={service.name}
-          shape="portrait"
-          cropX={service.imageCropX}
-          cropY={service.imageCropY}
-          cropZoom={service.imageCropZoom}
-          className="w-full rounded-none"
-          fallback={<span className="text-2xl text-muted-foreground/30">✂</span>}
-        />
-        <div className="flex flex-1 flex-col gap-1 p-3">
-          <span className="text-sm font-medium leading-tight line-clamp-2">{service.name}</span>
-          {service.description && (
-            <span className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">{service.description}</span>
-          )}
-          <div className="mt-auto pt-1">
-            <span className="text-xs font-semibold text-primary">{formatPrice(service.price, service.priceType)}</span>
-            <span className="block text-xs text-muted-foreground">{formatDuration(service.duration)}</span>
-          </div>
-        </div>
-        {isSelected && (
-          <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
-            <span className="text-[10px] text-primary-foreground">✓</span>
-          </div>
-        )}
-      </button>
-    )
-  }
-
-  function renderPackageCard(pkg: PickerPackage) {
-    const totalDuration = pkg.items.reduce((s, i) => s + i.service.duration, 0)
-    const isSelected = selectedId === pkg.id
-    return (
-      <button
-        key={pkg.id}
-        type="button"
-        onClick={() => onSelect({ type: 'package', item: pkg })}
-        className={cn(
-          'group relative flex w-32 shrink-0 flex-col overflow-hidden rounded-2xl border text-left transition-all sm:w-36',
-          isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border/50 hover:border-primary/40',
-        )}
-      >
-        <EntityImage
-          src={pkg.imageUrl}
-          alt={pkg.name}
-          shape="portrait"
-          cropX={pkg.imageCropX}
-          cropY={pkg.imageCropY}
-          cropZoom={pkg.imageCropZoom}
-          className="w-full rounded-none"
-          fallback={<span className="text-2xl text-muted-foreground/30">🎁</span>}
-        />
-        <div className="flex flex-1 flex-col gap-1 p-3">
-          <span className="text-sm font-medium leading-tight line-clamp-2">{pkg.name}</span>
-          <span className="text-xs text-muted-foreground line-clamp-2">
-            {pkg.items.map((i) => i.service.name).join(' + ')}
-          </span>
-          <div className="mt-auto pt-1">
-            <span className="text-xs font-semibold text-primary">{formatPrice(pkg.price)}</span>
-            <span className="block text-xs text-muted-foreground">{formatDuration(totalDuration)}</span>
-          </div>
-        </div>
-        {isSelected && (
-          <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
-            <span className="text-[10px] text-primary-foreground">✓</span>
-          </div>
-        )}
-      </button>
-    )
-  }
-
-  function renderPromotionCard(promo: PickerPromotion) {
-    const serviceItems = promo.items.filter(
-      (i): i is { serviceId: string; service: NonNullable<PickerPromotion['items'][number]['service']> } =>
-        i.service !== null && i.serviceId !== null,
-    )
-    if (serviceItems.length === 0) return null
-
-    const withPrices = serviceItems.map((item) => {
-      const originalPrice = Number(item.service.price)
-      const discountedPrice = promo.discountType === 'PERCENTAGE'
-        ? originalPrice * (1 - Number(promo.discountValue) / 100)
-        : Math.max(0, originalPrice - Number(promo.discountValue))
-      return { item, originalPrice, discountedPrice }
-    })
-    const minPrice = Math.min(...withPrices.map((w) => w.discountedPrice))
-    const isSelected = withPrices.some((w) => selectedId === w.item.serviceId)
-    const isExpanded = expandedPromoId === promo.id
-
-    function selectDefault() {
-      const cheapest = withPrices.reduce((min, w) => (w.discountedPrice < min.discountedPrice ? w : min), withPrices[0])
-      onSelect({
-        type: 'promotion',
-        promotionId: promo.id,
-        service: {
-          id: cheapest.item.serviceId,
-          name: cheapest.item.service.name,
-          price: cheapest.discountedPrice,
-          duration: cheapest.item.service.duration ?? 0,
-        },
-      })
-    }
-
-    return (
-      <div key={promo.id} className="w-32 shrink-0 sm:w-36">
+      <div key={service.id} className="relative w-32 shrink-0 sm:w-36">
         <button
           type="button"
-          onClick={() => {
-            if (isExpanded) {
-              setExpandedPromoId(null)
-              return
-            }
-            setExpandedPromoId(promo.id)
-            if (!isSelected) selectDefault()
-          }}
+          onClick={() => onSelect({ type: 'service', item: service })}
           className={cn(
             'group relative flex w-full flex-col overflow-hidden rounded-2xl border text-left transition-all',
             isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border/50 hover:border-primary/40',
           )}
         >
           <EntityImage
-            src={promo.imageUrl}
-            alt={promo.name}
+            src={service.imageUrl}
+            alt={service.name}
             shape="portrait"
-            cropX={promo.imageCropX}
-            cropY={promo.imageCropY}
-            cropZoom={promo.imageCropZoom}
+            cropX={service.imageCropX}
+            cropY={service.imageCropY}
+            cropZoom={service.imageCropZoom}
             className="w-full rounded-none"
-            fallback={<span className="text-2xl text-muted-foreground/30">%</span>}
+            fallback={<span className="text-2xl text-muted-foreground/30">✂</span>}
           />
           <div className="flex flex-1 flex-col gap-1 p-3">
-            <span className="text-sm font-medium leading-tight line-clamp-2">{promo.name}</span>
+            <span className="text-sm font-medium leading-tight line-clamp-2">{service.name}</span>
+            {service.description && (
+              <span className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">{service.description}</span>
+            )}
             <div className="mt-auto pt-1">
-              <span className="text-xs font-semibold text-emerald-600">A partir de {formatPrice(minPrice)}</span>
+              <span className="text-xs font-semibold text-primary">{formatPrice(service.price, service.priceType)}</span>
+              <span className="block text-xs text-muted-foreground">{formatDuration(service.duration)}</span>
             </div>
           </div>
           {isSelected && (
@@ -286,23 +223,138 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
             </div>
           )}
         </button>
+        {renderEyeButton(`Ver detalhes de ${service.name}`, () => setDetailItem({ kind: 'service', data: service }))}
+      </div>
+    )
+  }
+
+  function renderPackageCard(pkg: PickerPackage) {
+    const totalDuration = pkg.items.reduce((s, i) => s + i.service.duration, 0)
+    const isSelected = selectedId === pkg.id
+    return (
+      <div key={pkg.id} className="relative w-32 shrink-0 sm:w-36">
+        <button
+          type="button"
+          onClick={() => onSelect({ type: 'package', item: pkg })}
+          className={cn(
+            'group relative flex w-full flex-col overflow-hidden rounded-2xl border text-left transition-all',
+            isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border/50 hover:border-primary/40',
+          )}
+        >
+          <EntityImage
+            src={pkg.imageUrl}
+            alt={pkg.name}
+            shape="portrait"
+            cropX={pkg.imageCropX}
+            cropY={pkg.imageCropY}
+            cropZoom={pkg.imageCropZoom}
+            className="w-full rounded-none"
+            fallback={<span className="text-2xl text-muted-foreground/30">🎁</span>}
+          />
+          <div className="flex flex-1 flex-col gap-1 p-3">
+            <span className="text-sm font-medium leading-tight line-clamp-2">{pkg.name}</span>
+            <span className="text-xs text-muted-foreground line-clamp-2">
+              {pkg.items.map((i) => i.service.name).join(' + ')}
+            </span>
+            <div className="mt-auto pt-1">
+              <span className="text-xs font-semibold text-primary">{formatPrice(pkg.price)}</span>
+              <span className="block text-xs text-muted-foreground">{formatDuration(totalDuration)}</span>
+            </div>
+          </div>
+          {isSelected && (
+            <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+              <span className="text-[10px] text-primary-foreground">✓</span>
+            </div>
+          )}
+        </button>
+        {renderEyeButton(`Ver detalhes de ${pkg.name}`, () => setDetailItem({ kind: 'package', data: pkg }))}
+      </div>
+    )
+  }
+
+  function renderPromotionCard(promo: PickerPromotion) {
+    const priced = computePromotionPricing(promo)
+    if (priced.length === 0) return null
+
+    const cheapest = cheapestPromotionOption(promo)!
+    const compositionLabel = priced.map((w) => w.service.name).join(' + ')
+    const isSelected = priced.some((w) => selectedId === w.serviceId)
+    const isExpanded = expandedPromoId === promo.id
+
+    function selectDefault() {
+      onSelect({
+        type: 'promotion',
+        promotionId: promo.id,
+        service: {
+          id: cheapest.serviceId,
+          name: cheapest.service.name,
+          price: cheapest.discountedPrice,
+          duration: cheapest.service.duration ?? 0,
+        },
+      })
+    }
+
+    return (
+      <div key={promo.id} className="w-32 shrink-0 sm:w-36">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              if (isExpanded) {
+                setExpandedPromoId(null)
+                return
+              }
+              setExpandedPromoId(promo.id)
+              if (!isSelected) selectDefault()
+            }}
+            className={cn(
+              'group relative flex w-full flex-col overflow-hidden rounded-2xl border text-left transition-all',
+              isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border/50 hover:border-primary/40',
+            )}
+          >
+            <EntityImage
+              src={promo.imageUrl}
+              alt={promo.name}
+              shape="portrait"
+              cropX={promo.imageCropX}
+              cropY={promo.imageCropY}
+              cropZoom={promo.imageCropZoom}
+              className="w-full rounded-none"
+              fallback={<span className="text-2xl text-muted-foreground/30">%</span>}
+            />
+            <div className="flex flex-1 flex-col gap-1 p-3">
+              <span className="text-sm font-medium leading-tight line-clamp-2">{promo.name}</span>
+              <span className="text-xs text-muted-foreground line-clamp-2">{compositionLabel}</span>
+              <div className="mt-auto pt-1">
+                <span className="text-xs font-semibold text-emerald-600">A partir de {formatCurrency(cheapest.discountedPrice)}</span>
+                <span className="block text-xs text-muted-foreground">{formatDuration(cheapest.service.duration ?? 0)}</span>
+              </div>
+            </div>
+            {isSelected && (
+              <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                <span className="text-[10px] text-primary-foreground">✓</span>
+              </div>
+            )}
+          </button>
+          {renderEyeButton(`Ver detalhes de ${promo.name}`, () => setDetailItem({ kind: 'promotion', data: promo }))}
+        </div>
 
         {isExpanded && (
           <div className="mt-2 space-y-1.5">
-            {withPrices.map(({ item, originalPrice, discountedPrice }) => {
-              const itemSelected = selectedId === item.serviceId
+            {priced.map(({ serviceId, service, originalPrice, discountedPrice }) => {
+              const itemSelected = selectedId === serviceId
               return (
                 <button
-                  key={item.serviceId}
+                  key={serviceId}
                   type="button"
                   onClick={() => onSelect({
                     type: 'promotion',
                     promotionId: promo.id,
                     service: {
-                      id: item.serviceId,
-                      name: item.service.name,
+                      id: serviceId,
+                      name: service.name,
                       price: discountedPrice,
-                      duration: item.service.duration ?? 0,
+                      duration: service.duration ?? 0,
                     },
                   })}
                   className={cn(
@@ -310,9 +362,9 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
                     itemSelected ? 'border-primary ring-1 ring-primary/20' : 'border-slate-100 hover:border-primary/40',
                   )}
                 >
-                  <span className="block text-xs font-medium text-slate-900 line-clamp-1">{item.service.name}</span>
-                  <span className="text-xs font-semibold text-emerald-600">{formatPrice(discountedPrice)}</span>{' '}
-                  <span className="text-[11px] text-slate-400 line-through">{formatPrice(originalPrice)}</span>
+                  <span className="block text-xs font-medium text-slate-900 line-clamp-1">{service.name}</span>
+                  <span className="text-xs font-semibold text-emerald-600">{formatCurrency(discountedPrice)}</span>{' '}
+                  <span className="text-[11px] text-slate-400 line-through">{formatCurrency(originalPrice)}</span>
                 </button>
               )
             })}
@@ -323,6 +375,11 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
   }
 
   const hasResults = visibleServices.length > 0 || visiblePackages.length > 0 || visiblePromotions.length > 0
+
+  function handleSelectFromDetail(selection: PickerSelection) {
+    setDetailItem(null)
+    onSelect(selection)
+  }
 
   return (
     <div className="min-w-0 space-y-3">
@@ -367,6 +424,8 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
           {visiblePromotions.map((p) => renderPromotionCard(p))}
         </div>
       )}
+
+      <PickerDetailModal item={detailItem} onClose={() => setDetailItem(null)} onSelect={handleSelectFromDetail} />
     </div>
   )
 }

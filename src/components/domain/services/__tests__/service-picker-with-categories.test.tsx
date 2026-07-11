@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, within } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   ServicePickerWithCategories,
@@ -58,7 +58,7 @@ describe('ServicePickerWithCategories', () => {
     expect(screen.getByText('Consultoria de imagem')).toBeInTheDocument()
   })
 
-  it('mostra pacotes e promoções junto com os serviços na mesma listagem em "Todos"', () => {
+  it('em "Todos" mostra apenas serviços — pacotes e promoções ficam escondidos até filtrar', () => {
     render(
       <ServicePickerWithCategories
         services={services}
@@ -68,9 +68,9 @@ describe('ServicePickerWithCategories', () => {
         onSelect={() => {}}
       />,
     )
-    expect(screen.getAllByText('Corte Feminino').length).toBeGreaterThan(0)
-    expect(screen.getByText('Corte com Hidratação')).toBeInTheDocument()
-    expect(screen.getByText('Mês de Julho OFF')).toBeInTheDocument()
+    expect(screen.getByText('Corte Feminino')).toBeInTheDocument()
+    expect(screen.queryByText('Corte com Hidratação')).not.toBeInTheDocument()
+    expect(screen.queryByText('Mês de Julho OFF')).not.toBeInTheDocument()
   })
 
   it('chips seguem a sequência Todos, Pacotes e Promoções e depois categorias', () => {
@@ -189,5 +189,51 @@ describe('ServicePickerWithCategories', () => {
       <ServicePickerWithCategories services={[]} categories={categories} onSelect={() => {}} />,
     )
     expect(screen.getByText('Nenhum item disponível.')).toBeInTheDocument()
+  })
+
+  it('mostra a duração da promoção no card, junto com os serviços inclusos', () => {
+    render(
+      <ServicePickerWithCategories
+        services={services}
+        categories={categories}
+        promotions={promotions}
+        onSelect={() => {}}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Pacotes e Promoções' }))
+
+    expect(screen.getByText('Alisamento + Hidratação')).toBeInTheDocument()
+    expect(screen.getByText('1h')).toBeInTheDocument()
+  })
+
+  it('ícone de olho abre o detalhe completo sem disparar onSelect', () => {
+    const onSelect = vi.fn()
+    const servicesWithDescription: PickerService[] = [
+      { ...services[2]!, description: 'Descrição completa do corte feminino, com todos os detalhes do procedimento.' },
+    ]
+    render(
+      <ServicePickerWithCategories services={servicesWithDescription} categories={categories} onSelect={onSelect} />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Ver detalhes de Corte Feminino' }))
+
+    expect(onSelect).not.toHaveBeenCalled()
+    const dialog = screen.getByRole('dialog')
+    expect(
+      within(dialog).getByText('Descrição completa do corte feminino, com todos os detalhes do procedimento.'),
+    ).toBeInTheDocument()
+  })
+
+  it('botão "Selecionar" do modal de detalhe chama onSelect e fecha o modal', () => {
+    const onSelect = vi.fn()
+    render(
+      <ServicePickerWithCategories services={services} categories={categories} onSelect={onSelect} />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Ver detalhes de Corte Feminino' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Selecionar' }))
+
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'service', item: expect.objectContaining({ id: 's3' }) }),
+    )
+    expect(screen.queryByRole('heading', { name: 'Corte Feminino' })).not.toBeInTheDocument()
   })
 })
