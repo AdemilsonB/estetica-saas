@@ -1,5 +1,6 @@
 'use client'
 
+import { createPortal } from 'react-dom'
 import {
   Dialog,
   DialogContent,
@@ -48,10 +49,14 @@ function formatDiscountLabel(promo: PickerPromotion): string {
 export function PickerDetailModal({ item, onClose, onSelect }: Props) {
   return (
     <Dialog open={item !== null} onOpenChange={(o) => !o && onClose()} modal={false}>
-      <DialogContent
-        overlayClassName="bg-black/70 backdrop-blur-sm"
-        className="sm:max-w-md max-h-[90vh] overflow-y-auto"
-      >
+      {item !== null && typeof document !== 'undefined' && createPortal(
+        // Dialog raiz usa modal={false} pra evitar o bug de Dialog aninhado do Radix
+        // (ver PR #267) — o DialogOverlay padrão não renderiza nada nesse modo, então
+        // esse overlay manual escurece e bloqueia clique no modal por trás.
+        <div aria-hidden onClick={onClose} className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" />,
+        document.body,
+      )}
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         {item?.kind === 'service' && (
           <ServiceDetail service={item.data} onSelect={onSelect} />
         )}
