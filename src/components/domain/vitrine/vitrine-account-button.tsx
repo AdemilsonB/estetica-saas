@@ -2,15 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { EntityImage } from '@/components/domain/shared/entity-image'
-
-type Me = {
-  name: string
-  avatarUrl: string | null
-  avatarCropX: number | null
-  avatarCropY: number | null
-  avatarCropZoom: number | null
-}
 
 type Props = {
   slug: string
@@ -23,14 +14,14 @@ type Props = {
  * Enquanto não identificado, não renderiza nada (o acesso "Entrar" fica no menu lateral).
  */
 export function VitrineAccountButton({ slug, variant }: Props) {
-  const [me, setMe] = useState<Me | null>(null)
+  const [name, setName] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
     fetch(`/api/public/${encodeURIComponent(slug)}/me`, { credentials: 'include' })
-      .then((res) => (res.ok ? (res.json() as Promise<Me>) : null))
+      .then((res) => (res.ok ? (res.json() as Promise<{ name: string }>) : null))
       .then((data) => {
-        if (active) setMe(data)
+        if (active) setName(data?.name ?? null)
       })
       .catch(() => {})
     return () => {
@@ -38,26 +29,20 @@ export function VitrineAccountButton({ slug, variant }: Props) {
     }
   }, [slug])
 
-  if (!me?.name) return null
+  if (!name) return null
 
-  const ring = variant === 'overlay' ? 'border-white/60 ring-2 ring-white/30' : 'border-border'
+  const styles =
+    variant === 'overlay'
+      ? 'border-white/60 bg-white/20 text-white ring-2 ring-white/30 backdrop-blur-sm'
+      : 'border-border bg-muted text-foreground'
 
   return (
     <Link
       href={`/${slug}/cliente`}
-      aria-label={`Meu perfil — ${me.name}`}
-      className="shrink-0"
+      aria-label={`Meu perfil — ${name}`}
+      className={`flex size-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${styles}`}
     >
-      <EntityImage
-        src={me.avatarUrl}
-        alt={me.name}
-        shape="circle"
-        cropX={me.avatarCropX}
-        cropY={me.avatarCropY}
-        cropZoom={me.avatarCropZoom}
-        className={`size-9 border ${ring}`}
-        fallback={<span className="text-xs font-bold">{me.name[0]?.toUpperCase()}</span>}
-      />
+      {name[0]?.toUpperCase()}
     </Link>
   )
 }

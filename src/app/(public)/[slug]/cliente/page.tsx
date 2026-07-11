@@ -46,10 +46,6 @@ export default async function ClientePage({
       phone: true,
       email: true,
       birthDate: true,
-      avatarUrl: true,
-      avatarCropX: true,
-      avatarCropY: true,
-      avatarCropZoom: true,
       appointments: {
         where: { tenantId: tenant.id },
         orderBy: { startsAt: 'desc' },
@@ -95,10 +91,6 @@ export default async function ClientePage({
         phone: customer.phone,
         email: customer.email,
         birthDate: customer.birthDate?.toISOString() ?? null,
-        avatarUrl: customer.avatarUrl,
-        avatarCropX: customer.avatarCropX,
-        avatarCropY: customer.avatarCropY,
-        avatarCropZoom: customer.avatarCropZoom,
       }}
       upcoming={upcoming.map((a) => ({
         id: a.id,
