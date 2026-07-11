@@ -218,7 +218,7 @@ export function VitrineServicesList({ services, bookingBaseUrl, primaryColor, te
       </div>
 
       {!isSearching && chips.length > 1 && (
-        <div className="mb-3 flex min-w-0 touch-pan-x gap-2 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
+        <div className="mb-3 flex min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {chips.map((chip) => (
             <button
               key={chip.id ?? 'all'}
@@ -241,7 +241,7 @@ export function VitrineServicesList({ services, bookingBaseUrl, primaryColor, te
           {isSearching ? `Nenhum serviço encontrado para "${search.trim()}".` : 'Nenhum serviço encontrado com esse filtro.'}
         </p>
       ) : (
-        <div className="flex min-w-0 touch-pan-x gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
+        <div className="flex min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {visibleServices.map((s) => (
             <ServiceCard key={s.id} service={s} bookingBaseUrl={bookingBaseUrl} primaryColor={primaryColor} />
           ))}

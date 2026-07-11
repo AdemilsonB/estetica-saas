@@ -49,7 +49,7 @@ async function renderEntrar() {
 }
 
 describe('EntrarPage', () => {
-  it('ao logar com sucesso, redireciona para a página completa do cliente (/[slug]/cliente)', async () => {
+  it('ao logar com sucesso, redireciona para a vitrine pública (/[slug])', async () => {
     mockFetch()
     const user = userEvent.setup()
 
@@ -59,10 +59,10 @@ describe('EntrarPage', () => {
     fireEvent.change(screen.getByLabelText('Data de nascimento'), { target: { value: '1990-01-01' } })
     await user.click(screen.getByRole('button', { name: /^entrar$/i }))
 
-    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/salao-teste/cliente'))
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/salao-teste'))
   })
 
-  it('oferece a opção de criar conta nova, e ao cadastrar redireciona para a página do cliente', async () => {
+  it('oferece a opção de criar conta nova, e ao cadastrar redireciona para a vitrine pública', async () => {
     mockFetch()
     const user = userEvent.setup()
 
@@ -78,6 +78,6 @@ describe('EntrarPage', () => {
 
     await user.click(screen.getByRole('button', { name: /cadastrar e continuar/i }))
 
-    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/salao-teste/cliente'))
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/salao-teste'))
   })
 })

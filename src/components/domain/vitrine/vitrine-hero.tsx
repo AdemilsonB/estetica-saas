@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { MapPin, Clock, Users, Menu } from 'lucide-react'
 import { InstagramIcon, WhatsAppIcon, VerifiedIcon } from './vitrine-icons'
 import { VitrineRebookBand } from './vitrine-rebook-band'
+import { VitrineAccountButton } from './vitrine-account-button'
 
 const SEGMENT_LABELS: Record<string, string> = {
   HAIR_SALON: 'Salão de Beleza',
@@ -163,6 +164,7 @@ export function VitrineHero({
                   <WhatsAppIcon className="size-4 text-[#25D366]" />
                 </a>
               )}
+              <VitrineAccountButton slug={slug} variant="overlay" />
             </div>
           </div>
 
@@ -226,6 +228,7 @@ export function VitrineHero({
                 <WhatsAppIcon className="size-4 text-[#25D366]" />
               </a>
             )}
+            <VitrineAccountButton slug={slug} variant="plain" />
           </div>
 
           <span

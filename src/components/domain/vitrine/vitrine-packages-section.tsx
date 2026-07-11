@@ -138,7 +138,7 @@ export function VitrinePackagesSection({ packages, bookingBaseUrl, primaryColor 
           Nenhum pacote encontrado com esse filtro.
         </p>
       ) : (
-        <div className="flex min-w-0 touch-pan-x gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
+        <div className="flex min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {filtered.map((pkg) => (
             <PackageCard key={pkg.id} pkg={pkg} bookingBaseUrl={bookingBaseUrl} primaryColor={primaryColor} />
           ))}

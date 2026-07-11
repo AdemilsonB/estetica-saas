@@ -39,6 +39,10 @@ export async function GET(req: Request, context: RouteContext) {
         phone: true,
         email: true,
         birthDate: true,
+        avatarUrl: true,
+        avatarCropX: true,
+        avatarCropY: true,
+        avatarCropZoom: true,
         appointments: {
           where: { tenantId: tenant.id },
           orderBy: { startsAt: 'desc' },
@@ -67,6 +71,10 @@ export async function GET(req: Request, context: RouteContext) {
       phone: customer.phone,
       email: customer.email,
       birthDate: customer.birthDate,
+      avatarUrl: customer.avatarUrl,
+      avatarCropX: customer.avatarCropX,
+      avatarCropY: customer.avatarCropY,
+      avatarCropZoom: customer.avatarCropZoom,
       appointments: customer.appointments.map((a) => ({
         id: a.id,
         startsAt: a.startsAt,
