@@ -208,10 +208,14 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
             fallback={<span className="text-2xl text-muted-foreground/30">✂</span>}
           />
           <div className="flex flex-1 flex-col gap-1 p-3">
-            <span className="text-sm font-medium leading-tight line-clamp-2">{service.name}</span>
-            {service.description && (
-              <span className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">{service.description}</span>
-            )}
+            <div className="min-h-9">
+              <span className="text-sm font-medium leading-tight line-clamp-2">{service.name}</span>
+            </div>
+            <div className="min-h-8">
+              {service.description && (
+                <span className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">{service.description}</span>
+              )}
+            </div>
             <div className="mt-auto pt-1">
               <span className="text-xs font-semibold text-primary">{formatPrice(service.price, service.priceType)}</span>
               <span className="block text-xs text-muted-foreground">{formatDuration(service.duration)}</span>
@@ -252,10 +256,14 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
             fallback={<span className="text-2xl text-muted-foreground/30">🎁</span>}
           />
           <div className="flex flex-1 flex-col gap-1 p-3">
-            <span className="text-sm font-medium leading-tight line-clamp-2">{pkg.name}</span>
-            <span className="text-xs text-muted-foreground line-clamp-2">
-              {pkg.items.map((i) => i.service.name).join(' + ')}
-            </span>
+            <div className="min-h-9">
+              <span className="text-sm font-medium leading-tight line-clamp-2">{pkg.name}</span>
+            </div>
+            <div className="min-h-8">
+              <span className="text-xs text-muted-foreground line-clamp-2">
+                {pkg.items.map((i) => i.service.name).join(' + ')}
+              </span>
+            </div>
             <div className="mt-auto pt-1">
               <span className="text-xs font-semibold text-primary">{formatPrice(pkg.price)}</span>
               <span className="block text-xs text-muted-foreground">{formatDuration(totalDuration)}</span>
@@ -323,8 +331,12 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
               fallback={<span className="text-2xl text-muted-foreground/30">%</span>}
             />
             <div className="flex flex-1 flex-col gap-1 p-3">
-              <span className="text-sm font-medium leading-tight line-clamp-2">{promo.name}</span>
-              <span className="text-xs text-muted-foreground line-clamp-2">{compositionLabel}</span>
+              <div className="min-h-9">
+                <span className="text-sm font-medium leading-tight line-clamp-2">{promo.name}</span>
+              </div>
+              <div className="min-h-8">
+                <span className="text-xs text-muted-foreground line-clamp-2">{compositionLabel}</span>
+              </div>
               <div className="mt-auto pt-1">
                 <span className="text-xs font-semibold text-emerald-600">A partir de {formatCurrency(cheapest.discountedPrice)}</span>
                 <span className="block text-xs text-muted-foreground">{formatDuration(cheapest.service.duration ?? 0)}</span>
