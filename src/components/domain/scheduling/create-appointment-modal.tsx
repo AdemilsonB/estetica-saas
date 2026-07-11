@@ -292,7 +292,9 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
                   .filter((i) => i.service !== null)
                   .map((i) => ({
                     serviceId: i.serviceId,
-                    service: i.service ? { id: i.service.id, name: i.service.name, price: i.service.price } : null,
+                    service: i.service
+                      ? { id: i.service.id, name: i.service.name, price: i.service.price, duration: i.service.duration }
+                      : null,
                   })),
               }))}
               selectedId={serviceId || packageId || undefined}

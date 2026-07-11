@@ -4,7 +4,7 @@ import { prisma } from '@/shared/database/prisma'
 const INCLUDE = {
   items: {
     include: {
-      service: { select: { id: true, name: true, price: true } },
+      service: { select: { id: true, name: true, price: true, duration: true } },
       package: { select: { id: true, name: true, price: true } },
     },
   },

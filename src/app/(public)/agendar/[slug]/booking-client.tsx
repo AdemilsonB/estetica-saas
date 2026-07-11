@@ -186,6 +186,8 @@ export function BookingClient({
     setBooking((b) => ({
       ...b,
       serviceId: service.id,
+      packageId: undefined,
+      promotionId: undefined,
       serviceName: service.name,
       serviceDuration: service.duration,
       servicePrice: priceLabel,
