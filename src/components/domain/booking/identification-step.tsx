@@ -35,7 +35,6 @@ export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryCo
   const [sessionName, setSessionName] = useState<string | null>(null)
   const [loadingSession, setLoadingSession] = useState(true)
   const [cpf, setCpf] = useState('')
-  const [birthDate, setBirthDate] = useState('')
   const [newName, setNewName] = useState('')
   const [newCpf, setNewCpf] = useState('')
   const [newPhone, setNewPhone] = useState('')
@@ -67,7 +66,7 @@ export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryCo
       const res = await fetch(`/api/public/${tenantSlug}/auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cpf: cpf.replace(/\D/g, ''), birthDate }),
+        body: JSON.stringify({ cpf: cpf.replace(/\D/g, '') }),
       })
       const data = (await res.json()) as { id?: string; name?: string; error?: { message: string } }
       if (!res.ok) {
@@ -212,16 +211,7 @@ export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryCo
                 onChange={(e) => setCpf(applyCpfMask(e.target.value))}
                 required
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="id-birth">Data de nascimento</Label>
-              <Input
-                id="id-birth"
-                type="date"
-                value={birthDate}
-                onChange={(e) => setBirthDate(e.target.value)}
-                required
-              />
+              <p className="text-xs text-slate-400">Entre com o CPF cadastrado.</p>
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
               {loading ? <Loader2 className="size-4 animate-spin" /> : 'Entrar'}
