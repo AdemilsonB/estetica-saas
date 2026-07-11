@@ -1,5 +1,0 @@
--- AlterTable
-ALTER TABLE "Customer" ADD COLUMN "avatarUrl" TEXT;
-ALTER TABLE "Customer" ADD COLUMN "avatarCropX" DOUBLE PRECISION;
-ALTER TABLE "Customer" ADD COLUMN "avatarCropY" DOUBLE PRECISION;
-ALTER TABLE "Customer" ADD COLUMN "avatarCropZoom" DOUBLE PRECISION;

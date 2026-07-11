@@ -10,8 +10,6 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { weekdayLabel, formatHourRange, WEEK_DISPLAY_ORDER, type BusinessHoursMap } from '@/lib/business-hours'
-import { EntityImage } from '@/components/domain/shared/entity-image'
-import { CustomerAvatarUpload } from './customer-avatar-upload'
 
 type AppointmentRow = {
   id: string
@@ -29,10 +27,6 @@ type Customer = {
   phone: string | null
   email: string | null
   birthDate: string | null
-  avatarUrl: string | null
-  avatarCropX: number | null
-  avatarCropY: number | null
-  avatarCropZoom: number | null
 }
 
 type BusinessInfo = {
@@ -131,22 +125,9 @@ export function CustomerHistoryClient({
             >
               <ArrowLeft className="size-5" />
             </Link>
-            {customer.avatarUrl ? (
-              <EntityImage
-                src={customer.avatarUrl}
-                alt={customer.name}
-                shape="circle"
-                cropX={customer.avatarCropX}
-                cropY={customer.avatarCropY}
-                cropZoom={customer.avatarCropZoom}
-                className="size-11 shrink-0 border border-white/40"
-                fallback={<span className="text-base font-bold">{customer.name[0]?.toUpperCase()}</span>}
-              />
-            ) : (
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white/40 bg-white/20 text-base font-bold">
-                {customer.name[0]?.toUpperCase()}
-              </div>
-            )}
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white/40 bg-white/20 text-base font-bold">
+              {customer.name[0]?.toUpperCase()}
+            </div>
             <h1 className="text-base font-bold leading-tight">Olá, {customer.name} 👋</h1>
           </div>
           <button
@@ -173,22 +154,6 @@ export function CustomerHistoryClient({
           <p className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: primaryColor }}>
             Meus dados
           </p>
-          <div className="rounded-2xl bg-card p-4 shadow-sm">
-            <CustomerAvatarUpload
-              slug={slug}
-              name={customer.name}
-              initialAvatarUrl={customer.avatarUrl}
-              initialCrop={
-                customer.avatarCropX != null && customer.avatarCropY != null && customer.avatarCropZoom != null
-                  ? {
-                      cropX: customer.avatarCropX,
-                      cropY: customer.avatarCropY,
-                      cropZoom: customer.avatarCropZoom,
-                    }
-                  : null
-              }
-            />
-          </div>
           <div className="rounded-2xl bg-card px-4 py-3 shadow-sm space-y-1">
             <p className="text-sm">
               <span className="text-muted-foreground">Nome:</span> {customer.name}
