@@ -189,7 +189,7 @@ export function VitrinePromotionsSection({ promotions, bookingBaseUrl, primaryCo
           Nenhuma promoção encontrada com esse filtro.
         </p>
       ) : (
-        <div className="flex min-w-0 touch-pan-x gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
+        <div className="flex min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {filtered.map((promo) => (
             <PromotionCard key={promo.id} promo={promo} bookingBaseUrl={bookingBaseUrl} primaryColor={primaryColor} />
           ))}

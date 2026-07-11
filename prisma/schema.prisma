@@ -390,6 +390,10 @@ model Customer {
   blockedAt          DateTime?
   favoriteServiceIds String[]          @default([])
   favoritePackageIds String[]          @default([])
+  avatarUrl          String?
+  avatarCropX        Float?
+  avatarCropY        Float?
+  avatarCropZoom     Float?
   deletedAt          DateTime?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt

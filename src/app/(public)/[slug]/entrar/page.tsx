@@ -32,7 +32,7 @@ export default function EntrarPage({ params }: { params: Promise<{ slug: string 
         gateMode
         primaryColor="#7C3AED"
         onBack={() => {}}
-        onIdentified={() => router.replace(`/${slug}/cliente`)}
+        onIdentified={() => router.replace(`/${slug}`)}
       />
     </div>
   )

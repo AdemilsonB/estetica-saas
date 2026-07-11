@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { MessageCircle, LogOut, CalendarDays, Clock, ArrowLeft } from 'lucide-react'
+import { MessageCircle, LogOut, CalendarDays, Clock, ArrowLeft, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,6 +10,8 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { weekdayLabel, formatHourRange, WEEK_DISPLAY_ORDER, type BusinessHoursMap } from '@/lib/business-hours'
+import { EntityImage } from '@/components/domain/shared/entity-image'
+import { CustomerAvatarUpload } from './customer-avatar-upload'
 
 type AppointmentRow = {
   id: string
@@ -27,6 +29,10 @@ type Customer = {
   phone: string | null
   email: string | null
   birthDate: string | null
+  avatarUrl: string | null
+  avatarCropX: number | null
+  avatarCropY: number | null
+  avatarCropZoom: number | null
 }
 
 type BusinessInfo = {
@@ -70,6 +76,7 @@ export function CustomerHistoryClient({
   const [email, setEmail] = useState(customer.email ?? '')
   const [saving, setSaving] = useState(false)
   const [page, setPage] = useState(0)
+  const [hoursOpen, setHoursOpen] = useState(false)
 
   const businessHours =
     business.businessHours && typeof business.businessHours === 'object'
@@ -124,9 +131,22 @@ export function CustomerHistoryClient({
             >
               <ArrowLeft className="size-5" />
             </Link>
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white/40 bg-white/20 text-base font-bold">
-              {customer.name[0]?.toUpperCase()}
-            </div>
+            {customer.avatarUrl ? (
+              <EntityImage
+                src={customer.avatarUrl}
+                alt={customer.name}
+                shape="circle"
+                cropX={customer.avatarCropX}
+                cropY={customer.avatarCropY}
+                cropZoom={customer.avatarCropZoom}
+                className="size-11 shrink-0 border border-white/40"
+                fallback={<span className="text-base font-bold">{customer.name[0]?.toUpperCase()}</span>}
+              />
+            ) : (
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white/40 bg-white/20 text-base font-bold">
+                {customer.name[0]?.toUpperCase()}
+              </div>
+            )}
             <h1 className="text-base font-bold leading-tight">Olá, {customer.name} 👋</h1>
           </div>
           <button
@@ -147,6 +167,65 @@ export function CustomerHistoryClient({
         >
           Novo agendamento
         </Link>
+
+        {/* Meus dados — primeiro bloco do perfil */}
+        <div className="space-y-3">
+          <p className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: primaryColor }}>
+            Meus dados
+          </p>
+          <div className="rounded-2xl bg-card p-4 shadow-sm">
+            <CustomerAvatarUpload
+              slug={slug}
+              name={customer.name}
+              initialAvatarUrl={customer.avatarUrl}
+              initialCrop={
+                customer.avatarCropX != null && customer.avatarCropY != null && customer.avatarCropZoom != null
+                  ? {
+                      cropX: customer.avatarCropX,
+                      cropY: customer.avatarCropY,
+                      cropZoom: customer.avatarCropZoom,
+                    }
+                  : null
+              }
+            />
+          </div>
+          <div className="rounded-2xl bg-card px-4 py-3 shadow-sm space-y-1">
+            <p className="text-sm">
+              <span className="text-muted-foreground">Nome:</span> {customer.name}
+            </p>
+            <p className="text-sm">
+              <span className="text-muted-foreground">CPF:</span> {customer.cpf}
+            </p>
+            {customer.birthDate && (
+              <p className="text-sm">
+                <span className="text-muted-foreground">Nascimento:</span>{' '}
+                {new Date(customer.birthDate).toLocaleDateString('pt-BR')}
+              </p>
+            )}
+          </div>
+          <form onSubmit={handleSave} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-phone">Telefone</Label>
+              <Input
+                id="edit-phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-email">E-mail</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <Button type="submit" variant="outline" size="sm" disabled={saving}>
+              {saving ? 'Salvando...' : 'Atualizar dados'}
+            </Button>
+          </form>
+        </div>
 
         {/* Próximo agendamento */}
         {firstUpcoming && (
@@ -196,8 +275,13 @@ export function CustomerHistoryClient({
             <div className="rounded-2xl bg-card p-4 shadow-sm space-y-4">
               {hasBusinessHours && (
                 <div className="space-y-1.5">
-                  <div className="mb-1 flex items-center gap-2">
-                    <Clock className="size-4" style={{ color: primaryColor }} />
+                  <button
+                    type="button"
+                    onClick={() => setHoursOpen((v) => !v)}
+                    aria-expanded={hoursOpen}
+                    className="flex w-full items-center gap-2 text-left"
+                  >
+                    <Clock className="size-4 shrink-0" style={{ color: primaryColor }} />
                     <span className="text-sm font-medium">Horário de funcionamento</span>
                     {business.todayWeekdayIndex !== null && (
                       <span
@@ -210,23 +294,31 @@ export function CustomerHistoryClient({
                         {business.isOpenNow ? 'Aberto agora' : 'Fechado agora'}
                       </span>
                     )}
-                  </div>
-                  {WEEK_DISPLAY_ORDER.map((day) => {
-                    const isToday = day === business.todayWeekdayIndex
-                    return (
-                      <div
-                        key={day}
-                        className={cn(
-                          'flex items-center justify-between text-xs',
-                          isToday ? 'font-semibold' : 'text-muted-foreground',
-                        )}
-                        style={isToday ? { color: primaryColor } : undefined}
-                      >
-                        <span>{weekdayLabel(day)}</span>
-                        <span>{formatHourRange(businessHours?.[String(day)])}</span>
-                      </div>
-                    )
-                  })}
+                    <ChevronDown
+                      className={cn(
+                        'size-4 shrink-0 text-muted-foreground transition-transform',
+                        business.todayWeekdayIndex === null && 'ml-auto',
+                        hoursOpen && 'rotate-180',
+                      )}
+                    />
+                  </button>
+                  {hoursOpen &&
+                    WEEK_DISPLAY_ORDER.map((day) => {
+                      const isToday = day === business.todayWeekdayIndex
+                      return (
+                        <div
+                          key={day}
+                          className={cn(
+                            'flex items-center justify-between text-xs',
+                            isToday ? 'font-semibold' : 'text-muted-foreground',
+                          )}
+                          style={isToday ? { color: primaryColor } : undefined}
+                        >
+                          <span>{weekdayLabel(day)}</span>
+                          <span>{formatHourRange(businessHours?.[String(day)])}</span>
+                        </div>
+                      )
+                    })}
                 </div>
               )}
             </div>
@@ -300,48 +392,6 @@ export function CustomerHistoryClient({
           </div>
         )}
 
-        {/* Meus dados */}
-        <div className="space-y-3">
-          <p className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: primaryColor }}>
-            Meus dados
-          </p>
-          <div className="rounded-2xl bg-card px-4 py-3 shadow-sm space-y-1">
-            <p className="text-sm">
-              <span className="text-muted-foreground">Nome:</span> {customer.name}
-            </p>
-            <p className="text-sm">
-              <span className="text-muted-foreground">CPF:</span> {customer.cpf}
-            </p>
-            {customer.birthDate && (
-              <p className="text-sm">
-                <span className="text-muted-foreground">Nascimento:</span>{' '}
-                {new Date(customer.birthDate).toLocaleDateString('pt-BR')}
-              </p>
-            )}
-          </div>
-          <form onSubmit={handleSave} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-phone">Telefone</Label>
-              <Input
-                id="edit-phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-email">E-mail</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <Button type="submit" variant="outline" size="sm" disabled={saving}>
-              {saving ? 'Salvando...' : 'Atualizar dados'}
-            </Button>
-          </form>
-        </div>
       </div>
     </div>
   )

@@ -5,6 +5,7 @@ import { History, ChevronDown, ChevronRight, LogOut, Heart } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { ClientHistoryModal } from './client-history-modal'
 import { WhatsAppIcon } from './vitrine-icons'
+import { EntityImage } from '@/components/domain/shared/entity-image'
 
 type PublicService = {
   id: string
@@ -159,6 +160,12 @@ export function PublicMenuDrawer({
   const [open, setOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [clientName, setClientName] = useState<string | null>(null)
+  const [clientAvatar, setClientAvatar] = useState<{
+    url: string | null
+    cropX: number | null
+    cropY: number | null
+    cropZoom: number | null
+  } | null>(null)
   const [favoriteServiceIds, setFavoriteServiceIds] = useState<string[]>([])
   const [favoritePackageIds, setFavoritePackageIds] = useState<string[]>([])
 
@@ -170,9 +177,29 @@ export function PublicMenuDrawer({
 
   useEffect(() => {
     fetch(`/api/public/${encodeURIComponent(slug)}/me`, { credentials: 'include' })
-      .then((res) => (res.ok ? (res.json() as Promise<{ name: string }>) : null))
-      .then((data) => setClientName(data?.name ?? null))
-      .catch(() => setClientName(null))
+      .then((res) =>
+        res.ok
+          ? (res.json() as Promise<{
+              name: string
+              avatarUrl: string | null
+              avatarCropX: number | null
+              avatarCropY: number | null
+              avatarCropZoom: number | null
+            }>)
+          : null,
+      )
+      .then((data) => {
+        setClientName(data?.name ?? null)
+        setClientAvatar(
+          data
+            ? { url: data.avatarUrl, cropX: data.avatarCropX, cropY: data.avatarCropY, cropZoom: data.avatarCropZoom }
+            : null,
+        )
+      })
+      .catch(() => {
+        setClientName(null)
+        setClientAvatar(null)
+      })
 
     fetch(`/api/public/${encodeURIComponent(slug)}/favorites`, { credentials: 'include' })
       .then((res) =>
@@ -251,18 +278,36 @@ export function PublicMenuDrawer({
           {/* Identidade do cliente logado */}
           {clientName ? (
             <div
-              className="mx-4 mt-3 flex items-center gap-2.5 rounded-2xl p-2.5"
+              className="mx-4 mt-3 flex items-center gap-3 rounded-2xl p-3"
               style={{ backgroundColor: `${primaryColor}14` }}
             >
-              <a href={`/${slug}/cliente`} className="flex min-w-0 flex-1 items-center gap-2.5">
-                <div
-                  className="flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  {clientName[0]?.toUpperCase()}
+              <a href={`/${slug}/cliente`} className="flex min-w-0 flex-1 items-center gap-3">
+                {clientAvatar?.url ? (
+                  <EntityImage
+                    src={clientAvatar.url}
+                    alt={clientName}
+                    shape="circle"
+                    cropX={clientAvatar.cropX}
+                    cropY={clientAvatar.cropY}
+                    cropZoom={clientAvatar.cropZoom}
+                    className="size-10 shrink-0"
+                    fallback={<span className="text-sm font-bold text-white">{clientName[0]?.toUpperCase()}</span>}
+                  />
+                ) : (
+                  <div
+                    className="flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    {clientName[0]?.toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">Olá, {clientName.split(' ')[0]}</p>
+                  <p className="text-[11px] font-medium" style={{ color: primaryColor }}>
+                    Ver meu perfil
+                  </p>
                 </div>
-                <span className="min-w-0 flex-1 truncate text-xs font-semibold">Olá, {clientName.split(' ')[0]}</span>
-                <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
               </a>
               <button
                 onClick={handleLogout}
@@ -270,7 +315,7 @@ export function PublicMenuDrawer({
                 className="flex shrink-0 items-center gap-1 text-[11px] font-semibold"
                 style={{ color: primaryColor }}
               >
-                <LogOut className="size-3" />
+                <LogOut className="size-3.5" />
                 Sair
               </button>
             </div>
