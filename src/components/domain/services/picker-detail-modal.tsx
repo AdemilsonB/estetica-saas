@@ -48,7 +48,10 @@ function formatDiscountLabel(promo: PickerPromotion): string {
 export function PickerDetailModal({ item, onClose, onSelect }: Props) {
   return (
     <Dialog open={item !== null} onOpenChange={(o) => !o && onClose()} modal={false}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        overlayClassName="bg-black/70 backdrop-blur-sm"
+        className="sm:max-w-md max-h-[90vh] overflow-y-auto"
+      >
         {item?.kind === 'service' && (
           <ServiceDetail service={item.data} onSelect={onSelect} />
         )}
