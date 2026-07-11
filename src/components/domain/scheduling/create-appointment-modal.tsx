@@ -255,7 +255,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto scrollbar-none">
         <DialogHeader>
           <DialogTitle>Novo agendamento</DialogTitle>
         </DialogHeader>
