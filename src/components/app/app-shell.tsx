@@ -25,6 +25,7 @@ import { useEffectiveActivationStatus } from '@/hooks/activation/use-effective-a
 import { isSectionPending } from '@/components/app/activation-badges'
 import { createSupabaseBrowserClient } from '@/integrations/supabase/client'
 import { useUpgradeModal } from '@/stores/upgrade-modal.store'
+import { useModalOpenStore } from '@/stores/modal-open.store'
 import { cn } from '@/lib/utils'
 import { BottomNav } from '@/components/app/bottom-nav'
 import { MobileHeader } from '@/components/app/mobile-header'
@@ -52,6 +53,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
   const router = useRouter()
   const { canAccess, user, isLoading } = usePermissions()
   const openUpgrade = useUpgradeModal((s) => s.openUpgrade)
+  const anyModalOpen = useModalOpenStore((s) => s.count > 0)
   const { data: billingStatus } = useBillingStatus()
   const { data: planNavSections, isLoading: navSectionsLoading } = useNavSections()
   const { data: activationStatus } = useEffectiveActivationStatus()
@@ -411,7 +413,8 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
         {/* Sidebar — tablet (md+) e desktop */}
         <aside
           className={cn(
-            'hidden md:flex flex-col h-screen sticky top-0 overflow-hidden border-r border-border/50 bg-background/80 backdrop-blur transition-all duration-200',
+            'flex-col h-screen sticky top-0 overflow-hidden border-r border-border/50 bg-background/80 backdrop-blur transition-all duration-200',
+            anyModalOpen ? 'hidden' : 'hidden md:flex',
             collapsed ? 'w-[64px]' : 'w-[220px]',
           )}
         >
