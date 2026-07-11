@@ -12,7 +12,6 @@ import { handleApiError } from '@/shared/http/handle-api-error'
 
 const AuthSchema = z.object({
   cpf: z.string().min(11).max(14),
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 })
 
 function normalizeCpf(cpf: string): string {
@@ -48,16 +47,11 @@ export async function POST(req: Request, context: RouteContext) {
     const tenant = await publicBookingRepository.findTenantBySlug(slug)
 
     const cpf = normalizeCpf(parsed.data.cpf)
-    const birthDate = new Date(parsed.data.birthDate)
 
     const customer = await prisma.customer.findFirst({
       where: {
         tenantId: tenant.id,
         cpf,
-        birthDate: {
-          gte: new Date(birthDate.getFullYear(), birthDate.getMonth(), birthDate.getDate()),
-          lt: new Date(birthDate.getFullYear(), birthDate.getMonth(), birthDate.getDate() + 1),
-        },
       },
       select: { id: true, name: true },
     })

@@ -56,7 +56,6 @@ describe('EntrarPage', () => {
     await renderEntrar()
 
     await user.type(await screen.findByLabelText('CPF'), '12345678901')
-    fireEvent.change(screen.getByLabelText('Data de nascimento'), { target: { value: '1990-01-01' } })
     await user.click(screen.getByRole('button', { name: /^entrar$/i }))
 
     await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/salao-teste'))
