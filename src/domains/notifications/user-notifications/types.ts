@@ -26,6 +26,9 @@ export type ManagerRecipient = {
   id: string;
   email: string;
   name: string;
+  notificationDeliveryMode: string;
+  quietHoursStart: number | null;
+  quietHoursEnd: number | null;
 } & NotificationPrefs;
 
 export type UserPrefsRow = NotificationPrefs & {
@@ -33,4 +36,27 @@ export type UserPrefsRow = NotificationPrefs & {
   email: string;
   name: string;
   role: UserRole;
+};
+
+export type RecipientContext = {
+  role: string;
+  notifyOwnAppointments: boolean;
+  notifyTeamAppointments: boolean;
+  notificationDeliveryMode: string;
+  quietHoursStart: number | null;
+  quietHoursEnd: number | null;
+};
+
+export type EnrichedAppointment = {
+  createdByUserId: string;
+  packageId: string | null;
+  serviceId: string | null;
+  serviceName: string;
+  professional: { id: string; name: string; email: string };
+};
+
+export type DigestUser = {
+  id: string;
+  email: string;
+  notificationDeliveryMode: string;
 };
