@@ -237,4 +237,26 @@ describe("UserNotificationRepository", () => {
     const result = await repo.findTodayForDigest("t1", "u1", "America/Sao_Paulo");
     expect(result).toEqual([{ type: "appointment_created" }]);
   });
+
+  it("findDeliveryPrefs busca por id e tenant", async () => {
+    prismaMock.user.findFirst.mockResolvedValue({
+      notificationDeliveryMode: "digest", quietHoursStart: 22, quietHoursEnd: 7,
+    } as never);
+    const result = await repo.findDeliveryPrefs("t1", "u1");
+    expect(result).toEqual({ notificationDeliveryMode: "digest", quietHoursStart: 22, quietHoursEnd: 7 });
+    expect(prismaMock.user.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "u1", tenantId: "t1" } }),
+    );
+  });
+
+  it("updateDeliveryPrefs atualiza e retorna os campos", async () => {
+    prismaMock.user.update.mockResolvedValue({
+      notificationDeliveryMode: "digest", quietHoursStart: 22, quietHoursEnd: 7,
+    } as never);
+    const result = await repo.updateDeliveryPrefs("t1", "u1", { notificationDeliveryMode: "digest" });
+    expect(result.notificationDeliveryMode).toBe("digest");
+    expect(prismaMock.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "u1", tenantId: "t1" }, data: { notificationDeliveryMode: "digest" } }),
+    );
+  });
 });
