@@ -311,3 +311,17 @@ O gate **não substitui** `getSessionContext`/tenant scoping — cada route.ts c
 - Migration `20260704120000_add_user_notifications` foi criada aditiva mas **não aplicada** no banco (dev inacessível na sessão) — rodar `prisma migrate resolve --applied` / `migrate deploy` antes de produção.
 - `handleApiError` **não trata `ZodError`** → input inválido retorna 500 em vez de 400. É **pré-existente e transversal** a todo o projeto (não introduzido aqui); recomendável item separado.
 - Novo cliente e aniversariantes são sempre-ligados para gestores na v1 (sem toggle individual); cancelamento/reagendamento/no-show e push nativo/PWA ficam para fases futuras (arquitetura já pronta para somar).
+
+> **Atualização 2026-07-13:** o disparo evoluiu de `notifyAppointment`
+> (fire-and-forget, service único) para um dispatcher genérico orientado a
+> `eventType`, com configuração em 3 tabelas novas (`TenantNotificationSetting`,
+> `UserNotificationPreference`, `NotificationTemplate`) e entrega de e-mail via
+> fila durável `pg-boss` (`team-notification-email`, processada pelo
+> `/api/cron/tick` — nunca mais inline após a resposta HTTP). Adicionado
+> `daily_digest` (resumo do dia) e modo anti-fadiga (`notificationDeliveryMode`
+> realtime/digest + `quietHoursStart/End`). Os 3 booleans legados no `User`
+> continuam existindo por compatibilidade (`notifyEmailAppointments` com
+> dual-write para a tabela nova; `notifyOwnAppointments`/`notifyTeamAppointments`
+> lidos diretamente, sem equivalente na tabela nova — ver plano
+> `docs/superpowers/plans/2026-07-13-central-notificacoes-equipe-motor.md`).
+> A aba de configuração (UI) é entrega separada.
