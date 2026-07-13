@@ -1,6 +1,7 @@
 import type { Prisma, UserNotification } from "@prisma/client";
 import { UserRole } from "@prisma/client";
 
+import { dayBoundsInTz } from "@/lib/dates";
 import { prisma } from "@/shared/database/prisma";
 import type {
   CreateUserNotificationInput,
@@ -162,11 +163,9 @@ export class UserNotificationRepository {
   async findPendingWorklist(
     tenantId: string,
     userId: string,
+    tz: string,
   ): Promise<{ appointmentsAwaitingConfirmation: number; paymentsPending: number }> {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
+    const { start, end } = dayBoundsInTz(tz);
 
     const [appointmentsAwaitingConfirmation, paymentsPending] = await Promise.all([
       prisma.appointment.count({
@@ -187,19 +186,15 @@ export class UserNotificationRepository {
     });
   }
 
-  async countTodayAppointmentsFor(tenantId: string, professionalId: string): Promise<number> {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
+  async countTodayAppointmentsFor(tenantId: string, professionalId: string, tz: string): Promise<number> {
+    const { start, end } = dayBoundsInTz(tz);
     return prisma.appointment.count({
       where: { tenantId, professionalId, startsAt: { gte: start, lte: end }, status: { not: "CANCELLED" } },
     });
   }
 
-  async findTodayForDigest(tenantId: string, userId: string): Promise<{ type: string }[]> {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
+  async findTodayForDigest(tenantId: string, userId: string, tz: string): Promise<{ type: string }[]> {
+    const { start } = dayBoundsInTz(tz);
     return prisma.userNotification.findMany({
       where: { tenantId, userId, createdAt: { gte: start } },
       select: { type: true },

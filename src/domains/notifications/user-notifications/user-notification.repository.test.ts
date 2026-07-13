@@ -207,7 +207,7 @@ describe("UserNotificationRepository", () => {
 
   it("findPendingWorklist conta agendamentos de hoje aguardando confirmação e pagamentos pendentes", async () => {
     prismaMock.appointment.count.mockResolvedValueOnce(3).mockResolvedValueOnce(2);
-    const result = await repo.findPendingWorklist("t1", "u1");
+    const result = await repo.findPendingWorklist("t1", "u1", "America/Sao_Paulo");
     expect(result).toEqual({ appointmentsAwaitingConfirmation: 3, paymentsPending: 2 });
   });
 
@@ -223,7 +223,7 @@ describe("UserNotificationRepository", () => {
 
   it("countTodayAppointmentsFor conta agendamentos do dia do profissional, excluindo cancelados", async () => {
     prismaMock.appointment.count.mockResolvedValue(5);
-    const count = await repo.countTodayAppointmentsFor("t1", "p1");
+    const count = await repo.countTodayAppointmentsFor("t1", "p1", "America/Sao_Paulo");
     expect(count).toBe(5);
     expect(prismaMock.appointment.count).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -234,7 +234,7 @@ describe("UserNotificationRepository", () => {
 
   it("findTodayForDigest retorna os tipos de notificação de hoje do usuário", async () => {
     prismaMock.userNotification.findMany.mockResolvedValue([{ type: "appointment_created" }] as never);
-    const result = await repo.findTodayForDigest("t1", "u1");
+    const result = await repo.findTodayForDigest("t1", "u1", "America/Sao_Paulo");
     expect(result).toEqual([{ type: "appointment_created" }]);
   });
 });
