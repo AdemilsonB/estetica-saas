@@ -325,3 +325,20 @@ O gate **não substitui** `getSessionContext`/tenant scoping — cada route.ts c
 > lidos diretamente, sem equivalente na tabela nova — ver plano
 > `docs/superpowers/plans/2026-07-13-central-notificacoes-equipe-motor.md`).
 > A aba de configuração (UI) é entrega separada.
+>
+> **Runbook de deploy obrigatório (achado na revisão final do branch, 2026-07-13):**
+> aplicar a migration e rodar o backfill são **um único passo atômico**, nesta
+> ordem exata, na mesma janela de manutenção — nunca separar:
+> 1. `npx prisma migrate deploy` (aplica `20260713180000_add_team_notification_settings`)
+> 2. `node scripts/backfill-team-notification-preferences.mjs` (imediatamente em seguida)
+>
+> Motivo: sem override em `UserNotificationPreference`, o resolvedor de canais
+> herda o default do sistema (`EMAIL` ligado) para os eventos de agendamento —
+> ou seja, entre o passo 1 e o passo 2, **todo usuário existente recebe e-mail
+> de agendamento mesmo quem tinha `notifyEmailAppointments=false`**. Não fazer
+> deploy do código antes de rodar os 2 passos acima nem deixar hiato entre eles.
+> `daily_digest` (resumo do dia) nasce ligado por e-mail para todos os usuários
+> de todos os tenants desde o deploy — decisão de produto confirmada (não há
+> preferência herdada nem backfill para esse evento, e ainda não existe tela
+> para desligar; aceito deliberadamente para entregar o recurso mais rápido,
+> até o próximo plano trazer a UI de configuração e os defaults por cargo).
