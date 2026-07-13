@@ -39,6 +39,26 @@ enum NotificationStatus {
   FAILED
 }
 
+enum NotificationEventType {
+  appointment_created
+  appointment_cancelled
+  appointment_rescheduled
+  appointment_no_show
+  customer_created
+  appointment_pending_confirmation
+  payment_pending
+  daily_digest
+  birthday_digest
+  customer_inactive
+  agenda_idle
+  monthly_goal
+}
+
+enum TeamNotificationChannel {
+  IN_APP
+  EMAIL
+}
+
 enum InviteStatus {
   PENDING
   ACCEPTED
@@ -111,78 +131,81 @@ enum TenantDocumentType {
 }
 
 model Tenant {
-  id                     String                 @id @default(cuid())
-  name                   String
-  slug                   String                 @unique
-  documentType           TenantDocumentType?
-  document               String?                @unique
-  subscription           Subscription?
-  brandingConfig         BrandingConfig?
-  phone                  String?
-  address                String?
-  zipCode                String?
-  whatsappEnabled        Boolean                @default(false)
-  timezone               String                 @default("America/Sao_Paulo")
-  whatsappTemplateConfig Json?
-  cardFeeConfig          Json?
-  reminderLeadHours      Int                    @default(24)
-  reminderWindowStart    Int                    @default(7)
-  reminderWindowEnd      Int                    @default(22)
-  businessHours          Json?
+  id                          String                       @id @default(cuid())
+  name                        String
+  slug                        String                       @unique
+  documentType                TenantDocumentType?
+  document                    String?                      @unique
+  subscription                Subscription?
+  brandingConfig              BrandingConfig?
+  phone                       String?
+  address                     String?
+  zipCode                     String?
+  whatsappEnabled             Boolean                      @default(false)
+  timezone                    String                       @default("America/Sao_Paulo")
+  whatsappTemplateConfig      Json?
+  cardFeeConfig               Json?
+  reminderLeadHours           Int                          @default(24)
+  reminderWindowStart         Int                          @default(7)
+  reminderWindowEnd           Int                          @default(22)
+  businessHours               Json?
   // Evolution API
-  evolutionInstanceId    String?
-  evolutionConnected     Boolean                @default(false)
-  evolutionStatus        String                 @default("DISCONNECTED")
-  evolutionConnectedAt   DateTime?
-  evolutionPhone         String?
-  autoReplyEnabled       Boolean                @default(false)
-  autoReplyIntervalHours Int                    @default(6)
-  autoReplyMessage       String?
-  offHoursEnabled        Boolean                @default(false)
-  offHoursMessage        String?
-  dailyStatusEnabled     Boolean                @default(false)
-  dailyStatusHour        Int                    @default(9)
-  segments               BusinessSegment[]      @default([])
-  onboardingCompleted    Boolean                @default(false)
-  birthdayEnabled        Boolean                @default(false)
-  birthdayMessage        String?
-  birthdayGiftServiceId  String?
-  instagramUrl           String?
-  coverImageUrl          String?
-  whatsappContactEnabled Boolean                @default(true)
-  googleBusinessUrl      String?
-  googlePlaceId          String?
-  bio                    String?
-  publicPageEnabled      Boolean                @default(true)
-  isBlocked              Boolean                @default(false)
-  blockedReason          String?
-  schedulingPolicy       SchedulingPolicy?
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
-  users                  User[]
-  customers              Customer[]
-  services               Service[]
-  appointments           Appointment[]
-  transactions           Transaction[]
-  notifications          NotificationLog[]
-  autoReplyLogs          WhatsAppAutoReplyLog[]
-  invites                TenantInvite[]
-  roles                  Role[]
-  discountTypes          DiscountType[]
-  recurringExpenses      RecurringExpense[]
-  serviceCommissions     ServiceCommission[]
-  customerAnamneses      CustomerAnamnese[]
-  servicePackages        ServicePackage[]
-  tenantPromotions       Promotion[]
-  products               Product[]
-  productCategories      ProductCategory[]
-  stockMovements         StockMovement[]
-  appointmentProducts    AppointmentProduct[]
-  serviceProducts        ServiceProduct[]
-  professionalServices   ProfessionalService[]
-  serviceCategories      ServiceCategory[]
-  usageSnapshots         UsageSnapshot[]
-  userNotifications      UserNotification[]
+  evolutionInstanceId         String?
+  evolutionConnected          Boolean                      @default(false)
+  evolutionStatus             String                       @default("DISCONNECTED")
+  evolutionConnectedAt        DateTime?
+  evolutionPhone              String?
+  autoReplyEnabled            Boolean                      @default(false)
+  autoReplyIntervalHours      Int                          @default(6)
+  autoReplyMessage            String?
+  offHoursEnabled             Boolean                      @default(false)
+  offHoursMessage             String?
+  dailyStatusEnabled          Boolean                      @default(false)
+  dailyStatusHour             Int                          @default(9)
+  segments                    BusinessSegment[]            @default([])
+  onboardingCompleted         Boolean                      @default(false)
+  birthdayEnabled             Boolean                      @default(false)
+  birthdayMessage             String?
+  birthdayGiftServiceId       String?
+  instagramUrl                String?
+  coverImageUrl               String?
+  whatsappContactEnabled      Boolean                      @default(true)
+  googleBusinessUrl           String?
+  googlePlaceId               String?
+  bio                         String?
+  publicPageEnabled           Boolean                      @default(true)
+  isBlocked                   Boolean                      @default(false)
+  blockedReason               String?
+  schedulingPolicy            SchedulingPolicy?
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
+  users                       User[]
+  customers                   Customer[]
+  services                    Service[]
+  appointments                Appointment[]
+  transactions                Transaction[]
+  notifications               NotificationLog[]
+  autoReplyLogs               WhatsAppAutoReplyLog[]
+  invites                     TenantInvite[]
+  roles                       Role[]
+  discountTypes               DiscountType[]
+  recurringExpenses           RecurringExpense[]
+  serviceCommissions          ServiceCommission[]
+  customerAnamneses           CustomerAnamnese[]
+  servicePackages             ServicePackage[]
+  tenantPromotions            Promotion[]
+  products                    Product[]
+  productCategories           ProductCategory[]
+  stockMovements              StockMovement[]
+  appointmentProducts         AppointmentProduct[]
+  serviceProducts             ServiceProduct[]
+  professionalServices        ProfessionalService[]
+  serviceCategories           ServiceCategory[]
+  usageSnapshots              UsageSnapshot[]
+  userNotifications           UserNotification[]
+  tenantNotificationSettings  TenantNotificationSetting[]
+  notificationTemplates       NotificationTemplate[]
+  userNotificationPreferences UserNotificationPreference[]
 }
 
 model BrandingConfig {
@@ -261,33 +284,37 @@ model PlanLimitConfig {
 }
 
 model User {
-  id                      String                @id @default(cuid())
-  tenantId                String
-  email                   String
-  name                    String
-  phone                   String?
-  cpf                     String?
-  role                    UserRole              @default(PROFESSIONAL)
-  permissions             String[]
-  avatarUrl               String?
-  avatarCropX             Float?
-  avatarCropY             Float?
-  avatarCropZoom          Float?
-  bio                     String?
-  showOnPublicPage        Boolean               @default(true)
-  notifyEmailAppointments Boolean               @default(false)
-  notifyOwnAppointments   Boolean               @default(false)
-  notifyTeamAppointments  Boolean               @default(true)
-  roleId                  String?
-  customRole              Role?                 @relation("UserCustomRole", fields: [roleId], references: [id])
-  createdAt               DateTime              @default(now())
-  updatedAt               DateTime              @updatedAt
-  tenant                  Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  appointmentsAssigned    Appointment[]         @relation("ProfessionalAppointments")
-  createdAppointments     Appointment[]         @relation("AppointmentCreatedBy")
-  stockMovements          StockMovement[]
-  professionalServices    ProfessionalService[]
-  userNotifications       UserNotification[]
+  id                       String                       @id @default(cuid())
+  tenantId                 String
+  email                    String
+  name                     String
+  phone                    String?
+  cpf                      String?
+  role                     UserRole                     @default(PROFESSIONAL)
+  permissions              String[]
+  avatarUrl                String?
+  avatarCropX              Float?
+  avatarCropY              Float?
+  avatarCropZoom           Float?
+  bio                      String?
+  showOnPublicPage         Boolean                      @default(true)
+  notifyEmailAppointments  Boolean                      @default(false)
+  notifyOwnAppointments    Boolean                      @default(false)
+  notifyTeamAppointments   Boolean                      @default(true)
+  notificationDeliveryMode String                       @default("realtime")
+  quietHoursStart          Int?
+  quietHoursEnd            Int?
+  roleId                   String?
+  customRole               Role?                        @relation("UserCustomRole", fields: [roleId], references: [id])
+  createdAt                DateTime                     @default(now())
+  updatedAt                DateTime                     @updatedAt
+  tenant                   Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointmentsAssigned     Appointment[]                @relation("ProfessionalAppointments")
+  createdAppointments      Appointment[]                @relation("AppointmentCreatedBy")
+  stockMovements           StockMovement[]
+  professionalServices     ProfessionalService[]
+  userNotifications        UserNotification[]
+  notificationPreferences  UserNotificationPreference[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -570,6 +597,57 @@ model UserNotification {
 
   @@index([tenantId, userId, readAt])
   @@index([tenantId, userId, createdAt])
+}
+
+model TenantNotificationSetting {
+  id              String                    @id @default(cuid())
+  tenantId        String
+  eventType       NotificationEventType
+  enabled         Boolean                   @default(true)
+  defaultChannels TeamNotificationChannel[] @default([IN_APP, EMAIL])
+  templateId      String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  tenant   Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  template NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, eventType])
+  @@index([tenantId])
+}
+
+model UserNotificationPreference {
+  id        String                  @id @default(cuid())
+  tenantId  String
+  userId    String
+  eventType NotificationEventType
+  channel   TeamNotificationChannel
+  enabled   Boolean
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId, eventType, channel])
+  @@index([tenantId, userId])
+}
+
+model NotificationTemplate {
+  id        String                  @id @default(cuid())
+  tenantId  String
+  eventType NotificationEventType
+  channel   TeamNotificationChannel
+  subject   String?
+  body      String
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+
+  tenant   Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  settings TenantNotificationSetting[]
+
+  @@unique([tenantId, eventType, channel])
+  @@index([tenantId])
 }
 
 model WhatsAppAutoReplyLog {

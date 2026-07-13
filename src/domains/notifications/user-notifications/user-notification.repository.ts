@@ -1,11 +1,15 @@
 import type { Prisma, UserNotification } from "@prisma/client";
 import { UserRole } from "@prisma/client";
 
+import { dayBoundsInTz } from "@/lib/dates";
 import { prisma } from "@/shared/database/prisma";
 import type {
   CreateUserNotificationInput,
+  DigestUser,
+  EnrichedAppointment,
   ManagerRecipient,
   NotificationPrefs,
+  RecipientContext,
   UserPrefsRow,
 } from "./types";
 
@@ -69,6 +73,9 @@ export class UserNotificationRepository {
         notifyEmailAppointments: true,
         notifyOwnAppointments: true,
         notifyTeamAppointments: true,
+        notificationDeliveryMode: true,
+        quietHoursStart: true,
+        quietHoursEnd: true,
       },
     });
   }
@@ -111,6 +118,87 @@ export class UserNotificationRepository {
       },
     });
     return updated;
+  }
+
+  async findRecipientContext(tenantId: string, userId: string): Promise<RecipientContext | null> {
+    return prisma.user.findFirst({
+      where: { id: userId, tenantId },
+      select: {
+        role: true,
+        notifyOwnAppointments: true,
+        notifyTeamAppointments: true,
+        notificationDeliveryMode: true,
+        quietHoursStart: true,
+        quietHoursEnd: true,
+      },
+    });
+  }
+
+  async findTenantTimezone(tenantId: string): Promise<string> {
+    const tenant = await prisma.tenant.findFirst({ where: { id: tenantId }, select: { timezone: true } });
+    return tenant?.timezone ?? "America/Sao_Paulo";
+  }
+
+  async findAppointmentForNotification(
+    tenantId: string,
+    appointmentId: string,
+  ): Promise<EnrichedAppointment | null> {
+    const appt = await prisma.appointment.findFirst({
+      where: { id: appointmentId, tenantId },
+      include: {
+        professional: { select: { id: true, name: true, email: true } },
+        service: { select: { id: true, name: true } },
+      },
+    });
+    if (!appt) return null;
+    return {
+      createdByUserId: appt.createdByUserId,
+      packageId: appt.packageId,
+      serviceId: appt.service?.id ?? null,
+      serviceName: appt.service?.name ?? "",
+      professional: appt.professional,
+    };
+  }
+
+  async findPendingWorklist(
+    tenantId: string,
+    userId: string,
+    tz: string,
+  ): Promise<{ appointmentsAwaitingConfirmation: number; paymentsPending: number }> {
+    const { start, end } = dayBoundsInTz(tz);
+
+    const [appointmentsAwaitingConfirmation, paymentsPending] = await Promise.all([
+      prisma.appointment.count({
+        where: { tenantId, professionalId: userId, startsAt: { gte: start, lte: end }, status: "SCHEDULED" },
+      }),
+      prisma.appointment.count({
+        where: { tenantId, professionalId: userId, paymentStatus: "PENDING", status: "COMPLETED" },
+      }),
+    ]);
+
+    return { appointmentsAwaitingConfirmation, paymentsPending };
+  }
+
+  async findAllForDigest(tenantId: string): Promise<DigestUser[]> {
+    return prisma.user.findMany({
+      where: { tenantId },
+      select: { id: true, email: true, notificationDeliveryMode: true },
+    });
+  }
+
+  async countTodayAppointmentsFor(tenantId: string, professionalId: string, tz: string): Promise<number> {
+    const { start, end } = dayBoundsInTz(tz);
+    return prisma.appointment.count({
+      where: { tenantId, professionalId, startsAt: { gte: start, lte: end }, status: { not: "CANCELLED" } },
+    });
+  }
+
+  async findTodayForDigest(tenantId: string, userId: string, tz: string): Promise<{ type: string }[]> {
+    const { start } = dayBoundsInTz(tz);
+    return prisma.userNotification.findMany({
+      where: { tenantId, userId, createdAt: { gte: start } },
+      select: { type: true },
+    });
   }
 }
 

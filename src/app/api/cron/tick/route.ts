@@ -25,6 +25,12 @@ import {
   USER_BIRTHDAY_DIGEST_JOB,
   handleUserBirthdayDigest,
 } from "@/shared/queue/jobs/user-birthday-digest";
+import {
+  TEAM_NOTIFICATION_EMAIL_JOB,
+  handleTeamNotificationEmail,
+  type TeamNotificationEmailPayload,
+} from "@/shared/queue/jobs/team-notification-email";
+import { TEAM_DAILY_DIGEST_JOB, handleTeamDailyDigest } from "@/shared/queue/jobs/team-daily-digest";
 
 type EmptyPayload = Record<string, never>;
 type PgBossInstance = Awaited<ReturnType<typeof startPgBoss>>;
@@ -92,9 +98,10 @@ export async function GET(request: NextRequest) {
       boss.schedule(VIP_SWEEP_JOB, "0 2 * * *", {}),
       boss.schedule(WHATSAPP_QUOTA_CLEANUP_JOB, "0 2 1 * *", {}),
       boss.schedule(USER_BIRTHDAY_DIGEST_JOB, "0 8 * * 1", {}),
+      boss.schedule(TEAM_DAILY_DIGEST_JOB, "0 8 * * *", {}),
     ]);
 
-    const [reminders, billing, birthday, dailyStatus, recurring, vip, expiry, snapshot, quota, userBirthday] =
+    const [reminders, billing, birthday, dailyStatus, recurring, vip, expiry, snapshot, quota, userBirthday, teamEmail, teamDigest] =
       await Promise.all([
         runBatch<AppointmentReminderPayload>(boss, APPOINTMENT_REMINDER_JOB, handleAppointmentReminder),
         runScheduled(boss, BILLING_EXPIRE_SWEEP_JOB, handleBillingExpireSweep),
@@ -106,6 +113,8 @@ export async function GET(request: NextRequest) {
         runBatch(boss, USAGE_SNAPSHOT_JOB, handleUsageSnapshot),
         runScheduled(boss, WHATSAPP_QUOTA_CLEANUP_JOB, handleWhatsAppQuotaCleanup),
         runScheduled(boss, USER_BIRTHDAY_DIGEST_JOB, handleUserBirthdayDigest),
+        runBatch<TeamNotificationEmailPayload>(boss, TEAM_NOTIFICATION_EMAIL_JOB, handleTeamNotificationEmail),
+        runScheduled(boss, TEAM_DAILY_DIGEST_JOB, handleTeamDailyDigest),
       ]);
 
     return Response.json({
@@ -121,6 +130,8 @@ export async function GET(request: NextRequest) {
         snapshot,
         quota,
         userBirthday,
+        teamEmail,
+        teamDigest,
       },
     });
   } catch (err) {
