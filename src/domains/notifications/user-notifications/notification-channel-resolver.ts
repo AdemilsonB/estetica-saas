@@ -47,14 +47,25 @@ function delayUntilQuietHoursEnd(now: Date, hour: number, end: number): Date {
   return new Date(now.getTime() + hoursUntilEnd * 3600_000);
 }
 
+// Converte para a hora local do fuso do tenant (mesma técnica de
+// src/shared/queue/jobs/appointment-reminder.ts:15-19) — quietHoursStart/End
+// são horas locais, não UTC, então não dá pra usar Date#getUTCHours() direto.
+function localHour(date: Date, tz: string): number {
+  return parseInt(
+    new Intl.DateTimeFormat("pt-BR", { hour: "numeric", hourCycle: "h23", timeZone: tz }).format(date),
+    10,
+  );
+}
+
 export function resolveDelivery(params: {
   eventType: NotificationEventType;
   tenantSetting: TenantEventSetting | null;
   emailOverrideEnabled: boolean | null; // null = sem override, herda o padrão do negócio
   prefs: RecipientDeliveryPrefs;
   now: Date;
+  tz: string;
 }): ResolvedDelivery {
-  const { eventType, tenantSetting, emailOverrideEnabled, prefs, now } = params;
+  const { eventType, tenantSetting, emailOverrideEnabled, prefs, now, tz } = params;
   const setting = tenantSetting ?? SYSTEM_DEFAULT_TENANT_SETTINGS[eventType];
 
   if (!setting.enabled) {
@@ -73,7 +84,7 @@ export function resolveDelivery(params: {
 
   let emailStartAfter: Date | null = null;
   if (prefs.quietHoursStart !== null && prefs.quietHoursEnd !== null) {
-    const hour = now.getUTCHours();
+    const hour = localHour(now, tz);
     if (isWithinQuietHours(hour, prefs.quietHoursStart, prefs.quietHoursEnd)) {
       emailStartAfter = delayUntilQuietHoursEnd(now, hour, prefs.quietHoursEnd);
     }
