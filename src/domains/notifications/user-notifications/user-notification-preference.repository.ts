@@ -1,4 +1,4 @@
-import type { NotificationEventType } from "@prisma/client";
+import type { NotificationEventType, TeamNotificationChannel } from "@prisma/client";
 
 import { prisma } from "@/shared/database/prisma";
 
@@ -30,6 +30,16 @@ export class UserNotificationPreferenceRepository {
       },
       update: { enabled },
       create: { tenantId, userId, eventType, channel: "EMAIL", enabled },
+    });
+  }
+
+  async findAllForUser(
+    tenantId: string,
+    userId: string,
+  ): Promise<{ eventType: NotificationEventType; channel: TeamNotificationChannel; enabled: boolean }[]> {
+    return prisma.userNotificationPreference.findMany({
+      where: { tenantId, userId },
+      select: { eventType: true, channel: true, enabled: true },
     });
   }
 }
