@@ -65,11 +65,17 @@ export class UserNotificationService {
     const updated = await this.repo.updatePrefs(tenantId, userId, prefs);
 
     if (prefs.notifyEmailAppointments !== undefined) {
-      await Promise.all(
-        EMAIL_OVERRIDE_EVENTS.map((eventType) =>
-          this.prefRepo.upsertEmailOverride(tenantId, userId, eventType, prefs.notifyEmailAppointments!),
-        ),
-      );
+      try {
+        await Promise.all(
+          EMAIL_OVERRIDE_EVENTS.map((eventType) =>
+            this.prefRepo.upsertEmailOverride(tenantId, userId, eventType, prefs.notifyEmailAppointments!),
+          ),
+        );
+      } catch (err) {
+        // Dual-write é best-effort: o boolean legado (escrita primária) já foi salvo
+        // acima. Falhar aqui derrubaria a resposta da API mesmo com o save já concluído.
+        console.error("[user-notifications] falha no dual-write de UserNotificationPreference:", err);
+      }
     }
 
     return updated;

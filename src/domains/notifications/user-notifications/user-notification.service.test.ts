@@ -77,4 +77,12 @@ describe("UserNotificationService.updatePreferences", () => {
     await service.updatePreferences("t1", "u1", { notifyOwnAppointments: true });
     expect(prefRepo.upsertEmailOverride).not.toHaveBeenCalled();
   });
+
+  it("falha no dual-write não impede o retorno do método (boolean legado já foi salvo)", async () => {
+    prefRepo.upsertEmailOverride.mockRejectedValue(new Error("erro transitório"));
+    const result = await service.updatePreferences("t1", "u1", { notifyEmailAppointments: true });
+    expect(result).toEqual({
+      notifyEmailAppointments: true, notifyOwnAppointments: false, notifyTeamAppointments: true,
+    });
+  });
 });
