@@ -228,7 +228,7 @@ Produção e escala:
 
 > ✅ 2026-07-10: todas as migrations pendentes (`add_transaction_type_paidat_index`, `add_public_trust_fields`, `add_user_notifications`, `add_capability_interest_log`, `add_public_page_enabled`) foram sincronizadas em produção — `prisma migrate status` limpo.
 > ✅ 2026-07-10: `scripts/seed-plan-features-comissoes-descontos.mjs` rodado em produção (Comissões/Descontos liberados nos 4 planos) — o script estava desatualizado (`new PrismaClient()` sem adapter, quebrava com `PrismaClientInitializationError`); corrigido para usar `PrismaPg` como os demais seeds do projeto.
-> ⚠️ 2026-07-13: PR #277 (motor de notificações da equipe) mergeando com migration `20260713180000_add_team_notification_settings` **pendente de aplicação manual** — rodar em produção `npx prisma migrate deploy` **imediatamente seguido** de `node scripts/backfill-team-notification-preferences.mjs` (mesma janela, nesta ordem — ver runbook no ADR-015 em `docs/decisions.md`). Sem isso, usuários existentes recebem e-mail de agendamento mesmo com a preferência antiga desligada.
+> ✅ 2026-07-13: migration `20260713180000_add_team_notification_settings` aplicada em produção (`prisma migrate deploy`) e `scripts/backfill-team-notification-preferences.mjs` rodado logo em seguida (52 preferências de e-mail migradas para 13 usuários) — `prisma migrate status` limpo. PR #277 (motor de notificações da equipe) segue pendente de merge.
 
 ---
 
