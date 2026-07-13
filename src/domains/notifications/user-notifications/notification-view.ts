@@ -13,7 +13,7 @@ export type NotificationDTO = {
 export type TypeFilter = "todas" | "agenda" | "clientes" | "aniversarios";
 
 const TYPE_MAP: Record<Exclude<TypeFilter, "todas">, UserNotificationType[]> = {
-  agenda: ["appointment_created", "appointment_cancelled"],
+  agenda: ["appointment_created", "appointment_cancelled", "appointment_rescheduled", "appointment_no_show"],
   clientes: ["customer_created"],
   aniversarios: ["birthday_digest"],
 };

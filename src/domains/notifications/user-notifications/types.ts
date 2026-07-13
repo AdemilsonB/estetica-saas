@@ -3,6 +3,8 @@ import type { Prisma, UserRole } from "@prisma/client";
 export type UserNotificationType =
   | "appointment_created"
   | "appointment_cancelled"
+  | "appointment_rescheduled"
+  | "appointment_no_show"
   | "customer_created"
   | "birthday_digest";
 

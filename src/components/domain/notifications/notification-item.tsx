@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, CalendarX, UserPlus, Cake } from "lucide-react";
+import { Calendar, CalendarX, CalendarClock, UserPlus, UserX, Cake } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { NotificationDTO } from "@/domains/notifications/user-notifications/notification-view";
@@ -9,6 +9,8 @@ import type { NotificationDTO } from "@/domains/notifications/user-notifications
 const ICON = {
   appointment_created: Calendar,
   appointment_cancelled: CalendarX,
+  appointment_rescheduled: CalendarClock,
+  appointment_no_show: UserX,
   customer_created: UserPlus,
   birthday_digest: Cake,
 } as const;
@@ -16,6 +18,8 @@ const ICON = {
 const ICON_COLOR = {
   appointment_created: "text-violet-600",
   appointment_cancelled: "text-red-600",
+  appointment_rescheduled: "text-blue-600",
+  appointment_no_show: "text-orange-600",
   customer_created: "text-emerald-600",
   birthday_digest: "text-pink-600",
 } as const;
