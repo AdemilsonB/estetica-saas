@@ -12,182 +12,69 @@ const repo = {
   updatePrefs: vi.fn(),
 };
 
-const emailSend = vi.fn();
-vi.mock("@/domains/notifications/providers/email.provider", () => ({
-  getEmailProvider: () => ({ send: emailSend }),
-}));
+const prefRepo = { upsertEmailOverride: vi.fn() };
 
-function makePayload(
-  over: Partial<{
-    createdByUserId: string | null;
-    profId: string;
-    profEmail: string;
-    origin: "panel" | "public";
-    serviceName: string;
-    packageId: string | null;
-  }> = {},
-) {
-  return {
-    tenantId: "t1",
-    appointment: {
-      id: "a1",
-      createdByUserId: over.createdByUserId ?? null,
-      startsAt: new Date("2026-07-04T14:00:00Z"),
-      packageId: over.packageId ?? null,
-    },
-    customer: { id: "c1", name: "Maria", phone: null, email: null },
-    service: { id: "s1", name: over.serviceName ?? "Corte", duration: 30 },
-    professional: { id: over.profId ?? "prof1", name: "Ana", email: over.profEmail ?? "ana@x.com" },
-    origin: over.origin ?? "panel",
-  } as never;
-}
-
-describe("UserNotificationService.notifyAppointment", () => {
+describe("UserNotificationService.listForUser", () => {
   let service: UserNotificationService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new UserNotificationService(repo as never);
-    repo.findManagers.mockResolvedValue([]);
-    repo.createMany.mockResolvedValue(1);
-    repo.findTenantName.mockResolvedValue("Estúdio X");
-    // Profissional comum por padrão (não gestor), toggles no default.
+    service = new UserNotificationService(repo as never, prefRepo as never);
+  });
+
+  it("retorna items, unreadCount, isManager e prefs", async () => {
     repo.findUserPrefs.mockResolvedValue({
-      id: "prof1",
-      email: "ana@x.com",
-      name: "Ana",
-      role: "PROFESSIONAL",
-      notifyEmailAppointments: false,
-      notifyOwnAppointments: false,
-      notifyTeamAppointments: true,
+      id: "u1", email: "u1@x.com", name: "U1", role: "OWNER",
+      notifyEmailAppointments: true, notifyOwnAppointments: false, notifyTeamAppointments: true,
     });
-  });
+    repo.findManyForUser.mockResolvedValue([{ id: "n1" }]);
+    repo.countUnread.mockResolvedValue(2);
 
-  it("agendamento pela vitrine notifica o dono mesmo sendo o createdByUserId (sem auto-skip)", async () => {
-    // Vitrine passa owner.id como createdByUserId só pra satisfazer a FK.
-    repo.findManagers.mockResolvedValue([
-      { id: "owner1", email: "o@x.com", name: "Dono", notifyEmailAppointments: false, notifyOwnAppointments: false, notifyTeamAppointments: true },
-    ]);
-    await service.notifyAppointment(
-      makePayload({ origin: "public", createdByUserId: "owner1" }),
-      "created",
-    );
-    const rows = repo.createMany.mock.calls[0][1];
-    // Dono NÃO é pulado por auto-skip em fluxo público.
-    const ownerRow = rows.find((r: { userId: string }) => r.userId === "owner1");
-    expect(ownerRow).toBeDefined();
-    expect(ownerRow.title).toBe("Novo agendamento pela vitrine");
-    expect(rows.find((r: { userId: string }) => r.userId === "prof1")).toBeDefined();
-    expect(rows[0].type).toBe("appointment_created");
-  });
+    const result = await service.listForUser("t1", "u1", { period: "7", limit: 20 });
 
-  it("painel: profissional é o criador sem opt-in NÃO recebe (auto-skip continua valendo)", async () => {
-    // profissional é o próprio criador e não optou por se notificar
-    repo.findManagers.mockResolvedValue([]);
-    await service.notifyAppointment(
-      makePayload({ createdByUserId: "prof1", profId: "prof1" }),
-      "created",
-    );
-    // prof1 é o único candidato e deve ser pulado -> createMany não chamado ou sem prof1
-    const called = repo.createMany.mock.calls.length > 0;
-    const rows = called ? repo.createMany.mock.calls[0][1] : [];
-    expect(rows.find((r: { userId: string }) => r.userId === "prof1")).toBeUndefined();
-  });
-
-  it("gestor com notifyTeamAppointments=false não recebe agendamento de outro profissional", async () => {
-    repo.findManagers.mockResolvedValue([
-      { id: "owner1", email: "o@x.com", name: "Dono", notifyEmailAppointments: false, notifyOwnAppointments: false, notifyTeamAppointments: false },
-    ]);
-    await service.notifyAppointment(makePayload(), "created");
-    const rows = repo.createMany.mock.calls[0]?.[1] ?? [];
-    expect(rows.find((r: { userId: string }) => r.userId === "owner1")).toBeUndefined();
-    expect(rows.find((r: { userId: string }) => r.userId === "prof1")).toBeDefined();
-  });
-
-  it("dedup: profissional que também é gestor recebe uma única notificação", async () => {
-    repo.findManagers.mockResolvedValue([
-      { id: "prof1", email: "ana@x.com", name: "Ana", notifyEmailAppointments: false, notifyOwnAppointments: false, notifyTeamAppointments: true },
-    ]);
-    await service.notifyAppointment(makePayload(), "created");
-    const rows = repo.createMany.mock.calls[0][1];
-    expect(rows.filter((r: { userId: string }) => r.userId === "prof1")).toHaveLength(1);
-  });
-
-  it("envia e-mail apenas para quem tem notifyEmailAppointments=true", async () => {
-    repo.findManagers.mockResolvedValue([
-      { id: "owner1", email: "o@x.com", name: "Dono", notifyEmailAppointments: true, notifyOwnAppointments: false, notifyTeamAppointments: true },
-    ]);
-    await service.notifyAppointment(makePayload(), "created");
-    expect(emailSend).toHaveBeenCalledTimes(1);
-    expect(emailSend).toHaveBeenCalledWith(expect.objectContaining({ to: "o@x.com" }));
-  });
-
-  it("cancelamento ignora a regra de auto-skip (sempre notifica o profissional)", async () => {
-    await service.notifyAppointment(
-      makePayload({ createdByUserId: "prof1", profId: "prof1" }),
-      "cancelled",
-    );
-    const rows = repo.createMany.mock.calls[0][1];
-    expect(rows.find((r: { userId: string }) => r.userId === "prof1")).toBeDefined();
-    expect(rows[0].type).toBe("appointment_cancelled");
-  });
-
-  it("pacote (service.name vazio) usa 'Pacote' como rótulo no body e no data", async () => {
-    await service.notifyAppointment(
-      makePayload({ serviceName: "", packageId: "pkg1" }),
-      "created",
-    );
-    const rows = repo.createMany.mock.calls[0][1];
-    expect(rows[0].data.serviceName).toBe("Pacote");
-    expect(rows[0].body).toContain("Pacote");
-  });
-
-  it("profissional comum (não gestor) com notifyOwnAppointments=true recebe o próprio agendamento", async () => {
-    repo.findManagers.mockResolvedValue([]);
-    repo.findUserPrefs.mockResolvedValue({
-      id: "prof1",
-      email: "ana@x.com",
-      name: "Ana",
-      role: "PROFESSIONAL",
-      notifyEmailAppointments: false,
-      notifyOwnAppointments: true,
-      notifyTeamAppointments: true,
-    });
-    await service.notifyAppointment(
-      makePayload({ createdByUserId: "prof1", profId: "prof1" }),
-      "created",
-    );
-    const rows = repo.createMany.mock.calls[0][1];
-    expect(rows.find((r: { userId: string }) => r.userId === "prof1")).toBeDefined();
-  });
-
-  it("cancelamento: gestor puro com notifyTeamAppointments=false é pulado; profissional ainda recebe", async () => {
-    repo.findManagers.mockResolvedValue([
-      { id: "owner1", email: "o@x.com", name: "Dono", notifyEmailAppointments: false, notifyOwnAppointments: false, notifyTeamAppointments: false },
-    ]);
-    await service.notifyAppointment(makePayload(), "cancelled");
-    const rows = repo.createMany.mock.calls[0][1];
-    expect(rows.find((r: { userId: string }) => r.userId === "owner1")).toBeUndefined();
-    expect(rows.find((r: { userId: string }) => r.userId === "prof1")).toBeDefined();
+    expect(result.isManager).toBe(true);
+    expect(result.unreadCount).toBe(2);
+    expect(result.items).toHaveLength(1);
   });
 });
 
-describe("UserNotificationService.notifyCustomerCreated", () => {
+describe("UserNotificationService.markRead", () => {
+  it("delega ao repository", async () => {
+    const service = new UserNotificationService(repo as never, prefRepo as never);
+    repo.markRead.mockResolvedValue(3);
+    const count = await service.markRead("t1", "u1", { all: true });
+    expect(count).toBe(3);
+    expect(repo.markRead).toHaveBeenCalledWith("t1", "u1", { all: true });
+  });
+});
+
+describe("UserNotificationService.updatePreferences", () => {
   let service: UserNotificationService;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new UserNotificationService(repo as never);
-    repo.createMany.mockResolvedValue(1);
+    service = new UserNotificationService(repo as never, prefRepo as never);
+    repo.updatePrefs.mockResolvedValue({
+      notifyEmailAppointments: true, notifyOwnAppointments: false, notifyTeamAppointments: true,
+    });
   });
 
-  it("notifica apenas gestores, sem e-mail", async () => {
-    repo.findManagers.mockResolvedValue([
-      { id: "owner1", email: "o@x.com", name: "Dono", notifyEmailAppointments: true, notifyOwnAppointments: false, notifyTeamAppointments: true },
-    ]);
-    await service.notifyCustomerCreated({ tenantId: "t1", customer: { id: "c1", name: "João" } });
-    const rows = repo.createMany.mock.calls[0][1];
-    expect(rows[0].userId).toBe("owner1");
-    expect(rows[0].type).toBe("customer_created");
-    expect(emailSend).not.toHaveBeenCalled();
+  it("atualiza o boolean legado no repository", async () => {
+    await service.updatePreferences("t1", "u1", { notifyEmailAppointments: true });
+    expect(repo.updatePrefs).toHaveBeenCalledWith("t1", "u1", { notifyEmailAppointments: true });
+  });
+
+  it("dual-write: ao mudar notifyEmailAppointments, grava override EMAIL nos 4 eventos de agendamento", async () => {
+    await service.updatePreferences("t1", "u1", { notifyEmailAppointments: false });
+    expect(prefRepo.upsertEmailOverride).toHaveBeenCalledTimes(4);
+    expect(prefRepo.upsertEmailOverride).toHaveBeenCalledWith("t1", "u1", "appointment_created", false);
+    expect(prefRepo.upsertEmailOverride).toHaveBeenCalledWith("t1", "u1", "appointment_cancelled", false);
+    expect(prefRepo.upsertEmailOverride).toHaveBeenCalledWith("t1", "u1", "appointment_rescheduled", false);
+    expect(prefRepo.upsertEmailOverride).toHaveBeenCalledWith("t1", "u1", "appointment_no_show", false);
+  });
+
+  it("não escreve na tabela nova quando notifyEmailAppointments não é enviado (ex.: só notifyOwnAppointments)", async () => {
+    await service.updatePreferences("t1", "u1", { notifyOwnAppointments: true });
+    expect(prefRepo.upsertEmailOverride).not.toHaveBeenCalled();
   });
 });
