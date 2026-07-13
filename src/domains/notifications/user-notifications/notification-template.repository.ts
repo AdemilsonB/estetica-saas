@@ -12,6 +12,19 @@ export class NotificationTemplateRepository {
       where: { tenantId, eventType, channel },
     });
   }
+
+  async upsert(
+    tenantId: string,
+    eventType: NotificationEventType,
+    channel: TeamNotificationChannel,
+    data: { subject: string | null; body: string },
+  ): Promise<NotificationTemplate> {
+    return prisma.notificationTemplate.upsert({
+      where: { tenantId_eventType_channel: { tenantId, eventType, channel } },
+      update: data,
+      create: { tenantId, eventType, channel, ...data },
+    });
+  }
 }
 
 export const notificationTemplateRepository = new NotificationTemplateRepository();

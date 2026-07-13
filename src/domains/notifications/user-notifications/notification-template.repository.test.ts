@@ -30,4 +30,14 @@ describe("NotificationTemplateRepository", () => {
     const result = await repo.findByTenant("t1", "appointment_created", "EMAIL");
     expect(result).toBeNull();
   });
+
+  it("upsert cria/atualiza o template pela chave composta tenantId+eventType+channel", async () => {
+    prismaMock.notificationTemplate.upsert.mockResolvedValue({} as never);
+    await repo.upsert("t1", "appointment_created", "EMAIL", { subject: "Assunto", body: "Corpo {{cliente}}" });
+    expect(prismaMock.notificationTemplate.upsert).toHaveBeenCalledWith({
+      where: { tenantId_eventType_channel: { tenantId: "t1", eventType: "appointment_created", channel: "EMAIL" } },
+      update: { subject: "Assunto", body: "Corpo {{cliente}}" },
+      create: { tenantId: "t1", eventType: "appointment_created", channel: "EMAIL", subject: "Assunto", body: "Corpo {{cliente}}" },
+    });
+  });
 });
