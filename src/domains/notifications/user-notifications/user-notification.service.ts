@@ -82,14 +82,16 @@ export class UserNotificationService {
   }
 
   async getMyNotificationSettings(tenantId: string, userId: string): Promise<MyNotificationSettings> {
-    const [deliveryPrefs, overrides] = await Promise.all([
+    const [deliveryPrefs, legacyPrefs, overrides] = await Promise.all([
       this.repo.findDeliveryPrefs(tenantId, userId),
+      this.repo.findUserPrefs(tenantId, userId),
       this.prefRepo.findAllForUser(tenantId, userId),
     ]);
     return {
       notificationDeliveryMode: deliveryPrefs?.notificationDeliveryMode ?? "realtime",
       quietHoursStart: deliveryPrefs?.quietHoursStart ?? null,
       quietHoursEnd: deliveryPrefs?.quietHoursEnd ?? null,
+      notifyOwnAppointments: legacyPrefs?.notifyOwnAppointments ?? false,
       emailOverrides: overrides
         .filter((o) => o.channel === "EMAIL")
         .map((o) => ({ eventType: o.eventType, enabled: o.enabled })),
@@ -101,13 +103,16 @@ export class UserNotificationService {
     userId: string,
     input: UpdateMyNotificationSettingsInput,
   ): Promise<void> {
-    const { notificationDeliveryMode, quietHoursStart, quietHoursEnd, emailOverrides } = input;
+    const { notificationDeliveryMode, quietHoursStart, quietHoursEnd, notifyOwnAppointments, emailOverrides } = input;
     const tasks: Promise<unknown>[] = [];
 
     if (notificationDeliveryMode !== undefined || quietHoursStart !== undefined || quietHoursEnd !== undefined) {
       tasks.push(
         this.repo.updateDeliveryPrefs(tenantId, userId, { notificationDeliveryMode, quietHoursStart, quietHoursEnd }),
       );
+    }
+    if (notifyOwnAppointments !== undefined) {
+      tasks.push(this.repo.updatePrefs(tenantId, userId, { notifyOwnAppointments }));
     }
     if (emailOverrides) {
       for (const o of emailOverrides) {

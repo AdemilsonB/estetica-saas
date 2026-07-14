@@ -5,6 +5,7 @@ export type MyTeamNotificationPreferences = {
   notificationDeliveryMode: string;
   quietHoursStart: number | null;
   quietHoursEnd: number | null;
+  notifyOwnAppointments: boolean;
   emailOverrides: { eventType: NotificationEventType; enabled: boolean }[];
 };
 
@@ -12,6 +13,7 @@ export type UpdateMyTeamNotificationPreferencesInput = Partial<{
   notificationDeliveryMode: string;
   quietHoursStart: number | null;
   quietHoursEnd: number | null;
+  notifyOwnAppointments: boolean;
   emailOverrides: { eventType: NotificationEventType; enabled: boolean }[];
 }>;
 

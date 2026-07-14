@@ -25,7 +25,7 @@ import { useInviteMember } from '@/hooks/iam/use-team'
 import { useRoles, useCreateRole } from '@/hooks/iam/use-roles'
 import { useNavSections } from '@/hooks/iam/use-nav-sections'
 import { useCurrentUser } from '@/hooks/use-current-user'
-import type { NavSection } from '@/shared/permissions/nav-registry'
+import { buildSoleProfessionalPermissions, type NavSection } from '@/shared/permissions/nav-registry'
 
 type Props = {
   open: boolean
@@ -57,7 +57,8 @@ export function InviteMemberModal({ open, onClose }: Props) {
     e.preventDefault()
     if (!newRoleName.trim()) return
     createRole.mutate(
-      { name: newRoleName.trim(), permissions: {} },
+      // Mesmo default permissivo do RolesManager — ver comentário lá.
+      { name: newRoleName.trim(), permissions: buildSoleProfessionalPermissions() },
       {
         onSuccess: (created) => {
           setNewRoleId(created.id)

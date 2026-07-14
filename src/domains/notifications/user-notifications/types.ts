@@ -65,6 +65,10 @@ export type MyNotificationSettings = {
   notificationDeliveryMode: string;
   quietHoursStart: number | null;
   quietHoursEnd: number | null;
+  // Continua lido direto do User (boolean legado) — o dispatcher usa pra
+  // decidir o auto-skip de appointment_created; sem equivalente na tabela
+  // nova ainda (ver plano da UI, "Decisão de escopo explícita").
+  notifyOwnAppointments: boolean;
   emailOverrides: { eventType: NotificationEventType; enabled: boolean }[];
 };
 
@@ -72,5 +76,6 @@ export type UpdateMyNotificationSettingsInput = {
   notificationDeliveryMode?: string;
   quietHoursStart?: number | null;
   quietHoursEnd?: number | null;
+  notifyOwnAppointments?: boolean;
   emailOverrides?: { eventType: NotificationEventType; enabled: boolean }[];
 };

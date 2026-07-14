@@ -22,6 +22,7 @@ export function TeamNotificationMyPreferences() {
   const [deliveryMode, setDeliveryMode] = useState("realtime");
   const [quietStart, setQuietStart] = useState<string>("");
   const [quietEnd, setQuietEnd] = useState<string>("");
+  const [notifyOwn, setNotifyOwn] = useState(false);
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -29,6 +30,7 @@ export function TeamNotificationMyPreferences() {
       setDeliveryMode(prefs.notificationDeliveryMode);
       setQuietStart(prefs.quietHoursStart !== null ? String(prefs.quietHoursStart).padStart(2, "0") : "");
       setQuietEnd(prefs.quietHoursEnd !== null ? String(prefs.quietHoursEnd).padStart(2, "0") : "");
+      setNotifyOwn(prefs.notifyOwnAppointments);
       setOverrides(Object.fromEntries((prefs.emailOverrides ?? []).map((o) => [o.eventType, o.enabled])));
     }
   }, [prefs]);
@@ -66,6 +68,21 @@ export function TeamNotificationMyPreferences() {
     update.mutate(
       { quietHoursStart: start, quietHoursEnd: end },
       { onSuccess: () => toast.success("Silêncio atualizado"), onError: () => toast.error("Erro ao salvar") },
+    );
+  }
+
+  function saveNotifyOwn(enabled: boolean) {
+    const previous = notifyOwn;
+    setNotifyOwn(enabled);
+    update.mutate(
+      { notifyOwnAppointments: enabled },
+      {
+        onSuccess: () => toast.success("Preferência atualizada"),
+        onError: () => {
+          setNotifyOwn(previous);
+          toast.error("Erro ao salvar");
+        },
+      },
     );
   }
 
@@ -131,6 +148,20 @@ export function TeamNotificationMyPreferences() {
         <p className="mt-2 text-xs text-muted-foreground">
           O sino continua funcionando normalmente — o silêncio afeta só o e-mail.
         </p>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">Meus próprios agendamentos</p>
+          <p className="text-xs text-muted-foreground">
+            Me avisar (sino e e-mail) também quando eu mesmo crio um agendamento
+          </p>
+        </div>
+        <Switch
+          checked={notifyOwn}
+          onCheckedChange={saveNotifyOwn}
+          aria-label="Notificar quando eu mesmo crio o agendamento"
+        />
       </div>
 
       <div className="space-y-2">
