@@ -22,12 +22,14 @@ export function TeamNotificationMyPreferences() {
   const [deliveryMode, setDeliveryMode] = useState("realtime");
   const [quietStart, setQuietStart] = useState<string>("");
   const [quietEnd, setQuietEnd] = useState<string>("");
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (prefs) {
       setDeliveryMode(prefs.notificationDeliveryMode);
       setQuietStart(prefs.quietHoursStart !== null ? String(prefs.quietHoursStart).padStart(2, "0") : "");
       setQuietEnd(prefs.quietHoursEnd !== null ? String(prefs.quietHoursEnd).padStart(2, "0") : "");
+      setOverrides(Object.fromEntries((prefs.emailOverrides ?? []).map((o) => [o.eventType, o.enabled])));
     }
   }, [prefs]);
 
@@ -40,17 +42,25 @@ export function TeamNotificationMyPreferences() {
   }
 
   const enabledEvents = (businessSettings ?? []).filter((s) => s.enabled && s.supportsEmail);
-  const overrideMap = new Map((prefs?.emailOverrides ?? []).map((o) => [o.eventType, o.enabled]));
 
   function saveDeliveryMode(mode: string) {
+    const previousMode = deliveryMode;
     setDeliveryMode(mode);
     update.mutate(
       { notificationDeliveryMode: mode },
-      { onSuccess: () => toast.success("Modo atualizado"), onError: () => toast.error("Erro ao salvar") },
+      {
+        onSuccess: () => toast.success("Modo atualizado"),
+        onError: () => {
+          setDeliveryMode(previousMode);
+          toast.error("Erro ao salvar");
+        },
+      },
     );
   }
 
   function saveQuietHours(startStr: string, endStr: string) {
+    setQuietStart(startStr);
+    setQuietEnd(endStr);
     const start = startStr === "" ? null : parseInt(startStr, 10);
     const end = endStr === "" ? null : parseInt(endStr, 10);
     update.mutate(
@@ -60,6 +70,7 @@ export function TeamNotificationMyPreferences() {
   }
 
   function toggleEventEmail(eventType: NotificationEventType, enabled: boolean) {
+    setOverrides((prev) => ({ ...prev, [eventType]: enabled }));
     update.mutate(
       { emailOverrides: [{ eventType, enabled }] },
       { onSuccess: () => toast.success("Preferência atualizada"), onError: () => toast.error("Erro ao salvar") },
@@ -134,7 +145,7 @@ export function TeamNotificationMyPreferences() {
                 <p className="text-xs text-muted-foreground">🔔 in-app sempre ativo · ✉️ e-mail abaixo</p>
               </div>
               <Switch
-                checked={overrideMap.get(event.eventType) ?? true}
+                checked={overrides[event.eventType] ?? true}
                 onCheckedChange={(v) => toggleEventEmail(event.eventType, v)}
                 aria-label={`E-mail de ${event.label}`}
               />
