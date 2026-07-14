@@ -342,3 +342,25 @@ O gate **não substitui** `getSessionContext`/tenant scoping — cada route.ts c
 > preferência herdada nem backfill para esse evento, e ainda não existe tela
 > para desligar; aceito deliberadamente para entregar o recurso mais rápido,
 > até o próximo plano trazer a UI de configuração e os defaults por cargo).
+
+> **Atualização 2026-07-14:** aba `Configurações › Notificações` entregue —
+> sub-abas "Avisos do negócio" (matriz de eventos × canais + editor de
+> mensagem com chips `{{variavel}}` e prévia) e "Minhas preferências" (modo
+> tempo-real/digest, quiet hours, e-mail por evento). Painel de 3 switches
+> (`notification-preferences.tsx`) removido — sino e Configurações linkam
+> pra cá. Resumo do dia corrigido para rodar às 08:00 no fuso do tenant (era
+> fixo em UTC). Seed de defaults por cargo ao convidar membro **não** foi
+> incluído nesta entrega (fora de escopo, ver plano
+> `docs/superpowers/plans/2026-07-13-central-notificacoes-equipe-ui.md`).
+>
+> **Limitação conhecida (achada na revisão da Task 15):** `TeamNotificationMyPreferences`
+> ("Minhas preferências") depende internamente de `useTeamNotificationSettings()`,
+> cuja rota exige a permissão `configuracoes:view` — isso contradiz parcialmente
+> a intenção original do plano de que "Minhas preferências" não deveria ter
+> checagem de cargo. Na prática só afeta colaboradores com cargo customizado
+> em que o dono restringiu manualmente `configuracoes` (o cargo único padrão
+> semeado em tenant novo já libera `configuracoes` por padrão), fazendo a seção
+> "Meus avisos" aparecer vazia/enganosa nesses casos raros. Fica registrado
+> como limitação a resolver numa iteração futura (ex.: endpoint sem gate de
+> permissão para listar só quais eventos existem, ou tratamento explícito de
+> erro 403 no componente).
