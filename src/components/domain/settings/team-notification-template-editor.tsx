@@ -52,7 +52,8 @@ export function TeamNotificationTemplateEditor({
   }, [template]);
 
   if (!eventType) return null;
-  const catalogEntry = TEAM_NOTIFICATION_CATALOG_MAP[eventType];
+  const confirmedEventType = eventType; // Narrowed to NotificationEventType, sem fallback arbitrário
+  const catalogEntry = TEAM_NOTIFICATION_CATALOG_MAP[confirmedEventType];
 
   function insertVariable(name: string) {
     const textarea = bodyRef.current;
@@ -68,7 +69,6 @@ export function TeamNotificationTemplateEditor({
   }
 
   function handleSave() {
-    const confirmedEventType: NotificationEventType = eventType ?? "appointment_created";
     update.mutate(
       { eventType: confirmedEventType, channel, subject: channel === "EMAIL" ? subject : null, body },
       { onSuccess: () => { toast.success("Mensagem salva"); onOpenChange(false); }, onError: () => toast.error("Erro ao salvar") },
