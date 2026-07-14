@@ -41,7 +41,7 @@ export function TeamNotificationMyPreferences() {
     );
   }
 
-  const enabledEvents = (businessSettings ?? []).filter((s) => s.enabled && s.supportsEmail);
+  const enabledEvents = (businessSettings ?? []).filter((s) => s.enabled && s.supportsEmail && s.defaultChannels.includes("EMAIL"));
 
   function saveDeliveryMode(mode: string) {
     const previousMode = deliveryMode;
