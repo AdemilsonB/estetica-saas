@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import {
   Building2, Clock, Palette, Link as LinkIcon,
   Settings2, MessageCircle, Zap, CreditCard,
-  Sparkles, ClipboardList, Loader2, ExternalLink, Globe, Eye,
+  Sparkles, ClipboardList, Loader2, ExternalLink, Globe, Eye, Bell,
 } from 'lucide-react'
 import { SettingsGroup } from '@/components/domain/settings/settings-group'
 import { SettingsCard } from '@/components/domain/settings/settings-card'
@@ -267,6 +267,22 @@ export default function ConfiguracoesPage() {
             </div>
           )}
           <WhatsAppAutomationsForm />
+        </SettingsCard>
+
+        <SettingsCard
+          icon={Bell}
+          title="Notificações da equipe"
+          subtitle="Configure os avisos internos e ajuste suas próprias preferências"
+        >
+          <p className="mb-4 text-sm text-muted-foreground">
+            Novo agendamento, cancelamento, resumo do dia e mais — escolha o que avisa e por quais canais.
+          </p>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/configuracoes/notificacoes" className="flex items-center gap-1.5">
+              <ExternalLink className="size-3.5" />
+              Configurar Notificações
+            </Link>
+          </Button>
         </SettingsCard>
       </SettingsGroup>
 
