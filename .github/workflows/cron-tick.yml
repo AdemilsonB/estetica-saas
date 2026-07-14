@@ -1,0 +1,32 @@
+name: Cron Tick
+
+# Aciona o /api/cron/tick da aplicação periodicamente. Existe porque o projeto
+# não está no plano Vercel Pro (sem Vercel Cron Jobs frequentes) — o endpoint
+# já foi desenhado desde o início para ser "pull-based", acionável por
+# qualquer agendador externo grátis (ver spec da central de notificações da
+# equipe). GitHub Actions cobre isso sem custo.
+#
+# É por esse tick que rodam: lembretes de agendamento, aniversariantes da
+# semana, resumo diário, e-mails de notificação da equipe, e as demais
+# tarefas periódicas registradas em src/app/api/cron/tick/route.ts.
+#
+# Configuração necessária (uma única vez): em Settings > Secrets and
+# variables > Actions deste repositório, criar o secret CRON_SECRET com o
+# mesmo valor configurado na env var CRON_SECRET do projeto na Vercel (se a
+# Vercel não tiver CRON_SECRET definido, o endpoint fica aberto e este
+# secret pode ficar com qualquer valor, ou vazio).
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar /api/cron/tick
+        run: |
+          curl --fail --silent --show-error \
+            -X GET "https://www.agendeweb.com.br/api/cron/tick" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
