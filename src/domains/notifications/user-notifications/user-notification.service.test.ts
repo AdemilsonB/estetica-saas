@@ -10,9 +10,11 @@ const repo = {
   findTenantName: vi.fn(),
   markRead: vi.fn(),
   updatePrefs: vi.fn(),
+  findDeliveryPrefs: vi.fn(),
+  updateDeliveryPrefs: vi.fn(),
 };
 
-const prefRepo = { upsertEmailOverride: vi.fn() };
+const prefRepo = { upsertEmailOverride: vi.fn(), findAllForUser: vi.fn() };
 
 describe("UserNotificationService.listForUser", () => {
   let service: UserNotificationService;
@@ -84,5 +86,70 @@ describe("UserNotificationService.updatePreferences", () => {
     expect(result).toEqual({
       notifyEmailAppointments: true, notifyOwnAppointments: false, notifyTeamAppointments: true,
     });
+  });
+});
+
+describe("UserNotificationService.getMyNotificationSettings", () => {
+  let service: UserNotificationService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    service = new UserNotificationService(repo as never, prefRepo as never);
+  });
+
+  it("combina prefs de entrega + overrides de e-mail do usuário", async () => {
+    repo.findDeliveryPrefs.mockResolvedValue({ notificationDeliveryMode: "digest", quietHoursStart: 22, quietHoursEnd: 7 });
+    prefRepo.findAllForUser.mockResolvedValue([
+      { eventType: "appointment_created", channel: "EMAIL", enabled: false },
+      { eventType: "customer_created", channel: "IN_APP", enabled: true },
+    ]);
+
+    const result = await service.getMyNotificationSettings("t1", "u1");
+
+    expect(result.notificationDeliveryMode).toBe("digest");
+    expect(result.quietHoursStart).toBe(22);
+    expect(result.emailOverrides).toEqual([{ eventType: "appointment_created", enabled: false }]);
+  });
+
+  it("usa defaults quando o usuário não tem prefs de entrega salvas", async () => {
+    repo.findDeliveryPrefs.mockResolvedValue(null);
+    prefRepo.findAllForUser.mockResolvedValue([]);
+
+    const result = await service.getMyNotificationSettings("t1", "u1");
+
+    expect(result).toEqual({
+      notificationDeliveryMode: "realtime", quietHoursStart: null, quietHoursEnd: null, emailOverrides: [],
+    });
+  });
+});
+
+describe("UserNotificationService.updateMyNotificationSettings", () => {
+  let service: UserNotificationService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    service = new UserNotificationService(repo as never, prefRepo as never);
+    repo.updateDeliveryPrefs.mockResolvedValue({});
+    prefRepo.upsertEmailOverride.mockResolvedValue(undefined);
+  });
+
+  it("atualiza prefs de entrega e overrides de e-mail juntos", async () => {
+    await service.updateMyNotificationSettings("t1", "u1", {
+      notificationDeliveryMode: "digest",
+      emailOverrides: [{ eventType: "appointment_created", enabled: false }],
+    });
+
+    expect(repo.updateDeliveryPrefs).toHaveBeenCalledWith("t1", "u1", {
+      notificationDeliveryMode: "digest", quietHoursStart: undefined, quietHoursEnd: undefined,
+    });
+    expect(prefRepo.upsertEmailOverride).toHaveBeenCalledWith("t1", "u1", "appointment_created", false);
+  });
+
+  it("não toca prefs de entrega quando só overrides são enviados", async () => {
+    await service.updateMyNotificationSettings("t1", "u1", {
+      emailOverrides: [{ eventType: "customer_created", enabled: true }],
+    });
+    expect(repo.updateDeliveryPrefs).not.toHaveBeenCalled();
+    expect(prefRepo.upsertEmailOverride).toHaveBeenCalledWith("t1", "u1", "customer_created", true);
   });
 });

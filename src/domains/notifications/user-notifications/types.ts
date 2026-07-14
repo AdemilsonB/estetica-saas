@@ -1,4 +1,4 @@
-import type { Prisma, UserRole } from "@prisma/client";
+import type { NotificationEventType, Prisma, UserRole } from "@prisma/client";
 
 export type UserNotificationType =
   | "appointment_created"
@@ -59,4 +59,18 @@ export type DigestUser = {
   id: string;
   email: string;
   notificationDeliveryMode: string;
+};
+
+export type MyNotificationSettings = {
+  notificationDeliveryMode: string;
+  quietHoursStart: number | null;
+  quietHoursEnd: number | null;
+  emailOverrides: { eventType: NotificationEventType; enabled: boolean }[];
+};
+
+export type UpdateMyNotificationSettingsInput = {
+  notificationDeliveryMode?: string;
+  quietHoursStart?: number | null;
+  quietHoursEnd?: number | null;
+  emailOverrides?: { eventType: NotificationEventType; enabled: boolean }[];
 };

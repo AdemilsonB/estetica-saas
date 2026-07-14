@@ -50,4 +50,16 @@ describe("UserNotificationPreferenceRepository", () => {
       create: { tenantId: "t1", userId: "u1", eventType: "appointment_created", channel: "EMAIL", enabled: false },
     });
   });
+
+  it("findAllForUser retorna todos os overrides do usuário no tenant", async () => {
+    prismaMock.userNotificationPreference.findMany.mockResolvedValue([
+      { eventType: "appointment_created", channel: "EMAIL", enabled: false },
+    ] as never);
+    const result = await repo.findAllForUser("t1", "u1");
+    expect(result).toEqual([{ eventType: "appointment_created", channel: "EMAIL", enabled: false }]);
+    expect(prismaMock.userNotificationPreference.findMany).toHaveBeenCalledWith({
+      where: { tenantId: "t1", userId: "u1" },
+      select: { eventType: true, channel: true, enabled: true },
+    });
+  });
 });

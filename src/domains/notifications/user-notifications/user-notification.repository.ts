@@ -200,6 +200,28 @@ export class UserNotificationRepository {
       select: { type: true },
     });
   }
+
+  async findDeliveryPrefs(
+    tenantId: string,
+    userId: string,
+  ): Promise<{ notificationDeliveryMode: string; quietHoursStart: number | null; quietHoursEnd: number | null } | null> {
+    return prisma.user.findFirst({
+      where: { id: userId, tenantId },
+      select: { notificationDeliveryMode: true, quietHoursStart: true, quietHoursEnd: true },
+    });
+  }
+
+  async updateDeliveryPrefs(
+    tenantId: string,
+    userId: string,
+    data: Partial<{ notificationDeliveryMode: string; quietHoursStart: number | null; quietHoursEnd: number | null }>,
+  ): Promise<{ notificationDeliveryMode: string; quietHoursStart: number | null; quietHoursEnd: number | null }> {
+    return prisma.user.update({
+      where: { id: userId, tenantId },
+      data,
+      select: { notificationDeliveryMode: true, quietHoursStart: true, quietHoursEnd: true },
+    });
+  }
 }
 
 export const userNotificationRepository = new UserNotificationRepository();

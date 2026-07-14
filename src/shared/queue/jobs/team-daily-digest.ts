@@ -15,6 +15,15 @@ export async function handleTeamDailyDigest(): Promise<void> {
   const tenants = await prisma.tenant.findMany({ select: { id: true, name: true, timezone: true } });
 
   for (const tenant of tenants) {
+    // Só processa o tenant quando são 08h no horário local dele — o cron
+    // roda a cada hora e cada tenant "cai" na sua janela certa (mesma
+    // técnica de src/shared/queue/jobs/daily-status.ts).
+    const localHour = parseInt(
+      new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: tenant.timezone }).format(new Date()),
+      10,
+    );
+    if (localHour !== 8) continue;
+
     const users = await userNotificationRepository.findAllForDigest(tenant.id);
     if (users.length === 0) continue;
 

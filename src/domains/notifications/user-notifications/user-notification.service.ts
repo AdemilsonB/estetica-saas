@@ -5,7 +5,7 @@ import {
   userNotificationPreferenceRepository,
   UserNotificationPreferenceRepository,
 } from "./user-notification-preference.repository";
-import type { NotificationPrefs } from "./types";
+import type { MyNotificationSettings, NotificationPrefs, UpdateMyNotificationSettingsInput } from "./types";
 
 const EMAIL_OVERRIDE_EVENTS = [
   "appointment_created",
@@ -79,6 +79,43 @@ export class UserNotificationService {
     }
 
     return updated;
+  }
+
+  async getMyNotificationSettings(tenantId: string, userId: string): Promise<MyNotificationSettings> {
+    const [deliveryPrefs, overrides] = await Promise.all([
+      this.repo.findDeliveryPrefs(tenantId, userId),
+      this.prefRepo.findAllForUser(tenantId, userId),
+    ]);
+    return {
+      notificationDeliveryMode: deliveryPrefs?.notificationDeliveryMode ?? "realtime",
+      quietHoursStart: deliveryPrefs?.quietHoursStart ?? null,
+      quietHoursEnd: deliveryPrefs?.quietHoursEnd ?? null,
+      emailOverrides: overrides
+        .filter((o) => o.channel === "EMAIL")
+        .map((o) => ({ eventType: o.eventType, enabled: o.enabled })),
+    };
+  }
+
+  async updateMyNotificationSettings(
+    tenantId: string,
+    userId: string,
+    input: UpdateMyNotificationSettingsInput,
+  ): Promise<void> {
+    const { notificationDeliveryMode, quietHoursStart, quietHoursEnd, emailOverrides } = input;
+    const tasks: Promise<unknown>[] = [];
+
+    if (notificationDeliveryMode !== undefined || quietHoursStart !== undefined || quietHoursEnd !== undefined) {
+      tasks.push(
+        this.repo.updateDeliveryPrefs(tenantId, userId, { notificationDeliveryMode, quietHoursStart, quietHoursEnd }),
+      );
+    }
+    if (emailOverrides) {
+      for (const o of emailOverrides) {
+        tasks.push(this.prefRepo.upsertEmailOverride(tenantId, userId, o.eventType, o.enabled));
+      }
+    }
+
+    await Promise.all(tasks);
   }
 }
 

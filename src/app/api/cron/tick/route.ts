@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       boss.schedule(VIP_SWEEP_JOB, "0 2 * * *", {}),
       boss.schedule(WHATSAPP_QUOTA_CLEANUP_JOB, "0 2 1 * *", {}),
       boss.schedule(USER_BIRTHDAY_DIGEST_JOB, "0 8 * * 1", {}),
-      boss.schedule(TEAM_DAILY_DIGEST_JOB, "0 8 * * *", {}),
+      boss.schedule(TEAM_DAILY_DIGEST_JOB, "0 * * * *", {}),
     ]);
 
     const [reminders, billing, birthday, dailyStatus, recurring, vip, expiry, snapshot, quota, userBirthday, teamEmail, teamDigest] =

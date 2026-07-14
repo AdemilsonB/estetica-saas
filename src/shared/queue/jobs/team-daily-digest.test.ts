@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { handleTeamDailyDigest } from "./team-daily-digest";
 
 const emailSend = vi.fn();
@@ -35,9 +35,17 @@ vi.mock("@/domains/notifications/user-notifications/user-notification.repository
 describe("handleTeamDailyDigest", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
+    // 11h UTC = 08h em America/Sao_Paulo (UTC-3, sem horário de verão) — janela
+    // em que o job processa o tenant, já que o corte por hora local usa `new Date()`.
+    vi.setSystemTime(new Date("2026-07-13T11:00:00Z"));
     tenantFindMany.mockResolvedValue([{ id: "t1", name: "Estúdio X", timezone: "America/Sao_Paulo" }]);
     findByTenant.mockResolvedValue(null); // default do sistema: daily_digest habilitado, canal EMAIL
     findEmailOverridesForUsers.mockResolvedValue(new Map());
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("envia o resumo do dia para usuário em modo realtime com daily_digest habilitado", async () => {
@@ -86,5 +94,19 @@ describe("handleTeamDailyDigest", () => {
 
     await expect(handleTeamDailyDigest()).resolves.toBeUndefined();
     expect(emailSend).toHaveBeenCalledTimes(2);
+  });
+
+  it("só processa o tenant quando é 08h no horário local dele (não processa em outro horário)", async () => {
+    // Mocka Date para uma hora fixa e usa um timezone cujo offset garante
+    // que 08h local NÃO corresponde à hora do sistema (America/Los_Angeles,
+    // bem distante de qualquer timezone real do servidor de CI/dev).
+    vi.setSystemTime(new Date("2026-07-13T08:00:00Z")); // 08h UTC
+    tenantFindMany.mockResolvedValue([{ id: "t1", name: "Estúdio X", timezone: "America/Los_Angeles" }]); // UTC-7/8, não é 08h lá
+    findAllForDigest.mockResolvedValue([{ id: "u1", email: "u1@x.com", notificationDeliveryMode: "realtime" }]);
+
+    await handleTeamDailyDigest();
+
+    expect(emailSend).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 });

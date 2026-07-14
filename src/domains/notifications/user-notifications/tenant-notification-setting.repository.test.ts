@@ -35,4 +35,23 @@ describe("TenantNotificationSettingRepository", () => {
     const result = await repo.findByTenant("t1", "customer_created");
     expect(result).toBeNull();
   });
+
+  it("findAllByTenant retorna todas as configurações do tenant", async () => {
+    prismaMock.tenantNotificationSetting.findMany.mockResolvedValue([
+      { id: "s1", tenantId: "t1", eventType: "appointment_created", enabled: true, defaultChannels: ["IN_APP", "EMAIL"], templateId: null },
+    ] as never);
+    const result = await repo.findAllByTenant("t1");
+    expect(result).toHaveLength(1);
+    expect(prismaMock.tenantNotificationSetting.findMany).toHaveBeenCalledWith({ where: { tenantId: "t1" } });
+  });
+
+  it("upsert cria/atualiza a configuração pela chave composta tenantId+eventType", async () => {
+    prismaMock.tenantNotificationSetting.upsert.mockResolvedValue({} as never);
+    await repo.upsert("t1", "appointment_created", { enabled: false, defaultChannels: ["IN_APP"] });
+    expect(prismaMock.tenantNotificationSetting.upsert).toHaveBeenCalledWith({
+      where: { tenantId_eventType: { tenantId: "t1", eventType: "appointment_created" } },
+      update: { enabled: false, defaultChannels: ["IN_APP"] },
+      create: { tenantId: "t1", eventType: "appointment_created", enabled: false, defaultChannels: ["IN_APP"] },
+    });
+  });
 });
