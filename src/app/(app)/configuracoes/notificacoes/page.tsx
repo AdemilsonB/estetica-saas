@@ -32,7 +32,7 @@ export default function NotificacoesConfigPage() {
       </div>
 
       <Tabs defaultValue={canManageBusiness ? "negocio" : "pessoal"}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid h-auto w-full grid-cols-2">
           {canManageBusiness && (
             <TabsTrigger value="negocio" className="min-h-11">Avisos do negócio</TabsTrigger>
           )}
