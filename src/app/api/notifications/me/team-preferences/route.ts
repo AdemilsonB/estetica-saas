@@ -10,6 +10,7 @@ const patchSchema = z.object({
   notificationDeliveryMode: z.enum(["realtime", "digest"]).optional(),
   quietHoursStart: z.number().int().min(0).max(23).nullable().optional(),
   quietHoursEnd: z.number().int().min(0).max(23).nullable().optional(),
+  notifyOwnAppointments: z.boolean().optional(),
   emailOverrides: z
     .array(
       z.object({

@@ -63,4 +63,19 @@ describe("PATCH /api/notifications/me/team-preferences", () => {
     );
     expect(res.status).toBe(422);
   });
+
+  it("atualiza notifyOwnAppointments", async () => {
+    getSessionContext.mockResolvedValue(makeSession());
+    updateMyNotificationSettings.mockResolvedValue(undefined);
+
+    const res = await PATCH(
+      new Request("http://x/api/notifications/me/team-preferences", {
+        method: "PATCH",
+        body: JSON.stringify({ notifyOwnAppointments: true }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(updateMyNotificationSettings).toHaveBeenCalledWith("t1", "u1", { notifyOwnAppointments: true });
+  });
 });

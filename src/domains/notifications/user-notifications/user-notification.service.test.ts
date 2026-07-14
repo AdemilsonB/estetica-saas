@@ -97,8 +97,12 @@ describe("UserNotificationService.getMyNotificationSettings", () => {
     service = new UserNotificationService(repo as never, prefRepo as never);
   });
 
-  it("combina prefs de entrega + overrides de e-mail do usuário", async () => {
+  it("combina prefs de entrega + notifyOwnAppointments + overrides de e-mail do usuário", async () => {
     repo.findDeliveryPrefs.mockResolvedValue({ notificationDeliveryMode: "digest", quietHoursStart: 22, quietHoursEnd: 7 });
+    repo.findUserPrefs.mockResolvedValue({
+      id: "u1", email: "u1@x.com", name: "U1", role: "PROFESSIONAL",
+      notifyEmailAppointments: false, notifyOwnAppointments: true, notifyTeamAppointments: true,
+    });
     prefRepo.findAllForUser.mockResolvedValue([
       { eventType: "appointment_created", channel: "EMAIL", enabled: false },
       { eventType: "customer_created", channel: "IN_APP", enabled: true },
@@ -108,17 +112,20 @@ describe("UserNotificationService.getMyNotificationSettings", () => {
 
     expect(result.notificationDeliveryMode).toBe("digest");
     expect(result.quietHoursStart).toBe(22);
+    expect(result.notifyOwnAppointments).toBe(true);
     expect(result.emailOverrides).toEqual([{ eventType: "appointment_created", enabled: false }]);
   });
 
-  it("usa defaults quando o usuário não tem prefs de entrega salvas", async () => {
+  it("usa defaults quando o usuário não tem prefs de entrega nem prefs legadas salvas", async () => {
     repo.findDeliveryPrefs.mockResolvedValue(null);
+    repo.findUserPrefs.mockResolvedValue(null);
     prefRepo.findAllForUser.mockResolvedValue([]);
 
     const result = await service.getMyNotificationSettings("t1", "u1");
 
     expect(result).toEqual({
-      notificationDeliveryMode: "realtime", quietHoursStart: null, quietHoursEnd: null, emailOverrides: [],
+      notificationDeliveryMode: "realtime", quietHoursStart: null, quietHoursEnd: null,
+      notifyOwnAppointments: false, emailOverrides: [],
     });
   });
 });
@@ -151,5 +158,16 @@ describe("UserNotificationService.updateMyNotificationSettings", () => {
     });
     expect(repo.updateDeliveryPrefs).not.toHaveBeenCalled();
     expect(prefRepo.upsertEmailOverride).toHaveBeenCalledWith("t1", "u1", "customer_created", true);
+  });
+
+  it("atualiza notifyOwnAppointments via updatePrefs (boolean legado)", async () => {
+    repo.updatePrefs.mockResolvedValue({});
+    await service.updateMyNotificationSettings("t1", "u1", { notifyOwnAppointments: true });
+    expect(repo.updatePrefs).toHaveBeenCalledWith("t1", "u1", { notifyOwnAppointments: true });
+  });
+
+  it("não toca notifyOwnAppointments quando não é enviado", async () => {
+    await service.updateMyNotificationSettings("t1", "u1", { notificationDeliveryMode: "realtime" });
+    expect(repo.updatePrefs).not.toHaveBeenCalled();
   });
 });
