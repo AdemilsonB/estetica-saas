@@ -11,7 +11,7 @@ import { RoleEditor } from './role-editor'
 import { RoleDeleteButton } from './role-delete-button'
 import { useRoles, useCreateRole } from '@/hooks/iam/use-roles'
 import { useNavSections } from '@/hooks/iam/use-nav-sections'
-import type { NavSection } from '@/shared/permissions/nav-registry'
+import { buildSoleProfessionalPermissions, type NavSection } from '@/shared/permissions/nav-registry'
 
 type Props = {
   initialRoleId?: string
@@ -30,7 +30,11 @@ export function RolesManager({ initialRoleId }: Props = {}) {
     e.preventDefault()
     if (!newName.trim()) return
     createRole.mutate(
-      { name: newName.trim(), permissions: {} },
+      // Default permissivo (tudo liberado exceto gerenciar equipe) em vez de
+      // vazio — evita o cargo nascer sem permissões essenciais (ex.: Financeiro,
+      // Descontos) que impedem o profissional de concluir o próprio fluxo de
+      // atendimento. O dono ainda pode desmarcar o que não quiser no editor.
+      { name: newName.trim(), permissions: buildSoleProfessionalPermissions() },
       {
         onSuccess: (created) => {
           toast.success(`Cargo "${created.name}" criado`)
