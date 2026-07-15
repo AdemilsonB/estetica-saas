@@ -8,6 +8,13 @@ export function getPgBoss(): PgBoss {
     boss = new PgBoss({
       connectionString: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
       schema: process.env.PG_BOSS_SCHEMA ?? "pgboss",
+      // DIRECT_URL aponta pro Session Pooler do Supabase (necessário: pg-boss
+      // usa LISTEN/NOTIFY e locks, que não funcionam no Transaction Pooler),
+      // que tem um teto baixo de conexões simultâneas por projeto (15 no
+      // tier Nano). Cada invocação serverless abre seu próprio pool — sem
+      // limitar, poucas invocações concorrentes já estouram o teto do lado
+      // do Supabase (EMAXCONNSESSION).
+      max: 3,
     });
   }
   return boss;
