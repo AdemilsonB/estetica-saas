@@ -14,6 +14,7 @@ const PUBLIC_PREFIXES = [
   "/api/public/", // booking público, anamnese, portal do cliente
   "/api/webhooks/", // Stripe/Evolution/Twilio — cada um valida sua própria assinatura/token
   "/api/admin/", // backoffice — Bearer ADMIN_API_SECRET via getAdminContext, não cookie
+  "/api/cron/", // cron externo (GitHub Actions) — Bearer CRON_SECRET próprio, não cookie
   "/api/auth/signup", // criação de conta — precede qualquer sessão
   "/api/dev/", // utilitários de desenvolvimento, gated por NODE_ENV no próprio handler
   "/api/billing/plans", // lista de planos públicos (vitrine/landing)
