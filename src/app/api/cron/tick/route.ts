@@ -75,10 +75,12 @@ async function runScheduled(
   }
 }
 
-// O Vercel injeta CRON_SECRET automaticamente e o envia como Bearer token.
+// CRON_SECRET é configurado manualmente na Vercel + secret do GitHub Actions
+// (ver docs/infra-setup.md). trim() evita falso-negativo por espaço/quebra de
+// linha colada sem querer no campo (textarea) de env var da Vercel.
 // Em dev local, sem a variável, o endpoint fica aberto (facilitando testes manuais).
 export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
+  const cronSecret = process.env.CRON_SECRET?.trim();
   if (cronSecret && request.headers.get("authorization") !== `Bearer ${cronSecret}`) {
     return new Response("Unauthorized", { status: 401 });
   }
