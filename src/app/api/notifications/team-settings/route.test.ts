@@ -39,10 +39,11 @@ describe("GET /api/notifications/team-settings", () => {
     expect(listForTenant).toHaveBeenCalledWith("t1");
   });
 
-  it("403 quando falta permissão", async () => {
+  it("200 mesmo sem permissão de configuracoes — leitura é liberada para qualquer membro do tenant", async () => {
     getSessionContext.mockResolvedValue(makeSession({ permissions: {} }));
+    listForTenant.mockResolvedValue([{ eventType: "appointment_created", enabled: true }]);
     const res = await GET(new Request("http://x/api/notifications/team-settings"));
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(200);
   });
 });
 

@@ -24,8 +24,11 @@ const updateSchema = z.object({
 export async function GET(request: Request) {
   initializeDomainRuntime();
   try {
+    // Leitura liberada para qualquer membro autenticado do tenant, sem checar
+    // configuracoes:view — a aba pessoal "Minhas preferências" depende desta
+    // lista (quais eventos existem, se suportam e-mail) para qualquer usuário,
+    // independente de ter acesso às configurações gerais do negócio.
     const session = await getSessionContext(request);
-    ensurePermission(session, PERMISSIONS.settings.view);
     const settings = await teamNotificationSettingsService.listForTenant(session.tenantId);
     return Response.json({ settings });
   } catch (error) {

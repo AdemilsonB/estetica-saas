@@ -145,11 +145,12 @@ async function recordSale({
   return res.json()
 }
 
-export function useProducts(params: ListProductsParams = {}) {
+export function useProducts({ enabled = true, ...params }: ListProductsParams & { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['products', params],
     queryFn: () => listProducts(params),
     staleTime: 30 * 1000,
+    enabled,
   })
 }
 

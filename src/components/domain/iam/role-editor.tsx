@@ -10,6 +10,7 @@ import { RoleFilterPermissions } from './role-filter-permissions'
 import { useUpdateRole, type Role } from '@/hooks/iam/use-roles'
 import { useExtraPermissions } from '@/hooks/iam/use-extra-permissions'
 import type { NavSection } from '@/shared/permissions/nav-registry'
+import { diffAddedPermissions, describeDependency } from '@/shared/permissions/permission-dependencies'
 
 type Props = {
   role: Role
@@ -27,7 +28,14 @@ export function RoleEditor({ role, sections, onCancel }: Props) {
     updateRole.mutate(
       { id: role.id, name, permissions },
       {
-        onSuccess: () => {
+        onSuccess: (updated) => {
+          const added = diffAddedPermissions(permissions, updated.permissions)
+          if (added.length > 0) {
+            toast.info(
+              `Permissões adicionadas automaticamente por dependência: ${added.map(describeDependency).join(', ')}`,
+              { duration: 8000 },
+            )
+          }
           toast.success('Cargo atualizado')
           onCancel()
         },
@@ -50,6 +58,12 @@ export function RoleEditor({ role, sections, onCancel }: Props) {
 
       <div>
         <p className="mb-3 text-sm font-medium text-slate-700">Permissões por tela</p>
+        {sections.some((s) => s.key === 'equipe') && (
+          <p className="mb-3 text-xs text-slate-500">
+            Criar, editar e excluir cargos é exclusivo do dono da conta — a permissão
+            &quot;Equipe&quot; abaixo controla apenas convidar e editar membros do time.
+          </p>
+        )}
         <RolePermissionMatrix
           sections={sections}
           permissions={permissions}

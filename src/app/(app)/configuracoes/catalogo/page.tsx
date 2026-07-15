@@ -1,12 +1,23 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CatalogGrid } from '@/components/domain/catalog/CatalogGrid'
+import { usePermissions } from '@/hooks/use-permissions'
 
 export default function CatalogSettingsPage() {
+  const router = useRouter()
+  const { can, isLoading: permissionsLoading } = usePermissions()
+  const canManageCatalog = can('servicos', 'edit') || can('produtos', 'edit')
   const [segments, setSegments] = useState<string[]>([])
   const [isLoadingSegments, setIsLoadingSegments] = useState(true)
+
+  useEffect(() => {
+    if (!permissionsLoading && !canManageCatalog) {
+      router.replace('/agenda')
+    }
+  }, [permissionsLoading, canManageCatalog, router])
 
   useEffect(() => {
     fetch('/api/onboarding/segments')
@@ -18,6 +29,16 @@ export default function CatalogSettingsPage() {
       .catch(() => {})
       .finally(() => setIsLoadingSegments(false))
   }, [])
+
+  if (permissionsLoading) {
+    return (
+      <div className="flex h-full items-center justify-center p-6">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-rose-200 border-t-rose-600" />
+      </div>
+    )
+  }
+
+  if (!canManageCatalog) return null
 
   return (
     <div className="space-y-6 p-6">
