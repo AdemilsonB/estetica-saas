@@ -28,7 +28,7 @@ Usuário final (browser / mobile)
         ├── Stripe ──────────────────── pagamentos e assinaturas
         │
         └── pg-boss (sobre o Supabase) ── filas de jobs assíncronos
-                └── Vercel Cron (/api/cron/tick a cada 1 min)
+                └── GitHub Actions Cron (/api/cron/tick a cada 10 min, best-effort)
 ```
 
 ---
@@ -95,15 +95,24 @@ Usuário final (browser / mobile)
 
 ### Cron Jobs
 
-Configurado em `vercel.json`:
+O plano Hobby da Vercel não suporta Cron Jobs nativos frequentes (só 1x/dia), então
+`vercel.json` **não** tem `crons` configurado. Quem aciona `/api/cron/tick` é um
+workflow do GitHub Actions (`.github/workflows/cron-tick.yml`, gratuito), agendado
+a cada 10 minutos — na prática o GitHub Actions trata `schedule` como best-effort
+e pode atrasar (às vezes ~1h) em repositórios de baixo volume; aceitável para os
+jobs atuais (lembretes, resumos, notificações da equipe).
 
-```json
-{
-  "crons": [{ "path": "/api/cron/tick", "schedule": "* * * * *" }]
-}
-```
+O endpoint `/api/cron/tick` executa todos os jobs pendentes do pg-boss a cada
+chamada. Autenticado via `Authorization: Bearer $CRON_SECRET` — **precisa ser
+configurado manualmente nos dois lados** (não é injetado automaticamente, pois
+isso só acontece quando se usa Cron Jobs nativo da Vercel):
+1. Gerar um valor aleatório (`openssl rand -base64 32`)
+2. Vercel → Settings → Environment Variables → `CRON_SECRET` (Production) + Redeploy
+3. GitHub → Settings → Secrets and variables → Actions → **Repository secrets** → `CRON_SECRET` (mesmo valor)
 
-O endpoint `/api/cron/tick` executa todos os jobs do pg-boss a cada minuto. Autenticado via `Authorization: Bearer $CRON_SECRET` (injetado automaticamente pelo Vercel).
+> Ao assinar o Vercel Pro, migrar de volta para Cron Jobs nativo (`vercel.json`
+> com `crons`) — o Vercel passa a injetar `CRON_SECRET` automaticamente, e o
+> workflow do GitHub Actions pode ser removido.
 
 ### Variáveis de ambiente (Production)
 
@@ -124,7 +133,7 @@ O endpoint `/api/cron/tick` executa todos os jobs do pg-boss a cada minuto. Aute
 | `APP_URL` | URL base (webhooks, deep-links) | `https://www.agendeweb.com.br` |
 | `RESEND_API_KEY` | API key do Resend | Resend → API Keys |
 | `EMAIL_FROM` | Remetente de emails | `noreply@agendeweb.com.br` |
-| `CRON_SECRET` | Autentica o endpoint de cron | Injetado automaticamente pelo Vercel |
+| `CRON_SECRET` | Autentica o endpoint de cron | Gerar: `openssl rand -base64 32` — configurar o mesmo valor também no secret `CRON_SECRET` do GitHub Actions |
 | `STRIPE_SECRET_KEY` | Chave secreta Stripe | Stripe → Developers → API Keys |
 | `STRIPE_WEBHOOK_SECRET` | Segredo do webhook Stripe | Stripe → Developers → Webhooks |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Chave pública Stripe | Stripe → Developers → API Keys |
@@ -287,7 +296,7 @@ POST /webhook/set/<instanceName>
 
 ---
 
-## 9. pg-boss + Vercel Cron
+## 9. pg-boss + Cron (GitHub Actions)
 
 **Papel:** filas de jobs assíncronos (lembretes, sweep de billing, aniversários, etc.).
 
@@ -295,7 +304,8 @@ POST /webhook/set/<instanceName>
 
 - pg-boss roda sobre o banco PostgreSQL do Supabase (schema `pgboss`)
 - Em serverless (Vercel), o scheduler não roda continuamente
-- Solução: Vercel Cron chama `/api/cron/tick` a cada minuto
+- Solução: workflow do GitHub Actions (`.github/workflows/cron-tick.yml`) chama
+  `/api/cron/tick` a cada 10 minutos (best-effort — ver seção 3, "Cron Jobs")
 - O endpoint faz `boss.fetch()` dos jobs pendentes e executa manualmente
 
 ### Jobs registrados
@@ -314,7 +324,8 @@ POST /webhook/set/<instanceName>
 
 ### Autenticação do Cron
 
-O Vercel injeta `CRON_SECRET` automaticamente. O endpoint valida:
+`CRON_SECRET` é configurado manualmente (mesmo valor na Vercel e no secret do
+GitHub Actions — ver seção 3, "Cron Jobs"). O endpoint valida:
 
 ```
 Authorization: Bearer <CRON_SECRET>
