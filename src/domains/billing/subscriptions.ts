@@ -2,7 +2,7 @@ import type { PgBoss } from "pg-boss";
 
 import { billingService } from "./billing.service";
 
-export const BILLING_EXPIRE_SWEEP_JOB = "billing:expire-sweep";
+export const BILLING_EXPIRE_SWEEP_JOB = "billing-expire-sweep";
 
 export async function handleBillingExpireSweep(): Promise<void> {
   const startedAt = Date.now();

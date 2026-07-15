@@ -1,7 +1,7 @@
 import type { PgBoss, Job } from 'pg-boss'
 import { prisma } from '@/shared/database/prisma'
 
-export const USAGE_SNAPSHOT_JOB = 'usage:snapshot'
+export const USAGE_SNAPSHOT_JOB = 'usage-snapshot'
 
 function formatPeriod(year: number, month: number): string {
   return `${year}-${String(month + 1).padStart(2, '0')}`

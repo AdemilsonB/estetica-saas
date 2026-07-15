@@ -2,7 +2,7 @@ import type { PgBoss, Job } from 'pg-boss'
 import { prisma } from '@/shared/database/prisma'
 import { NotificationChannel } from '@prisma/client'
 
-export const SUBSCRIPTION_EXPIRY_WARNINGS_JOB = 'subscription:expiry-warnings'
+export const SUBSCRIPTION_EXPIRY_WARNINGS_JOB = 'subscription-expiry-warnings'
 
 export async function handleSubscriptionExpiryWarnings(
   _jobs: Job<Record<string, never>>[],
