@@ -32,6 +32,7 @@ import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import { useAvailableSlots } from '@/hooks/scheduling/use-availability'
 import { useTeamMembers } from '@/hooks/iam/use-team'
 import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
+import { usePermissions } from '@/hooks/use-permissions'
 import { cn } from '@/lib/utils'
 import {
   AlertDialog,
@@ -116,6 +117,8 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
 
   const { data: teamMembers = [] } = useTeamMembers()
   const { data: evolutionStatus } = useEvolutionStatus()
+  const { can } = usePermissions()
+  const canCheckout = can('financeiro', 'edit')
   const reschedule = useRescheduleAppointment()
   // Só sabemos que não vai enviar quando o status já carregou e está desconectado
   const whatsappOffline = evolutionStatus !== undefined && !evolutionStatus.connected
@@ -498,13 +501,21 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
                       </Button>
                     )}
                     {['SCHEDULED', 'CONFIRMED'].includes(appointment.status) && (
-                      <Button
-                        className="w-full bg-green-600 text-white hover:bg-green-700"
-                        onClick={() => setCheckoutOpen(true)}
-                        disabled={updateStatus.isPending}
-                      >
-                        Concluir atendimento
-                      </Button>
+                      <div>
+                        <Button
+                          className="w-full bg-green-600 text-white hover:bg-green-700"
+                          onClick={() => setCheckoutOpen(true)}
+                          disabled={updateStatus.isPending || !canCheckout}
+                        >
+                          Concluir atendimento
+                        </Button>
+                        {!canCheckout && (
+                          <p className="mt-1.5 text-xs text-amber-600">
+                            Você não tem permissão de Financeiro para registrar o pagamento —
+                            fale com o dono ou gerente para liberar em Cargos e permissões.
+                          </p>
+                        )}
+                      </div>
                     )}
                     <div className="flex gap-2">
                       <Button

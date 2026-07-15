@@ -3,6 +3,7 @@ import { prisma } from '@/shared/database/prisma'
 import { ForbiddenError, ValidationError, NotFoundError } from '@/shared/errors'
 import { NAV_REGISTRY, buildSoleProfessionalPermissions } from '@/shared/permissions/nav-registry'
 import { EXTRA_PERMISSION_REGISTRY } from '@/shared/permissions/extra-permission-registry'
+import { expandPermissionsWithDependencies } from '@/shared/permissions/permission-dependencies'
 import { planLimitsService } from '@/domains/billing/plan-limits.service'
 import type { RoleRepository } from './role.repository'
 
@@ -34,20 +35,23 @@ export class RoleService {
     const count = await this.repo.countByTenant(tenantId)
     await planLimitsService.assertWithinLimit(tenantId, 'max_roles', count)
 
-    await this.validatePermissions(tenantId, input.permissions)
+    const { permissions } = expandPermissionsWithDependencies(input.permissions)
+    await this.validatePermissions(tenantId, permissions)
 
-    return this.repo.create(tenantId, input)
+    return this.repo.create(tenantId, { ...input, permissions })
   }
 
   async updateRole(tenantId: string, roleId: string, input: Partial<RoleInput>) {
     const role = await this.repo.findById(tenantId, roleId)
     if (!role) throw new NotFoundError('Cargo')
 
-    if (input.permissions) {
-      await this.validatePermissions(tenantId, input.permissions)
+    let permissions = input.permissions
+    if (permissions) {
+      permissions = expandPermissionsWithDependencies(permissions).permissions
+      await this.validatePermissions(tenantId, permissions)
     }
 
-    return this.repo.update(tenantId, roleId, input)
+    return this.repo.update(tenantId, roleId, { ...input, permissions })
   }
 
   async deleteRole(tenantId: string, roleId: string) {

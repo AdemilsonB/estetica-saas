@@ -14,7 +14,8 @@
     "postinstall": "prisma generate",
     "seed:plan-features": "npx tsx scripts/seed-plan-features.ts",
     "migrate:user-roles": "npx tsx scripts/migrate-user-roles.ts",
-    "seed:admin": "npx tsx scripts/seed-admin-data.ts"
+    "seed:admin": "npx tsx scripts/seed-admin-data.ts",
+    "rbac:backfill": "npx tsx scripts/backfill-rbac-consistency.ts"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"

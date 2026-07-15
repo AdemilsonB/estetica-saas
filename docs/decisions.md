@@ -364,3 +364,36 @@ O gate **não substitui** `getSessionContext`/tenant scoping — cada route.ts c
 > como limitação a resolver numa iteração futura (ex.: endpoint sem gate de
 > permissão para listar só quais eventos existem, ou tratamento explícito de
 > erro 403 no componente).
+>
+> **Atualização 2026-07-15 (ADR-016):** limitação resolvida — ver ADR-016.
+
+## ADR-016 — Consolidação do RBAC: dependências entre permissões + unificação de fontes de verdade (2026-07-15)
+
+**Data**: 2026-07-15
+**Status**: Aceito
+
+**Contexto**: Auditoria de arquitetura pedida pelo usuário sobre a aba de Configurações/Permissões encontrou duas causas raiz por trás de cargos que travavam o profissional no meio do atendimento:
+1. A matriz de permissões (`nav-registry.ts`) é módulo × ação pura, sem noção de dependência entre módulos — ex.: `agenda:create` não garante `clientes:view`/`servicos:view`, então o formulário de novo agendamento abre com os campos de cliente/serviço vazios (fetch 403 silencioso) se o cargo não tiver essas duas permissões à parte. O mesmo valia para concluir atendimento (`financeiro:edit` sem `descontos:view` quebrava o modal de pagamento) e para produtos usados no atendimento (sem gate de UI nenhum, só 403 no clique).
+2. Duas fontes de verdade de RBAC coexistiam: o sistema novo (`Role` customizado, JSON) e um fallback legado hardcoded em `session.ts` (`LEGACY_ROLE_PERMISSIONS`), usado quando um `User` não tem `roleId` — e essa tabela estava desatualizada (faltava `produtos`, `equipe`, `configuracoes` para PROFESSIONAL/RECEPTIONIST) e divergia da matriz atual.
+
+Durante a investigação, uma auditoria de segurança de baixo custo (grep de `ensurePermission` em todas as rotas do domínio) encontrou que `POST/DELETE /api/catalog/{services,products}/[id]/activate` não tinham **nenhuma** checagem de permissão — qualquer usuário autenticado do tenant, independente de cargo, conseguia ativar/desativar itens do catálogo.
+
+**Decisão**:
+1. Novo módulo `src/shared/permissions/permission-dependencies.ts` com `PERMISSION_DEPENDENCIES` (mapa `"secao:acao" → [{secao, acao}]`) e `expandPermissionsWithDependencies()`, que auto-expande um objeto de permissões com as dependências implícitas ausentes (ponto fixo, idempotente). Hoje: `agenda:create`/`agenda:edit` → `clientes:view` + `servicos:view`; `financeiro:edit` → `descontos:view`.
+2. `RoleService.createRole`/`updateRole` chamam essa expansão **antes** de validar contra o plano — todo cargo criado/editado nasce sempre coerente. O editor de cargo (`role-editor.tsx`) faz o diff entre o que foi enviado e o que voltou do servidor e avisa o dono via toast quando algo foi adicionado por dependência.
+3. `session.ts` (fallback legado) deixa de ter uma tabela hardcoded e passa a computar a partir de `buildDefaultRolePermissions()` + `buildDefaultExtraPermissions()` (mesmas funções que alimentam a matriz da UI) + a mesma expansão de dependências — nunca mais diverge do `nav-registry.ts` por construção.
+4. `scripts/backfill-rbac-consistency.ts` (rodar uma vez em produção, `npm run rbac:backfill`): (a) atribui `roleId` a todo `User` não-OWNER que ainda não tem, criando o cargo legado equivalente (Gerente/Profissional/Recepcionista) quando necessário — elimina o fallback como caminho real; (b) cura cargos já salvos que ficaram incoerentes, aplicando a mesma expansão de dependências e persistindo a diferença.
+5. Gates de UI adicionados onde só existia 403 silencioso: `AppointmentProductsSection` (esconde a seção sem `produtos:view`; desabilita edição sem `produtos:edit`, com aviso) e botão "Concluir atendimento" em `appointment-drawer.tsx` (desabilitado com aviso sem `financeiro:edit`).
+6. Rotas de ativação de catálogo (`/api/catalog/{services,products}/[id]/activate`) passam a exigir `servicos:edit`/`produtos:edit`; páginas `/configuracoes/catalogo` e `/configuracoes/planos` (esta última exclusiva do dono, espelhando o card "Plano e assinatura" da página raiz) ganham o mesmo guard client-side que a página raiz de Configurações já tinha.
+7. `GET /api/notifications/team-settings` deixa de exigir `configuracoes:view` — é leitura pura (quais eventos existem, rótulos, se suportam e-mail) consumida por **todo** colaborador só para montar sua própria aba "Minhas preferências"; a permissão continua exigida no `PATCH` (alterar configuração do negócio).
+8. Decisão explícita, confirmada com o usuário: gerenciar cargos (criar/editar/excluir) **continua exclusivo do dono** (`isOwner`), não passa a ser liberável via permissão de `equipe`. O editor de cargo ganhou um texto explícito deixando isso claro, já que a matriz antes insinuava o contrário.
+
+**Alternativas rejeitadas**:
+- Reorganizar a matriz em "grupos por fluxo" (ex.: um toggle único "Atendimento completo") — mudança de UX maior, redesenho de tela e migração de cargos existentes; o usuário optou pela opção que resolve as duas causas raiz sem redesenhar a tela.
+- Liberar gestão de cargos via permissão de `equipe` — rejeitada explicitamente pelo usuário por risco de escalonamento de privilégio (um cargo com `equipe:edit` poderia, em tese, criar um cargo mais poderoso que o seu).
+
+**Consequências**:
+- `LEGACY_ROLE_PERMISSIONS` deixa de existir como tabela solta — quem quiser saber o que um preset legado ganha deve olhar `nav-registry.ts`/`extra-permission-registry.ts`, fonte única.
+- O backfill (`scripts/backfill-rbac-consistency.ts`) **precisa ser rodado manualmente em produção** após o deploy — mesma cadência dos scripts anteriores (`migrate-user-roles.ts`, `update-professional-permissions.ts`). Sem rodar, o comportamento de produção não piora (o fallback sincronizado já cobre o caso), mas os dados salvos de cargos antigos só ficam coerentes depois do backfill.
+- Novas dependências futuras (se aparecerem) só precisam de uma linha em `PERMISSION_DEPENDENCIES` — backend, UI do editor e fallback legado pegam a mudança automaticamente.
+- 4 falhas de teste pré-existentes e não relacionadas a este trabalho foram observadas no gate final (`scheduling.service.update.test.ts` — checkout não atômico, já mapeado na auditoria de QA de 2026-06-27 —, `appointment-reminder.test.ts`, `customer-history-client.test.tsx` ×2) — nenhum arquivo tocado nesta branch se sobrepõe a esses testes; ficam fora do escopo desta entrega.

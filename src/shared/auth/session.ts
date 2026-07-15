@@ -8,21 +8,35 @@ import { env, isProduction } from '@/shared/config/env'
 import { prisma } from '@/shared/database/prisma'
 import { TenantBlockedError, UnauthorizedError } from '@/shared/errors'
 import { verifyImpersonationToken } from '@/shared/auth/impersonation'
-import { buildOwnerPermissions } from '@/shared/permissions/nav-registry'
+import { buildOwnerPermissions, buildDefaultRolePermissions } from '@/shared/permissions/nav-registry'
+import { buildDefaultExtraPermissions } from '@/shared/permissions/extra-permission-registry'
+import { expandPermissionsWithDependencies } from '@/shared/permissions/permission-dependencies'
 import type { SessionContext } from '@/shared/types/auth'
 
 const permissionsHeaderName = 'x-user-permissions'
 const authorizationHeaderName = 'authorization'
 const devSessionHeaderName = 'x-auth-mode'
 
-const LEGACY_ROLE_PERMISSIONS: Record<string, Record<string, string[]>> = {
-  MANAGER:      { agenda: ['view','create','edit','delete'], servicos: ['view','create','edit','delete'], clientes: ['view','create','edit'], financeiro: ['view','create','edit'], relatorios: ['view'], equipe: ['view'], configuracoes: ['view','edit'], comissoes: ['view','edit'], descontos: ['view','edit'] },
-  PROFESSIONAL: { agenda: ['view','create'], servicos: ['view'], clientes: ['view'], descontos: ['view','edit'] },
-  RECEPTIONIST: { agenda: ['view','create','edit'], servicos: ['view'], clientes: ['view','create','edit'], descontos: ['view'] },
+const LEGACY_PRESETS = ['MANAGER', 'PROFESSIONAL', 'RECEPTIONIST'] as const
+type LegacyPreset = (typeof LEGACY_PRESETS)[number]
+
+function isLegacyPreset(role: string): role is LegacyPreset {
+  return (LEGACY_PRESETS as readonly string[]).includes(role)
 }
 
+/**
+ * Rede de segurança para usuários sem `roleId` (período de migração ou tenant
+ * sem cargos semeados) — nunca deveria ser o caminho real em produção depois
+ * do backfill (scripts/backfill-rbac-consistency.ts). Calculado a partir do
+ * nav-registry em vez de hardcoded para nunca divergir da matriz de cargos.
+ */
 function buildLegacyPermissions(role: string): Record<string, string[]> {
-  return LEGACY_ROLE_PERMISSIONS[role] ?? {}
+  if (!isLegacyPreset(role)) return {}
+  const base = {
+    ...buildDefaultRolePermissions(role),
+    ...buildDefaultExtraPermissions(role),
+  }
+  return expandPermissionsWithDependencies(base).permissions
 }
 
 async function buildSessionFromUserId(

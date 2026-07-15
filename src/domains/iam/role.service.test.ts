@@ -120,6 +120,39 @@ describe('RoleService', () => {
       expect(result).toEqual(fakeRole)
     })
 
+    it('expande permissões com dependências implícitas ausentes (agenda:create → clientes:view + servicos:view)', async () => {
+      vi.mocked(repo.countByTenant).mockResolvedValue(1)
+      vi.mocked(repo.create).mockResolvedValue(fakeRole as any)
+      await service.createRole(TENANT_ID, {
+        name: 'Novo',
+        permissions: { agenda: ['view', 'create'] },
+      })
+      expect(repo.create).toHaveBeenCalledWith(TENANT_ID, {
+        name: 'Novo',
+        permissions: {
+          agenda: ['view', 'create'],
+          clientes: ['view'],
+          servicos: ['view'],
+        },
+      })
+    })
+
+    it('expande permissões com dependências implícitas ausentes (financeiro:edit → descontos:view)', async () => {
+      vi.mocked(repo.countByTenant).mockResolvedValue(1)
+      vi.mocked(repo.create).mockResolvedValue(fakeRole as any)
+      await service.createRole(TENANT_ID, {
+        name: 'Novo',
+        permissions: { financeiro: ['view', 'edit'] },
+      })
+      expect(repo.create).toHaveBeenCalledWith(TENANT_ID, {
+        name: 'Novo',
+        permissions: {
+          financeiro: ['view', 'edit'],
+          descontos: ['view'],
+        },
+      })
+    })
+
     it('aceita seção extra "comissoes" (fora do NAV_REGISTRY)', async () => {
       vi.mocked(repo.countByTenant).mockResolvedValue(1)
       vi.mocked(repo.create).mockResolvedValue(fakeRole as any)
@@ -139,6 +172,37 @@ describe('RoleService', () => {
           permissions: { comissoes: ['delete' as any] },
         })
       ).rejects.toThrow(ValidationError)
+    })
+  })
+
+  describe('updateRole', () => {
+    beforeEach(() => {
+      vi.mocked(prisma.tenant.findFirst).mockResolvedValue({ subscription: { plan: 'PRO' } } as any)
+      vi.mocked(prisma.planFeatureConfig.findMany).mockResolvedValue([])
+      vi.mocked(repo.findById).mockResolvedValue(fakeRole as any)
+    })
+
+    it('expande permissões com dependências implícitas ausentes ao editar', async () => {
+      vi.mocked(repo.update).mockResolvedValue(fakeRole as any)
+      await service.updateRole(TENANT_ID, ROLE_ID, {
+        permissions: { agenda: ['view', 'edit'] },
+      })
+      expect(repo.update).toHaveBeenCalledWith(TENANT_ID, ROLE_ID, {
+        permissions: {
+          agenda: ['view', 'edit'],
+          clientes: ['view'],
+          servicos: ['view'],
+        },
+      })
+    })
+
+    it('não mexe em permissions quando não enviado', async () => {
+      vi.mocked(repo.update).mockResolvedValue(fakeRole as any)
+      await service.updateRole(TENANT_ID, ROLE_ID, { name: 'Renomeado' })
+      expect(repo.update).toHaveBeenCalledWith(TENANT_ID, ROLE_ID, {
+        name: 'Renomeado',
+        permissions: undefined,
+      })
     })
   })
 

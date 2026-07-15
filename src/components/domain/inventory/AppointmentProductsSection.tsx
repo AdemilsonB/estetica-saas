@@ -24,6 +24,7 @@ import {
 } from '@/hooks/inventory/use-appointment-products'
 import { useServiceTemplate } from '@/hooks/inventory/use-service-template'
 import { useProducts } from '@/hooks/inventory/use-products'
+import { usePermissions } from '@/hooks/use-permissions'
 
 type ProductItem = {
   productId: string
@@ -57,11 +58,15 @@ export function AppointmentProductsSection({
   const [stockAction, setStockAction] = useState<'apply' | 'none'>('none')
   const [diffLines, setDiffLines] = useState<DiffLine[]>([])
 
-  const { data: savedProducts } = useAppointmentProducts(expanded ? appointmentId : undefined)
+  const { can } = usePermissions()
+  const canView = can('produtos', 'view')
+  const canEdit = can('produtos', 'edit')
+
+  const { data: savedProducts } = useAppointmentProducts(expanded && canView ? appointmentId : undefined)
   const { data: template } = useServiceTemplate(
-    expanded && !initialized ? serviceId : undefined,
+    expanded && !initialized && canView ? serviceId : undefined,
   )
-  const { data: productsData } = useProducts({ pageSize: 100 })
+  const { data: productsData } = useProducts({ pageSize: 100, enabled: canView })
   const saveProducts = useSaveAppointmentProducts(appointmentId)
 
   const allProducts = productsData?.data ?? []
@@ -224,6 +229,8 @@ export function AppointmentProductsSection({
 
   const availableProducts = allProducts.filter((p) => !items.find((i) => i.productId === p.id))
 
+  if (!canView) return null
+
   return (
     <>
       <div className="rounded-xl border border-border/50">
@@ -246,6 +253,13 @@ export function AppointmentProductsSection({
               Opcional — pré-preenchido pelo template do serviço
             </p>
 
+            {!canEdit && (
+              <p className="text-xs text-amber-600">
+                Você não tem permissão para editar produtos do atendimento — fale com o
+                dono ou gerente para liberar em Cargos e permissões.
+              </p>
+            )}
+
             {items.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-2">
                 Nenhum produto adicionado
@@ -263,6 +277,7 @@ export function AppointmentProductsSection({
                       size="icon"
                       className="size-7"
                       onClick={() => updateQuantity(item.productId, -1)}
+                      disabled={!canEdit}
                     >
                       <Minus className="size-3" />
                     </Button>
@@ -272,14 +287,15 @@ export function AppointmentProductsSection({
                       size="icon"
                       className="size-7"
                       onClick={() => updateQuantity(item.productId, 1)}
-                      disabled={overStock}
+                      disabled={overStock || !canEdit}
                     >
                       <Plus className="size-3" />
                     </Button>
                     <button
                       type="button"
-                      className="text-destructive hover:text-destructive/80 text-sm px-1"
+                      className="text-destructive hover:text-destructive/80 text-sm px-1 disabled:opacity-40"
                       onClick={() => removeItem(item.productId)}
+                      disabled={!canEdit}
                       aria-label="Remover produto"
                     >
                       ×
@@ -295,7 +311,7 @@ export function AppointmentProductsSection({
             })}
 
             {availableProducts.length > 0 && (
-              <Select onValueChange={addProduct}>
+              <Select onValueChange={addProduct} disabled={!canEdit}>
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder="+ Adicionar produto" />
                 </SelectTrigger>
@@ -319,7 +335,7 @@ export function AppointmentProductsSection({
               size="sm"
               className="w-full"
               onClick={handleSave}
-              disabled={saveProducts.isPending}
+              disabled={saveProducts.isPending || !canEdit}
             >
               <Save className="size-3.5 mr-1.5" />
               {saveProducts.isPending ? 'Salvando...' : 'Salvar consumo'}
