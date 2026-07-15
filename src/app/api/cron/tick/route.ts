@@ -88,6 +88,27 @@ export async function GET(request: NextRequest) {
   try {
     const boss = await startPgBoss();
 
+    // pg-boss v12+ exige a fila já criada antes de schedule()/send()/fetch() —
+    // sem isso, dá erro de foreign key ("Queue X not found"). createQueue é
+    // idempotente (ON CONFLICT DO NOTHING), seguro de chamar em toda tick.
+    // Cobre tanto as filas agendadas abaixo quanto as orientadas a evento
+    // (APPOINTMENT_REMINDER_JOB, TEAM_NOTIFICATION_EMAIL_JOB) que só são
+    // enfileiradas via boss.send() em outros pontos do app.
+    await Promise.all([
+      boss.createQueue(APPOINTMENT_REMINDER_JOB),
+      boss.createQueue(BILLING_EXPIRE_SWEEP_JOB),
+      boss.createQueue(BIRTHDAY_REMINDER_JOB),
+      boss.createQueue(DAILY_STATUS_JOB),
+      boss.createQueue(RECURRING_EXPENSE_JOB),
+      boss.createQueue(SUBSCRIPTION_EXPIRY_WARNINGS_JOB),
+      boss.createQueue(USAGE_SNAPSHOT_JOB),
+      boss.createQueue(VIP_SWEEP_JOB),
+      boss.createQueue(WHATSAPP_QUOTA_CLEANUP_JOB),
+      boss.createQueue(USER_BIRTHDAY_DIGEST_JOB),
+      boss.createQueue(TEAM_NOTIFICATION_EMAIL_JOB),
+      boss.createQueue(TEAM_DAILY_DIGEST_JOB),
+    ]);
+
     // Registra/atualiza os crons no banco (idempotente).
     // Necessário em deploys frescos onde pgboss.schedule está vazio.
     await Promise.all([
