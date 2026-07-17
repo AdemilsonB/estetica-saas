@@ -35,21 +35,6 @@ export function LandingPlans({ plans, trialDays }: LandingPlansProps) {
             Ver comparação completa dos planos →
           </Link>
         </div>
-
-        {/* FAQ */}
-        <div className="mx-auto mt-14 max-w-2xl sm:mt-20">
-          <h3 className="mb-6 text-center text-xl font-semibold text-slate-900 sm:text-2xl">
-            Dúvidas frequentes
-          </h3>
-          <div className="space-y-3">
-            {faq.map(([q, a]) => (
-              <details key={q} className="rounded-xl border border-slate-200 bg-white p-4">
-                <summary className="cursor-pointer font-medium text-slate-900">{q}</summary>
-                <p className="mt-2 text-sm text-slate-500">{a}</p>
-              </details>
-            ))}
-          </div>
-        </div>
       </div>
     </section>
   )
