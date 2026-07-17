@@ -4,11 +4,19 @@ import { getPublicPlans } from '@/domains/billing/plan-catalog.service'
 import { LandingNav } from '@/components/domain/landing/landing-nav'
 import { LandingHero } from '@/components/domain/landing/landing-hero'
 import { LandingProofBar } from '@/components/domain/landing/landing-proof-bar'
+import { LandingMarquee } from '@/components/domain/landing/landing-marquee'
+import { LandingPain } from '@/components/domain/landing/landing-pain'
+import { LandingMechanism } from '@/components/domain/landing/landing-mechanism'
 import { LandingFeatures } from '@/components/domain/landing/landing-features'
+import { LandingDemoMobile } from '@/components/domain/landing/landing-demo-mobile'
+import { LandingWhatsApp } from '@/components/domain/landing/landing-whatsapp'
 import { LandingHowItWorks } from '@/components/domain/landing/landing-how-it-works'
-import { LandingBranding } from '@/components/domain/landing/landing-branding'
+import { LandingCaseReal } from '@/components/domain/landing/landing-case-real'
 import { LandingTestimonials } from '@/components/domain/landing/landing-testimonials'
+import { LandingBranding } from '@/components/domain/landing/landing-branding'
 import { LandingPlans } from '@/components/domain/landing/landing-plans'
+import { LandingGuarantee } from '@/components/domain/landing/landing-guarantee'
+import { LandingFAQ } from '@/components/domain/landing/landing-faq'
 import { LandingPricingCTA } from '@/components/domain/landing/landing-pricing-cta'
 import { LandingFooter } from '@/components/domain/landing/landing-footer'
 import { WhatsAppFloatButton } from '@/components/domain/landing/whatsapp-float-button'
@@ -50,17 +58,32 @@ export default async function LandingPage() {
     isPopular: p.isPopular,
   }))
 
+  const salons = testimonials.map((t) => ({
+    id: t.id,
+    authorName: t.authorName,
+    authorRole: t.authorRole,
+  }))
+  const featured = testimonials[0] ?? null
+
   return (
     <>
       <LandingNav />
       <main>
         <LandingHero trialDays={trialDays} />
         <LandingProofBar metrics={metrics} />
+        <LandingMarquee salons={salons} />
+        <LandingPain />
+        <LandingMechanism />
         <LandingFeatures />
-        <LandingBranding />
+        <LandingDemoMobile />
+        <LandingWhatsApp />
         <LandingHowItWorks />
+        <LandingCaseReal testimonial={featured} />
         <LandingTestimonials testimonials={testimonials} />
+        <LandingBranding />
         <LandingPlans plans={plansForCards} trialDays={trialDays} />
+        <LandingGuarantee trialDays={trialDays} />
+        <LandingFAQ trialDays={trialDays} />
         <LandingPricingCTA starterPrice={starterPrice} trialDays={trialDays} />
       </main>
       <LandingFooter whatsappNumber={whatsappNumber} />

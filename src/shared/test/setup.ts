@@ -1,5 +1,23 @@
 import { vi } from 'vitest'
 
+// Stub de IntersectionObserver para componentes que usam framer-motion `whileInView`
+// (o jsdom não implementa). Só instala quando ausente no ambiente de teste.
+if (typeof globalThis.IntersectionObserver === 'undefined') {
+  class IntersectionObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return []
+    }
+    root = null
+    rootMargin = ''
+    thresholds = []
+  }
+  // @ts-expect-error — stub mínimo apenas para testes
+  globalThis.IntersectionObserver = IntersectionObserverStub
+}
+
 vi.mock('@/shared/database/prisma', () => ({
   prisma: {},
 }))

@@ -7,11 +7,13 @@ import Link from 'next/link'
 const NAV_LINKS = [
   { href: '#funcionalidades', label: 'Funcionalidades' },
   { href: '#como-funciona', label: 'Como funciona' },
-  { href: '/planos', label: 'Planos' },
+  { href: '#planos', label: 'Planos' },
+  { href: '#depoimentos', label: 'Depoimentos' },
 ] as const
 
 export function LandingNav() {
   const [scrolled, setScrolled] = useState(false)
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -57,7 +59,7 @@ export function LandingNav() {
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/login"
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 sm:px-4"
+            className="hidden rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 sm:inline-block sm:px-4"
           >
             Entrar
           </Link>
@@ -68,8 +70,42 @@ export function LandingNav() {
             <span className="hidden sm:inline">Começar grátis →</span>
             <span className="sm:hidden">Grátis →</span>
           </Link>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? 'Fechar menu' : 'Abrir menu'}
+            aria-expanded={open}
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-700 md:hidden"
+          >
+            <span className="text-xl">{open ? '✕' : '☰'}</span>
+          </button>
         </div>
       </nav>
+
+      {/* Painel mobile */}
+      {open && (
+        <div className="border-t border-slate-100 bg-white px-4 py-3 md:hidden">
+          <div className="flex flex-col">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-2 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              >
+                {link.label}
+              </Link>
+            ))}
+            <Link
+              href="/login"
+              onClick={() => setOpen(false)}
+              className="rounded-lg px-2 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50"
+            >
+              Entrar
+            </Link>
+          </div>
+        </div>
+      )}
     </header>
   )
 }
