@@ -1,4 +1,5 @@
 // src/components/domain/landing/landing-how-it-works.tsx
+import { Reveal } from './landing-reveal'
 
 const STEPS = [
   {
@@ -22,20 +23,20 @@ export function LandingHowItWorks() {
   return (
     <section id="como-funciona" className="bg-linear-to-br from-violet-50 to-pink-50 px-4 sm:px-6 py-10 sm:py-20">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-8 sm:mb-14 text-center">
+        <Reveal className="mb-8 sm:mb-14 text-center">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 md:text-4xl">Pronto em 3 passos</h2>
           <p className="mt-3 text-sm sm:text-lg text-slate-500">Sem instalação. Sem técnico. Começa hoje.</p>
-        </div>
+        </Reveal>
 
         <div className="grid gap-6 sm:gap-10 md:grid-cols-3">
-          {STEPS.map((step) => (
-            <div key={step.number} className="text-center">
+          {STEPS.map((step, index) => (
+            <Reveal key={step.number} delay={index * 100} className="text-center">
               <div className="mx-auto mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-linear-to-br from-violet-600 to-pink-600 text-base sm:text-lg font-extrabold text-white shadow-lg shadow-violet-200">
                 {step.number}
               </div>
               <h3 className="mb-2 text-lg font-bold text-slate-900">{step.title}</h3>
               <p className="text-sm leading-relaxed text-slate-500">{step.description}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>
