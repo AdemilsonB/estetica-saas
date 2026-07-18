@@ -8,6 +8,7 @@ import { ReportKpis, type KpiCard } from '@/components/domain/reports/report-kpi
 import { ReportTable, type ReportColumn } from '@/components/domain/reports/report-table'
 import { ExportCsvButton } from '@/components/domain/reports/export-csv-button'
 import { CategorySelect } from '@/components/domain/reports/category-select'
+import { ReportProfessionalFilter } from '@/components/domain/reports/report-professional-filter'
 import { ServiceMixDonut } from '@/components/domain/reports/charts/service-mix-donut'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -35,6 +36,7 @@ export function FinanceiroClient() {
   const [groupBy, setGroupBy] = useState<'profissional' | 'servico'>('servico')
   const [type, setType] = useState<'INCOME' | 'EXPENSE' | 'all'>('all')
   const [categoryId, setCategoryId] = useState<string>('all')
+  const [professionalId, setProfessionalId] = useState<string>('all')
 
   const { data, isLoading, isError } = useFinancialReport({
     from: period.from,
@@ -42,6 +44,7 @@ export function FinanceiroClient() {
     groupBy,
     type: type === 'all' ? undefined : type,
     categoryId: categoryId === 'all' ? undefined : categoryId,
+    professionalId: professionalId === 'all' ? undefined : professionalId,
   })
 
   if (!can('relatorios', 'view')) {
@@ -104,6 +107,7 @@ export function FinanceiroClient() {
             </SelectContent>
           </Select>
           <CategorySelect value={categoryId} onChange={setCategoryId} />
+          <ReportProfessionalFilter value={professionalId} onChange={setProfessionalId} />
           <div className="ml-auto">
             <ExportCsvButton rows={csvRows} filename="relatorio-financeiro.csv" isLoading={isLoading} />
           </div>

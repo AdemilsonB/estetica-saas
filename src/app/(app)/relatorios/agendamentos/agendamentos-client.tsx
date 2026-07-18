@@ -9,6 +9,7 @@ import { ReportKpis, type KpiCard } from '@/components/domain/reports/report-kpi
 import { ReportTable, type ReportColumn } from '@/components/domain/reports/report-table'
 import { ExportCsvButton } from '@/components/domain/reports/export-csv-button'
 import { CategorySelect } from '@/components/domain/reports/category-select'
+import { ReportProfessionalFilter } from '@/components/domain/reports/report-professional-filter'
 import { LockedFeatureCard } from '@/components/domain/reports/locked-feature-card'
 import { SeasonalityHeatmap } from '@/components/domain/reports/charts/seasonality-heatmap'
 import { FeatureLockedError } from '@/hooks/reports/report-fetcher'
@@ -43,6 +44,7 @@ export function AgendamentosClient() {
   const [status, setStatus] = useState<string>('all')
   const [groupBy, setGroupBy] = useState<'profissional' | 'servico'>('profissional')
   const [categoryId, setCategoryId] = useState<string>('all')
+  const [professionalId, setProfessionalId] = useState<string>('all')
 
   const { data, isLoading, isError } = useAppointmentsReport({
     from: period.from,
@@ -50,6 +52,7 @@ export function AgendamentosClient() {
     status: status !== 'all' ? [status] : undefined,
     groupBy,
     categoryId: categoryId !== 'all' ? categoryId : undefined,
+    professionalId: professionalId === 'all' ? undefined : professionalId,
   })
 
   const seasonality = useSeasonalityReport({
@@ -117,6 +120,7 @@ export function AgendamentosClient() {
             </SelectContent>
           </Select>
           <CategorySelect value={categoryId} onChange={setCategoryId} />
+          <ReportProfessionalFilter value={professionalId} onChange={setProfessionalId} />
           <div className="ml-auto">
             <ExportCsvButton rows={csvRows} filename="relatorio-agendamentos.csv" isLoading={isLoading} />
           </div>

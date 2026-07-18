@@ -10,6 +10,7 @@ import { PeriodFilter, type PeriodValue } from '@/components/domain/reports/peri
 import { ReportKpis, type KpiCard } from '@/components/domain/reports/report-kpis'
 import { ReportTable, type ReportColumn } from '@/components/domain/reports/report-table'
 import { ReportPagination } from '@/components/domain/reports/report-pagination'
+import { ReportProfessionalFilter } from '@/components/domain/reports/report-professional-filter'
 import { LockedFeatureCard } from '@/components/domain/reports/locked-feature-card'
 import { ExportCsvButton } from '@/components/domain/reports/export-csv-button'
 import { Button } from '@/components/ui/button'
@@ -67,12 +68,14 @@ export function ClientesClient() {
   const [page, setPage] = useState(1)
   const [dias, setDias] = useState<number>(90)
   const [pageInativos, setPageInativos] = useState(1)
+  const [professionalId, setProfessionalId] = useState<string>('all')
 
   const ranking = useCustomersReport({
     from: period.from,
     to: period.to,
     sortBy,
     page,
+    professionalId: professionalId === 'all' ? undefined : professionalId,
   })
   const inativos = useInactiveCustomers({ days: dias, page: pageInativos })
 
@@ -132,6 +135,7 @@ export function ClientesClient() {
                   ))}
                 </SelectContent>
               </Select>
+              <ReportProfessionalFilter value={professionalId} onChange={setProfessionalId} />
               <div className="ml-auto">
                 <ExportCsvButton rows={rankingCsv} filename="relatorio-clientes.csv" isLoading={ranking.isLoading} />
               </div>
