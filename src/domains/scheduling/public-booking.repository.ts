@@ -1,5 +1,6 @@
 import { prisma } from '@/shared/database/prisma'
 import { NotFoundError } from '@/shared/errors/domain-error'
+import { AppointmentStatus } from '@prisma/client'
 
 export class PublicBookingRepository {
   async findTenantBySlug(slug: string) {
@@ -255,6 +256,60 @@ export class PublicBookingRepository {
       },
       orderBy: { name: 'asc' },
     })
+  }
+
+  /**
+   * Item (serviço ou pacote) com maior volume de agendamentos nos últimos 90 dias,
+   * considerando só status CONFIRMED/COMPLETED e um mínimo de 5 para evitar destacar
+   * amostra pequena. Retorna null se nada cruzar o mínimo. Usado pelo selo "Mais
+   * procurado" da vitrine — sempre dado real, nunca valor fixo.
+   */
+  async findMostBookedItem(
+    tenantId: string,
+  ): Promise<{ type: 'service' | 'package'; id: string } | null> {
+    const MIN_BOOKINGS = 5
+    const WINDOW_DAYS = 90
+    const since = new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000)
+    const baseWhere = {
+      tenantId,
+      status: {
+        in: [AppointmentStatus.CONFIRMED, AppointmentStatus.COMPLETED] as AppointmentStatus[],
+      },
+      startsAt: { gte: since },
+    }
+
+    const [byService, byPackage] = await Promise.all([
+      prisma.appointment.groupBy({
+        by: ['serviceId'],
+        where: { ...baseWhere, serviceId: { not: null } },
+        _count: { _all: true },
+        orderBy: { _count: { serviceId: 'desc' } },
+        take: 1,
+      }),
+      prisma.appointment.groupBy({
+        by: ['packageId'],
+        where: { ...baseWhere, packageId: { not: null } },
+        _count: { _all: true },
+        orderBy: { _count: { packageId: 'desc' } },
+        take: 1,
+      }),
+    ])
+
+    const topService = byService[0]
+    const topPackage = byPackage[0]
+    const serviceCount = topService?._count._all ?? 0
+    const packageCount = topPackage?._count._all ?? 0
+
+    const best = Math.max(serviceCount, packageCount)
+    if (best < MIN_BOOKINGS) return null
+
+    if (serviceCount >= packageCount && topService?.serviceId) {
+      return { type: 'service', id: topService.serviceId }
+    }
+    if (topPackage?.packageId) {
+      return { type: 'package', id: topPackage.packageId }
+    }
+    return null
   }
 }
 
