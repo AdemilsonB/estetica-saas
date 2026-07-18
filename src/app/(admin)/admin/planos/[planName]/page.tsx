@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { usePlans, useUpdatePlan } from '@/hooks/admin/use-plans'
 import { usePlanFeatures, useUpdatePlanFeatures } from '@/hooks/admin/use-plan-features'
 import { usePlanLimits, useUpdatePlanLimits } from '@/hooks/admin/use-plan-limits'
+import { usePlanConfigWarnings } from '@/hooks/admin/use-plan-config-warnings'
 import { CAPABILITY_REGISTRY } from '@/shared/permissions/capability-registry'
 import { getLimitsByGroup } from '@/shared/permissions/limit-registry'
 import { buildPlanBenefits } from '@/shared/permissions/plan-benefits'
@@ -25,8 +26,11 @@ export default function PlanEditorPage() {
   const updatePlan = useUpdatePlan()
   const updateFeatures = useUpdatePlanFeatures()
   const updateLimits = useUpdatePlanLimits()
+  const { data: warnings = [] } = usePlanConfigWarnings()
 
   const plan = plans?.find((p) => p.name === planName)
+  const planWarnings = warnings.filter((w) => w.plan === planName)
+  const otherWarnings = warnings.filter((w) => w.plan !== planName)
 
   const [displayName, setDisplayName] = useState('')
   const [price, setPrice] = useState('0')
@@ -115,6 +119,25 @@ export default function PlanEditorPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-semibold text-slate-950">Plano {plan.displayName}</h1>
+
+      {warnings.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-800">Avisos de sanidade da configuração</p>
+          {planWarnings.length > 0 && (
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-700">
+              {planWarnings.map((w, i) => (
+                <li key={`this-${i}`}>{w.message}</li>
+              ))}
+            </ul>
+          )}
+          {otherWarnings.length > 0 && (
+            <p className="mt-2 text-xs text-amber-600">
+              +{otherWarnings.length} aviso(s) em outros planos.
+            </p>
+          )}
+          <p className="mt-2 text-xs text-amber-500">Avisos não bloqueiam o salvamento — são só para conferência.</p>
+        </div>
+      )}
 
       <Tabs defaultValue="metadata">
         <TabsList>
