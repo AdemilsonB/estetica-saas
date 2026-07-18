@@ -18,6 +18,12 @@ describe('findMostBookedItem', () => {
 
     const result = await publicBookingRepository.findMostBookedItem('t1')
     expect(result).toEqual({ type: 'service', id: 's1' })
+
+    expect(prisma.appointment.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ tenantId: 't1' }),
+      }),
+    )
   })
 
   it('retorna null quando nada cruza o mínimo de 5', async () => {
