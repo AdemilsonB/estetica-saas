@@ -59,6 +59,7 @@ export function AgendamentosClient() {
     from: period.from,
     to: period.to,
     categoryId: categoryId === 'all' ? undefined : categoryId,
+    professionalId: professionalId === 'all' ? undefined : professionalId,
   })
 
   if (!can('relatorios', 'view')) {
