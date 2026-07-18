@@ -6,10 +6,12 @@ import { handleApiError } from '@/shared/http/handle-api-error'
 import { validateInput } from '@/shared/http/validate-input'
 import { logAdminAction } from '@/shared/audit/admin-audit'
 import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
+import { ESSENTIAL_KEYS } from '@/shared/permissions/capability-registry'
 
 type Params = { params: Promise<{ planName: string }> }
 
 const VALID_PLANS = Object.values(PlanName)
+const ESSENTIAL_KEY_SET = new Set(ESSENTIAL_KEYS)
 
 function isPlanName(value: string): value is PlanName {
   return VALID_PLANS.includes(value as PlanName)
@@ -49,8 +51,11 @@ export async function PUT(request: Request, { params }: Params) {
       return Response.json({ error: 'Plano inválido' }, { status: 400 })
     }
     const { features } = await validateInput(request, updateFeaturesSchema)
+    const safeFeatures = features.map((f) =>
+      ESSENTIAL_KEY_SET.has(f.sectionKey) ? { ...f, enabled: true } : f,
+    )
     await Promise.all(
-      features.map(({ sectionKey, enabled }) =>
+      safeFeatures.map(({ sectionKey, enabled }) =>
         prisma.planFeatureConfig.upsert({
           where: { plan_sectionKey: { plan: planName, sectionKey } },
           update: { enabled },
@@ -68,7 +73,7 @@ export async function PUT(request: Request, { params }: Params) {
       action: 'plan.features_updated',
       targetType: 'Plan',
       targetId: planName,
-      metadata: { features },
+      metadata: { features: safeFeatures },
       request,
     })
 

@@ -2,6 +2,7 @@
 
 import { useAdminMrr } from '@/hooks/admin/use-admin-mrr'
 import { AdminPlanDistribution } from '@/components/admin/admin-plan-distribution'
+import { AdminGrowthSignals } from '@/components/admin/admin-growth-signals'
 
 export default function AdminOverviewPage() {
   const { data: mrrData } = useAdminMrr()
@@ -43,6 +44,11 @@ export default function AdminOverviewPage() {
 
       {/* Contadores gerais e distribuição por plano */}
       <AdminPlanDistribution />
+
+      <div className="space-y-3">
+        <h2 className="text-base font-semibold text-slate-950">Sinais de crescimento</h2>
+        <AdminGrowthSignals />
+      </div>
     </div>
   )
 }
