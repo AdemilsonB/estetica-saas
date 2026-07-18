@@ -6,12 +6,12 @@ import { handleApiError } from '@/shared/http/handle-api-error'
 import { validateInput } from '@/shared/http/validate-input'
 import { logAdminAction } from '@/shared/audit/admin-audit'
 import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
-import { CAPABILITY_REGISTRY } from '@/shared/permissions/capability-registry'
+import { ESSENTIAL_KEYS } from '@/shared/permissions/capability-registry'
 
 type Params = { params: Promise<{ planName: string }> }
 
 const VALID_PLANS = Object.values(PlanName)
-const ESSENTIAL_KEYS = new Set(CAPABILITY_REGISTRY.filter((c) => c.essential).map((c) => c.key))
+const ESSENTIAL_KEY_SET = new Set(ESSENTIAL_KEYS)
 
 function isPlanName(value: string): value is PlanName {
   return VALID_PLANS.includes(value as PlanName)
@@ -52,7 +52,7 @@ export async function PUT(request: Request, { params }: Params) {
     }
     const { features } = await validateInput(request, updateFeaturesSchema)
     const safeFeatures = features.map((f) =>
-      ESSENTIAL_KEYS.has(f.sectionKey) ? { ...f, enabled: true } : f,
+      ESSENTIAL_KEY_SET.has(f.sectionKey) ? { ...f, enabled: true } : f,
     )
     await Promise.all(
       safeFeatures.map(({ sectionKey, enabled }) =>

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '@/shared/database/prisma'
+import { logAdminAction } from '@/shared/audit/admin-audit'
 import { PUT } from './route'
 
 vi.mock('@/shared/database/prisma', () => ({
@@ -30,5 +31,13 @@ describe('features route — essential enforcement', () => {
     const arg = call![0] as { create: { enabled: boolean }; update: { enabled: boolean } }
     expect(arg.create.enabled).toBe(true)
     expect(arg.update.enabled).toBe(true)
+
+    expect(vi.mocked(logAdminAction).mock.calls[0][0].metadata).toEqual(
+      expect.objectContaining({
+        features: expect.arrayContaining([
+          expect.objectContaining({ sectionKey: 'agenda', enabled: true }),
+        ]),
+      }),
+    )
   })
 })
