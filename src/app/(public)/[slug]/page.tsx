@@ -43,6 +43,8 @@ export default async function VitrinePage({
   }
 
   const { tenant, team, products } = data
+  const mostBookedServiceId = data.mostBooked?.type === 'service' ? data.mostBooked.id : null
+  const mostBookedPackageId = data.mostBooked?.type === 'package' ? data.mostBooked.id : null
   const primary = tenant.branding?.primaryColor ?? '#7C3AED'
   const accent = tenant.branding?.accentColor ?? '#c084fc'
   const bookingUrl = `/agendar/${slug}`
@@ -128,6 +130,7 @@ export default async function VitrinePage({
           bookingBaseUrl={bookingUrl}
           primaryColor={primary}
           team={team}
+          mostBookedServiceId={mostBookedServiceId}
         />
 
         {/* Pacotes */}
@@ -135,6 +138,7 @@ export default async function VitrinePage({
           packages={tenant.packages}
           bookingBaseUrl={bookingUrl}
           primaryColor={primary}
+          mostBookedPackageId={mostBookedPackageId}
         />
 
         {/* Promoções */}

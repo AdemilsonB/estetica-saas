@@ -37,13 +37,14 @@ async function loadVitrine(slug: string) {
     }
   }
 
-  const [services, professionals, packages, promotions, team, products] = await Promise.all([
+  const [services, professionals, packages, promotions, team, products, mostBooked] = await Promise.all([
     publicBookingRepository.findPublicServices(tenant.id),
     publicBookingRepository.findPublicProfessionals(tenant.id),
     publicBookingRepository.findPublicPackages(tenant.id),
     publicBookingRepository.findPublicPromotions(tenant.id),
     publicBookingRepository.findPublicTeam(tenant.id),
     publicBookingRepository.findPublicProducts(tenant.id),
+    publicBookingRepository.findMostBookedItem(tenant.id),
   ])
 
   return {
@@ -82,6 +83,7 @@ async function loadVitrine(slug: string) {
       imageCropZoom: p.imageCropZoom,
       categoryName: p.category?.name ?? null,
     })),
+    mostBooked,
   }
 }
 

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { EntityImage } from '@/components/domain/shared/entity-image'
 import { formatDuration } from '@/lib/format-duration'
 import { useVitrineInteraction } from './vitrine-interaction-context'
+import { MostBookedBadge } from './most-booked-badge'
 import {
   VitrineFilterSheet,
   EMPTY_FILTER_STATE,
@@ -38,6 +39,7 @@ type Props = {
   bookingBaseUrl: string
   primaryColor: string
   team?: TeamMember[]
+  mostBookedServiceId?: string | null
 }
 
 const OUTROS = '__outros__'
@@ -65,10 +67,12 @@ function ServiceCard({
   service,
   bookingBaseUrl,
   primaryColor,
+  isMostBooked,
 }: {
   service: PublicService
   bookingBaseUrl: string
   primaryColor: string
+  isMostBooked: boolean
 }) {
   const { openDetail, isFavorited, toggleFavorite } = useVitrineInteraction()
   const isFavorite = isFavorited('service', service.id)
@@ -108,16 +112,19 @@ function ServiceCard({
         </div>
       </button>
 
-      {service.anamneseMode === 'REQUIRED' && (
-        <span
-          className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-medium text-white"
-          style={{ backgroundColor: primaryColor }}
-          title="Requer ficha de saúde"
-        >
-          <ClipboardList className="size-2.5" />
-          Ficha
-        </span>
-      )}
+      <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
+        {isMostBooked && <MostBookedBadge primaryColor={primaryColor} />}
+        {service.anamneseMode === 'REQUIRED' && (
+          <span
+            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-medium text-white"
+            style={{ backgroundColor: primaryColor }}
+            title="Requer ficha de saúde"
+          >
+            <ClipboardList className="size-2.5" />
+            Ficha
+          </span>
+        )}
+      </div>
 
       <button
         onClick={() => toggleFavorite('service', service.id)}
@@ -137,7 +144,13 @@ function ServiceCard({
   )
 }
 
-export function VitrineServicesList({ services, bookingBaseUrl, primaryColor, team = [] }: Props) {
+export function VitrineServicesList({
+  services,
+  bookingBaseUrl,
+  primaryColor,
+  team = [],
+  mostBookedServiceId,
+}: Props) {
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [filter, setFilter] = useState<VitrineFilterState>(EMPTY_FILTER_STATE)
@@ -243,7 +256,13 @@ export function VitrineServicesList({ services, bookingBaseUrl, primaryColor, te
       ) : (
         <div className="flex min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {visibleServices.map((s) => (
-            <ServiceCard key={s.id} service={s} bookingBaseUrl={bookingBaseUrl} primaryColor={primaryColor} />
+            <ServiceCard
+              key={s.id}
+              service={s}
+              bookingBaseUrl={bookingBaseUrl}
+              primaryColor={primaryColor}
+              isMostBooked={s.id === mostBookedServiceId}
+            />
           ))}
         </div>
       )}

@@ -5,6 +5,7 @@ import { Filter, Heart } from 'lucide-react'
 import { formatDuration } from '@/lib/format-duration'
 import { EntityImage } from '@/components/domain/shared/entity-image'
 import { useVitrineInteraction } from './vitrine-interaction-context'
+import { MostBookedBadge } from './most-booked-badge'
 import {
   VitrineFilterSheet,
   EMPTY_FILTER_STATE,
@@ -30,16 +31,19 @@ type Props = {
   packages: PublicPackage[]
   bookingBaseUrl: string
   primaryColor: string
+  mostBookedPackageId?: string | null
 }
 
 function PackageCard({
   pkg,
   bookingBaseUrl,
   primaryColor,
+  isMostBooked,
 }: {
   pkg: PublicPackage
   bookingBaseUrl: string
   primaryColor: string
+  isMostBooked: boolean
 }) {
   const { openDetail, isFavorited, toggleFavorite } = useVitrineInteraction()
   const isFavorite = isFavorited('package', pkg.id)
@@ -81,6 +85,12 @@ function PackageCard({
         </div>
       </button>
 
+      {isMostBooked && (
+        <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
+          <MostBookedBadge primaryColor={primaryColor} />
+        </div>
+      )}
+
       <button
         onClick={() => toggleFavorite('package', pkg.id)}
         aria-label={isFavorite ? 'Remover dos favoritos' : 'Favoritar'}
@@ -99,7 +109,12 @@ function PackageCard({
   )
 }
 
-export function VitrinePackagesSection({ packages, bookingBaseUrl, primaryColor }: Props) {
+export function VitrinePackagesSection({
+  packages,
+  bookingBaseUrl,
+  primaryColor,
+  mostBookedPackageId,
+}: Props) {
   const [filter, setFilter] = useState<VitrineFilterState>(EMPTY_FILTER_STATE)
   const [filterOpen, setFilterOpen] = useState(false)
 
@@ -140,7 +155,13 @@ export function VitrinePackagesSection({ packages, bookingBaseUrl, primaryColor 
       ) : (
         <div className="flex min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {filtered.map((pkg) => (
-            <PackageCard key={pkg.id} pkg={pkg} bookingBaseUrl={bookingBaseUrl} primaryColor={primaryColor} />
+            <PackageCard
+              key={pkg.id}
+              pkg={pkg}
+              bookingBaseUrl={bookingBaseUrl}
+              primaryColor={primaryColor}
+              isMostBooked={pkg.id === mostBookedPackageId}
+            />
           ))}
         </div>
       )}

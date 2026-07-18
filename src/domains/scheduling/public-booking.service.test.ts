@@ -13,6 +13,7 @@ vi.mock('./public-booking.repository', () => ({
     findPublicPromotions: vi.fn(),
     findPublicTeam: vi.fn(),
     findPublicProducts: vi.fn(),
+    findMostBookedItem: vi.fn(),
   },
 }))
 
@@ -75,10 +76,13 @@ describe('getPublicVitrine', () => {
     vi.mocked(publicBookingRepository.findPublicPromotions).mockResolvedValue([])
     vi.mocked(publicBookingRepository.findPublicTeam).mockResolvedValue([])
     vi.mocked(publicBookingRepository.findPublicProducts).mockResolvedValue([])
+    vi.mocked(publicBookingRepository.findMostBookedItem).mockResolvedValue(null)
 
     const data = await getPublicVitrine('studio-bella')
 
     expect(data).not.toHaveProperty('disabled')
     expect(publicBookingRepository.findPublicServices).toHaveBeenCalledWith('tenant-1')
+    expect(publicBookingRepository.findMostBookedItem).toHaveBeenCalledWith('tenant-1')
+    expect(data).toHaveProperty('mostBooked', null)
   })
 })
