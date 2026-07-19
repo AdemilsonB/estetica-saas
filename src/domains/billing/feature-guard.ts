@@ -11,7 +11,6 @@ export const FEATURES = {
   REPORTS_BASIC:    'reports_basic',
   REPORTS_ADVANCED: 'reports_advanced',
   CAMPAIGNS:        'campaigns',
-  MULTI_UNIT:       'multi_unit',
 } as const
 
 export type FeatureName = (typeof FEATURES)[keyof typeof FEATURES]

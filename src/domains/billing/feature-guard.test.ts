@@ -35,7 +35,8 @@ describe('FeatureGuard', () => {
 
     it('retorna false quando registro não existe no banco', async () => {
       prismaMock.planFeatureConfig.findFirst.mockResolvedValue(null)
-      expect(await guard.canAccess(TENANT_ID, 'multi_unit')).toBe(false)
+      // capacidade 'soon'/desligada em todos os planos: sem registro habilitado, nega.
+      expect(await guard.canAccess(TENANT_ID, 'whatsapp_premium')).toBe(false)
     })
 
     it('retorna false quando subscription está inativa', async () => {

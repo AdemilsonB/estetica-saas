@@ -40,8 +40,11 @@ const NAV_META: Record<string, { label?: string; essential: boolean; benefitLabe
 // Capacidades (não-nav) gateáveis por plano.
 const CAPABILITY_ENTRIES: Capability[] = [
   { key: 'whatsapp_basic',   label: 'WhatsApp Básico',    category: 'capability', essential: false, benefitLabel: 'WhatsApp automático',            status: 'ga', group: CAPABILITY_GROUPS.COMUNICACAO },
-  { key: 'whatsapp_premium', label: 'WhatsApp Premium',   category: 'capability', essential: false, benefitLabel: 'WhatsApp premium (chatbot)',     status: 'ga', group: CAPABILITY_GROUPS.COMUNICACAO },
-  { key: 'campaigns',        label: 'Campanhas',          category: 'capability', essential: false, benefitLabel: 'Campanhas de marketing',         status: 'ga', group: CAPABILITY_GROUPS.COMUNICACAO },
+  // 'soon' = roadmap visível (Onda 3: IA/reengajamento), NÃO vendido como ativo:
+  // buildPlanBenefits e getGateableCapabilities filtram status !== 'ga', então
+  // estas capacidades somem do catálogo público e do upsell até "acenderem".
+  { key: 'whatsapp_premium', label: 'WhatsApp Premium',   category: 'capability', essential: false, benefitLabel: 'WhatsApp premium (chatbot)',     status: 'soon', group: CAPABILITY_GROUPS.COMUNICACAO },
+  { key: 'campaigns',        label: 'Campanhas',          category: 'capability', essential: false, benefitLabel: 'Campanhas de marketing',         status: 'soon', group: CAPABILITY_GROUPS.COMUNICACAO },
   { key: 'reports_advanced', label: 'Relatórios Avançados', category: 'capability', essential: false, benefitLabel: 'Relatórios avançados',        status: 'ga', group: CAPABILITY_GROUPS.RELATORIOS },
   { key: 'comissoes', label: 'Comissões da equipe', category: 'capability', essential: false, benefitLabel: 'Comissão por profissional e por cargo', status: 'ga', group: CAPABILITY_GROUPS.ACESSO },
   { key: 'descontos', label: 'Descontos configuráveis', category: 'capability', essential: false, benefitLabel: 'Tipos de desconto no atendimento', status: 'ga', group: CAPABILITY_GROUPS.OPERACAO },

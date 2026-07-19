@@ -36,9 +36,21 @@ describe('buildPlanBenefits', () => {
     expect(benefits.indexOf('Gestão de equipe')).toBeLessThan(benefits.indexOf('WhatsApp automático'))
   })
 
+  it('exclui do registry real as capacidades soon (whatsapp_premium, campaigns)', () => {
+    // Onda 0 — alinhamento da oferta: mesmo que a chave venha "habilitada", uma
+    // capacidade 'soon' (roadmap) nunca vira benefício vendável na lista pública.
+    const benefits = buildPlanBenefits({
+      enabledCapabilityKeys: ['whatsapp_basic', 'whatsapp_premium', 'campaigns'],
+      limits: {},
+    })
+    expect(benefits).toContain('WhatsApp automático')
+    expect(benefits).not.toContain('WhatsApp premium (chatbot)')
+    expect(benefits).not.toContain('Campanhas de marketing')
+  })
+
   it('exclui capacidades com status soon (não vendáveis ainda)', async () => {
-    // Nenhuma capacidade real tem status 'soon' hoje — injeta uma via mock do registry
-    // para provar de fato que o filtro por status exclui capacidades não-GA.
+    // Prova o filtro por status de forma isolada, injetando um registry mockado
+    // com uma capacidade 'soon' sintética — independente da config real.
     vi.resetModules()
     vi.doMock('./capability-registry', () => ({
       CAPABILITY_REGISTRY: [

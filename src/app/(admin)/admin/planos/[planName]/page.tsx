@@ -252,7 +252,16 @@ export default function PlanEditorPage() {
               <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-400">Capacidades</p>
               {otherCaps.map((cap) => (
                 <div key={cap.key} className="flex items-center justify-between">
-                  <Label>{cap.label}</Label>
+                  <div className="flex items-center gap-2">
+                    <Label>{cap.label}</Label>
+                    {/* 'soon' = roadmap (Onda 3), não vendido como ativo. Fica visível
+                        aqui com badge — ligar dispara aviso do guard de sanidade (#254). */}
+                    {cap.status === 'soon' && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                        Em breve
+                      </span>
+                    )}
+                  </div>
                   <Switch
                     checked={featureState[cap.key] ?? false}
                     onCheckedChange={(v) => setFeatureState((s) => ({ ...s, [cap.key]: v }))}

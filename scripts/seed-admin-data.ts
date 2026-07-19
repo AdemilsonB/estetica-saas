@@ -25,21 +25,26 @@ const PLANS = [
   },
   {
     name: PlanName.PRO, displayName: 'Pro', price: 89.90, isActive: true, displayOrder: 2,
-    description: ['Até 20 profissionais', 'Até 2.000 agendamentos/mês', 'WhatsApp premium (chatbot, aniversário)', 'Tudo do Starter', 'Relatórios avançados', 'Até 3 unidades'].join('\n'),
+    // Bullets só do que existe de verdade. Chatbot/campanhas são roadmap ('soon'
+    // no capability-registry) e multi-unidade foi removida — não entram aqui.
+    description: ['Até 20 profissionais', 'Até 2.000 agendamentos/mês', 'Relatórios avançados', 'Tudo do Starter'].join('\n'),
   },
   {
     name: PlanName.ENTERPRISE, displayName: 'Enterprise', price: 159.90, isActive: true, displayOrder: 3,
-    description: ['Profissionais ilimitados', 'Agendamentos ilimitados', 'WhatsApp ilimitado', 'Unidades ilimitadas', 'Suporte prioritário', 'Tudo do Pro'].join('\n'),
+    description: ['Profissionais ilimitados', 'Agendamentos ilimitados', 'WhatsApp ilimitado', 'Suporte prioritário', 'Tudo do Pro'].join('\n'),
   },
 ]
 
 const BILLING_FEATURES: Array<{ sectionKey: string; plans: Partial<Record<PlanName, boolean>> }> = [
   { sectionKey: 'reports_basic',     plans: { FREE: true,  STARTER: true,  PRO: true,  ENTERPRISE: true  } },
   { sectionKey: 'whatsapp_basic',    plans: { FREE: false, STARTER: true,  PRO: true,  ENTERPRISE: true  } },
-  { sectionKey: 'campaigns',         plans: { FREE: false, STARTER: true,  PRO: true,  ENTERPRISE: true  } },
   { sectionKey: 'reports_advanced',  plans: { FREE: false, STARTER: false, PRO: true,  ENTERPRISE: true  } },
-  { sectionKey: 'whatsapp_premium',  plans: { FREE: false, STARTER: false, PRO: true,  ENTERPRISE: true  } },
-  { sectionKey: 'multi_unit',        plans: { FREE: false, STARTER: false, PRO: true,  ENTERPRISE: true  } },
+  // 'campaigns' e 'whatsapp_premium' são capacidades 'soon' (roadmap Onda 3),
+  // NÃO vendidas — desligadas em todos os planos para não acionar o guard de
+  // sanidade (#254) nem vazar como benefício. 'multi_unit' foi removido de vez
+  // (sem model Unit, sem caminho de curto prazo). Ver docs/briefs/onda-0-alinhamento-oferta.md.
+  { sectionKey: 'campaigns',         plans: { FREE: false, STARTER: false, PRO: false, ENTERPRISE: false } },
+  { sectionKey: 'whatsapp_premium',  plans: { FREE: false, STARTER: false, PRO: false, ENTERPRISE: false } },
   // report_* gateiam as páginas/rotas de relatório (server-side, ver ADR da Fase C).
   // Capacidade opt-in: sem linha aqui a página fica BLOQUEADA. Habilitado para
   // TODOS os planos para não causar regressão (todos os 4 relatórios já eram
