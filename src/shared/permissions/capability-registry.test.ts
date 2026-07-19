@@ -32,6 +32,15 @@ describe('capability-registry', () => {
     }
   })
 
+  it('trata whatsapp_premium e campaigns como roadmap (soon), fora do gateável', () => {
+    // Onda 0 — alinhamento da oferta: não vender chatbot/campanhas como ativos.
+    expect(getCapability('whatsapp_premium')?.status).toBe('soon')
+    expect(getCapability('campaigns')?.status).toBe('soon')
+    const gateableKeys = getGateableCapabilities().map((c) => c.key)
+    expect(gateableKeys).not.toContain('whatsapp_premium')
+    expect(gateableKeys).not.toContain('campaigns')
+  })
+
   it('toda capability tem label, benefitLabel e group não-vazios', () => {
     for (const c of CAPABILITY_REGISTRY) {
       expect(c.label.length).toBeGreaterThan(0)
