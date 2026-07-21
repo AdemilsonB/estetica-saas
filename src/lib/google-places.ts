@@ -10,6 +10,16 @@ export function isGooglePlacesEnabled(): boolean {
   return Boolean(process.env.GOOGLE_PLACES_API_KEY)
 }
 
+/**
+ * Link direto para o cliente ESCREVER uma avaliação no Google (keyless — não usa
+ * a API paga, só o Place ID). Retorna null sem Place ID configurado.
+ * Nunca posta avaliação automaticamente: apenas leva o cliente ao formulário do Google.
+ */
+export function buildGoogleReviewUrl(placeId: string | null | undefined): string | null {
+  if (!placeId) return null
+  return `https://search.google.com/local/writereview?placeid=${encodeURIComponent(placeId)}`
+}
+
 /** Extrai o nome do estabelecimento de uma URL de perfil do Google Maps. */
 function extractPlaceName(url: string): string | null {
   const match = url.match(/\/maps\/place\/([^/@]+)/)
