@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { weekdayLabel, formatHourRange, WEEK_DISPLAY_ORDER, type BusinessHoursMap } from '@/lib/business-hours'
+import { ReviewPrompt } from '@/components/domain/reviews/review-prompt'
 
 type AppointmentRow = {
   id: string
@@ -141,6 +142,7 @@ export function CustomerHistoryClient({
       </div>
 
       <div className="-mt-5 mx-auto max-w-lg space-y-6 px-4">
+        <ReviewPrompt slug={slug} primaryColor={primaryColor} />
         <Link
           href={`/agendar/${slug}`}
           className="flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold text-white shadow-lg"

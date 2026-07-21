@@ -274,3 +274,21 @@ export class CatalogItemNotFoundError extends DomainError {
     super(`Item de catálogo não encontrado: "${id}".`, 'CATALOG_ITEM_NOT_FOUND', 404, { id })
   }
 }
+
+// --- Reviews (avaliação pós-atendimento) ---
+
+export class ReviewNotEligibleError extends DomainError {
+  constructor() {
+    super(
+      'Só é possível avaliar um atendimento concluído.',
+      'REVIEW_NOT_ELIGIBLE',
+      422,
+    )
+  }
+}
+
+export class ReviewAlreadyExistsError extends DomainError {
+  constructor() {
+    super('Este atendimento já foi avaliado.', 'REVIEW_ALREADY_EXISTS', 409)
+  }
+}

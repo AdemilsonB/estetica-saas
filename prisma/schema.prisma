@@ -183,6 +183,7 @@ model Tenant {
   customers                   Customer[]
   services                    Service[]
   appointments                Appointment[]
+  reviews                     AppointmentReview[]
   transactions                Transaction[]
   notifications               NotificationLog[]
   autoReplyLogs               WhatsAppAutoReplyLog[]
@@ -398,37 +399,60 @@ model TenantInvite {
 }
 
 model Customer {
-  id                 String            @id @default(cuid())
+  id                 String              @id @default(cuid())
   tenantId           String
   name               String
   phone              String?
   email              String?
   notes              String?
   tags               String[]
-  consentGiven       Boolean           @default(false)
+  consentGiven       Boolean             @default(false)
   consentDate        DateTime?
   consentOrigin      String?
   birthDate          DateTime?
   cpf                String?
-  isVip              Boolean           @default(false)
+  isVip              Boolean             @default(false)
   vipUpdatedAt       DateTime?
-  isBlocked          Boolean           @default(false)
+  isBlocked          Boolean             @default(false)
   blockedReason      String?
   blockedAt          DateTime?
-  favoriteServiceIds String[]          @default([])
-  favoritePackageIds String[]          @default([])
+  favoriteServiceIds String[]            @default([])
+  favoritePackageIds String[]            @default([])
   deletedAt          DateTime?
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   appointments       Appointment[]
   anamnese           CustomerAnamnese?
+  reviews            AppointmentReview[]
 
   @@index([tenantId])
   @@index([tenantId, phone])
   @@index([tenantId, birthDate])
   @@index([tenantId, cpf])
   @@index([tenantId, deletedAt])
+}
+
+/// Funil de avaliação pós-atendimento: nota interna (1-5) do cliente.
+/// Nota alta encaminha ao Google (link), nota baixa vira feedback privado.
+/// Nunca posta review no Google automaticamente.
+model AppointmentReview {
+  id             String      @id @default(cuid())
+  tenantId       String
+  appointmentId  String      @unique
+  customerId     String
+  rating         Int
+  comment        String?
+  routedToGoogle Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointment    Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  customer       Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+  @@index([customerId])
 }
 
 model ServiceCategory {
@@ -516,6 +540,7 @@ model Appointment {
   transactions        Transaction[]
   appointmentProducts AppointmentProduct[]
   stockMovements      StockMovement[]
+  review              AppointmentReview?
 
   @@index([tenantId])
   @@index([tenantId, startsAt])
