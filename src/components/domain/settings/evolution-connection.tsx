@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { Smartphone, Loader2, CheckCircle2, AlertTriangle, XCircle, RefreshCw, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,7 +41,13 @@ export function EvolutionConnection({ onImportContacts }: Props) {
   }
 
   function handleConnect() {
-    connect();
+    connect(undefined, {
+      onError: (error) => {
+        toast.error("Não foi possível conectar o WhatsApp", {
+          description: error.message,
+        });
+      },
+    });
   }
 
   if (status === "CONNECTED") {
