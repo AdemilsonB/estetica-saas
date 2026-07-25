@@ -586,9 +586,9 @@ function SignupFormComponent({
 
       <p className="text-center text-xs text-muted-foreground">
         Ao criar uma conta, você concorda com nossos{" "}
-        <span className="underline cursor-default text-muted-foreground">Termos de Uso</span>{" "}
+        <a href="/termos" target="_blank" rel="noopener noreferrer" className="underline text-muted-foreground hover:text-foreground">Termos de Uso</a>{" "}
         e{" "}
-        <span className="underline cursor-default text-muted-foreground">Política de Privacidade</span>.
+        <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="underline text-muted-foreground hover:text-foreground">Política de Privacidade</a>.
       </p>
     </form>
   );
