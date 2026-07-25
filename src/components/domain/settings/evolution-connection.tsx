@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Smartphone, Loader2, CheckCircle2, AlertTriangle, XCircle, RefreshCw, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   useEvolutionStatus,
   useEvolutionConnect,
   useEvolutionDisconnect,
+  useEvolutionQrCode,
 } from "@/hooks/settings/use-evolution-status";
 
 type Props = {
@@ -14,8 +14,6 @@ type Props = {
 };
 
 export function EvolutionConnection({ onImportContacts }: Props) {
-  const [qrCode, setQrCode] = useState<string | null>(null);
-
   const { data: statusData, isLoading } = useEvolutionStatus({
     refetchInterval: (query) => {
       const status = query.state.data?.status;
@@ -23,25 +21,26 @@ export function EvolutionConnection({ onImportContacts }: Props) {
     },
   });
 
+  const status = statusData?.status ?? "DISCONNECTED";
+
+  // Enquanto o status é CONNECTING, busca o QR ao montar (destrava o caso de
+  // recarregar a página com uma instância pendente) e o renova a cada 20s,
+  // já que o QR do WhatsApp expira em ~20-40s.
+  const { data: qrData, isFetching: isFetchingQr } = useEvolutionQrCode({
+    enabled: status === "CONNECTING",
+    refetchInterval: status === "CONNECTING" ? 20_000 : false,
+  });
+  const qrCode = status === "CONNECTING" ? (qrData?.qrCode ?? null) : null;
+
   const { mutate: connect, isPending: isConnecting } = useEvolutionConnect();
   const { mutate: disconnect, isPending: isDisconnecting } = useEvolutionDisconnect();
-
-  useEffect(() => {
-    if (statusData?.status === "CONNECTED") {
-      setQrCode(null);
-    }
-  }, [statusData?.status]);
 
   if (isLoading) {
     return <div className="h-40 animate-pulse rounded-2xl bg-slate-100" />;
   }
 
-  const status = statusData?.status ?? "DISCONNECTED";
-
   function handleConnect() {
-    connect(undefined, {
-      onSuccess: (data) => setQrCode(data.qrCode),
-    });
+    connect();
   }
 
   if (status === "CONNECTED") {
@@ -77,7 +76,7 @@ export function EvolutionConnection({ onImportContacts }: Props) {
     );
   }
 
-  if (status === "CONNECTING" || qrCode) {
+  if (status === "CONNECTING") {
     return (
       <div className="flex flex-col items-center gap-4 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-6">
         <div className="flex items-center gap-2 text-blue-700">
@@ -88,8 +87,9 @@ export function EvolutionConnection({ onImportContacts }: Props) {
         {qrCode ? (
           <img src={qrCode} alt="QR Code WhatsApp" className="size-48 rounded-lg" />
         ) : (
-          <div className="flex size-48 items-center justify-center rounded-lg bg-blue-100">
+          <div className="flex size-48 flex-col items-center justify-center gap-2 rounded-lg bg-blue-100">
             <Loader2 className="size-8 animate-spin text-blue-400" />
+            <span className="text-xs text-blue-500">Gerando QR Code...</span>
           </div>
         )}
 
@@ -97,12 +97,26 @@ export function EvolutionConnection({ onImportContacts }: Props) {
           Abra o WhatsApp → Configurações → Aparelhos conectados → Conectar aparelho
         </p>
 
-        <div className="flex items-center gap-3">
-          <Loader2 className="size-4 animate-spin text-blue-500" />
-          <span className="text-sm text-slate-500">Aguardando conexão...</span>
-          <Button variant="ghost" size="sm" onClick={() => disconnect()} disabled={isDisconnecting}>
-            Cancelar
-          </Button>
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Loader2 className="size-4 animate-spin text-blue-500" />
+            <span className="text-sm text-slate-500">Aguardando conexão...</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleConnect}
+              disabled={isConnecting || isFetchingQr}
+              className="gap-1.5"
+            >
+              <RefreshCw className={`size-4 ${isConnecting ? "animate-spin" : ""}`} />
+              Gerar novo QR
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => disconnect()} disabled={isDisconnecting}>
+              Cancelar
+            </Button>
+          </div>
         </div>
       </div>
     );

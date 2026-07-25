@@ -56,7 +56,9 @@ export function useEvolutionConnect() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Mostra o QR imediatamente sem esperar o próximo fetch da query de QR
+      queryClient.setQueryData(["evolution", "qrcode"], { qrCode: data.qrCode });
       queryClient.invalidateQueries({ queryKey: ["evolution", "status"] });
     },
   });
@@ -70,12 +72,16 @@ export function useEvolutionDisconnect() {
       if (!res.ok) throw new Error("Erro ao desconectar WhatsApp");
     },
     onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ["evolution", "qrcode"] });
       queryClient.invalidateQueries({ queryKey: ["evolution", "status"] });
     },
   });
 }
 
-export function useEvolutionQrCode() {
+export function useEvolutionQrCode(options?: {
+  enabled?: boolean;
+  refetchInterval?: number | false;
+}) {
   return useQuery<{ qrCode: string }>({
     queryKey: ["evolution", "qrcode"],
     queryFn: async () => {
@@ -83,7 +89,12 @@ export function useEvolutionQrCode() {
       if (!res.ok) throw new Error("Erro ao carregar QR Code");
       return res.json();
     },
-    enabled: false,
+    // O QR do WhatsApp expira em ~20-40s; não pode ficar em cache "fresco".
+    staleTime: 0,
+    gcTime: 0,
+    retry: false,
+    enabled: options?.enabled ?? false,
+    refetchInterval: options?.refetchInterval ?? false,
   });
 }
 
