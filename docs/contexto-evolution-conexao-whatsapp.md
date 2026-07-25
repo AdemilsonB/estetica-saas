@@ -7,6 +7,70 @@
 
 ---
 
+## 0. FALHA ATUAL (reproduzível, 2026-07-25 ~12:42) — 403 ao criar a instância
+
+> Esta seção é **factual** (log real), não hipótese. É o estado que precisa ser resolvido AGORA.
+> As seções 1-9 abaixo são o histórico da investigação (algumas hipóteses já foram descartadas/resolvidas).
+
+**Ambiente do teste:** domínio de produção limpo `https://www.agendeweb.com.br` (não mais a URL de
+preview com hash). `APP_URL` já setada = `https://www.agendeweb.com.br` (Production + Preview).
+`EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_WEBHOOK_SECRET` setadas (Production).
+
+**Log da Vercel (fato):**
+```
+POST https://www.agendeweb.com.br/api/whatsapp/evolution/connect  → 500
+[api] Erro interno não tratado: Error: Erro ao criar instância Evolution: 403
+    at Object.createInstance (evolution.provider.ts)
+```
+
+**O que isso diz, sem suposição:** a chamada `POST {EVOLUTION_API_URL}/instance/create`
+(`evolution.provider.ts:160-178`) recebeu **HTTP 403** da Evolution. O `createInstance` faz
+`throw new Error(...status...)`, que vira 500 no app. **O `/connect` não passa da criação da instância.**
+(Antes, o erro era 422 = env vars faltando; isso já foi resolvido. Agora é 403 = a Evolution recusa o create.)
+
+**O que NÃO sabemos ainda (tem que descobrir, não presumir):** o **corpo** da resposta 403 do Evolution.
+O código só logava o status. **Já foi corrigido** (commit na branch `fix/evolution-conexao-autocura`):
+`createInstance` agora inclui o corpo da resposta no erro → o próximo deploy vai logar o motivo real.
+
+**As duas causas concretas de um 403 em `/instance/create` (a determinar com os testes abaixo):**
+1. **`EVOLUTION_API_KEY` (app) ≠ `AUTHENTICATION_API_KEY` (servidor Evolution).** O header `apikey` é
+   rejeitado. É a causa nº1 de 403 em endpoints de instância do Evolution.
+2. **A instância já existe.** O `/connect` tenta `deleteInstance` antes de criar, mas é best-effort
+   (`.catch(() => {})` em `connect/route.ts:35`); se o delete falha (ex.: mesma auth ruim, ou nome
+   divergente), o create colide com a instância `cmr44kq4s000204iiq9ua1kc3` que já existe no servidor.
+
+**Teste decisivo (distingue 1 de 2 sem adivinhar)** — rode contra a Evolution com a MESMA
+`EVOLUTION_API_KEY` que está na Vercel:
+```powershell
+$API="https://evolution-api-production-bccf.up.railway.app"
+$KEY="<EVOLUTION_API_KEY exatamente como está na Vercel>"
+
+# (a) A chave é válida? Se responder 200 com a lista → chave OK → o 403 é colisão de instância (causa 2).
+#     Se responder 401/403 → a CHAVE está errada (causa 1).
+Invoke-RestMethod -Uri "$API/instance/fetchInstances" -Headers @{ apikey = $KEY }
+
+# (b) Reproduz o create e mostra o corpo do 403 (o motivo textual):
+try {
+  Invoke-RestMethod -Method Post -Uri "$API/instance/create" -Headers @{ apikey = $KEY; "Content-Type"="application/json" } `
+    -Body '{"instanceName":"teste-diag","qrcode":true,"integration":"WHATSAPP-BAILEYS"}'
+} catch { $_.ErrorDetails.Message }
+```
+
+**Correção conforme o resultado:**
+- Se (a) der 401/403 → **causa 1**: acertar `EVOLUTION_API_KEY` na Vercel = exatamente a
+  `AUTHENTICATION_API_KEY` do container Evolution na Railway (Railway → serviço Evolution API →
+  Variables). Cuidado com espaços/quebra de linha coladas. Redeploy.
+- Se (a) der 200 → **causa 2**: a instância órfã `cmr44kq4s000204iiq9ua1kc3` está travando. Deletar
+  manualmente (`DELETE {API}/instance/delete/cmr44kq4s000204iiq9ua1kc3` com o apikey) e reconectar; e/ou
+  endurecer o `/connect` para tratar create de instância já existente (deixar o `deleteInstance` de fato
+  falhar visível, ou, se o create retornar "já existe", cair pra `getQrCode` da instância existente em vez
+  de 500).
+
+**Nota:** o fix de auto-cura do status (PR #292) **não** ajuda aqui — ele só age depois que o QR aparece.
+Este 403 é **antes** disso, na criação da instância. Tem que resolver o 403 primeiro.
+
+---
+
 ## 1. Resumo executivo
 
 O dono conecta o WhatsApp em **Configurações → WhatsApp → Conectar**. O fluxo:
