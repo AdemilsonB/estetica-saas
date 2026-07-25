@@ -1,5 +1,5 @@
 import { env } from "@/shared/config/env";
-import { InvalidPhoneError } from "@/shared/errors";
+import { EvolutionInstanceExistsError, InvalidPhoneError } from "@/shared/errors";
 import type { NotificationDraft } from "../types";
 import type { IWhatsAppProvider, SendResult, TenantWhatsAppConfig } from "./whatsapp-provider.interface";
 
@@ -157,19 +157,52 @@ export class EvolutionProvider implements IWhatsAppProvider {
     }
   }
 
-  async createInstance(instanceName: string): Promise<{ qrCode: string }> {
-    const response = await fetch(`${this.baseUrl}/instance/create`, {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify({
-        instanceName,
-        qrcode: true,
-        integration: "WHATSAPP-BAILEYS",
-      }),
-    });
+  /**
+   * Cria a instância na Evolution. Se `webhook` for informado, registra-o inline no
+   * próprio create (formato v2) — a Evolution guarda UM único webhook por instância,
+   * então todos os eventos vão para uma URL só e o app despacha pelo campo `event`.
+   *
+   * Auto-cura: se o servidor responder 403 "already in use" (instância órfã de uma
+   * conexão anterior que o delete best-effort não removeu), exclui a órfã
+   * (logout + delete) e tenta criar UMA vez de novo.
+   */
+  async createInstance(
+    instanceName: string,
+    webhook?: { url: string; events: string[] },
+  ): Promise<{ qrCode: string }> {
+    const attempt = () =>
+      fetch(`${this.baseUrl}/instance/create`, {
+        method: "POST",
+        headers: this.headers(),
+        body: JSON.stringify({
+          instanceName,
+          qrcode: true,
+          integration: "WHATSAPP-BAILEYS",
+          ...(webhook
+            ? { webhook: { url: webhook.url, byEvents: false, base64: false, events: webhook.events } }
+            : {}),
+        }),
+      });
+
+    let response = await attempt();
 
     if (!response.ok) {
-      throw new Error(`Erro ao criar instância Evolution: ${response.status}`);
+      const body = await response.text().catch(() => "");
+
+      if (!this.isNameInUse(response.status, body)) {
+        throw new Error(`Erro ao criar instância Evolution: ${response.status} ${body}`.trim());
+      }
+
+      await this.deleteInstance(instanceName).catch(() => {});
+      response = await attempt();
+
+      if (!response.ok) {
+        const retryBody = await response.text().catch(() => "");
+        if (this.isNameInUse(response.status, retryBody)) {
+          throw new EvolutionInstanceExistsError(instanceName);
+        }
+        throw new Error(`Erro ao criar instância Evolution: ${response.status} ${retryBody}`.trim());
+      }
     }
 
     const data = await response.json();
@@ -177,30 +210,8 @@ export class EvolutionProvider implements IWhatsAppProvider {
     return { qrCode };
   }
 
-  async configureWebhook(instanceName: string, webhookUrl: string): Promise<void> {
-    await fetch(`${this.baseUrl}/webhook/set/${instanceName}`, {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify({
-        url: webhookUrl,
-        webhook_by_events: true,
-        webhook_base64: false,
-        events: ["CONNECTION_UPDATE"],
-      }),
-    });
-  }
-
-  async configureMessagesWebhook(instanceName: string, webhookUrl: string): Promise<void> {
-    await fetch(`${this.baseUrl}/webhook/set/${instanceName}`, {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify({
-        url: webhookUrl,
-        webhook_by_events: false,
-        webhook_base64: false,
-        events: ["MESSAGES_UPSERT"],
-      }),
-    });
+  private isNameInUse(status: number, body: string): boolean {
+    return status === 403 && /already in use/i.test(body);
   }
 
   async sendRawText(instanceName: string, phone: string, text: string): Promise<void> {
@@ -276,11 +287,26 @@ export class EvolutionProvider implements IWhatsAppProvider {
     }
   }
 
+  /**
+   * A Evolution v2 recusa deletar instância com sessão ativa/conectando — por isso
+   * o logout vem antes (best-effort; falha se a instância nem existe, e tudo bem).
+   * 404 no delete = instância já não existe, não é erro.
+   */
   async deleteInstance(instanceName: string): Promise<void> {
-    await fetch(`${this.baseUrl}/instance/delete/${instanceName}`, {
+    await fetch(`${this.baseUrl}/instance/logout/${instanceName}`, {
+      method: "DELETE",
+      headers: this.headers(),
+    }).catch(() => {});
+
+    const response = await fetch(`${this.baseUrl}/instance/delete/${instanceName}`, {
       method: "DELETE",
       headers: this.headers(),
     });
+
+    if (!response.ok && response.status !== 404) {
+      const body = await response.text().catch(() => "");
+      throw new Error(`Erro ao excluir instância Evolution: ${response.status} ${body}`.trim());
+    }
   }
 
   async getContacts(

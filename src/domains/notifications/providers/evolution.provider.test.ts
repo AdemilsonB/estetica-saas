@@ -12,6 +12,7 @@ vi.mock("@/shared/config/env", () => ({
 }));
 
 import { EvolutionProvider } from "./evolution.provider";
+import { EvolutionInstanceExistsError } from "@/shared/errors";
 import type { TenantWhatsAppConfig } from "./whatsapp-provider.interface";
 
 const provider = new EvolutionProvider();
@@ -172,6 +173,115 @@ describe("EvolutionProvider", () => {
     const phone = await provider.getConnectedPhone("tenant-1");
 
     expect(phone).toBeNull();
+  });
+
+  it("createInstance registra o webhook inline no corpo do create (formato v2)", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ qrcode: { base64: "data:image/png;base64,QR" } }),
+    });
+
+    const { qrCode } = await provider.createInstance("tenant-1", {
+      url: "https://app.example.com/api/webhooks/evolution?token=abc",
+      events: ["CONNECTION_UPDATE", "MESSAGES_UPSERT"],
+    });
+
+    expect(qrCode).toBe("data:image/png;base64,QR");
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/instance/create");
+    const body = JSON.parse(options.body);
+    expect(body.webhook).toEqual({
+      url: "https://app.example.com/api/webhooks/evolution?token=abc",
+      byEvents: false,
+      base64: false,
+      events: ["CONNECTION_UPDATE", "MESSAGES_UPSERT"],
+    });
+  });
+
+  it("createInstance não envia webhook quando não fornecido", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ qrcode: { base64: "qr" } }),
+    });
+
+    await provider.createInstance("tenant-1");
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.webhook).toBeUndefined();
+  });
+
+  it("createInstance com 403 'already in use' exclui a instância órfã e tenta de novo", async () => {
+    const forbidden = {
+      ok: false,
+      status: 403,
+      text: async () =>
+        JSON.stringify({ status: 403, error: "Forbidden", response: { message: ['This name "tenant-1" is already in use.'] } }),
+    };
+    mockFetch
+      .mockResolvedValueOnce(forbidden) // create → 403 already in use
+      .mockResolvedValueOnce({ ok: true }) // logout
+      .mockResolvedValueOnce({ ok: true }) // delete
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ qrcode: { base64: "qr-novo" } }) }); // retry create
+
+    const { qrCode } = await provider.createInstance("tenant-1");
+
+    expect(qrCode).toBe("qr-novo");
+    const urls = mockFetch.mock.calls.map((c) => String(c[0]));
+    expect(urls[0]).toContain("/instance/create");
+    expect(urls[1]).toContain("/instance/logout/tenant-1");
+    expect(urls[2]).toContain("/instance/delete/tenant-1");
+    expect(urls[3]).toContain("/instance/create");
+  });
+
+  it("createInstance lança EvolutionInstanceExistsError quando o 403 persiste após retry", async () => {
+    const forbidden = {
+      ok: false,
+      status: 403,
+      text: async () => 'This name "tenant-1" is already in use.',
+    };
+    mockFetch
+      .mockResolvedValueOnce(forbidden) // create
+      .mockResolvedValueOnce({ ok: true }) // logout
+      .mockResolvedValueOnce({ ok: true }) // delete
+      .mockResolvedValueOnce(forbidden); // retry create → ainda em uso
+
+    await expect(provider.createInstance("tenant-1")).rejects.toBeInstanceOf(EvolutionInstanceExistsError);
+  });
+
+  it("createInstance inclui status e corpo da resposta no erro genérico", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: async () => "Unauthorized",
+    });
+
+    await expect(provider.createInstance("tenant-1")).rejects.toThrow(/401.*Unauthorized/);
+  });
+
+  it("deleteInstance faz logout antes do delete", async () => {
+    mockFetch.mockResolvedValue({ ok: true });
+
+    await provider.deleteInstance("tenant-1");
+
+    const urls = mockFetch.mock.calls.map((c) => String(c[0]));
+    expect(urls[0]).toContain("/instance/logout/tenant-1");
+    expect(urls[1]).toContain("/instance/delete/tenant-1");
+  });
+
+  it("deleteInstance tolera 404 (instância já não existe)", async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: false, status: 404, text: async () => "" }) // logout
+      .mockResolvedValueOnce({ ok: false, status: 404, text: async () => "not found" }); // delete
+
+    await expect(provider.deleteInstance("tenant-1")).resolves.toBeUndefined();
+  });
+
+  it("deleteInstance lança erro quando o delete falha de verdade", async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: true }) // logout
+      .mockResolvedValueOnce({ ok: false, status: 400, text: async () => "erro" }); // delete
+
+    await expect(provider.deleteInstance("tenant-1")).rejects.toThrow(/400/);
   });
 
   it("mensagem de appointment-created contém data, hora e link", async () => {

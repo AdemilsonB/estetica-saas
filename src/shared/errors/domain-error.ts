@@ -166,6 +166,17 @@ export class PlanLimitError extends DomainError {
   }
 }
 
+export class EvolutionInstanceExistsError extends DomainError {
+  constructor(instanceName: string) {
+    super(
+      "Já existe uma conexão de WhatsApp em andamento para este negócio e não foi possível substituí-la. Tente novamente em instantes.",
+      "EVOLUTION_INSTANCE_EXISTS",
+      409,
+      { instanceName },
+    );
+  }
+}
+
 export class InvalidPhoneError extends DomainError {
   constructor(phone: string) {
     super(
