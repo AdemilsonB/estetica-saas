@@ -13,10 +13,25 @@ export type EvolutionStatus = {
 export type EvolutionContact = {
   phone: string;
   name: string;
+  profilePicUrl: string | null;
   inCrm: boolean;
 };
 
-export function useEvolutionStatus(options?: { refetchInterval?: number | false | ((query: { state: { data?: EvolutionStatus } }) => number | false) }) {
+// Payload rico do import: os campos que a etapa de revisão pode preencher
+export type ImportCustomerPayload = {
+  name: string;
+  phone: string;
+  email?: string;
+  birthDate?: string;
+  notes?: string;
+  tags: string[];
+  isVip?: boolean;
+};
+
+export function useEvolutionStatus(options?: {
+  refetchInterval?: number | false | ((query: { state: { data?: EvolutionStatus } }) => number | false);
+  enabled?: boolean;
+}) {
   return useQuery<EvolutionStatus>({
     queryKey: ["evolution", "status"],
     queryFn: async () => {
@@ -26,6 +41,7 @@ export function useEvolutionStatus(options?: { refetchInterval?: number | false 
     },
     staleTime: 60 * 1000,
     refetchInterval: options?.refetchInterval ?? false,
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -88,13 +104,13 @@ export function useImportContacts() {
   return useMutation<
     { created: number; skipped: number; errors: string[] },
     Error,
-    Array<{ name: string; phone: string }>
+    ImportCustomerPayload[]
   >({
-    mutationFn: async (contacts) => {
+    mutationFn: async (customers) => {
       const res = await fetch("/api/crm/contacts/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contacts }),
+        body: JSON.stringify({ customers }),
       });
       if (!res.ok) throw new Error("Erro ao importar contatos");
       return res.json();
