@@ -254,7 +254,9 @@ export class EvolutionProvider implements IWhatsAppProvider {
     });
   }
 
-  async getContacts(instanceName: string): Promise<Array<{ id: string; pushName: string }>> {
+  async getContacts(
+    instanceName: string,
+  ): Promise<Array<{ id: string; pushName: string; profilePicUrl?: string | null }>> {
     const response = await fetch(`${this.baseUrl}/chat/findContacts/${instanceName}`, {
       method: "POST",
       headers: this.headers(),

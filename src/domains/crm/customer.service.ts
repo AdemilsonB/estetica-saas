@@ -4,8 +4,17 @@ import { eventBus } from "@/shared/events/event-bus";
 import { ConflictError, CustomerNotFoundError } from "@/shared/errors";
 import { featureGuard } from "@/domains/billing/feature-guard";
 
+import {
+  buildPreviewPhoneVariants,
+  normalizeImportedPhone,
+} from "@/shared/utils/vcard";
+
 import { customerRepository, type CustomerFilters } from "./customer.repository";
-import type { CreateCustomerInput, UpdateCustomerInput } from "./types";
+import type {
+  CreateCustomerInput,
+  ImportCustomerItem,
+  UpdateCustomerInput,
+} from "./types";
 
 export class CustomerService {
   async list(tenantId: string, filters?: CustomerFilters) {
@@ -39,6 +48,81 @@ export class CustomerService {
     });
 
     return customer;
+  }
+
+  /**
+   * Importa contatos externos (ex.: WhatsApp) como clientes completos.
+   * Telefones são normalizados sem DDI 55; duplicados (no lote e no banco,
+   * em qualquer forma com/sem DDI) são pulados; consentimento nunca é assumido.
+   */
+  async importCustomers(
+    tenantId: string,
+    customers: ImportCustomerItem[],
+    origin: string,
+  ): Promise<{ created: number; skipped: number; errors: string[] }> {
+    const errors: string[] = [];
+
+    // Normaliza e deduplica dentro do lote
+    const seenPhones = new Set<string>();
+    const normalized: Array<ImportCustomerItem & { phone: string }> = [];
+    for (const item of customers) {
+      const phone = normalizeImportedPhone(item.phone);
+      if (phone.length < 8) {
+        errors.push(item.phone);
+        continue;
+      }
+      if (seenPhones.has(phone)) continue;
+      seenPhones.add(phone);
+      normalized.push({ ...item, phone });
+    }
+
+    // Dedup contra o banco casando telefones gravados com ou sem DDI 55
+    const variants = buildPreviewPhoneVariants(normalized.map((c) => c.phone));
+    const existing = await customerRepository.findByPhones(tenantId, variants);
+    const existingPhones = new Set(
+      existing.map((c) => c.phone).filter((p): p is string => p !== null),
+    );
+    const alreadyExists = (phone: string) =>
+      existingPhones.has(phone) || existingPhones.has("55" + phone);
+
+    const toCreate = normalized.filter((c) => !alreadyExists(c.phone));
+    const skipped = customers.length - toCreate.length - errors.length;
+
+    if (toCreate.length > 0) {
+      const customerCount = await customerRepository.count(tenantId);
+      await featureGuard.assertWithinLimit(
+        tenantId,
+        "customers",
+        customerCount + toCreate.length - 1,
+      );
+    }
+
+    let created = 0;
+    for (const item of toCreate) {
+      try {
+        const customer = await customerRepository.create(tenantId, {
+          name: item.name,
+          phone: item.phone,
+          email: item.email,
+          notes: item.notes,
+          tags: item.tags,
+          isVip: item.isVip ?? false,
+          birthDate: item.birthDate ? new Date(item.birthDate) : undefined,
+          consentGiven: false,
+          consentOrigin: origin,
+        });
+        created++;
+
+        eventBus.publish({
+          type: "crm.customer.created",
+          payload: { tenantId, customer },
+        });
+      } catch {
+        errors.push(item.phone);
+      }
+    }
+
+    return { created, skipped, errors };
   }
 
   async update(tenantId: string, customerId: string, input: UpdateCustomerInput) {

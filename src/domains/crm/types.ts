@@ -36,6 +36,24 @@ export const updateCustomerSchema = createCustomerSchema.partial().refine(
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
 
+// Import de contatos externos (WhatsApp etc.) como clientes completos,
+// após a etapa de revisão/edição na UI.
+export const importCustomerItemSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  phone: z.string().trim().min(8).max(30),
+  email: z.email().optional(),
+  birthDate: z.string().date().optional(),
+  notes: z.string().trim().max(500).optional(),
+  tags: z.array(z.string().trim().min(1).max(30)).max(10).default([]),
+  isVip: z.boolean().optional(),
+});
+
+export const importCustomersSchema = z.object({
+  customers: z.array(importCustomerItemSchema).min(1).max(500),
+});
+
+export type ImportCustomerItem = z.infer<typeof importCustomerItemSchema>;
+
 export const toggleFavoriteSchema = z.object({
   kind: z.enum(["service", "package"]),
   itemId: z.string().min(1),
