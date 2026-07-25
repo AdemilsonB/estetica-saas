@@ -30,30 +30,35 @@ export async function POST(request: Request) {
 
     if (!tenant) throw new Error("Tenant não encontrado.");
 
-    // Se já existe uma instância, excluir antes de reconectar
+    // Se já existe uma instância, excluir antes de reconectar (logout + delete).
+    // Se falhar, o createInstance ainda se auto-cura no 403 "already in use".
     if (tenant.evolutionInstanceId) {
-      await evolutionProvider.deleteInstance(tenant.evolutionInstanceId).catch(() => {});
+      await evolutionProvider.deleteInstance(tenant.evolutionInstanceId).catch((err: unknown) => {
+        console.warn("[Evolution] Falha ao excluir instância antiga:", err instanceof Error ? err.message : "erro desconhecido");
+      });
     }
 
     const instanceName = session.tenantId;
-    const { qrCode } = await evolutionProvider.createInstance(instanceName);
 
     // Token derivado do tenantId — a Evolution não assina seus webhooks, então a
-    // autenticação vai embutida na própria URL registrada (ver evolution-webhook-token.ts)
+    // autenticação vai embutida na própria URL registrada (ver evolution-webhook-token.ts).
+    // A Evolution guarda UM único webhook por instância: registrar duas URLs em
+    // sequência sobrescreve a primeira. Por isso é uma URL só (dispatcher) com os
+    // dois eventos, registrada inline no create.
     const webhookToken = createEvolutionWebhookToken(instanceName);
+    const webhook = env.APP_URL
+      ? {
+          url: `${env.APP_URL}/api/webhooks/evolution?token=${webhookToken}`,
+          events: ["CONNECTION_UPDATE", "MESSAGES_UPSERT"],
+        }
+      : undefined;
+    if (!webhook) {
+      // Sem APP_URL o webhook não tem pra onde apontar — a conexão ainda completa
+      // pela auto-cura do GET /status (polling), mas o chatbot inbound fica mudo.
+      console.warn("[Evolution] APP_URL ausente — instância criada sem webhook.");
+    }
 
-    // Configura webhook para receber atualizações de conexão
-    const webhookUrl = `${env.APP_URL ?? ""}/api/webhooks/evolution/connection?token=${webhookToken}`;
-    await evolutionProvider.configureWebhook(instanceName, webhookUrl).catch((err: unknown) => {
-      // Webhook é best-effort — instância funcionará mas precisará de polling manual
-      console.warn("[Evolution] Falha ao configurar webhook:", err instanceof Error ? err.message : "erro desconhecido");
-    });
-
-    // Configura webhook para mensagens inbound (chatbot)
-    const messagesWebhookUrl = `${env.APP_URL ?? ""}/api/webhooks/evolution/messages?token=${webhookToken}`;
-    await evolutionProvider.configureMessagesWebhook(instanceName, messagesWebhookUrl).catch((err: unknown) => {
-      console.warn("[Evolution] Falha ao configurar webhook de mensagens:", err instanceof Error ? err.message : "erro desconhecido");
-    });
+    const { qrCode } = await evolutionProvider.createInstance(instanceName, webhook);
 
     await prisma.tenant.update({
       where: { id: session.tenantId },
