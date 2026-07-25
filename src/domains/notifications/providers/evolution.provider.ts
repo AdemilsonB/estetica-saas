@@ -169,7 +169,12 @@ export class EvolutionProvider implements IWhatsAppProvider {
     });
 
     if (!response.ok) {
-      throw new Error(`Erro ao criar instância Evolution: ${response.status}`);
+      // Inclui o corpo da resposta do Evolution para o log mostrar o MOTIVO real
+      // (ex.: 403 por apikey inválida vs. instância já existente), não só o status.
+      const body = await response.text().catch(() => "");
+      throw new Error(
+        `Erro ao criar instância Evolution: ${response.status} ${body}`.trim(),
+      );
     }
 
     const data = await response.json();
