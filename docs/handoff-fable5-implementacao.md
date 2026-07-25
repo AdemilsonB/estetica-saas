@@ -102,9 +102,24 @@ Settings, Serviços/Pacotes/Promoções, Produtos/Estoque, Branding, Billing
 (Stripe), Auth/Onboarding, Vitrine pública, Portal do cliente, Admin, PWA, e o
 **funil de avaliação → Google (#284)** recém-entregue.
 
-⚠️ **Pendências de PRODUÇÃO (do usuário, não suas):** aplicar a migration da
-avaliação (`prisma migrate deploy`) e rodar `scripts/prod-onda-0-alinhamento-oferta.sql`.
-Em **desenvolvimento**, assuma que o banco tem tudo (rode as migrations locais).
+**Estado do banco de PRODUÇÃO (atualizado 2026-07-25):**
+- ✅ Migration da avaliação (`20260720120000_add_appointment_review`) **aplicada**.
+- ✅ Onda 0 (`scripts/prod-onda-0-alinhamento-oferta.sql`) **aplicada** — planos honestos.
+- ✅ Gates de relatório (#255) **verificados/curados** (`scripts/prod-checagem-relatorios-255.sql`).
+- ⏳ **Único pendente:** `npm run rbac:backfill` — de **baixa urgência** (o app já cobre em
+  runtime via fallback do ADR-016) e **do usuário, não sua**. Não bloqueia nada.
+
+**Infra — atenção (não é tarefa sua, mas afeta suas suposições):** o Supabase está no
+plano **FREE**, que **pausa por inatividade** (derruba o app até reabrir) e bloqueia a
+porta 5432 em algumas redes locais. Em **desenvolvimento**, assuma que o banco local tem
+tudo (rode as migrations locais); **nunca** rode migration/scripts contra produção — isso
+é responsabilidade do usuário.
+
+**Runbook de produção versionado** (o usuário roda, não você): `scripts/prod-*.sql`
+(migration manual da avaliação via SQL Editor, Onda 0, checagem #255) e
+`scripts/prod-onda-0-alinhamento-oferta.sql`. Se você criar migration nova, **entregue
+também um `.sql` manual equivalente** (o usuário aplica via Supabase SQL Editor quando a
+porta 5432 estiver bloqueada) + registre no `_prisma_migrations` com o checksum correto.
 
 ---
 
