@@ -43,14 +43,14 @@ export async function POST(request: Request) {
     const webhookToken = createEvolutionWebhookToken(instanceName);
 
     // Configura webhook para receber atualizações de conexão
-    const webhookUrl = `${process.env.APP_URL}/api/webhooks/evolution/connection?token=${webhookToken}`;
+    const webhookUrl = `${env.APP_URL ?? ""}/api/webhooks/evolution/connection?token=${webhookToken}`;
     await evolutionProvider.configureWebhook(instanceName, webhookUrl).catch((err: unknown) => {
       // Webhook é best-effort — instância funcionará mas precisará de polling manual
       console.warn("[Evolution] Falha ao configurar webhook:", err instanceof Error ? err.message : "erro desconhecido");
     });
 
     // Configura webhook para mensagens inbound (chatbot)
-    const messagesWebhookUrl = `${process.env.APP_URL}/api/webhooks/evolution/messages?token=${webhookToken}`;
+    const messagesWebhookUrl = `${env.APP_URL ?? ""}/api/webhooks/evolution/messages?token=${webhookToken}`;
     await evolutionProvider.configureMessagesWebhook(instanceName, messagesWebhookUrl).catch((err: unknown) => {
       console.warn("[Evolution] Falha ao configurar webhook de mensagens:", err instanceof Error ? err.message : "erro desconhecido");
     });
