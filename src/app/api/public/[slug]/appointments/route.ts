@@ -10,6 +10,7 @@ import {
   ValidationError,
 } from '@/shared/errors/domain-error'
 import { handleApiError } from '@/shared/http/handle-api-error'
+import { initializeDomainRuntime } from '@/app/api/_lib/runtime'
 import { checkRateLimit } from '@/shared/rate-limit/public-rate-limit'
 import { customerRepository } from '@/domains/crm/customer.repository'
 import { appointmentRepository } from '@/domains/scheduling/appointment.repository'
@@ -39,6 +40,7 @@ const CreatePublicAppointmentSchema = z
 type RouteContext = { params: Promise<{ slug: string }> }
 
 export async function POST(req: Request, context: RouteContext) {
+  initializeDomainRuntime()
   try {
     // 1. Extrair IP do header
     const ip =
