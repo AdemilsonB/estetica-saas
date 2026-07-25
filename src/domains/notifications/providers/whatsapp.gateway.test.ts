@@ -65,6 +65,7 @@ const mockTenant = {
 
 describe("WhatsAppGateway", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.mocked(featureGuard.assertAccess).mockResolvedValue(undefined);
     vi.mocked(whatsAppQuotaService.checkAndIncrement).mockResolvedValue(true);
     vi.mocked(whatsAppQuotaService.decrement).mockResolvedValue(undefined);
@@ -116,6 +117,51 @@ describe("WhatsAppGateway", () => {
 
     expect(result.status).toBe(NotificationStatus.FAILED);
     expect(whatsAppQuotaService.decrement).toHaveBeenCalledWith("tenant-1");
+  });
+
+  it("usa Evolution quando o tenant está conectado, mesmo com WHATSAPP_PROVIDER=twilio (default)", async () => {
+    // Regressão: o default de WHATSAPP_PROVIDER era "twilio", fazendo a Evolution
+    // NUNCA ser tentada — as mensagens iam pro Twilio (não configurado) e falhavam.
+    // Agora o roteamento é pela conexão do tenant, não pelo env global.
+    mockEnv.WHATSAPP_PROVIDER = "twilio";
+    mockEnv.EVOLUTION_API_URL = "https://evolution.example.com";
+
+    const tenant = {
+      ...mockTenant,
+      evolutionConnected: true,
+      evolutionStatus: "CONNECTED",
+      evolutionInstanceId: "tenant-1",
+    };
+    prismaMock.tenant.findFirst.mockResolvedValue(tenant as never);
+
+    const { evolutionProvider } = await import("./evolution.provider");
+    vi.mocked(evolutionProvider.send).mockResolvedValue({ success: true, externalId: "EVO-1", provider: "evolution" });
+
+    const result = await gateway.send(mockDraft);
+
+    expect(result.status).toBe(NotificationStatus.SENT);
+    expect(result.provider).toBe("evolution");
+    expect(result.externalId).toBe("EVO-1");
+    expect(evolutionProvider.send).toHaveBeenCalledOnce();
+    expect(twilioProvider.send).not.toHaveBeenCalled();
+
+    mockEnv.EVOLUTION_API_URL = undefined;
+  });
+
+  it("não usa Evolution quando o tenant não está conectado (cai no Twilio)", async () => {
+    mockEnv.EVOLUTION_API_URL = "https://evolution.example.com";
+    // tenant padrão tem evolutionConnected=false / status DISCONNECTED
+    prismaMock.tenant.findFirst.mockResolvedValue(mockTenant as never);
+    vi.mocked(twilioProvider.send).mockResolvedValue({ success: true, externalId: "SM-x", provider: "twilio" });
+
+    const { evolutionProvider } = await import("./evolution.provider");
+
+    const result = await gateway.send(mockDraft);
+
+    expect(result.provider).toBe("twilio");
+    expect(evolutionProvider.send).not.toHaveBeenCalled();
+
+    mockEnv.EVOLUTION_API_URL = undefined;
   });
 
   it("usa fallback Twilio quando Evolution falha e registra provider evolution→twilio", async () => {
