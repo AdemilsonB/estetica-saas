@@ -30,7 +30,7 @@ export function ImportContactsModal({ open, onClose }: Props) {
     existingCount,
     reset,
     pickFromDevice,
-    pickFromVCard,
+    pickFromVCards,
     toggleContact,
     toggleAll,
     importSelected,
@@ -42,8 +42,10 @@ export function ImportContactsModal({ open, onClose }: Props) {
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (file) pickFromVCard(file)
+    const files = Array.from(e.target.files ?? [])
+    // Permite selecionar o mesmo arquivo de novo depois de um erro
+    e.target.value = ''
+    if (files.length > 0) pickFromVCards(files)
   }
 
   return (
@@ -86,26 +88,26 @@ export function ImportContactsModal({ open, onClose }: Props) {
                     <li className="flex gap-2.5 text-sm text-amber-900">
                       <span className="flex-none w-4 font-bold text-amber-500">2.</span>
                       <span>
-                        Toque em um contato → role até o final →{' '}
-                        <strong>"Compartilhar Contato"</strong>
+                        Toque na lista com <strong>dois dedos</strong> e arraste para baixo —
+                        isso seleciona vários contatos de uma vez
                       </span>
                     </li>
                     <li className="flex gap-2.5 text-sm text-amber-900">
                       <span className="flex-none w-4 font-bold text-amber-500">3.</span>
                       <span>
-                        Escolha <strong>"Salvar em Arquivos"</strong> ou envie o <strong>.vcf</strong>{' '}
-                        para si mesmo
+                        Mantenha pressionado um dos selecionados →{' '}
+                        <strong>Compartilhar</strong> → <strong>Salvar em Arquivos</strong>
                       </span>
                     </li>
                     <li className="flex gap-2.5 text-sm text-amber-900">
                       <span className="flex-none w-4 font-bold text-amber-500">4.</span>
-                      <span>Volte aqui e selecione o arquivo abaixo</span>
+                      <span>Volte aqui e selecione o arquivo salvo</span>
                     </li>
                   </ol>
                   <p className="text-xs text-amber-600 border-t border-amber-100 pt-2 mt-1">
-                    Para exportar <strong>todos</strong> os contatos de uma vez: acesse{' '}
-                    <strong>icloud.com</strong> no computador → Contatos → ⚙️ →{' '}
-                    <strong>Exportar vCard</strong>
+                    Também funciona compartilhar contatos um a um (dá para escolher{' '}
+                    <strong>vários arquivos .vcf</strong> de uma vez abaixo) ou exportar tudo em{' '}
+                    <strong>icloud.com</strong> → Contatos → ⚙️ → <strong>Exportar vCard</strong>
                   </p>
                 </div>
 
@@ -115,7 +117,7 @@ export function ImportContactsModal({ open, onClose }: Props) {
                   variant="outline"
                 >
                   <Upload className="size-4 text-slate-500" />
-                  <span className="text-sm font-medium">Selecionar arquivo .vcf</span>
+                  <span className="text-sm font-medium">Selecionar arquivos .vcf</span>
                 </Button>
               </div>
             )}
@@ -123,7 +125,8 @@ export function ImportContactsModal({ open, onClose }: Props) {
             <input
               ref={fileRef}
               type="file"
-              accept=".vcf,text/vcard"
+              multiple
+              accept=".vcf,.vcard,text/vcard,text/x-vcard,text/directory"
               className="hidden"
               onChange={handleFileChange}
             />

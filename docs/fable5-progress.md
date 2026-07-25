@@ -5,6 +5,7 @@
 ## Features
 
 - ✅ **Onda 0 — páginas legais + /planos** (Tier 1.1) — PR **#287** aberto, aguardando merge (comando `gh pr merge` bloqueado pelo classificador de permissões da sessão; merge é do usuário ou liberar permissão). `/termos` + `/privacidade` reais (LGPD, LegalShell compartilhada), `/planos` com marca Agendê + volta para `/`, links do cadastro ativos. tsc 0, vitest 772 pass / 4 falhas pré-existentes.
+- ✅ **CRM — import de contatos no iOS (.vcf real)** — parser vCard novo em `src/shared/utils/vcard.ts` (o antigo regex `^TEL`/`^FN:` perdia contato com rótulo personalizado `item1.TEL` — o fluxo que o próprio modal ensinava retornava "nenhum contato"; agora: unfolding RFC, grupos `itemN.`, quoted-printable 2.1, FN→N fallback, melhor TEL pref>CELL, unescape, dedup); telefone normalizado sem DDI 55 + preview de duplicados casa clientes gravados com/sem 55; input aceita **vários .vcf de uma vez** (iOS gera 1 por contato) + `text/x-vcard`; requisições em lotes de 500 (export iCloud grande); guia do modal ensina o gesto de dois dedos do iOS 16+ (multi-seleção → Compartilhar) em vez de mandar pro computador. 16 testes novos com fixtures fiéis a iPhone/iCloud/WhatsApp/Android 2.1. tsc 0, vitest 788 pass / mesmas 4 falhas pré-existentes.
 
 ## Lições / notas operacionais
 

@@ -2,6 +2,11 @@
 
 import { useState, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import {
+  buildPreviewPhoneVariants,
+  normalizeImportedPhone,
+  parseVCards,
+} from '@/shared/utils/vcard'
 
 export type ContactItem = {
   name: string
@@ -20,28 +25,15 @@ export type ImportStep =
 
 export type ImportResult = { created: number; skipped: number }
 
-function normalizePhone(raw: string): string {
-  return raw.replace(/\D/g, '')
-}
+// Limite do Zod nas rotas de preview/import — requisições maiores vão em lotes
+const API_BATCH_SIZE = 500
 
-export function parseVCard(content: string): Array<{ name: string; phone: string }> {
-  const blocks = content.split(/BEGIN:VCARD/i).slice(1)
-  const contacts: Array<{ name: string; phone: string }> = []
-
-  for (const block of blocks) {
-    const fnMatch = block.match(/^FN:(.+)$/m)
-    const telMatches = [...block.matchAll(/^TEL[^:]*:(.+)$/gm)]
-
-    const name = fnMatch?.[1]?.trim()
-    const rawPhone = telMatches[0]?.[1]?.trim()
-    const phone = rawPhone ? normalizePhone(rawPhone) : undefined
-
-    if (name && phone && phone.length >= 8) {
-      contacts.push({ name, phone })
-    }
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = []
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size))
   }
-
-  return contacts
+  return chunks
 }
 
 export function supportsContactPicker(): boolean {
@@ -71,23 +63,31 @@ export function useImportContacts() {
       setStep('loading')
 
       try {
-        const phones = raw.map((c) => c.phone)
-        const res = await fetch('/api/crm/customers/import/preview', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phones }),
-        })
-        if (!res.ok) throw new Error('Falha ao verificar contatos existentes')
+        // Variantes com/sem DDI 55 para casar clientes gravados em qualquer forma
+        const variants = buildPreviewPhoneVariants(raw.map((c) => c.phone))
+        const existingSet = new Set<string>()
 
-        const { existing } = (await res.json()) as { existing: string[] }
-        const existingSet = new Set(existing)
+        for (const batch of chunk(variants, API_BATCH_SIZE)) {
+          const res = await fetch('/api/crm/customers/import/preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phones: batch }),
+          })
+          if (!res.ok) throw new Error('Falha ao verificar contatos existentes')
+
+          const { existing } = (await res.json()) as { existing: string[] }
+          for (const phone of existing) existingSet.add(phone)
+        }
+
+        const exists = (phone: string) =>
+          existingSet.has(phone) || existingSet.has('55' + phone)
 
         setContacts(
           raw.map((c) => ({
             name: c.name,
             phone: c.phone,
-            selected: !existingSet.has(c.phone),
-            alreadyExists: existingSet.has(c.phone),
+            selected: !exists(c.phone),
+            alreadyExists: exists(c.phone),
           })),
         )
         setStep('preview')
@@ -110,10 +110,12 @@ export function useImportContacts() {
       const selected = await mgr.select(['name', 'tel'], { multiple: true })
 
       const raw: Array<{ name: string; phone: string }> = []
+      const seenPhones = new Set<string>()
       for (const entry of selected) {
         const name = entry.name[0]?.trim()
-        const phone = normalizePhone(entry.tel[0] ?? '')
-        if (name && phone.length >= 8) {
+        const phone = normalizeImportedPhone(entry.tel[0] ?? '')
+        if (name && phone.length >= 8 && !seenPhones.has(phone)) {
+          seenPhones.add(phone)
           raw.push({ name, phone })
         }
       }
@@ -130,15 +132,29 @@ export function useImportContacts() {
     }
   }, [applyPreview])
 
-  const pickFromVCard = useCallback(
-    async (file: File) => {
+  const pickFromVCards = useCallback(
+    async (files: File[]) => {
+      if (files.length === 0) return
       setStep('loading')
       try {
-        const text = await file.text()
-        const raw = parseVCard(text)
+        // iOS costuma gerar um .vcf por contato — aceitar vários arquivos de uma vez
+        const contents = await Promise.all(files.map((file) => file.text()))
+
+        const raw: Array<{ name: string; phone: string }> = []
+        const seenPhones = new Set<string>()
+        for (const content of contents) {
+          for (const contact of parseVCards(content)) {
+            if (!seenPhones.has(contact.phone)) {
+              seenPhones.add(contact.phone)
+              raw.push(contact)
+            }
+          }
+        }
 
         if (raw.length === 0) {
-          setError('Nenhum contato com telefone encontrado no arquivo')
+          setError(
+            'Nenhum contato com telefone encontrado. Confira se o arquivo é um .vcf exportado dos Contatos (não um PDF ou print) e tente de novo.',
+          )
           setStep('error')
           return
         }
@@ -173,17 +189,25 @@ export function useImportContacts() {
     setStep('importing')
 
     try {
-      const res = await fetch('/api/crm/customers/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contacts: toImport.map(({ name, phone }) => ({ name, phone })),
-        }),
-      })
-      if (!res.ok) throw new Error('Falha ao importar contatos')
+      let created = 0
+      let skipped = 0
 
-      const data = (await res.json()) as ImportResult
-      setResult(data)
+      for (const batch of chunk(toImport, API_BATCH_SIZE)) {
+        const res = await fetch('/api/crm/customers/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contacts: batch.map(({ name, phone }) => ({ name, phone })),
+          }),
+        })
+        if (!res.ok) throw new Error('Falha ao importar contatos')
+
+        const data = (await res.json()) as ImportResult
+        created += data.created
+        skipped += data.skipped
+      }
+
+      setResult({ created, skipped })
       setStep('done')
       queryClient.invalidateQueries({ queryKey: ['customers'] })
     } catch (err) {
@@ -206,7 +230,7 @@ export function useImportContacts() {
     existingCount,
     reset,
     pickFromDevice,
-    pickFromVCard,
+    pickFromVCards,
     toggleContact,
     toggleAll,
     importSelected,
