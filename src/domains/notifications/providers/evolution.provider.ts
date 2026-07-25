@@ -1,5 +1,9 @@
 import { env } from "@/shared/config/env";
-import { EvolutionInstanceExistsError, InvalidPhoneError } from "@/shared/errors";
+import {
+  EvolutionContactsError,
+  EvolutionInstanceExistsError,
+  InvalidPhoneError,
+} from "@/shared/errors";
 import type { NotificationDraft } from "../types";
 import type { IWhatsAppProvider, SendResult, TenantWhatsAppConfig } from "./whatsapp-provider.interface";
 
@@ -325,16 +329,23 @@ export class EvolutionProvider implements IWhatsAppProvider {
       body: JSON.stringify({ where: {} }),
     });
 
-    if (!response.ok) return [];
+    if (!response.ok) {
+      // Não engolir o erro: o silêncio virava "0 contatos" sem explicação na UI.
+      const body = await response.text().catch(() => "");
+      console.error(
+        `[evolution] findContacts falhou (${response.status}) para ${instanceName}: ${body}`,
+      );
+      throw new EvolutionContactsError(response.status);
+    }
 
     const data = await response.json();
     // A Evolution v2 pode devolver a lista dentro de um envelope (`{ data: [...] }`)
-    const list = Array.isArray(data)
+    const list: unknown = Array.isArray(data)
       ? data
       : Array.isArray(data?.data)
         ? data.data
         : [];
-    return list;
+    return list as Awaited<ReturnType<EvolutionProvider["getContacts"]>>;
   }
 }
 

@@ -103,7 +103,7 @@ export function EvolutionContactsImport({ open, onOpenChange }: Props) {
   const [bulkVip, setBulkVip] = useState(false);
   const [importResult, setImportResult] = useState<{ created: number; skipped: number } | null>(null);
 
-  const { data, isLoading, refetch } = useEvolutionContacts();
+  const { data, isLoading, error: contactsError, refetch } = useEvolutionContacts();
   const { mutate: importContacts, isPending: isImporting, error: importError } = useImportContacts();
 
   const contacts = useMemo(() => data?.contacts ?? [], [data]);
@@ -287,11 +287,26 @@ export function EvolutionContactsImport({ open, onOpenChange }: Props) {
                 <div className="flex h-40 items-center justify-center">
                   <Loader2 className="size-6 animate-spin text-slate-400" />
                 </div>
+              ) : contactsError ? (
+                <div className="flex h-40 flex-col items-center justify-center gap-3 px-6 text-center">
+                  <AlertTriangle className="size-6 text-amber-500" />
+                  <p className="text-sm text-slate-500">{contactsError.message}</p>
+                  <Button variant="outline" size="sm" onClick={() => refetch()}>
+                    Tentar novamente
+                  </Button>
+                </div>
               ) : filtered.length === 0 ? (
-                <div className="flex h-40 items-center justify-center px-6 text-center">
+                <div className="flex h-40 flex-col items-center justify-center gap-3 px-6 text-center">
                   <p className="text-sm text-slate-400">
-                    {search ? "Nenhum contato encontrado" : "Nenhum contato disponível"}
+                    {search
+                      ? "Nenhum contato encontrado"
+                      : "Nenhum contato sincronizado ainda. O WhatsApp pode levar alguns instantes para carregar os contatos após conectar."}
                   </p>
+                  {!search && (
+                    <Button variant="outline" size="sm" onClick={() => refetch()}>
+                      Atualizar
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-1 py-1">
