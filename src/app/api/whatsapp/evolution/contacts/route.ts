@@ -7,20 +7,8 @@ import { handleApiError } from "@/shared/http/handle-api-error";
 import { evolutionProvider } from "@/domains/notifications/providers/evolution.provider";
 import { customerRepository } from "@/domains/crm/customer.repository";
 import { ValidationError } from "@/shared/errors";
-import {
-  buildPreviewPhoneVariants,
-  normalizeImportedPhone,
-} from "@/shared/utils/vcard";
-
-// Extrai número local (sem DDI) de IDs como "5511999999999@s.whatsapp.net"
-function extractPhone(id: string): string | null {
-  const match = id.match(/^(\d{10,13})@s\.whatsapp\.net$/);
-  if (!match) return null;
-  const digits = match[1];
-  // Apenas números brasileiros (55 + 10 ou 11 dígitos)
-  if (!/^55\d{10,11}$/.test(digits)) return null;
-  return normalizeImportedPhone(digits);
-}
+import { buildPreviewPhoneVariants } from "@/shared/utils/vcard";
+import { extractContactPhone } from "./extract-phone";
 
 export async function GET(request: Request) {
   initializeDomainRuntime();
@@ -42,7 +30,7 @@ export async function GET(request: Request) {
 
     const contacts = rawContacts
       .map((c) => ({
-        phone: extractPhone(c.id),
+        phone: extractContactPhone(c),
         name: c.pushName || "",
         profilePicUrl: c.profilePicUrl ?? null,
       }))

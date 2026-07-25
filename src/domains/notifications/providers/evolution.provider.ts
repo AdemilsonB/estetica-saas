@@ -311,7 +311,14 @@ export class EvolutionProvider implements IWhatsAppProvider {
 
   async getContacts(
     instanceName: string,
-  ): Promise<Array<{ id: string; pushName: string; profilePicUrl?: string | null }>> {
+  ): Promise<
+    Array<{
+      id: string;
+      remoteJid?: string | null;
+      pushName: string;
+      profilePicUrl?: string | null;
+    }>
+  > {
     const response = await fetch(`${this.baseUrl}/chat/findContacts/${instanceName}`, {
       method: "POST",
       headers: this.headers(),
@@ -321,7 +328,13 @@ export class EvolutionProvider implements IWhatsAppProvider {
     if (!response.ok) return [];
 
     const data = await response.json();
-    return Array.isArray(data) ? data : [];
+    // A Evolution v2 pode devolver a lista dentro de um envelope (`{ data: [...] }`)
+    const list = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.data)
+        ? data.data
+        : [];
+    return list;
   }
 }
 
