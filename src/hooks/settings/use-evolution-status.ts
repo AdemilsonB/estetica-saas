@@ -103,7 +103,13 @@ export function useEvolutionContacts() {
     queryKey: ["evolution", "contacts"],
     queryFn: async () => {
       const res = await fetch("/api/whatsapp/evolution/contacts");
-      if (!res.ok) throw new Error("Erro ao buscar contatos WhatsApp");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(
+          (err as { error?: { message?: string } })?.error?.message ??
+            "Erro ao buscar contatos WhatsApp",
+        );
+      }
       return res.json();
     },
     enabled: false,

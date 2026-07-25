@@ -177,6 +177,17 @@ export class EvolutionInstanceExistsError extends DomainError {
   }
 }
 
+export class EvolutionContactsError extends DomainError {
+  constructor(status: number) {
+    super(
+      "Não foi possível buscar os contatos do WhatsApp agora. Verifique se a conexão está ativa e tente novamente em instantes.",
+      "EVOLUTION_CONTACTS_FAILED",
+      502,
+      { status },
+    );
+  }
+}
+
 export class InvalidPhoneError extends DomainError {
   constructor(phone: string) {
     super(
