@@ -1,3 +1,5 @@
+import Image from 'next/image'
+import Link from 'next/link'
 import { getPublicPlans } from '@/domains/billing/plan-catalog.service'
 import { PricingToggle } from '@/components/domain/billing/pricing-toggle'
 
@@ -26,8 +28,14 @@ export default async function PlansPage() {
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white px-4 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <span className="font-semibold text-slate-900">Estética SaaS</span>
-          <a href="/login" className="text-sm text-slate-600 hover:text-slate-900">Entrar</a>
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/brand/logo-mark.png" alt="" width={512} height={512} className="h-8 w-8" />
+            <span className="font-display text-lg font-extrabold text-slate-900">Agendê</span>
+          </Link>
+          <div className="flex items-center gap-4 text-sm">
+            <Link href="/" className="text-slate-600 hover:text-slate-900">Voltar ao site</Link>
+            <Link href="/login" className="text-slate-600 hover:text-slate-900">Entrar</Link>
+          </div>
         </div>
       </header>
 
