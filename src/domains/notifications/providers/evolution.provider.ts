@@ -247,6 +247,35 @@ export class EvolutionProvider implements IWhatsAppProvider {
     }
   }
 
+  /**
+   * Melhor-esforço para obter o número conectado da instância. Formatos variam
+   * entre versões do Evolution — tolera falha e devolve null (o número é cosmético).
+   */
+  async getConnectedPhone(instanceName: string): Promise<string | null> {
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/instance/fetchInstances?instanceName=${instanceName}`,
+        { headers: this.headers() },
+      );
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      const item = Array.isArray(data) ? data[0] : data;
+      const rawJid: string | undefined =
+        item?.ownerJid ?? item?.owner ?? item?.instance?.owner ?? item?.instance?.ownerJid;
+      if (!rawJid) return null;
+
+      const digits = String(rawJid)
+        .replace(/@s\.whatsapp\.net$/, "")
+        .replace(/\D/g, "");
+      if (!digits) return null;
+
+      return digits.startsWith("55") ? `+${digits}` : `+55${digits}`;
+    } catch {
+      return null;
+    }
+  }
+
   async deleteInstance(instanceName: string): Promise<void> {
     await fetch(`${this.baseUrl}/instance/delete/${instanceName}`, {
       method: "DELETE",

@@ -144,6 +144,36 @@ describe("EvolutionProvider", () => {
     expect(qr).toBe("data:image/png;base64,ABCDEF");
   });
 
+  it("getConnectedPhone extrai o número do ownerJid e formata com +55", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => [{ ownerJid: "5511987654321@s.whatsapp.net" }],
+    });
+
+    const phone = await provider.getConnectedPhone("tenant-1");
+
+    expect(phone).toBe("+5511987654321");
+  });
+
+  it("getConnectedPhone acrescenta +55 quando o número vem sem DDI", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => [{ owner: "11987654321" }],
+    });
+
+    const phone = await provider.getConnectedPhone("tenant-1");
+
+    expect(phone).toBe("+5511987654321");
+  });
+
+  it("getConnectedPhone retorna null quando não há número (tolera falha)", async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [{}] });
+
+    const phone = await provider.getConnectedPhone("tenant-1");
+
+    expect(phone).toBeNull();
+  });
+
   it("mensagem de appointment-created contém data, hora e link", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
