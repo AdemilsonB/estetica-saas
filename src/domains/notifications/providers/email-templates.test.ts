@@ -41,4 +41,13 @@ describe("customerEmailHtml — layout único do e-mail ao cliente", () => {
     expect(html).toContain("Maria &lt;script&gt;");
     expect(html).not.toContain("&amp;lt;");
   });
+
+  it("escapa o tenantName usado no <title> — não permite fechar a tag e injetar script", () => {
+    const html = customerEmailHtml({
+      body: "Corpo qualquer",
+      tenantName: "</title><script>alert(1)</script>",
+    });
+    expect(html).not.toContain("<script>alert(1)</script>");
+    expect(html).toContain("&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;");
+  });
 });

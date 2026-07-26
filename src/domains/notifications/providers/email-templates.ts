@@ -36,12 +36,16 @@ function baseLayout(content: string, title: string): string {
  */
 export function customerEmailHtml(input: { body: string; tenantName: string }): string {
   const corpo = input.body.replace(/\n/g, '<br />')
+  // O nome do negócio não passa pelo service de renderização, então é escapado aqui —
+  // uma vez só, e reusado nos dois pontos (corpo visível e <title> do baseLayout), para
+  // não haver como escapar num ponto e esquecer no outro numa edição futura.
+  const nomeNegocio = escapeHtml(input.tenantName)
   return baseLayout(
     `
     <div style="color:#334155;font-size:15px;line-height:1.6;">${corpo}</div>
-    <p style="color:#64748b;font-size:14px;margin:24px 0 0;">— ${escapeHtml(input.tenantName)}</p>
+    <p style="color:#64748b;font-size:14px;margin:24px 0 0;">— ${nomeNegocio}</p>
   `,
-    input.tenantName,
+    nomeNegocio,
   )
 }
 
