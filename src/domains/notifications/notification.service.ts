@@ -1,36 +1,14 @@
 import { NotificationChannel, NotificationStatus } from "@prisma/client";
+import { prisma } from "@/shared/database/prisma";
 import { eventBus } from "@/shared/events/event-bus";
 import { featureGuard } from "@/domains/billing/feature-guard";
 import { notificationRepository } from "./notification.repository";
 import { whatsAppGateway } from "./providers/whatsapp.gateway";
 import { getEmailProvider } from "./providers/email.provider";
-import {
-  bookingConfirmedHtml,
-  bookingReminderHtml,
-  bookingCancelledHtml,
-} from "./providers/email-templates";
+import { customerEmailHtml } from "./providers/email-templates";
+import { customerMessageService } from "./customer-messages/customer-message.service";
+import { LEGACY_TEMPLATE_TO_EVENT } from "./customer-messages/customer-message-catalog";
 import type { NotificationDraft, NotificationDeliveryResult } from "./types";
-
-const EMAIL_SUBJECTS: Record<string, string> = {
-  "appointment-created": "Agendamento confirmado",
-  "appointment-reminder": "Lembrete: seu agendamento é amanhã",
-  "appointment-cancelled": "Agendamento cancelado",
-};
-
-function buildEmailHtml(template: string, payload: Record<string, unknown>): string {
-  const data = {
-    customerName: String(payload.customerName ?? "Cliente"),
-    serviceName: String(payload.serviceName ?? "Serviço"),
-    professionalName: payload.professionalName ? String(payload.professionalName) : undefined,
-    dateTime: String(payload.dateTime ?? ""),
-    tenantName: String(payload.tenantName ?? "Estabelecimento"),
-    tenantPhone: payload.tenantPhone ? String(payload.tenantPhone) : undefined,
-  };
-  if (template === "appointment-created") return bookingConfirmedHtml(data);
-  if (template === "appointment-reminder") return bookingReminderHtml(data);
-  if (template === "appointment-cancelled") return bookingCancelledHtml(data);
-  return `<p>${data.customerName}, você tem uma notificação de ${data.tenantName}.</p>`;
-}
 
 export class NotificationService {
   async logAndDispatch(draft: NotificationDraft) {
@@ -47,9 +25,48 @@ export class NotificationService {
       const emailCount = await notificationRepository.countEmailsThisMonth(draft.tenantId);
       await featureGuard.assertWithinLimit(draft.tenantId, "email_month", emailCount);
 
-      const subject = EMAIL_SUBJECTS[draft.template] ?? "Notificação";
-      const html = buildEmailHtml(draft.template, draft.payload as Record<string, unknown>);
-      delivery = await getEmailProvider().send({ to: draft.recipient, subject, html });
+      const event = LEGACY_TEMPLATE_TO_EVENT[draft.template];
+      if (!event) {
+        delivery = {
+          status: NotificationStatus.FAILED,
+          errorMessage: `Template desconhecido: ${draft.template}`,
+        };
+      } else {
+        const tenant = await prisma.tenant.findFirst({
+          where: { id: draft.tenantId },
+          select: { name: true, slug: true, timezone: true, phone: true, address: true },
+        });
+
+        const payload = draft.payload as {
+          customerName?: string;
+          serviceName?: string;
+          professionalName?: string;
+          startsAt?: string;
+        };
+
+        const rendered = await customerMessageService.render(draft.tenantId, event, "EMAIL", {
+          customerName: payload.customerName ?? "Cliente",
+          serviceName: payload.serviceName,
+          professionalName: payload.professionalName,
+          startsAt: payload.startsAt ? new Date(payload.startsAt) : undefined,
+          tenant: {
+            name: tenant?.name ?? "Estabelecimento",
+            slug: tenant?.slug ?? "",
+            timezone: tenant?.timezone ?? "America/Sao_Paulo",
+            phone: tenant?.phone,
+            address: tenant?.address,
+          },
+        });
+
+        delivery = await getEmailProvider().send({
+          to: draft.recipient,
+          subject: rendered.subject ?? "Notificação",
+          html: customerEmailHtml({
+            body: rendered.text,
+            tenantName: tenant?.name ?? "Estabelecimento",
+          }),
+        });
+      }
     } else {
       delivery = { status: NotificationStatus.FAILED, errorMessage: "Canal não suportado." };
     }
