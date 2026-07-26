@@ -101,6 +101,28 @@ Isto substitui os três `TEMPLATE_DEFAULTS` duplicados e os `EMAIL_SUBJECTS`.
 **Regra:** nenhum arquivo de provider pode conter texto de mensagem. Providers recebem
 texto já renderizado.
 
+**As mensagens genéricas do sistema continuam existindo.** "Remover o hardcode" significa
+tirar o texto de dentro do *código de envio*, não deixar o produto sem mensagem pronta. O
+catálogo **é** o conjunto de mensagens padrão do Agendê: versionadas em código, revisadas
+por nós, boas o suficiente para um tenant que nunca abrir a tela de configuração. A relação
+é de duas camadas:
+
+| Camada | Origem | Quando vale |
+|---|---|---|
+| Padrão do sistema | catálogo (código) | sempre que o tenant não tiver template próprio |
+| Personalização | `CustomerMessageTemplate` | sobrescreve o padrão, por evento e por canal |
+
+Consequências que a implementação precisa respeitar:
+
+- Tenant novo **não recebe cópia** dos textos padrão no banco. Ausência de registro
+  significa "usa o padrão", e não "sem mensagem". Isso permite melhorar os textos do sistema
+  depois e todo mundo que nunca personalizou se beneficiar automaticamente.
+- Personalizar é sempre **por evento e por canal**, nunca tudo-ou-nada: o tenant pode reescrever
+  só o cancelamento e continuar no padrão do sistema para o resto.
+- "Restaurar padrão" **apaga** o registro do template, devolvendo o evento à camada do sistema.
+- O editor abre pré-preenchido com o texto padrão do evento, para que personalizar seja
+  editar um texto bom, nunca escrever do zero.
+
 ### 3.3 Transacional × promocional
 
 Distinção que atravessa todo o desenho:
