@@ -139,13 +139,19 @@ export function CustomerMessageEditor({
   const previewBlock = (
     <div className="space-y-1.5">
       <p className="text-xs font-medium text-muted-foreground">Prévia</p>
-      <div className="rounded-2xl bg-[#e7fce3] p-3">
+      {/* As cores do balão são fixas por tema (e não tokens do design system) para imitar
+          o balão do WhatsApp — verde claro no tema claro, verde escuro no escuro. O texto
+          NÃO pode usar `text-foreground`: ele inverte no tema escuro e ficaria claro sobre
+          o verde claro, ilegível. */}
+      <div className="rounded-2xl bg-[#e7fce3] p-3 dark:bg-[#005c4b]">
         {isEmail && subject.trim() !== "" && (
-          <p className="mb-1 text-sm font-semibold text-foreground">
+          <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-slate-50">
             {interpolateTemplate(subject, PREVIEW_DATA, false)}
           </p>
         )}
-        <p className="whitespace-pre-wrap text-sm text-foreground">{preview || "—"}</p>
+        <p className="whitespace-pre-wrap text-sm text-slate-900 dark:text-slate-50">
+          {preview || "—"}
+        </p>
       </div>
     </div>
   );
@@ -160,7 +166,7 @@ export function CustomerMessageEditor({
             </DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-4 overflow-y-auto md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-3">
               {isEmail && (
                 <div className="space-y-1.5">

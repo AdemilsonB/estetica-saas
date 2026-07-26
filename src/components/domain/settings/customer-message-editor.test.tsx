@@ -84,6 +84,22 @@ describe('CustomerMessageEditor', () => {
     await waitFor(() => expect(textarea.value).toBe(item.defaultBody))
   })
 
+  it('fecha o editor ao restaurar o padrão, para a tela não seguir dizendo "Personalizada"', async () => {
+    // `item.isCustom` é prop vinda da lista e só muda depois do refetch disparado pela
+    // invalidação do hook. Se o modal continuasse aberto, o selo e o botão de restaurar
+    // seguiriam visíveis e o usuário concluiria que o botão não funcionou.
+    const item = buildItem({ isCustom: true, body: 'Texto personalizado do dono do salão.' })
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({}) })))
+    const onOpenChange = vi.fn()
+
+    render(<CustomerMessageEditor open item={item} onOpenChange={onOpenChange} />, { wrapper })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Restaurar padrão' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Restaurar' }))
+
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+  })
+
   it('não mostra "Restaurar padrão" quando o template não é personalizado', () => {
     vi.stubGlobal('fetch', vi.fn())
     const item = buildItem({ isCustom: false })
