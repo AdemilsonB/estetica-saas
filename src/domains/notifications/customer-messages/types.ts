@@ -1,3 +1,5 @@
+import type { CustomerMessageEvent } from "@prisma/client";
+
 export type CustomerMessageEventKey =
   | "appointment_requested"
   | "appointment_created"
@@ -46,15 +48,12 @@ export type RenderedCustomerMessage = {
   mediaUrl: string | null;
 };
 
-import type { CustomerMessageEvent } from "@prisma/client";
-
 /**
- * Garante em tempo de compilação que `CustomerMessageEventKey` e o enum do Prisma têm
- * exatamente os mesmos valores. Se alguém adicionar um evento em só um dos dois lugares,
- * `npx tsc --noEmit` quebra aqui.
+ * Garante em tempo de compilação que `CustomerMessageEventKey` e o enum
+ * `CustomerMessageEvent` do Prisma têm exatamente os mesmos valores. Se alguém
+ * adicionar um evento em só um dos dois lugares, `Exclude` deixa de ser `never`,
+ * a constraint `T extends never` falha e `npx tsc --noEmit` quebra aqui.
  */
-type AssertMesmosValores<A, B> = A extends B ? (B extends A ? true : never) : never;
-export type _EnumEmSincronia = AssertMesmosValores<
-  CustomerMessageEventKey,
-  `${CustomerMessageEvent}`
->;
+type AssertNever<T extends never> = T;
+type _SemEventoSoNaUniao = AssertNever<Exclude<CustomerMessageEventKey, `${CustomerMessageEvent}`>>;
+type _SemEventoSoNoEnum = AssertNever<Exclude<`${CustomerMessageEvent}`, CustomerMessageEventKey>>;
