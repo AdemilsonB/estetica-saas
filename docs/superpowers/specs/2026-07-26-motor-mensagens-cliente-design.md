@@ -292,7 +292,14 @@ Para cada tenant com `whatsappTemplateConfig` preenchido, cria-se
 salvos no esqueleto que hoje é hardcoded**. O texto resultante deve ser byte-a-byte
 idêntico ao que aquele tenant já envia hoje. Um teste automatizado compara a saída de
 `buildEvolutionMessage` (antes) com a renderização do template migrado (depois) para
-todos os eventos e para as combinações de payload com e sem `startsAt`.
+todos os eventos, com e sem customização do tenant.
+
+**Desvio consciente no ramo degenerado.** O código legado tem um caminho alternativo para
+payload sem `startsAt`, com texto diferente do formato com data. Na interpolação, `{{data}}`
+e `{{hora}}` viram string vazia, produzindo um texto próximo mas não idêntico. Esse ramo é
+defensivo — no fluxo real, `appointment_created` e `appointment_reminder` sempre chegam com
+`startsAt`. A equivalência byte-a-byte é exigida no payload completo; o ramo degenerado é
+coberto por teste de não-regressão (renderiza sem `undefined` e sem `{{` remanescente).
 
 Tenants sem customização não recebem registro — caem no catálogo por fallback.
 
@@ -319,8 +326,19 @@ customerMessageService.resolve(tenantId, event, channel)
 ```
 
 `buildEvolutionMessage` deixa de montar texto e passa a apenas repassar o texto já
-renderizado. O mesmo vale para o caminho Twilio em
-[`whatsapp.provider.ts:122`](../../../src/domains/notifications/providers/whatsapp.provider.ts#L122).
+renderizado.
+
+**Restrição do Twilio, descoberta ao detalhar a implementação.** O `TwilioProvider` hoje
+envia via `contentSid` — templates pré-aprovados na Twilio, com os fragmentos do tenant
+entrando como variáveis numeradas
+([`whatsapp.provider.ts:117-161`](../../../src/domains/notifications/providers/whatsapp.provider.ts#L117-L161)).
+Texto livre escrito pelo tenant é **incompatível** com esse caminho. Decisão: o Twilio passa
+a enviar o texto renderizado como `body`, o que o WhatsApp Business aceita dentro da janela
+de 24 h de atendimento e recusa fora dela. É aceitável porque o Twilio é **fallback** — a
+Evolution é o provedor primário e por-tenant. A alternativa (manter `contentSid`) faria a
+personalização do tenant ser silenciosamente ignorada no fallback, o que é pior: o tenant
+veria seu texto salvo e o cliente receberia outro. As env vars `TWILIO_TPL_*` deixam de ser
+obrigatórias.
 `EMAIL_SUBJECTS` e `buildEmailHtml` saem de
 [`notification.service.ts`](../../../src/domains/notifications/notification.service.ts);
 o e-mail passa a ser um layout único parametrizado pelo branding do tenant, recebendo
