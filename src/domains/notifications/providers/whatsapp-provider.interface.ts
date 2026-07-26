@@ -1,3 +1,4 @@
+import type { RenderedCustomerMessage } from "../customer-messages/types";
 import type { NotificationDraft } from "../types";
 
 export type SendResult = {
@@ -21,5 +22,9 @@ export type TenantWhatsAppConfig = {
 };
 
 export interface IWhatsAppProvider {
-  send(draft: NotificationDraft, tenant: TenantWhatsAppConfig): Promise<SendResult>;
+  send(
+    draft: NotificationDraft,
+    tenant: TenantWhatsAppConfig,
+    rendered: RenderedCustomerMessage,
+  ): Promise<SendResult>;
 }

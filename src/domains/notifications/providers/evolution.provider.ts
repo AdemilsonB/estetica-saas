@@ -4,38 +4,9 @@ import {
   EvolutionInstanceExistsError,
   InvalidPhoneError,
 } from "@/shared/errors";
+import type { RenderedCustomerMessage } from "../customer-messages/types";
 import type { NotificationDraft } from "../types";
 import type { IWhatsAppProvider, SendResult, TenantWhatsAppConfig } from "./whatsapp-provider.interface";
-
-const TEMPLATE_TO_CONFIG_KEY: Record<string, string> = {
-  "appointment-created":   "confirmacao",
-  "appointment-confirmed": "confirmado",
-  "appointment-reminder":  "lembrete",
-  "appointment-cancelled": "cancelamento",
-  "appointment-no-show":   "nao_comparecimento",
-  "birthday":              "aniversario",
-};
-
-const TEMPLATE_DEFAULTS: Record<string, { mensagemPrincipal: string; mensagemFinal: string }> = {
-  confirmacao:        { mensagemPrincipal: "Seu agendamento foi criado.", mensagemFinal: "Até lá!" },
-  confirmado:         { mensagemPrincipal: "Seu agendamento está confirmado.", mensagemFinal: "Te esperamos!" },
-  lembrete:           { mensagemPrincipal: "Lembrete:", mensagemFinal: "Até lá!" },
-  cancelamento:       { mensagemPrincipal: "Seu agendamento foi cancelado.", mensagemFinal: "Para reagendar, entre em contato conosco." },
-  nao_comparecimento: { mensagemPrincipal: "Notamos que você não compareceu ao seu horário.", mensagemFinal: "Quando quiser reagendar, estamos à disposição!" },
-  aniversario:        { mensagemPrincipal: "Feliz aniversário! Temos um presente especial para você.", mensagemFinal: "Venha nos visitar em breve!" },
-};
-
-type AppointmentPayload = {
-  appointmentId: string;
-  customerName: string;
-  serviceName: string;
-  startsAt?: string;
-  newStartsAt?: string;
-  status?: string;
-  message?: string;
-};
-
-type TemplateConfig = { mensagemPrincipal?: string; mensagemFinal?: string };
 
 function toE164Number(raw: string): string {
   const digits = raw.replace(/\D/g, "");
@@ -43,65 +14,6 @@ function toE164Number(raw: string): string {
     throw new InvalidPhoneError(raw);
   }
   return digits.startsWith("55") ? digits : `55${digits}`;
-}
-
-function fmt(isoString: string, timezone: string, options: Intl.DateTimeFormatOptions): string {
-  return new Intl.DateTimeFormat("pt-BR", { timeZone: timezone, ...options }).format(new Date(isoString));
-}
-
-export function buildEvolutionMessage(
-  template: string,
-  payload: AppointmentPayload,
-  tenant: Pick<TenantWhatsAppConfig, "name" | "slug" | "timezone" | "whatsappTemplateConfig">,
-): string {
-  const configKey = TEMPLATE_TO_CONFIG_KEY[template];
-  const rawConfigs = tenant.whatsappTemplateConfig as Record<string, TemplateConfig> | null;
-  const config = rawConfigs?.[configKey] ?? {};
-  const defaults = TEMPLATE_DEFAULTS[configKey];
-
-  const principal = config.mensagemPrincipal ?? defaults.mensagemPrincipal;
-  const final = config.mensagemFinal ?? defaults.mensagemFinal;
-  const tz = tenant.timezone;
-
-  if (template === "appointment-created" || template === "appointment-confirmed") {
-    if (payload.message) return payload.message;
-    if (!payload.startsAt) {
-      return `Olá, ${payload.customerName}! ${principal} | ${payload.serviceName} | ${tenant.name}. ${final}`;
-    }
-    const date = fmt(payload.startsAt, tz, { day: "2-digit", month: "2-digit", year: "numeric" });
-    const time = fmt(payload.startsAt, tz, { hour: "2-digit", minute: "2-digit" });
-    const link = `${process.env.APP_URL ?? ""}/agendar/${tenant.slug}`;
-    return `Olá, ${payload.customerName}! ${principal} 📅 ${date} às ${time} | ${payload.serviceName} | ${tenant.name}. ${final} 🔗 ${link}`;
-  }
-
-  if (template === "appointment-reminder") {
-    if (!payload.startsAt) {
-      return `Olá, ${payload.customerName}! ${principal} | ${payload.serviceName} | ${tenant.name}. ${final}`;
-    }
-    const time = fmt(payload.startsAt, tz, { hour: "2-digit", minute: "2-digit" });
-    return `Olá, ${payload.customerName}! ${principal} Hoje às ${time} | ${payload.serviceName} | ${tenant.name}. ${final}`;
-  }
-
-  if (template === "birthday") {
-    return `Olá, ${payload.customerName}! ${principal} De ${tenant.name}. ${final}`;
-  }
-
-  if (template === "appointment-rescheduled") {
-    if (payload.message) return payload.message;
-    if (payload.newStartsAt) {
-      const date = fmt(payload.newStartsAt, tz, { day: "2-digit", month: "2-digit", year: "numeric" });
-      const time = fmt(payload.newStartsAt, tz, { hour: "2-digit", minute: "2-digit" });
-      return `Olá, ${payload.customerName}! Seu agendamento foi remarcado para ${date} às ${time} | ${payload.serviceName} | ${tenant.name}.`;
-    }
-    return `Olá, ${payload.customerName}! Seu agendamento foi remarcado. | ${payload.serviceName} | ${tenant.name}.`;
-  }
-
-  if (template === "appointment-cancelled") {
-    if (payload.message) return payload.message;
-  }
-
-  // cancelamento / nao_comparecimento
-  return `Olá, ${payload.customerName}! ${principal} | ${payload.serviceName} | ${tenant.name}. ${final}`;
 }
 
 export class EvolutionProvider implements IWhatsAppProvider {
@@ -117,7 +29,11 @@ export class EvolutionProvider implements IWhatsAppProvider {
     return { "Content-Type": "application/json", apikey: this.apiKey };
   }
 
-  async send(draft: NotificationDraft, tenant: TenantWhatsAppConfig): Promise<SendResult> {
+  async send(
+    draft: NotificationDraft,
+    tenant: TenantWhatsAppConfig,
+    rendered: RenderedCustomerMessage,
+  ): Promise<SendResult> {
     if (!tenant.evolutionInstanceId) {
       return { success: false, errorMessage: "Instância Evolution não configurada.", provider: "evolution" };
     }
@@ -129,23 +45,26 @@ export class EvolutionProvider implements IWhatsAppProvider {
       return { success: false, errorMessage: `Telefone inválido: ${draft.recipient}`, provider: "evolution" };
     }
 
-    const text = buildEvolutionMessage(draft.template, draft.payload as AppointmentPayload, tenant);
+    const comMidia = Boolean(rendered.mediaUrl);
+    const url = comMidia
+      ? `${this.baseUrl}/message/sendMedia/${tenant.evolutionInstanceId}`
+      : `${this.baseUrl}/message/sendText/${tenant.evolutionInstanceId}`;
+    const body = comMidia
+      ? { number, mediatype: "image", media: rendered.mediaUrl, caption: rendered.text }
+      : { number, text: rendered.text };
 
     try {
-      const response = await fetch(
-        `${this.baseUrl}/message/sendText/${tenant.evolutionInstanceId}`,
-        {
-          method: "POST",
-          headers: this.headers(),
-          body: JSON.stringify({ number, text }),
-        },
-      );
+      const response = await fetch(url, {
+        method: "POST",
+        headers: this.headers(),
+        body: JSON.stringify(body),
+      });
 
       if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
+        const erro = await response.json().catch(() => ({}));
         return {
           success: false,
-          errorMessage: `Evolution API error ${response.status}: ${JSON.stringify(body)}`,
+          errorMessage: `Evolution API error ${response.status}: ${JSON.stringify(erro)}`,
           provider: "evolution",
         };
       }
