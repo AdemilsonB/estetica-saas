@@ -119,6 +119,11 @@ export function CustomerMessageEditor({
           setBody(item.defaultBody);
           setConfirmResetOpen(false);
           toast.success("Mensagem restaurada ao padrão");
+          // Fecha o editor: `item.isCustom` (prop vinda da lista) só atualiza depois do refetch
+          // disparado pela invalidação do hook. Manter o modal aberto faria o selo "Personalizada"
+          // e o botão "Restaurar padrão" continuarem visíveis por engano — a tela mentiria sobre o
+          // que já aconteceu. Fechar força reabrir com o estado (já correto) vindo da lista.
+          onOpenChange(false);
         },
         onError: () => toast.error("Erro ao restaurar o padrão"),
       },
