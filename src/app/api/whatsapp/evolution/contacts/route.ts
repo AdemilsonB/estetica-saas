@@ -53,7 +53,12 @@ export async function GET(request: Request) {
       inCrm: existingPhones.has(c.phone) || existingPhones.has("55" + c.phone),
     }));
 
-    return Response.json({ contacts: result, total: result.length });
+    // Lista viva e com dado pessoal de terceiro: nunca pode ser servida de cache
+    // do navegador/CDN (o Safari do iOS reaproveita GET agressivamente).
+    return Response.json(
+      { contacts: result, total: result.length },
+      { headers: { "Cache-Control": "no-store, max-age=0" } },
+    );
   } catch (error) {
     return handleApiError(error);
   }
