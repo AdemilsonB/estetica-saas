@@ -45,3 +45,16 @@ export type RenderedCustomerMessage = {
   text: string;
   mediaUrl: string | null;
 };
+
+import type { CustomerMessageEvent } from "@prisma/client";
+
+/**
+ * Garante em tempo de compilação que `CustomerMessageEventKey` e o enum do Prisma têm
+ * exatamente os mesmos valores. Se alguém adicionar um evento em só um dos dois lugares,
+ * `npx tsc --noEmit` quebra aqui.
+ */
+type AssertMesmosValores<A, B> = A extends B ? (B extends A ? true : never) : never;
+export type _EnumEmSincronia = AssertMesmosValores<
+  CustomerMessageEventKey,
+  `${CustomerMessageEvent}`
+>;
