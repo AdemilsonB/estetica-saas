@@ -32,40 +32,53 @@ export class NotificationService {
           errorMessage: `Template desconhecido: ${draft.template}`,
         };
       } else {
-        const tenant = await prisma.tenant.findFirst({
-          where: { id: draft.tenantId },
-          select: { name: true, slug: true, timezone: true, phone: true, address: true },
-        });
+        // A resolução do template toca o banco (`CustomerMessageTemplate`). Uma falha aqui
+        // — indisponibilidade transitória, ou a migration ainda não aplicada após um deploy —
+        // não pode escapar: `logAndDispatch` é chamado de handlers assíncronos do event bus,
+        // que engolem a rejeição, e o envio sumiria sem deixar rastro nem no NotificationLog.
+        // Convertendo em `delivery` FAILED, a falha fica registrada e diagnosticável, no
+        // mesmo padrão que o gateway de WhatsApp já usa.
+        try {
+          const tenant = await prisma.tenant.findFirst({
+            where: { id: draft.tenantId },
+            select: { name: true, slug: true, timezone: true, phone: true, address: true },
+          });
 
-        const payload = draft.payload as {
-          customerName?: string;
-          serviceName?: string;
-          professionalName?: string;
-          startsAt?: string;
-        };
+          const payload = draft.payload as {
+            customerName?: string;
+            serviceName?: string;
+            professionalName?: string;
+            startsAt?: string;
+          };
 
-        const rendered = await customerMessageService.render(draft.tenantId, event, "EMAIL", {
-          customerName: payload.customerName ?? "Cliente",
-          serviceName: payload.serviceName,
-          professionalName: payload.professionalName,
-          startsAt: payload.startsAt ? new Date(payload.startsAt) : undefined,
-          tenant: {
-            name: tenant?.name ?? "Estabelecimento",
-            slug: tenant?.slug ?? "",
-            timezone: tenant?.timezone ?? "America/Sao_Paulo",
-            phone: tenant?.phone,
-            address: tenant?.address,
-          },
-        });
+          const rendered = await customerMessageService.render(draft.tenantId, event, "EMAIL", {
+            customerName: payload.customerName ?? "Cliente",
+            serviceName: payload.serviceName,
+            professionalName: payload.professionalName,
+            startsAt: payload.startsAt ? new Date(payload.startsAt) : undefined,
+            tenant: {
+              name: tenant?.name ?? "Estabelecimento",
+              slug: tenant?.slug ?? "",
+              timezone: tenant?.timezone ?? "America/Sao_Paulo",
+              phone: tenant?.phone,
+              address: tenant?.address,
+            },
+          });
 
-        delivery = await getEmailProvider().send({
-          to: draft.recipient,
-          subject: rendered.subject ?? "Notificação",
-          html: customerEmailHtml({
-            body: rendered.text,
-            tenantName: tenant?.name ?? "Estabelecimento",
-          }),
-        });
+          delivery = await getEmailProvider().send({
+            to: draft.recipient,
+            subject: rendered.subject ?? "Notificação",
+            html: customerEmailHtml({
+              body: rendered.text,
+              tenantName: tenant?.name ?? "Estabelecimento",
+            }),
+          });
+        } catch (err) {
+          delivery = {
+            status: NotificationStatus.FAILED,
+            errorMessage: `Falha ao renderizar e-mail: ${err instanceof Error ? err.message : "erro desconhecido"}`,
+          };
+        }
       }
     } else {
       delivery = { status: NotificationStatus.FAILED, errorMessage: "Canal não suportado." };
