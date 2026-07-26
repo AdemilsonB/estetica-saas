@@ -630,10 +630,12 @@ describe("buildCustomerMessageVariables", () => {
     expect(vars.duracao).toBe("45 min");
   });
 
-  it("monta os links a partir do slug", () => {
+  it("monta os links usando as rotas reais do app", () => {
+    // Rotas verificadas: /agendar/[slug] é o fluxo de agendamento e /[slug]/cliente é o
+    // portal. NÃO existe /[slug]/portal — /[slug] sozinho é a vitrine pública.
     const vars = buildCustomerMessageVariables({ customerName: "Maria", tenant });
-    expect(vars.link_agendamento).toContain("/salao-da-lu");
-    expect(vars.link_portal).toContain("/salao-da-lu/portal");
+    expect(vars.link_agendamento).toContain("/agendar/salao-da-lu");
+    expect(vars.link_portal).toContain("/salao-da-lu/cliente");
   });
 
   it("devolve string vazia para todo campo ausente, nunca undefined", () => {
@@ -726,8 +728,10 @@ export function buildCustomerMessageVariables(ctx: CustomerMessageContext): Temp
     negocio: ctx.tenant.name,
     endereco: ctx.tenant.address ?? "",
     telefone_negocio: ctx.tenant.phone ?? "",
-    link_agendamento: `${appUrl}/${ctx.tenant.slug}`,
-    link_portal: `${appUrl}/${ctx.tenant.slug}/portal`,
+    // `/agendar/[slug]` é o fluxo de agendamento (o mesmo link que o código legado já
+    // envia — a equivalência da Task 6 depende disso) e `/[slug]/cliente` é o portal.
+    link_agendamento: `${appUrl}/agendar/${ctx.tenant.slug}`,
+    link_portal: `${appUrl}/${ctx.tenant.slug}/cliente`,
     dias_sem_vir: ctx.daysSinceLastVisit !== undefined ? String(ctx.daysSinceLastVisit) : "",
     ultimo_servico: ctx.lastServiceName ?? "",
   };
@@ -1295,7 +1299,6 @@ Esta é a tarefa mais crítica da fase. Ela garante que nenhum tenant perceba a 
 
 ```ts
 import { describe, it, expect } from "vitest";
-import { buildEvolutionMessage } from "../providers/evolution.provider";
 import { interpolateTemplate } from "../user-notifications/notification-template-engine";
 import { buildCustomerMessageVariables } from "./customer-message-variables";
 import { CUSTOMER_MESSAGE_CATALOG, LEGACY_TEMPLATE_TO_EVENT } from "./customer-message-catalog";
@@ -1311,6 +1314,69 @@ const tenant = {
 };
 
 const STARTS_AT_ISO = "2026-08-02T17:00:00.000Z";
+
+/**
+ * CÓPIA CONGELADA de `buildEvolutionMessage` como ele existia antes desta migração
+ * (evolution.provider.ts:52-105, commit 8ade22c). Não importe a função real: a Task 7 a
+ * apaga, e este teste precisa sobreviver a isso — ele é o guardião permanente de que o
+ * texto enviado ao cliente não mudou. Nunca "atualize" este snapshot para fazer um teste
+ * passar; se ele divergir, o errado é o catálogo.
+ */
+function buildEvolutionMessageCongelado(
+  template: string,
+  payload: { customerName: string; serviceName: string; startsAt?: string; message?: string },
+  cfg: { name: string; slug: string; timezone: string; whatsappTemplateConfig: unknown },
+): string {
+  const TEMPLATE_TO_CONFIG_KEY: Record<string, string> = {
+    "appointment-created": "confirmacao",
+    "appointment-confirmed": "confirmado",
+    "appointment-reminder": "lembrete",
+    "appointment-cancelled": "cancelamento",
+    "appointment-no-show": "nao_comparecimento",
+    birthday: "aniversario",
+  };
+  const TEMPLATE_DEFAULTS: Record<string, { mensagemPrincipal: string; mensagemFinal: string }> = {
+    confirmacao: { mensagemPrincipal: "Seu agendamento foi criado.", mensagemFinal: "Até lá!" },
+    confirmado: { mensagemPrincipal: "Seu agendamento está confirmado.", mensagemFinal: "Te esperamos!" },
+    lembrete: { mensagemPrincipal: "Lembrete:", mensagemFinal: "Até lá!" },
+    cancelamento: { mensagemPrincipal: "Seu agendamento foi cancelado.", mensagemFinal: "Para reagendar, entre em contato conosco." },
+    nao_comparecimento: { mensagemPrincipal: "Notamos que você não compareceu ao seu horário.", mensagemFinal: "Quando quiser reagendar, estamos à disposição!" },
+    aniversario: { mensagemPrincipal: "Feliz aniversário! Temos um presente especial para você.", mensagemFinal: "Venha nos visitar em breve!" },
+  };
+
+  const fmt = (iso: string, tz: string, o: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat("pt-BR", { timeZone: tz, ...o }).format(new Date(iso));
+
+  const configKey = TEMPLATE_TO_CONFIG_KEY[template];
+  const raw = cfg.whatsappTemplateConfig as Record<
+    string,
+    { mensagemPrincipal?: string; mensagemFinal?: string }
+  > | null;
+  const config = raw?.[configKey] ?? {};
+  const defaults = TEMPLATE_DEFAULTS[configKey];
+  const principal = config.mensagemPrincipal ?? defaults.mensagemPrincipal;
+  const final = config.mensagemFinal ?? defaults.mensagemFinal;
+  const tz = cfg.timezone;
+
+  if (template === "appointment-created" || template === "appointment-confirmed") {
+    if (payload.message) return payload.message;
+    const date = fmt(payload.startsAt!, tz, { day: "2-digit", month: "2-digit", year: "numeric" });
+    const time = fmt(payload.startsAt!, tz, { hour: "2-digit", minute: "2-digit" });
+    const link = `${process.env.APP_URL ?? ""}/agendar/${cfg.slug}`;
+    return `Olá, ${payload.customerName}! ${principal} 📅 ${date} às ${time} | ${payload.serviceName} | ${cfg.name}. ${final} 🔗 ${link}`;
+  }
+
+  if (template === "appointment-reminder") {
+    const time = fmt(payload.startsAt!, tz, { hour: "2-digit", minute: "2-digit" });
+    return `Olá, ${payload.customerName}! ${principal} Hoje às ${time} | ${payload.serviceName} | ${cfg.name}. ${final}`;
+  }
+
+  if (template === "birthday") {
+    return `Olá, ${payload.customerName}! ${principal} De ${cfg.name}. ${final}`;
+  }
+
+  return `Olá, ${payload.customerName}! ${principal} | ${payload.serviceName} | ${cfg.name}. ${final}`;
+}
 
 const PAYLOAD_BASE = {
   appointmentId: "a1",
@@ -1338,7 +1404,7 @@ describe("equivalência entre o texto legado e o template migrado", () => {
   it.each(templatesLegados)(
     "%s sem customização: catálogo reproduz o texto atual byte a byte",
     (templateLegado) => {
-      const antigo = buildEvolutionMessage(templateLegado, PAYLOAD_BASE, {
+      const antigo = buildEvolutionMessageCongelado(templateLegado, PAYLOAD_BASE, {
         name: tenant.name,
         slug: tenant.slug,
         timezone: tenant.timezone,
@@ -1367,7 +1433,7 @@ describe("equivalência entre o texto legado e o template migrado", () => {
         },
       };
 
-      const antigo = buildEvolutionMessage(templateLegado, PAYLOAD_BASE, {
+      const antigo = buildEvolutionMessageCongelado(templateLegado, PAYLOAD_BASE, {
         name: tenant.name,
         slug: tenant.slug,
         timezone: tenant.timezone,
@@ -2414,7 +2480,8 @@ que já implementa chips que inserem no cursor e prévia ao vivo. Diferenças ob
   `profissional: "Ana"`, `data: "02/08/2026"`, `hora: "14:00"`, `dia_semana: "domingo"`,
   `duracao: "45 min"`, `valor: "R$ 80,00"`, `negocio: "Salão da Lu"`,
   `endereco: "Rua X, 123"`, `telefone_negocio: "(11) 99999-0000"`,
-  `link_agendamento: "agende.app/salao-da-lu"`, `link_portal: "agende.app/salao-da-lu/portal"`,
+  `link_agendamento: "agende.app/agendar/salao-da-lu"`,
+  `link_portal: "agende.app/salao-da-lu/cliente"`,
   `dias_sem_vir: "92"`, `ultimo_servico: "Escova"`.
 - Botão **"Restaurar padrão"** quando `isCustom`, com `AlertDialog` de confirmação.
 - Contador de caracteres.
@@ -2490,31 +2557,39 @@ git commit -m "feat(notifications): aba de mensagens ao cliente com editor e pr�
 ## Task 13: Script de backfill e runbook
 
 **Files:**
-- Create: `scripts/backfill-customer-message-templates.mjs`
+- Create: `scripts/backfill-customer-message-templates.ts`
 - Modify: `package.json` (script `messages:backfill`)
 - Modify: `docs/decisions.md` (ADR)
 
 **Interfaces:**
 - Consumes: `buildLegacyBody` (Task 6).
 
-> **Atenção:** os scripts deste projeto precisam usar `PrismaPg` como adapter. `new PrismaClient()`
-> puro quebra com `PrismaClientInitializationError` — já aconteceu antes. Copie a inicialização
-> de um script existente em `scripts/`.
+> **Atenção — dois erros já cometidos neste projeto:**
+> 1. Os scripts precisam usar `PrismaPg` como adapter. `new PrismaClient()` puro quebra com
+>    `PrismaClientInitializationError`.
+> 2. O script é **`.ts` rodado por `npx tsx`**, não `.mjs` — `.mjs` não importa TypeScript de
+>    `src/`. Siga exatamente o cabeçalho de `scripts/backfill-rbac-consistency.ts`: `dotenv`
+>    apontando para `.env.local`, imports relativos a `../src/...` **sem extensão**.
 
 - [ ] **Step 1: Escrever o script**
 
-```js
+```ts
 // Converte Tenant.whatsappTemplateConfig em CustomerMessageTemplate, preservando
 // exatamente o texto que cada tenant já customizou. Idempotente: rodar duas vezes
 // não duplica nem sobrescreve personalização feita depois da migração.
+import { config } from "dotenv";
+import { resolve } from "path";
+config({ path: resolve(process.cwd(), ".env.local") });
+
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
-import { buildLegacyBody } from "../src/domains/notifications/customer-messages/legacy-template-backfill.js";
-import { CUSTOMER_MESSAGE_CATALOG } from "../src/domains/notifications/customer-messages/customer-message-catalog.js";
+import { buildLegacyBody } from "../src/domains/notifications/customer-messages/legacy-template-backfill";
+import { CUSTOMER_MESSAGE_CATALOG } from "../src/domains/notifications/customer-messages/customer-message-catalog";
+import type { LegacyWhatsAppConfig } from "../src/domains/notifications/customer-messages/legacy-template-backfill";
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-const prisma = new PrismaClient({ adapter });
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+const prisma = new PrismaClient({ adapter } as never);
 
 async function main() {
   const tenants = await prisma.tenant.findMany({
@@ -2528,7 +2603,10 @@ async function main() {
 
   for (const tenant of tenants) {
     for (const entrada of CUSTOMER_MESSAGE_CATALOG) {
-      const body = buildLegacyBody(entrada.event, tenant.whatsappTemplateConfig);
+      const body = buildLegacyBody(
+        entrada.event,
+        tenant.whatsappTemplateConfig as LegacyWhatsAppConfig | null,
+      );
       if (!body) continue;
 
       const jaExiste = await prisma.customerMessageTemplate.findFirst({
@@ -2569,7 +2647,7 @@ main()
 - [ ] **Step 2: Registrar o script no package.json**
 
 ```json
-"messages:backfill": "node scripts/backfill-customer-message-templates.mjs"
+"messages:backfill": "npx tsx scripts/backfill-customer-message-templates.ts"
 ```
 
 - [ ] **Step 3: Executar contra o banco local e conferir**
