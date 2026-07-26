@@ -13,6 +13,8 @@ export type TenantWhatsAppConfig = {
   name: string;
   slug: string;
   timezone: string;
+  phone: string | null;
+  address: string | null;
   whatsappEnabled: boolean;
   whatsappTemplateConfig: unknown;
   evolutionInstanceId: string | null;
