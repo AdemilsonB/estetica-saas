@@ -159,4 +159,36 @@ describe("NotificationService.logAndDispatch — enforcement de limite de e-mail
       expect.objectContaining({ status: NotificationStatus.FAILED }),
     );
   });
+
+  it("registra FALHA em vez de propagar quando a resolução do template estoura", async () => {
+    // `logAndDispatch` roda dentro de handlers assíncronos do event bus, que engolem a
+    // rejeição. Se a exceção escapasse, o envio sumiria sem rastro nem no NotificationLog —
+    // foi exatamente o que aconteceria com a migration da Fase 1 ainda não aplicada.
+    vi.mocked(notificationRepository.countEmailsThisMonth).mockResolvedValue(0);
+    vi.mocked(featureGuard.assertWithinLimit).mockResolvedValue(undefined);
+    const sendMock = vi.fn();
+    vi.mocked(getEmailProvider).mockReturnValue({ send: sendMock } as never);
+    vi.spyOn(customerMessageService, "render").mockRejectedValue(
+      new Error("The table `public.CustomerMessageTemplate` does not exist"),
+    );
+
+    await expect(
+      service.logAndDispatch({
+        tenantId: TENANT_ID,
+        channel: NotificationChannel.EMAIL,
+        template: "appointment-created",
+        recipient: "cliente@teste.com",
+        payload: { customerName: "Maria" },
+      } as never),
+    ).resolves.toBeDefined();
+
+    expect(sendMock).not.toHaveBeenCalled();
+    expect(notificationRepository.createLog).toHaveBeenCalledWith(
+      TENANT_ID,
+      expect.objectContaining({
+        status: NotificationStatus.FAILED,
+        errorMessage: expect.stringContaining("CustomerMessageTemplate"),
+      }),
+    );
+  });
 });
