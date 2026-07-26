@@ -55,50 +55,44 @@ describe("TwilioProvider", () => {
     vi.useRealTimers();
   });
 
-  it.skip("envia mensagem e retorna success=true com externalId", async () => {
-    const mockCreate = vi.fn().mockResolvedValue({ sid: "SM123456" });
-    vi.mocked(twilio).mockReturnValue({ messages: { create: mockCreate } } as never);
+  it("envia o texto renderizado como body, sem contentSid", async () => {
+    process.env.TWILIO_ACCOUNT_SID = "AC1";
+    process.env.TWILIO_AUTH_TOKEN = "tok";
+    process.env.TWILIO_WHATSAPP_FROM = "whatsapp:+14155238886";
+    process.env.APP_URL = "https://app.teste";
 
-    const result = await provider.send(mockDraft, mockTenant);
+    const create = vi.fn().mockResolvedValue({ sid: "SM1" });
+    vi.mocked(twilio).mockReturnValue({ messages: { create } } as never);
 
-    expect(result.success).toBe(true);
-    expect(result.externalId).toBe("SM123456");
-    expect(result.provider).toBe("twilio");
+    const resultado = await provider.send(
+      { tenantId: "t1", channel: "WHATSAPP", template: "appointment-created", recipient: "11999990000", payload: {} },
+      { id: "t1", name: "Salão", slug: "salao", timezone: "America/Sao_Paulo", whatsappEnabled: true, whatsappTemplateConfig: null, evolutionInstanceId: null, evolutionConnected: false, evolutionStatus: "DISCONNECTED", evolutionPhone: null },
+      { subject: null, text: "Texto pronto", mediaUrl: null },
+    );
+
+    expect(resultado.success).toBe(true);
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ body: "Texto pronto", to: "whatsapp:+5511999990000" }),
+    );
+    expect(create.mock.calls[0][0]).not.toHaveProperty("contentSid");
   });
 
-  it.skip("retorna success=false para telefone inválido", async () => {
-    const result = await provider.send({ ...mockDraft, recipient: "123" }, mockTenant);
+  it("não exige mais as env vars TWILIO_TPL_*", async () => {
+    delete process.env.TWILIO_TPL_CONFIRMATION;
+    process.env.TWILIO_ACCOUNT_SID = "AC1";
+    process.env.TWILIO_AUTH_TOKEN = "tok";
+    process.env.TWILIO_WHATSAPP_FROM = "whatsapp:+14155238886";
+    process.env.APP_URL = "https://app.teste";
 
-    expect(result.success).toBe(false);
-    expect(result.errorMessage).toContain("Telefone inválido");
-  });
+    const create = vi.fn().mockResolvedValue({ sid: "SM2" });
+    vi.mocked(twilio).mockReturnValue({ messages: { create } } as never);
 
-  it.skip("faz retry 2x em erro de rede e retorna success=false", async () => {
-    const mockCreate = vi.fn().mockRejectedValue(new Error("Network error"));
-    vi.mocked(twilio).mockReturnValue({ messages: { create: mockCreate } } as never);
+    const resultado = await provider.send(
+      { tenantId: "t1", channel: "WHATSAPP", template: "birthday", recipient: "11999990000", payload: {} },
+      { id: "t1", name: "Salão", slug: "salao", timezone: "America/Sao_Paulo", whatsappEnabled: true, whatsappTemplateConfig: null, evolutionInstanceId: null, evolutionConnected: false, evolutionStatus: "DISCONNECTED", evolutionPhone: null },
+      { subject: null, text: "Parabéns!", mediaUrl: null },
+    );
 
-    const sendPromise = provider.send(mockDraft, mockTenant);
-    await vi.runAllTimersAsync();
-    const result = await sendPromise;
-
-    expect(result.success).toBe(false);
-    expect(mockCreate).toHaveBeenCalledTimes(3);
-  });
-
-  it.skip("usa mensagem personalizada do tenant quando configurada", async () => {
-    const tenantWithConfig: TenantWhatsAppConfig = {
-      ...mockTenant,
-      whatsappTemplateConfig: {
-        confirmacao: { mensagemPrincipal: "Horário reservado!", mensagemFinal: "Nos vemos lá!" },
-      },
-    };
-    const mockCreate = vi.fn().mockResolvedValue({ sid: "SM999" });
-    vi.mocked(twilio).mockReturnValue({ messages: { create: mockCreate } } as never);
-
-    await provider.send(mockDraft, tenantWithConfig);
-
-    const vars = JSON.parse(mockCreate.mock.calls[0][0].contentVariables);
-    expect(vars["2"]).toBe("Horário reservado!");
-    expect(vars["7"]).toBe("Nos vemos lá!");
+    expect(resultado.success).toBe(true);
   });
 });
