@@ -103,7 +103,15 @@ export function EvolutionContactsImport({ open, onOpenChange }: Props) {
   const [bulkVip, setBulkVip] = useState(false);
   const [importResult, setImportResult] = useState<{ created: number; skipped: number } | null>(null);
 
-  const { data, isLoading, error: contactsError, refetch } = useEvolutionContacts();
+  // Busca dispara sozinha ao abrir — o Radix não chama onOpenChange quando o
+  // `open` vem do componente pai, então não dá para depender dele para carregar.
+  const {
+    data,
+    isLoading,
+    isFetching,
+    error: contactsError,
+    refetch,
+  } = useEvolutionContacts({ enabled: open });
   const { mutate: importContacts, isPending: isImporting, error: importError } = useImportContacts();
 
   const contacts = useMemo(() => data?.contacts ?? [], [data]);
@@ -129,7 +137,6 @@ export function EvolutionContactsImport({ open, onOpenChange }: Props) {
   }
 
   function handleOpenChange(isOpen: boolean) {
-    if (isOpen && contacts.length === 0) refetch();
     if (!isOpen) resetAll();
     onOpenChange(isOpen);
   }
@@ -269,17 +276,28 @@ export function EvolutionContactsImport({ open, onOpenChange }: Props) {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              {newContacts.length > 0 && (
-                <button
-                  type="button"
-                  onClick={toggleSelectAllNew}
-                  className="text-xs font-medium text-primary underline underline-offset-2"
-                >
-                  {selectedCount >= newContacts.length
-                    ? "Desmarcar todos"
-                    : `Selecionar todos os novos (${newContacts.length})`}
-                </button>
-              )}
+              <div className="flex items-center justify-between gap-2">
+                {newContacts.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={toggleSelectAllNew}
+                    className="text-xs font-medium text-primary underline underline-offset-2"
+                  >
+                    {selectedCount >= newContacts.length
+                      ? "Desmarcar todos"
+                      : `Selecionar todos os novos (${newContacts.length})`}
+                  </button>
+                ) : (
+                  <span />
+                )}
+                {/* Revalidação em segundo plano: a lista em cache continua visível */}
+                {isFetching && !isLoading && (
+                  <span className="flex items-center gap-1 text-xs text-slate-400">
+                    <Loader2 className="size-3 animate-spin" />
+                    atualizando
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto">

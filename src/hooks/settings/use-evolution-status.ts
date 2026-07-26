@@ -98,7 +98,17 @@ export function useEvolutionQrCode(options?: {
   });
 }
 
-export function useEvolutionContacts() {
+/**
+ * Lista de contatos do WhatsApp conectado.
+ *
+ * A chave de cache é compartilhada entre o seletor de origem e o modal de import:
+ * o seletor pré-carrega assim que abre, então ao escolher "Do WhatsApp conectado"
+ * a lista já está em cache e aparece na hora, sem precisar clicar em "Atualizar".
+ *
+ * `staleTime: 0` mantém a revalidação em segundo plano a cada reabertura — o cache
+ * aparece imediatamente e é substituído pelo dado fresco quando chega.
+ */
+export function useEvolutionContacts(options?: { enabled?: boolean }) {
   return useQuery<{ contacts: EvolutionContact[]; total: number }>({
     queryKey: ["evolution", "contacts"],
     queryFn: async () => {
@@ -112,7 +122,9 @@ export function useEvolutionContacts() {
       }
       return res.json();
     },
-    enabled: false,
+    staleTime: 0,
+    retry: false,
+    enabled: options?.enabled ?? false,
   });
 }
 

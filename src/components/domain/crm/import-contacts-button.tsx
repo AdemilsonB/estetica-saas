@@ -10,7 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
+import {
+  useEvolutionStatus,
+  useEvolutionContacts,
+} from '@/hooks/settings/use-evolution-status'
 import { EvolutionContactsImport } from '@/components/domain/settings/evolution-contacts-import'
 import { ImportContactsModal } from './import-contacts-modal'
 
@@ -22,6 +25,10 @@ export function ImportContactsButton() {
   const { data: status, isLoading } = useEvolutionStatus({ enabled: mode === 'chooser' })
 
   const whatsappConnected = status?.connected === true
+
+  // Pré-carrega os contatos junto com o seletor: ao escolher "Do WhatsApp
+  // conectado" a lista já vem pronta do cache (mesma queryKey do modal).
+  useEvolutionContacts({ enabled: mode === 'chooser' && whatsappConnected })
 
   return (
     <>
