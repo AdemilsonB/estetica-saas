@@ -15,7 +15,8 @@
     "seed:plan-features": "npx tsx scripts/seed-plan-features.ts",
     "migrate:user-roles": "npx tsx scripts/migrate-user-roles.ts",
     "seed:admin": "npx tsx scripts/seed-admin-data.ts",
-    "rbac:backfill": "npx tsx scripts/backfill-rbac-consistency.ts"
+    "rbac:backfill": "npx tsx scripts/backfill-rbac-consistency.ts",
+    "messages:backfill": "npx tsx scripts/backfill-customer-message-templates.ts"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
