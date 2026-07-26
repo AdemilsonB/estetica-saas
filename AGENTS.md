@@ -87,3 +87,10 @@ Só acione o orchestrator diretamente (sem onboarding) se:
 - Eventos via `eventBus.publish()` — nunca importação direta entre domínios
 - Nunca lógica de negócio em componentes React
 - Nunca queries diretas ao banco em API Routes
+- Todo `DialogContent` precisa de `max-h-[85vh]` + `overflow-y-auto`
+- Dialog aninhado: o interno precisa de `modal={false}`, senão dois Radix Dialog modais
+  prendem `aria-hidden` na raiz e travam a tela. **`AlertDialog` não aceita `modal={false}`**
+  (a tipagem faz `Omit<DialogProps, 'modal'>`) — nesse caso use `Dialog` comum com
+  `role="alertdialog"`, como em `picker-detail-modal.tsx`
+- Nenhum texto de mensagem ao cliente pode existir em `domains/notifications/providers/` —
+  o texto vem do catálogo ou do template do tenant; providers só transportam (ADR-017)
