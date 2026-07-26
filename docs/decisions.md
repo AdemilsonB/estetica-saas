@@ -397,3 +397,39 @@ Durante a investigação, uma auditoria de segurança de baixo custo (grep de `e
 - O backfill (`scripts/backfill-rbac-consistency.ts`) **precisa ser rodado manualmente em produção** após o deploy — mesma cadência dos scripts anteriores (`migrate-user-roles.ts`, `update-professional-permissions.ts`). Sem rodar, o comportamento de produção não piora (o fallback sincronizado já cobre o caso), mas os dados salvos de cargos antigos só ficam coerentes depois do backfill.
 - Novas dependências futuras (se aparecerem) só precisam de uma linha em `PERMISSION_DEPENDENCIES` — backend, UI do editor e fallback legado pegam a mudança automaticamente.
 - 4 falhas de teste pré-existentes e não relacionadas a este trabalho foram observadas no gate final (`scheduling.service.update.test.ts` — checkout não atômico, já mapeado na auditoria de QA de 2026-06-27 —, `appointment-reminder.test.ts`, `customer-history-client.test.tsx` ×2) — nenhum arquivo tocado nesta branch se sobrepõe a esses testes; ficam fora do escopo desta entrega.
+
+---
+
+## ADR-017 — Motor de mensagens ao cliente: catálogo do sistema + personalização por tenant (2026-07-26)
+
+**Data**: 2026-07-26
+**Status**: Aceito (Fase 1 de 5 implementada)
+
+**Contexto**: O texto de toda mensagem enviada ao cliente era montado dentro do código de envio, em `buildEvolutionMessage` (`evolution.provider.ts`) e `buildTwilioTemplateParams` (`whatsapp.provider.ts`). O tenant só conseguia editar dois fragmentos por evento (`mensagemPrincipal` ≤120 caracteres e `mensagemFinal` ≤80), guardados num JSON solto em `Tenant.whatsappTemplateConfig`; todo o esqueleto — saudação, emoji, ordem dos campos, separadores, link — era fixo. Reagendamento não tinha nem esses dois fragmentos. O e-mail ao cliente tinha três HTMLs e três assuntos hardcoded. Os defaults estavam duplicados em três arquivos, que já divergiam entre si.
+
+Durante a implementação, o teste de equivalência descobriu um **bug ativo em produção**: `TEMPLATE_TO_CONFIG_KEY` não tinha entrada para `"appointment-rescheduled"`, então `configKey` era `undefined`, `TEMPLATE_DEFAULTS[undefined]` era `undefined`, e a linha que lia `defaults.mensagemPrincipal` lançava `TypeError` — **antes** do bloco dedicado ao reagendamento, que portanto era código morto. Nenhuma notificação de remarcação chegava ao cliente, e como a exceção morria num handler assíncrono do event bus, não havia rastro sequer no `NotificationLog`.
+
+**Decisão**:
+
+1. **Duas camadas, nunca uma.** Um catálogo em código (`customer-messages/customer-message-catalog.ts`) é a fonte única das mensagens padrão do sistema — 10 eventos × 2 canais, com rótulo, descrição, variáveis disponíveis e natureza. O model novo `CustomerMessageTemplate` guarda **apenas** as personalizações do tenant. **Ausência de registro significa "usa o padrão", nunca "sem mensagem"**, e tenant novo NÃO recebe cópia dos defaults — é o que permite melhorar os textos do sistema depois sem outro backfill, beneficiando automaticamente quem nunca personalizou. "Restaurar padrão" apaga o registro.
+
+2. **Providers ficam burros.** `buildEvolutionMessage`, `buildTwilioTemplateParams`, os três `TEMPLATE_DEFAULTS`, o `EMAIL_SUBJECTS` e os três `booking*Html` foram removidos. O gateway resolve o template, interpola as variáveis e entrega texto pronto; o provider só transporta. O e-mail passou a ter um layout único parametrizado.
+
+3. **Transacional × promocional** é campo do catálogo (`nature`) desde já, mesmo sem consumidor na Fase 1 — as fases seguintes (campanhas, opt-out, anti-fadiga) dependem dessa classificação, e defini-la junto com o texto evita divergência depois.
+
+4. **Twilio envia texto livre como `body`.** O caminho antigo usava `contentSid` (templates pré-aprovados na Twilio, com fragmentos como variáveis numeradas), incompatível com texto livre escrito pelo tenant. Como o Twilio é fallback que não é exercido nesta versão do produto — a Evolution é o único provedor real —, aceitou-se a limitação de que texto livre só é entregue dentro da janela de 24 h do WhatsApp Business. As env vars `TWILIO_TPL_*` deixaram de ser obrigatórias.
+
+5. **Sem gate de plano na edição de template.** A rota antiga exigia `whatsapp_basic`, mas ela era só de WhatsApp; a nova cobre todos os canais, e gatear por WhatsApp impediria um tenant sem esse recurso de editar os próprios templates de **e-mail**. O motor de templates é higiene, não upsell. O envio efetivo continua gateado em `whatsapp.gateway.ts`, que é onde o gate pertence.
+
+**Alternativas rejeitadas**:
+- **Reaproveitar os models do motor da equipe** (`NotificationTemplate`, `TenantNotificationSetting`) com um campo `audience`: os canais são diferentes (`WHATSAPP`/`EMAIL` externo × `IN_APP`/`EMAIL` interno), as variáveis são diferentes e o ciclo de vida é diferente. Um model com dois enums de canal convivendo seria mais difícil de entender e evoluir do que dois motores irmãos. A função pura `interpolateTemplate` **é** compartilhada.
+- **Corrigir o bug do reagendamento no provider antigo**: a função inteira é removida nesta fase, então o conserto seria descartado no mesmo dia.
+- **Manter `contentSid` no Twilio**: faria a personalização do tenant ser silenciosamente ignorada no fallback — o tenant veria seu texto salvo e o cliente receberia outro, que é pior do que a limitação de janela.
+
+**Consequências**:
+- **Migration `20260726120000_add_customer_message_template` e o backfill precisam ser aplicados manualmente em produção**, nesta ordem e na mesma janela: `npx prisma migrate deploy` e depois `npm run messages:backfill`. O backfill é idempotente e aceita `--dry-run`. Sem ele, tenants que customizaram os fragmentos legados voltam a receber o texto padrão do sistema — não quebra, mas perde a personalização deles.
+- A migration foi **gerada offline** (`prisma migrate diff`, banco local indisponível) e **nunca rodou contra um Postgres real** — validar antes do merge.
+- O bug do reagendamento é corrigido de graça pela remoção da função. Dois testes permanentes em `legacy-template-backfill.test.ts` documentam o `TypeError` legado e provam que o template novo renderiza texto útil, para ninguém reintroduzir o caminho antigo achando que funcionava.
+- `Tenant.whatsappTemplateConfig` permanece no schema, sem leitura, até a Fase 1 estar validada em produção. Remoção fica para limpeza posterior.
+- **Achado reutilizável**: `AlertDialog` do Radix **não aceita** `modal={false}` — a tipagem faz `Omit<DialogProps, 'modal'>`. A regra do projeto sobre Dialog aninhado é inaplicável a ele; a saída é `Dialog` comum com `role="alertdialog"`, como `picker-detail-modal.tsx` já fazia.
+- As 4 falhas de teste pré-existentes (`scheduling.service.update.test.ts`, `appointment-reminder.test.ts`, `customer-history-client.test.tsx` ×2) seguem presentes e não têm relação com esta entrega — verificadas em worktree do commit pai.

@@ -35,6 +35,8 @@ vi.mock("@/shared/config/env", () => ({
 import { featureGuard } from "@/domains/billing/feature-guard";
 import { whatsAppQuotaService } from "../quota/whatsapp-quota.service";
 import { twilioProvider } from "./whatsapp.provider";
+import { evolutionProvider } from "./evolution.provider";
+import { customerMessageService } from "../customer-messages/customer-message.service";
 import { WhatsAppGateway } from "./whatsapp.gateway";
 
 const gateway = new WhatsAppGateway();
@@ -188,6 +190,92 @@ describe("WhatsAppGateway", () => {
 
     // Restaurar
     mockEnv.WHATSAPP_PROVIDER = "twilio";
+    mockEnv.EVOLUTION_API_URL = undefined;
+  });
+
+  it("renderiza pelo service e repassa o texto ao provider", async () => {
+    mockEnv.EVOLUTION_API_URL = "https://evolution.example.com";
+    prismaMock.tenant.findFirst.mockResolvedValue({
+      id: "t1", name: "Salão", slug: "salao", timezone: "America/Sao_Paulo",
+      phone: null, address: null, whatsappEnabled: true, whatsappTemplateConfig: null,
+      evolutionInstanceId: "inst-1", evolutionConnected: true, evolutionStatus: "CONNECTED", evolutionPhone: null,
+    } as never);
+
+    const renderSpy = vi.spyOn(customerMessageService, "render").mockResolvedValue({
+      subject: null, text: "Renderizado!", mediaUrl: null,
+    });
+    const sendSpy = vi.spyOn(evolutionProvider, "send").mockResolvedValue({ success: true, provider: "evolution" });
+
+    await gateway.send({
+      tenantId: "t1", channel: "WHATSAPP", template: "appointment-created",
+      recipient: "11999990000", payload: { customerName: "Maria", serviceName: "Escova", startsAt: "2026-08-02T17:00:00.000Z" },
+    } as never);
+
+    expect(renderSpy).toHaveBeenCalledWith("t1", "appointment_created", "WHATSAPP", expect.objectContaining({ customerName: "Maria" }));
+    expect(sendSpy.mock.calls[0][2]).toEqual({ subject: null, text: "Renderizado!", mediaUrl: null });
+
+    mockEnv.EVOLUTION_API_URL = undefined;
+  });
+
+  it("mensagem pontual do modal tem precedência sobre o template", async () => {
+    mockEnv.EVOLUTION_API_URL = "https://evolution.example.com";
+    prismaMock.tenant.findFirst.mockResolvedValue({
+      id: "t1", name: "Salão", slug: "salao", timezone: "America/Sao_Paulo",
+      phone: null, address: null, whatsappEnabled: true, whatsappTemplateConfig: null,
+      evolutionInstanceId: "inst-1", evolutionConnected: true, evolutionStatus: "CONNECTED", evolutionPhone: null,
+    } as never);
+
+    const renderSpy = vi.spyOn(customerMessageService, "render");
+    const sendSpy = vi.spyOn(evolutionProvider, "send").mockResolvedValue({ success: true, provider: "evolution" });
+
+    await gateway.send({
+      tenantId: "t1", channel: "WHATSAPP", template: "appointment-cancelled",
+      recipient: "11999990000", payload: { customerName: "Maria", serviceName: "Escova", message: "Texto escrito na hora" },
+    } as never);
+
+    expect(renderSpy).not.toHaveBeenCalled();
+    expect(sendSpy.mock.calls[0][2].text).toBe("Texto escrito na hora");
+
+    mockEnv.EVOLUTION_API_URL = undefined;
+  });
+
+  it("template desconhecido falha com erro claro em vez de enviar texto vazio", async () => {
+    prismaMock.tenant.findFirst.mockResolvedValue({
+      id: "t1", name: "Salão", slug: "salao", timezone: "America/Sao_Paulo",
+      phone: null, address: null, whatsappEnabled: true, whatsappTemplateConfig: null,
+      evolutionInstanceId: "inst-1", evolutionConnected: true, evolutionStatus: "CONNECTED", evolutionPhone: null,
+    } as never);
+
+    const resultado = await gateway.send({
+      tenantId: "t1", channel: "WHATSAPP", template: "template-que-nao-existe",
+      recipient: "11999990000", payload: { customerName: "Maria" },
+    } as never);
+
+    expect(resultado.status).toBe("FAILED");
+    expect(resultado.errorMessage).toContain("template-que-nao-existe");
+    expect(whatsAppQuotaService.decrement).toHaveBeenCalledWith("t1");
+  });
+
+  it("falha da renderização devolve a cota e não chega a chamar o provider", async () => {
+    mockEnv.EVOLUTION_API_URL = "https://evolution.example.com";
+    prismaMock.tenant.findFirst.mockResolvedValue({
+      id: "t1", name: "Salão", slug: "salao", timezone: "America/Sao_Paulo",
+      phone: null, address: null, whatsappEnabled: true, whatsappTemplateConfig: null,
+      evolutionInstanceId: "inst-1", evolutionConnected: true, evolutionStatus: "CONNECTED", evolutionPhone: null,
+    } as never);
+
+    vi.spyOn(customerMessageService, "render").mockRejectedValue(new Error("erro transitório de banco"));
+    const sendSpy = vi.spyOn(evolutionProvider, "send");
+
+    const resultado = await gateway.send({
+      tenantId: "t1", channel: "WHATSAPP", template: "appointment-created",
+      recipient: "11999990000", payload: { customerName: "Maria", serviceName: "Escova", startsAt: "2026-08-02T17:00:00.000Z" },
+    } as never);
+
+    expect(resultado.status).toBe("FAILED");
+    expect(whatsAppQuotaService.decrement).toHaveBeenCalledWith("t1");
+    expect(sendSpy).not.toHaveBeenCalled();
+
     mockEnv.EVOLUTION_API_URL = undefined;
   });
 });

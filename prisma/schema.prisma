@@ -54,6 +54,19 @@ enum NotificationEventType {
   monthly_goal
 }
 
+enum CustomerMessageEvent {
+  appointment_requested
+  appointment_created
+  appointment_confirmed
+  appointment_rescheduled
+  appointment_cancelled
+  appointment_no_show
+  appointment_reminder
+  birthday
+  return_due
+  winback
+}
+
 enum TeamNotificationChannel {
   IN_APP
   EMAIL
@@ -207,6 +220,7 @@ model Tenant {
   tenantNotificationSettings  TenantNotificationSetting[]
   notificationTemplates       NotificationTemplate[]
   userNotificationPreferences UserNotificationPreference[]
+  customerMessageTemplates    CustomerMessageTemplate[]
 }
 
 model BrandingConfig {
@@ -672,6 +686,23 @@ model NotificationTemplate {
   settings TenantNotificationSetting[]
 
   @@unique([tenantId, eventType, channel])
+  @@index([tenantId])
+}
+
+model CustomerMessageTemplate {
+  id        String               @id @default(cuid())
+  tenantId  String
+  event     CustomerMessageEvent
+  channel   NotificationChannel
+  subject   String?
+  body      String               @db.Text
+  mediaUrl  String?
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, event, channel])
   @@index([tenantId])
 }
 

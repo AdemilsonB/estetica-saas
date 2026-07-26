@@ -14,8 +14,15 @@ vi.mock("@/shared/config/env", () => ({
 import { EvolutionProvider } from "./evolution.provider";
 import { EvolutionInstanceExistsError } from "@/shared/errors";
 import type { TenantWhatsAppConfig } from "./whatsapp-provider.interface";
+import type { RenderedCustomerMessage } from "../customer-messages/types";
 
 const provider = new EvolutionProvider();
+
+const mockRendered: RenderedCustomerMessage = {
+  subject: null,
+  text: "Texto pronto do template",
+  mediaUrl: null,
+};
 
 const mockDraft = {
   tenantId: "tenant-1",
@@ -57,7 +64,7 @@ describe("EvolutionProvider", () => {
       json: async () => ({ key: { id: "EVO-MSG-001" } }),
     });
 
-    const result = await provider.send(mockDraft, mockTenant);
+    const result = await provider.send(mockDraft, mockTenant, mockRendered);
 
     expect(result.success).toBe(true);
     expect(result.externalId).toBe("EVO-MSG-001");
@@ -65,32 +72,53 @@ describe("EvolutionProvider", () => {
     expect(mockFetch).toHaveBeenCalledOnce();
   });
 
-  it("chama Evolution API com número sem prefixo + e URL correta", async () => {
+  it("envia o texto já renderizado, sem montar mensagem", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({ key: { id: "EVO-001" } }),
+      json: async () => ({ key: { id: "MSG1" } }),
     });
 
-    await provider.send(mockDraft, mockTenant);
+    const resultado = await provider.send(
+      { tenantId: "t1", channel: "WHATSAPP", template: "appointment-created", recipient: "11999990000", payload: {} },
+      { id: "t1", name: "Salão", slug: "salao", timezone: "America/Sao_Paulo", whatsappEnabled: true, whatsappTemplateConfig: null, evolutionInstanceId: "inst-1", evolutionConnected: true, evolutionStatus: "CONNECTED", evolutionPhone: null },
+      { subject: null, text: "Texto pronto do template", mediaUrl: null },
+    );
 
-    const [url, options] = mockFetch.mock.calls[0];
-    expect(url).toContain("/message/sendText/tenant-1");
-    const body = JSON.parse(options.body);
-    expect(body.number).toBe("5511987654321");
-    expect(body.text).toContain("João Silva");
+    expect(resultado.success).toBe(true);
+    const corpo = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(corpo.text).toBe("Texto pronto do template");
+    expect(corpo.number).toBe("5511999990000");
+  });
+
+  it("usa sendMedia com legenda quando há mediaUrl", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ key: { id: "MSG2" } }),
+    });
+
+    await provider.send(
+      { tenantId: "t1", channel: "WHATSAPP", template: "birthday", recipient: "11999990000", payload: {} },
+      { id: "t1", name: "Salão", slug: "salao", timezone: "America/Sao_Paulo", whatsappEnabled: true, whatsappTemplateConfig: null, evolutionInstanceId: "inst-1", evolutionConnected: true, evolutionStatus: "CONNECTED", evolutionPhone: null },
+      { subject: null, text: "Parabéns!", mediaUrl: "https://cdn.exemplo/banner.png" },
+    );
+
+    expect(String(mockFetch.mock.calls[0][0])).toContain("/message/sendMedia/inst-1");
+    const corpo = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(corpo.caption).toBe("Parabéns!");
+    expect(corpo.media).toBe("https://cdn.exemplo/banner.png");
   });
 
   it("retorna success=false quando Evolution API retorna erro 5xx", async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
 
-    const result = await provider.send(mockDraft, mockTenant);
+    const result = await provider.send(mockDraft, mockTenant, mockRendered);
 
     expect(result.success).toBe(false);
     expect(result.provider).toBe("evolution");
   });
 
   it("retorna success=false para telefone inválido (< 10 dígitos)", async () => {
-    const result = await provider.send({ ...mockDraft, recipient: "123" }, mockTenant);
+    const result = await provider.send({ ...mockDraft, recipient: "123" }, mockTenant, mockRendered);
 
     expect(result.success).toBe(false);
     expect(mockFetch).not.toHaveBeenCalled();
@@ -98,7 +126,7 @@ describe("EvolutionProvider", () => {
 
   it("retorna success=false quando evolutionInstanceId é null", async () => {
     const tenantSemInstancia = { ...mockTenant, evolutionInstanceId: null };
-    const result = await provider.send(mockDraft, tenantSemInstancia);
+    const result = await provider.send(mockDraft, tenantSemInstancia, mockRendered);
 
     expect(result.success).toBe(false);
     expect(mockFetch).not.toHaveBeenCalled();
@@ -284,18 +312,4 @@ describe("EvolutionProvider", () => {
     await expect(provider.deleteInstance("tenant-1")).rejects.toThrow(/400/);
   });
 
-  it("mensagem de appointment-created contém data, hora e link", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ key: { id: "EVO-002" } }),
-    });
-
-    await provider.send(mockDraft, mockTenant);
-
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    // 2026-06-01T12:00:00Z em São Paulo = 09:00 UTC-3
-    expect(body.text).toContain("01/06/2026");
-    expect(body.text).toContain("Barbearia Silva");
-    expect(body.text).toContain("/agendar/barbearia-silva");
-  });
 });

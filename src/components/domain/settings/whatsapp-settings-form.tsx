@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { MessageCircle, Lock, Send, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +20,6 @@ import {
   useBulkReminder,
 } from "@/hooks/settings/use-notification-settings";
 import { WhatsAppUsageCard } from "./whatsapp-usage-card";
-import { WhatsAppTemplateEditor } from "./whatsapp-template-editor";
 import { EvolutionConnection } from "./evolution-connection";
 import { EvolutionContactsImport } from "./evolution-contacts-import";
 
@@ -225,7 +225,17 @@ export function WhatsAppSettingsForm() {
             </p>
           </div>
 
-          <WhatsAppTemplateEditor />
+          <div className="rounded-2xl border border-white/80 bg-white/85 p-5 shadow-sm">
+            <p className="text-sm font-semibold text-slate-700">Personalizar mensagens ao cliente</p>
+            <p className="mt-1 text-xs text-slate-500">
+              A personalização das mensagens (confirmação, lembrete, cancelamento e outras) agora
+              fica em{" "}
+              <Link href="/configuracoes/notificacoes" className="font-medium text-slate-700 underline">
+                Configurações › Notificações › Mensagens ao cliente
+              </Link>
+              .
+            </p>
+          </div>
         </>
       )}
 

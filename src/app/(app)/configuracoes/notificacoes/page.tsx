@@ -7,6 +7,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { TeamNotificationBusinessSettings } from "@/components/domain/settings/team-notification-business-settings";
 import { TeamNotificationTemplateEditor } from "@/components/domain/settings/team-notification-template-editor";
 import { TeamNotificationMyPreferences } from "@/components/domain/settings/team-notification-my-preferences";
+import { CustomerMessageList } from "@/components/domain/settings/customer-message-list";
 
 export default function NotificacoesConfigPage() {
   const { can, isLoading } = usePermissions();
@@ -27,16 +28,20 @@ export default function NotificacoesConfigPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Notificações</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Configure os avisos da sua equipe e ajuste como você quer ser avisado.
+          Configure os avisos da sua equipe, personalize as mensagens que seus clientes recebem e
+          ajuste como você quer ser avisado.
         </p>
       </div>
 
       <Tabs defaultValue={canManageBusiness ? "negocio" : "pessoal"}>
-        <TabsList className="grid h-auto! w-full grid-cols-2">
+        <TabsList className={`grid h-auto! w-full ${canManageBusiness ? "grid-cols-3" : "grid-cols-1"}`}>
           {canManageBusiness && (
             <TabsTrigger value="negocio" className="min-h-11">Avisos do negócio</TabsTrigger>
           )}
-          <TabsTrigger value="pessoal" className={canManageBusiness ? "min-h-11" : "min-h-11 col-span-2"}>
+          {canManageBusiness && (
+            <TabsTrigger value="cliente" className="min-h-11">Mensagens ao cliente</TabsTrigger>
+          )}
+          <TabsTrigger value="pessoal" className="min-h-11">
             Minhas preferências
           </TabsTrigger>
         </TabsList>
@@ -46,6 +51,12 @@ export default function NotificacoesConfigPage() {
             <TeamNotificationBusinessSettings
               onEditTemplate={(eventType, channel) => setEditing({ eventType, channel })}
             />
+          </TabsContent>
+        )}
+
+        {canManageBusiness && (
+          <TabsContent value="cliente" className="mt-4">
+            <CustomerMessageList />
           </TabsContent>
         )}
 
