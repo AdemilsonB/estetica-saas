@@ -255,4 +255,27 @@ describe("WhatsAppGateway", () => {
     expect(resultado.errorMessage).toContain("template-que-nao-existe");
     expect(whatsAppQuotaService.decrement).toHaveBeenCalledWith("t1");
   });
+
+  it("falha da renderização devolve a cota e não chega a chamar o provider", async () => {
+    mockEnv.EVOLUTION_API_URL = "https://evolution.example.com";
+    prismaMock.tenant.findFirst.mockResolvedValue({
+      id: "t1", name: "Salão", slug: "salao", timezone: "America/Sao_Paulo",
+      phone: null, address: null, whatsappEnabled: true, whatsappTemplateConfig: null,
+      evolutionInstanceId: "inst-1", evolutionConnected: true, evolutionStatus: "CONNECTED", evolutionPhone: null,
+    } as never);
+
+    vi.spyOn(customerMessageService, "render").mockRejectedValue(new Error("erro transitório de banco"));
+    const sendSpy = vi.spyOn(evolutionProvider, "send");
+
+    const resultado = await gateway.send({
+      tenantId: "t1", channel: "WHATSAPP", template: "appointment-created",
+      recipient: "11999990000", payload: { customerName: "Maria", serviceName: "Escova", startsAt: "2026-08-02T17:00:00.000Z" },
+    } as never);
+
+    expect(resultado.status).toBe("FAILED");
+    expect(whatsAppQuotaService.decrement).toHaveBeenCalledWith("t1");
+    expect(sendSpy).not.toHaveBeenCalled();
+
+    mockEnv.EVOLUTION_API_URL = undefined;
+  });
 });

@@ -78,19 +78,31 @@ export class WhatsAppGateway {
       // No reagendamento o payload traz a data nova em `newStartsAt` — ela tem
       // precedência sobre `startsAt` (a data original do agendamento).
       const quando = payload.newStartsAt ?? payload.startsAt;
-      rendered = await customerMessageService.render(draft.tenantId, event, "WHATSAPP", {
-        customerName: payload.customerName ?? "Cliente",
-        serviceName: payload.serviceName,
-        professionalName: payload.professionalName,
-        startsAt: quando ? new Date(quando) : undefined,
-        tenant: {
-          name: tenant.name,
-          slug: tenant.slug,
-          timezone: tenant.timezone,
-          phone: tenant.phone,
-          address: tenant.address,
-        },
-      });
+
+      try {
+        rendered = await customerMessageService.render(draft.tenantId, event, "WHATSAPP", {
+          customerName: payload.customerName ?? "Cliente",
+          serviceName: payload.serviceName,
+          professionalName: payload.professionalName,
+          startsAt: quando ? new Date(quando) : undefined,
+          tenant: {
+            name: tenant.name,
+            slug: tenant.slug,
+            timezone: tenant.timezone,
+            phone: tenant.phone,
+            address: tenant.address,
+          },
+        });
+      } catch (err) {
+        // A quota já foi incrementada acima — devolvê-la, senão o tenant perde uma
+        // cota de WhatsApp por uma mensagem que nunca chegou a ser renderizada
+        // (ex.: falha transitória do banco em customerMessageTemplateRepository).
+        await whatsAppQuotaService.decrement(draft.tenantId);
+        return {
+          status: NotificationStatus.FAILED,
+          errorMessage: `Falha ao renderizar mensagem: ${err instanceof Error ? err.message : "erro desconhecido"}`,
+        };
+      }
     }
 
     // Evolution é o provedor PRIMÁRIO e por-tenant: se o tenant conectou o
