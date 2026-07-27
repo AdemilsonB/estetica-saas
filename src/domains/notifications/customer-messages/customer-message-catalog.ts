@@ -229,7 +229,7 @@ export const CUSTOMER_MESSAGE_CATALOG: CustomerMessageCatalogEntry[] = [
     label: "Aniversário",
     description: "Enviada no aniversário do cliente.",
     nature: "promotional",
-    defaultEnabled: true,
+    defaultEnabled: false,
     defaultChannels: ["WHATSAPP"],
     variables: VARS_CLIENTE,
     defaults: {
@@ -258,7 +258,7 @@ export const CUSTOMER_MESSAGE_CATALOG: CustomerMessageCatalogEntry[] = [
     description:
       "Enviada quando chega a data de retorno recomendada do serviço que o cliente fez.",
     nature: "promotional",
-    defaultEnabled: true,
+    defaultEnabled: false,
     defaultChannels: ["WHATSAPP"],
     variables: [...VARS_CLIENTE, "ultimo_servico", "dias_sem_vir"],
     defaults: {
@@ -278,7 +278,7 @@ export const CUSTOMER_MESSAGE_CATALOG: CustomerMessageCatalogEntry[] = [
     label: "Reconquista",
     description: "Enviada para clientes que estão há muito tempo sem aparecer.",
     nature: "promotional",
-    defaultEnabled: true,
+    defaultEnabled: false,
     defaultChannels: ["WHATSAPP"],
     variables: [...VARS_CLIENTE, "ultimo_servico", "dias_sem_vir"],
     defaults: {
