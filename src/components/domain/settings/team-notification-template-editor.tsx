@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   useNotificationTemplate,
   useUpdateNotificationTemplate,
@@ -87,48 +87,52 @@ export function TeamNotificationTemplateEditor({
         {isLoading ? (
           <div className="h-40 animate-pulse rounded-xl bg-muted" />
         ) : (
-          <div className="space-y-4">
-            {channel === "EMAIL" && (
+          <>
+            <div className="space-y-4">
+              {channel === "EMAIL" && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="tpl-subject">Assunto do e-mail</Label>
+                  <Input id="tpl-subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+                </div>
+              )}
+
               <div className="space-y-1.5">
-                <Label htmlFor="tpl-subject">Assunto do e-mail</Label>
-                <Input id="tpl-subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+                <Label htmlFor="tpl-body">Mensagem</Label>
+                <Textarea
+                  id="tpl-body"
+                  ref={bodyRef}
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  rows={5}
+                  className="resize-none"
+                />
               </div>
-            )}
 
-            <div className="space-y-1.5">
-              <Label htmlFor="tpl-body">Mensagem</Label>
-              <Textarea
-                id="tpl-body"
-                ref={bodyRef}
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                rows={5}
-                className="resize-none"
-              />
+              <div className="flex flex-wrap gap-1.5">
+                {catalogEntry?.variables.map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => insertVariable(v)}
+                    className="min-h-11 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/70"
+                  >
+                    {`{{${v}}}`}
+                  </button>
+                ))}
+              </div>
+
+              <div className="rounded-xl bg-muted/50 p-3">
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Prévia</p>
+                <p className="text-sm text-foreground">{preview}</p>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
-              {catalogEntry?.variables.map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => insertVariable(v)}
-                  className="min-h-8 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/70"
-                >
-                  {`{{${v}}}`}
-                </button>
-              ))}
-            </div>
-
-            <div className="rounded-xl bg-muted/50 p-3">
-              <p className="mb-1 text-xs font-medium text-muted-foreground">Prévia</p>
-              <p className="text-sm text-foreground">{preview}</p>
-            </div>
-
-            <Button onClick={handleSave} disabled={update.isPending || body.length === 0} className="w-full">
-              {update.isPending ? "Salvando..." : "Salvar mensagem"}
-            </Button>
-          </div>
+            <DialogFooter className="sticky bottom-0">
+              <Button onClick={handleSave} disabled={update.isPending || body.length === 0} className="min-h-11 w-full">
+                {update.isPending ? "Salvando..." : "Salvar mensagem"}
+              </Button>
+            </DialogFooter>
+          </>
         )}
       </DialogContent>
     </Dialog>
