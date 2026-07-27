@@ -84,13 +84,18 @@ export function CustomerMessageSettingsMatrix({ onEditTemplate }: Props) {
                 </div>
                 <p className="text-xs text-muted-foreground">{item.description}</p>
               </div>
-              <Switch
-                className="shrink-0"
-                checked={item.enabled}
-                disabled={update.isPending}
-                onCheckedChange={(v) => salvar(item, v, canais)}
-                aria-label={`Avisar o cliente: ${item.label}`}
-              />
+              {/* Wrapper com min-h-11: o primitivo `Switch` (h-[18.4px] + hit-slop de 8px por lado
+                  via `after:-inset-y-2`) fica com ~34.4px de alvo efetivo, abaixo dos 44px exigidos.
+                  Corrigido só aqui — mexer no primitivo afetaria todo o design system (mesmo gap
+                  já existe em `team-notification-business-settings.tsx`, fora do escopo desta task). */}
+              <div className="flex min-h-11 shrink-0 items-center">
+                <Switch
+                  checked={item.enabled}
+                  disabled={update.isPending}
+                  onCheckedChange={(v) => salvar(item, v, canais)}
+                  aria-label={`Avisar o cliente: ${item.label}`}
+                />
+              </div>
             </div>
 
             {item.enabled && (
