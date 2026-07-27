@@ -57,11 +57,15 @@ Toda afirmação de "isso funciona" precisa vir com a saída do comando que prov
 
 ### Decisão de implementação registrada: sem seed de `CustomerMessageSetting`
 
-A seção 6.1 da spec diz "tenant novo é semeado com todos os eventos ligados; o seed roda na criação do tenant". **Este plano entrega o mesmo comportamento observável por outro caminho:** quando não existe registro, a resolução cai no `defaultEnabled`/`defaultChannels` do catálogo — que são "ligado, WhatsApp" para os 10 eventos.
+A seção 6.1 da spec diz "tenant novo é semeado com todos os eventos ligados; o seed roda na criação do tenant". **Este plano entrega o mesmo comportamento observável por outro caminho:** quando não existe registro, a resolução cai no `defaultEnabled`/`defaultChannels` do catálogo.
+
+> **Exceção decidida durante a execução (2026-07-27), com o dono do produto.** "Todos ligados" vale para os **7 eventos transacionais**. Os 3 promocionais (`birthday`, `return_due`, `winback`) nascem **desligados**, como a Fase 1 já os tinha no catálogo: a §3.3 da spec trata promocional como opt-in (exige `consentGiven`, respeita `marketingOptOut`), e ligar disparo promocional por padrão contradiz isso. O canal padrão continua `["WHATSAPP"]` para os 10 — canal é *por onde* enviar, não *se* envia. Registrar no ADR-018.
+>
+> Regra derivada, e é assim que os testes devem afirmá-la: `defaultEnabled === (nature === "transactional")`. Nunca asserir o literal `true` para os 10.
 
 Motivo: é exatamente a arquitetura de duas camadas que o ADR-017 estabeleceu para os templates ("ausência de registro significa usa o padrão, nunca sem mensagem"). Ter os settings com semântica diferente dos templates seria confuso e, pior, exigiria um **backfill de produção** e um hook na criação do tenant — dois pontos de falha para obter um resultado idêntico. Sem seed:
 
-- tenant novo já nasce com tudo ligado, sem nenhuma linha no banco;
+- tenant novo já nasce no padrão certo (transacionais ligados, promocionais desligados), sem nenhuma linha no banco;
 - tenants existentes idem, no primeiro deploy, sem script nenhum;
 - mudar o padrão do sistema no futuro é editar o catálogo, sem migration.
 
@@ -174,7 +178,8 @@ Em `prisma/schema.prisma`, imediatamente depois do `model CustomerMessageTemplat
 
 ```prisma
 /// Padrão do negócio para cada mensagem ao cliente. Guarda APENAS o que o tenant
-/// mudou: ausência de registro significa "usa o padrão do catálogo" (ligado, WhatsApp),
+/// mudou: ausência de registro significa "usa o padrão do catálogo" (transacional ligado,
+/// promocional desligado, canal WhatsApp),
 /// nunca "desligado". Mesma arquitetura de duas camadas do CustomerMessageTemplate.
 model CustomerMessageSetting {
   id        String                @id @default(cuid())
@@ -627,13 +632,18 @@ describe("customerMessageSettingService", () => {
     expect(resolvido.isCustom).toBe(true);
   });
 
-  it("resolveAll devolve os 10 eventos mesmo com o banco vazio", async () => {
+  it("resolveAll devolve os 10 eventos mesmo com o banco vazio, no padrão do catálogo", async () => {
     repo.listByTenant.mockResolvedValue([]);
 
     const todos = await customerMessageSettingService.resolveAll("t1");
 
     expect(todos).toHaveLength(10);
-    expect(todos.every((e) => e.enabled)).toBe(true);
+    // Transacional nasce ligado; promocional nasce desligado (opt-in por LGPD,
+    // decisão registrada nas Global Constraints). Nunca asserir `true` para os 10.
+    for (const item of todos) {
+      expect(item.enabled).toBe(item.nature === "transactional");
+    }
+    expect(todos.filter((e) => e.enabled)).toHaveLength(7);
   });
 
   it("shouldNotify sem override usa o padrão do tenant", async () => {
@@ -4003,7 +4013,8 @@ No bloco de avisos ao fim da seção, acrescente:
 > ⚠️ 2026-07-27: motor de mensagens ao cliente — Fase 2 (ADR-018). Migration
 > `20260727120000_add_customer_message_setting` **pendente de aplicação manual** em produção:
 > `npx prisma migrate deploy`. **Não há backfill** — ausência de registro em
-> `CustomerMessageSetting` significa "usa o padrão do catálogo" (tudo ligado, WhatsApp),
+> `CustomerMessageSetting` significa "usa o padrão do catálogo" (7 transacionais ligados,
+> 3 promocionais desligados, canal WhatsApp),
 > então tenants existentes não mudam de comportamento no deploy. A coluna
 > `Appointment.origin` nasce `PANEL` para todo o histórico: agendamentos antigos feitos
 > pela vitrine não retroagem para `PUBLIC`, e confirmar um deles não vai avisar o cliente
@@ -4044,10 +4055,10 @@ O corpo do PR precisa listar: o que muda para o usuário, a **migration manual**
 
 1. **Merge do PR.**
 2. `npx prisma migrate deploy` — **manual**, a Vercel não roda migrations no build. Use a porta **5432** do Supabase (pooler em modo *session*); a **6543** trava, não suporta DDL nem advisory lock.
-3. **Não há backfill.** Ausência de registro em `CustomerMessageSetting` já significa "tudo ligado, canal WhatsApp".
+3. **Não há backfill.** Ausência de registro em `CustomerMessageSetting` já significa "padrão do catálogo": os 7 eventos transacionais ligados, os 3 promocionais (`birthday`, `return_due`, `winback`) desligados, canal WhatsApp.
 4. `npx prisma migrate status` — confirmar limpo.
 5. Verificação funcional em produção, em ordem:
-   - Configurações › Notificações › Mensagens ao cliente carrega os 10 eventos, todos ligados;
+   - Configurações › Notificações › Mensagens ao cliente carrega os 10 eventos: os 7 transacionais ligados e os 3 promocionais desligados;
    - desligar um evento, recarregar, confirmar que persistiu;
    - agendar pela vitrine → o cliente recebe **"recebemos seu pedido"** (não "confirmado");
    - confirmar esse pedido no painel → o cliente recebe **"está confirmado"**;
@@ -4064,7 +4075,7 @@ O corpo do PR precisa listar: o que muda para o usuário, a **migration manual**
 |---|---|
 | 6.1 Model `CustomerMessageSetting`, padrão do negócio | T1, T3, T4 |
 | 6.1 Matriz evento × canal na aba existente | T6, T7 |
-| 6.1 Tenant novo com tudo ligado | T4 (fallback do catálogo; desvio documentado nas Global Constraints e no ADR) |
+| 6.1 Tenant novo com os eventos ligados | T4 (fallback do catálogo; dois desvios documentados nas Global Constraints e no ADR: sem seed, e promocional nasce desligado) |
 | 6.2 `<CustomerMessageToggle>` único e reutilizado | T11 |
 | 6.2 Rotula o padrão explicitamente | T11 |
 | 6.2 Mostra o texto interpolado com dados reais | T10 + T11 |
@@ -4090,6 +4101,11 @@ Quatro, todos já corrigidos acima. Registrados porque a mesma classe de erro te
 2. **Teste que passaria só no primeiro caso.** `registerNotificationSubscriptions` tem guard de módulo; sem `vi.resetModules()` o `subscriptions.test.ts` teria handlers apenas no primeiro `it`. E, com o reset, um `import` estático do `eventBus` apontaria para a instância antiga do mock. → Task 8 Step 4 importa os dois dinamicamente dentro do `beforeEach`.
 3. **Duas tarefas editando o mesmo bloco com resultados diferentes.** Task 13 mandava incluir `NO_SHOW` na lista de status que repassam `notificationMessage`, num bloco que a Task 8 já escrevia sem ele. → consolidado na Task 8 Step 3.5, com o caso de teste correspondente.
 4. **Passo baseado em premissa desatualizada da spec.** A §6.3 trata "Confirmar (drawer)" como disparo direto; o código já delega ao `ConfirmAppointmentModal` (`appointment-drawer.tsx:498`). → Task 12 Step 6.5 virou verificação, não edição. Mesma coisa com o no-show: o `AlertDialog` já existe (Task 13 documenta isso).
+
+**Defeitos encontrados durante a execução** (os que o scan não pegou)
+
+5. **Asserção sobre um valor que eu não tinha lido.** O teste da Task 2 exigia `defaultEnabled === true` nos 10 eventos, e o Step 4 dizia "são 10 ocorrências de `defaultEnabled: true`". Eram **7**: a Fase 1 já tinha `birthday`, `return_due` e `winback` como `false`, por serem promocionais. Escrever o teste com o literal `true` teria invertido silenciosamente uma decisão de LGPD para satisfazer o plano. → decidido com o dono do produto em 2026-07-27 (promocional continua desligado), teste reescrito para afirmar a **regra** (`defaultEnabled === (nature === "transactional")`) e não o valor, e a Task 4 corrigida junto. Lição: um plano que afirma "são N ocorrências" sem ter lido as N está inventando um requisito.
+6. **Teste tautológico.** O teste de "inversão exata" entre `CUSTOMER_MESSAGE_TEMPLATE_KEY` e `LEGACY_TEMPLATE_TO_EVENT` não podia falhar: o segundo mapa é **derivado** do primeiro por `Object.fromEntries`, então a inversão é verdadeira por construção. O implementador descobriu isso ao executar o teste negativo que o plano exigia — com um valor errado mas único, o teste continuava passando. → substituído pelo invariante que a derivação de fato pode violar: **duas entradas não podem compartilhar a mesma chave de log** (colisão colapsa entradas e o evento perdido vira "Template desconhecido" no gateway). É o mesmo padrão da asserção de tipo que compilava sempre, na Fase 1: uma verificação só vale o que ela consegue reprovar.
 
 **Riscos conhecidos deste plano**
 
