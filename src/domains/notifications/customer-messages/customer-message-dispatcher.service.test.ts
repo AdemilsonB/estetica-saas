@@ -133,6 +133,20 @@ describe("customerMessageDispatcher", () => {
     );
   });
 
+  it("não deixa escapar exceção de shouldNotify/resolve — devolve resultado vazio", async () => {
+    settings.shouldNotify.mockRejectedValue(new Error("banco fora do ar"));
+
+    const resultado = await customerMessageDispatcher.dispatch({
+      tenantId: "t1",
+      event: "appointment_created",
+      recipient: { phone: "11999990000" },
+      payload: {},
+    });
+
+    expect(resultado).toEqual({ dispatched: [], skipReason: null });
+    expect(logAndDispatch).not.toHaveBeenCalled();
+  });
+
   it("uma falha num canal não impede o outro, e nada escapa do dispatch", async () => {
     ligado(["WHATSAPP", "EMAIL"]);
     logAndDispatch.mockRejectedValueOnce(new Error("provedor fora do ar"));

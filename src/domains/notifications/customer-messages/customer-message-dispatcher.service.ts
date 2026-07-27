@@ -32,19 +32,31 @@ export type CustomerMessageDispatchResult = {
  */
 export class CustomerMessageDispatcherService {
   async dispatch(input: CustomerMessageDispatchInput): Promise<CustomerMessageDispatchResult> {
-    const enviar = await customerMessageSettingService.shouldNotify(
-      input.tenantId,
-      input.event,
-      input.notifyOverride,
-    );
-    if (!enviar) {
-      return { dispatched: [], skipReason: "desligado" };
-    }
+    let channels: CustomerMessageChannel[];
 
-    const { channels } = await customerMessageSettingService.resolve(
-      input.tenantId,
-      input.event,
-    );
+    try {
+      const enviar = await customerMessageSettingService.shouldNotify(
+        input.tenantId,
+        input.event,
+        input.notifyOverride,
+      );
+      if (!enviar) {
+        return { dispatched: [], skipReason: "desligado" };
+      }
+
+      ({ channels } = await customerMessageSettingService.resolve(input.tenantId, input.event));
+    } catch (err) {
+      // shouldNotify/resolve tocam o banco (CustomerMessageSetting). Uma falha aqui — soluço
+      // transitório do Postgres, migration atrasada — não pode escapar: dispatch() é chamado
+      // de handlers assíncronos do event bus, que engolem a rejeição, e a mensagem sumiria
+      // sem deixar rastro (o mesmo tipo de bug histórico do reagendamento).
+      console.error(
+        "[customer-messages] Falha ao resolver configuração de envio",
+        input.event,
+        err instanceof Error ? err.message : err,
+      );
+      return { dispatched: [], skipReason: null };
+    }
 
     const { notificationService } = await import("../notification.service");
 
