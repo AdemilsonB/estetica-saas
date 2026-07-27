@@ -634,6 +634,7 @@ export class SchedulingService {
         startsAt: appointment.startsAt,
         endsAt: appointment.endsAt,
         status: appointment.status,
+        origin: appointment.origin,
         paymentStatus: appointment.paymentStatus,
         paymentMethod: appointment.paymentMethod,
         discountTypeId: appointment.discountTypeId,
