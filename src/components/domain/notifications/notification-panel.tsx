@@ -52,7 +52,7 @@ export function NotificationPanel({
           <SheetTitle>Notificações</SheetTitle>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="size-10" asChild aria-label="Preferências de notificação">
-              <Link href="/configuracoes/notificacoes" onClick={() => onOpenChange(false)}>
+              <Link href="/configuracoes/notificacoes?tab=equipe" onClick={() => onOpenChange(false)}>
                 <Settings className="size-4" />
               </Link>
             </Button>

@@ -230,7 +230,7 @@ export function WhatsAppSettingsForm() {
             <p className="mt-1 text-xs text-slate-500">
               A personalização das mensagens (confirmação, lembrete, cancelamento e outras) agora
               fica em{" "}
-              <Link href="/configuracoes/notificacoes" className="font-medium text-slate-700 underline">
+              <Link href="/configuracoes/notificacoes?tab=cliente" className="font-medium text-slate-700 underline">
                 Configurações › Notificações › Mensagens ao cliente
               </Link>
               .

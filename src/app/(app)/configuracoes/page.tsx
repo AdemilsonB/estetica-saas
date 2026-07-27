@@ -235,7 +235,10 @@ export default function ConfiguracoesPage() {
         >
           <SchedulingPolicyForm />
         </SettingsCard>
+      </SettingsGroup>
 
+      {/* GRUPO 3 — Notificações e mensagens */}
+      <SettingsGroup title="Notificações e mensagens">
         <SettingsCard
           icon={MessageCircle}
           title="WhatsApp e notificações"
@@ -278,7 +281,7 @@ export default function ConfiguracoesPage() {
             Novo agendamento, cancelamento, resumo do dia e mais — escolha o que avisa e por quais canais.
           </p>
           <Button asChild variant="outline" size="sm">
-            <Link href="/configuracoes/notificacoes" className="flex items-center gap-1.5">
+            <Link href="/configuracoes/notificacoes?tab=equipe" className="flex items-center gap-1.5">
               <ExternalLink className="size-3.5" />
               Configurar Notificações
             </Link>
@@ -286,7 +289,7 @@ export default function ConfiguracoesPage() {
         </SettingsCard>
       </SettingsGroup>
 
-      {/* GRUPO 3 — Financeiro e acesso */}
+      {/* GRUPO 4 — Financeiro e acesso */}
       <SettingsGroup title="Financeiro e acesso">
         <SettingsCard
           icon={CreditCard}
