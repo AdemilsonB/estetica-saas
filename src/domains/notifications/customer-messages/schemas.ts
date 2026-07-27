@@ -26,3 +26,13 @@ export const updateCustomerMessageTemplateSchema = z.object({
 export type UpdateCustomerMessageTemplateInput = z.infer<
   typeof updateCustomerMessageTemplateSchema
 >;
+
+export const updateCustomerMessageSettingSchema = z.object({
+  event: customerMessageEventSchema,
+  enabled: z.boolean(),
+  channels: z.array(customerMessageChannelSchema),
+});
+
+export type UpdateCustomerMessageSettingInput = z.infer<
+  typeof updateCustomerMessageSettingSchema
+>;
