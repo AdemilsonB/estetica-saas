@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -215,16 +216,13 @@ export function WhatsAppAutomationsForm() {
         </div>
         {(get('birthdayEnabled') ?? false) && (
           <div className="space-y-3 pl-1">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Mensagem</Label>
-              <Textarea
-                value={get('birthdayMessage') ?? ''}
-                onChange={e => set('birthdayMessage', e.target.value || null)}
-                placeholder="Feliz aniversário! Temos um presente especial para você 🎂"
-                rows={3}
-                maxLength={300}
-              />
-            </div>
+            <p className="text-xs text-muted-foreground">
+              O texto desta mensagem agora é editado em{' '}
+              <Link href="/configuracoes/notificacoes?tab=cliente" className="font-medium text-foreground underline">
+                Mensagens ao cliente
+              </Link>
+              .
+            </p>
             <div className="space-y-1.5">
               <Label className="text-xs">Serviço de brinde (opcional)</Label>
               <Select
