@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { NotificationEventType, TeamNotificationChannel } from "@prisma/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -9,9 +10,38 @@ import { TeamNotificationTemplateEditor } from "@/components/domain/settings/tea
 import { TeamNotificationMyPreferences } from "@/components/domain/settings/team-notification-my-preferences";
 import { CustomerMessageList } from "@/components/domain/settings/customer-message-list";
 
-export default function NotificacoesConfigPage() {
+type EditingTemplate = { eventType: NotificationEventType; channel: TeamNotificationChannel };
+
+function EquipeTabContent({
+  canManageBusiness,
+  onEditTemplate,
+}: {
+  canManageBusiness: boolean;
+  onEditTemplate: (eventType: NotificationEventType, channel: TeamNotificationChannel) => void;
+}) {
+  return (
+    <div className="space-y-6">
+      {canManageBusiness && (
+        <>
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold text-foreground">Avisos do negócio</h2>
+            <TeamNotificationBusinessSettings onEditTemplate={onEditTemplate} />
+          </section>
+          <div className="border-t border-border" />
+        </>
+      )}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-foreground">Minhas preferências</h2>
+        <TeamNotificationMyPreferences />
+      </section>
+    </div>
+  );
+}
+
+function NotificacoesContent() {
   const { can, isLoading } = usePermissions();
-  const [editing, setEditing] = useState<{ eventType: NotificationEventType; channel: TeamNotificationChannel } | null>(null);
+  const searchParams = useSearchParams();
+  const [editing, setEditing] = useState<EditingTemplate | null>(null);
 
   const canManageBusiness = can("configuracoes", "edit");
 
@@ -21,6 +51,12 @@ export default function NotificacoesConfigPage() {
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-rose-200 border-t-rose-600" />
       </div>
     );
+  }
+
+  const initialTab = canManageBusiness && searchParams.get("tab") === "cliente" ? "cliente" : "equipe";
+
+  function openEditor(eventType: NotificationEventType, channel: TeamNotificationChannel) {
+    setEditing({ eventType, channel });
   }
 
   return (
@@ -33,37 +69,28 @@ export default function NotificacoesConfigPage() {
         </p>
       </div>
 
-      <Tabs defaultValue={canManageBusiness ? "negocio" : "pessoal"}>
-        <TabsList className={`grid h-auto! w-full ${canManageBusiness ? "grid-cols-3" : "grid-cols-1"}`}>
-          {canManageBusiness && (
-            <TabsTrigger value="negocio" className="min-h-11">Avisos do negócio</TabsTrigger>
-          )}
-          {canManageBusiness && (
-            <TabsTrigger value="cliente" className="min-h-11">Mensagens ao cliente</TabsTrigger>
-          )}
-          <TabsTrigger value="pessoal" className="min-h-11">
-            Minhas preferências
-          </TabsTrigger>
-        </TabsList>
+      {canManageBusiness ? (
+        <Tabs defaultValue={initialTab}>
+          <TabsList className="grid h-auto! w-full grid-cols-2 gap-1">
+            <TabsTrigger value="equipe" className="min-h-11 h-auto whitespace-normal text-center leading-tight px-2 py-2">
+              Notificações da equipe
+            </TabsTrigger>
+            <TabsTrigger value="cliente" className="min-h-11 h-auto whitespace-normal text-center leading-tight px-2 py-2">
+              Mensagens ao cliente
+            </TabsTrigger>
+          </TabsList>
 
-        {canManageBusiness && (
-          <TabsContent value="negocio" className="mt-4">
-            <TeamNotificationBusinessSettings
-              onEditTemplate={(eventType, channel) => setEditing({ eventType, channel })}
-            />
+          <TabsContent value="equipe" className="mt-4">
+            <EquipeTabContent canManageBusiness onEditTemplate={openEditor} />
           </TabsContent>
-        )}
 
-        {canManageBusiness && (
           <TabsContent value="cliente" className="mt-4">
             <CustomerMessageList />
           </TabsContent>
-        )}
-
-        <TabsContent value="pessoal" className="mt-4">
-          <TeamNotificationMyPreferences />
-        </TabsContent>
-      </Tabs>
+        </Tabs>
+      ) : (
+        <EquipeTabContent canManageBusiness={false} onEditTemplate={openEditor} />
+      )}
 
       <TeamNotificationTemplateEditor
         open={editing !== null}
@@ -72,5 +99,19 @@ export default function NotificacoesConfigPage() {
         onOpenChange={(open) => { if (!open) setEditing(null); }}
       />
     </div>
+  );
+}
+
+export default function NotificacoesConfigPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-full items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-rose-200 border-t-rose-600" />
+        </div>
+      }
+    >
+      <NotificacoesContent />
+    </Suspense>
   );
 }
