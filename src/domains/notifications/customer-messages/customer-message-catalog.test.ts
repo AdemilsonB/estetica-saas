@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   CUSTOMER_MESSAGE_CATALOG,
   CUSTOMER_MESSAGE_CATALOG_MAP,
+  CUSTOMER_MESSAGE_TEMPLATE_KEY,
   getCatalogEntry,
   LEGACY_TEMPLATE_TO_EVENT,
 } from "./customer-message-catalog";
@@ -63,5 +64,28 @@ describe("catálogo de mensagens ao cliente", () => {
 
   it("getCatalogEntry devolve a entrada e nunca undefined para evento válido", () => {
     expect(getCatalogEntry("winback").label).toBeTruthy();
+  });
+
+  it("todo evento do catálogo nasce ligado e no canal WhatsApp", () => {
+    for (const entrada of CUSTOMER_MESSAGE_CATALOG) {
+      expect(entrada.defaultEnabled).toBe(true);
+      expect(entrada.defaultChannels).toEqual(["WHATSAPP"]);
+    }
+  });
+
+  it("CUSTOMER_MESSAGE_TEMPLATE_KEY cobre os 10 eventos", () => {
+    for (const entrada of CUSTOMER_MESSAGE_CATALOG) {
+      expect(CUSTOMER_MESSAGE_TEMPLATE_KEY[entrada.event]).toBeTruthy();
+    }
+    expect(Object.keys(CUSTOMER_MESSAGE_TEMPLATE_KEY)).toHaveLength(10);
+  });
+
+  it("CUSTOMER_MESSAGE_TEMPLATE_KEY e LEGACY_TEMPLATE_TO_EVENT são inversos exatos", () => {
+    // Sem isso, o dispatcher escolheria uma chave de log que o gateway não sabe
+    // traduzir de volta em evento — e a mensagem morreria como "Template desconhecido".
+    for (const [evento, chave] of Object.entries(CUSTOMER_MESSAGE_TEMPLATE_KEY)) {
+      expect(LEGACY_TEMPLATE_TO_EVENT[chave]).toBe(evento);
+    }
+    expect(Object.keys(LEGACY_TEMPLATE_TO_EVENT)).toHaveLength(10);
   });
 });
