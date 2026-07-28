@@ -1,8 +1,9 @@
 # Motor de mensagens ao cliente — handoff das Fases 2 a 5
 
-**Última atualização:** 2026-07-26
+**Última atualização:** 2026-07-27
 **Fase 1:** ✅ entregue, mergeada e aplicada em produção
-**Próxima:** Fase 2
+**Fase 2:** ✅ entregue (branch `feat/motor-mensagens-cliente-fase-2`) — migration `20260727120000_add_customer_message_setting` **pendente de aplicação manual** em produção
+**Próxima:** Fase 3
 
 ---
 
@@ -51,25 +52,71 @@ src/domains/notifications/customer-messages/
 
 ---
 
-## O que falta — Fases 2 a 5
+## O que a Fase 2 entregou
 
-Ordem importa: a 2 é pré-requisito das demais.
+Branch `feat/motor-mensagens-cliente-fase-2`, ADR-018. Migration
+`20260727120000_add_customer_message_setting` — **manual em produção**, sem backfill (ver
+runbook abaixo).
 
-### Fase 2 — Controle de disparo (próxima)
-Seção 6 da spec.
-- `CustomerMessageSetting` (tenantId, event, enabled, channels) — o padrão do negócio
-- Matriz evento × canal em Configurações, tudo ligado para tenant novo
-- Componente `<CustomerMessageToggle>` reutilizado nos **10 pontos de disparo** (tabela na
-  seção 6.3 da spec), com o padrão pré-aplicado e override válido só para aquela ação
-- **Modal de confirmação no botão de no-show** — hoje ele dispara "você não compareceu"
-  com um toque, sem diálogo e sem desfazer. É o disparo mais delicado pelo caminho menos
-  protegido
-- Novo evento `appointment_requested`: agendamento pela vitrine vira "recebemos seu pedido",
-  e `appointment_confirmed` só dispara quando a origem foi online (seção 6.4)
-- Contrato: rotas aceitam `notify?: boolean` opcional; **ausente = usa o padrão do tenant,
-  resolvido no service** — a decisão nunca fica só no cliente
+**A ideia central:** texto (Fase 1) e disparo (Fase 2) são duas decisões independentes, cada
+uma com sua própria camada de "ausência de registro = padrão". `CustomerMessageSetting`
+guarda só o que o tenant mudou (`enabled`/`channels`); sem registro, o catálogo decide — 7
+eventos transacionais ligados, os 3 promocionais (`birthday`/`return_due`/`winback`)
+desligados por padrão (LGPD), canal sempre `WHATSAPP`.
 
-### Fase 3 — Campanhas segmentadas
+**Arquivos que você vai consumir nas próximas fases:**
+
+```
+src/domains/notifications/customer-messages/
+├── customer-message-setting.repository.ts   # CRUD de CustomerMessageSetting, tenantId sempre
+├── customer-message-setting.service.ts      # resolve()/resolveAll()/shouldNotify()/save()
+├── customer-message-dispatcher.service.ts   # ÚNICO caminho de envio ao cliente — comece aqui
+src/hooks/notifications/use-customer-message-preview.ts
+src/components/domain/notifications/customer-message-toggle.tsx   # <CustomerMessageToggle>
+src/app/api/notifications/customer-messages/preview/route.ts      # prévia + blockedReason
+```
+
+**`customerMessageDispatcherService.dispatch()` é o ponto de entrada para qualquer fase
+futura que precise mandar mensagem ao cliente** — campanhas (Fase 3), agendadas (Fase 4) e
+automações (Fase 5) devem chamá-lo, não `notificationService.logAndDispatch` direto. Ele já
+resolve `shouldNotify` (override ?? padrão do tenant) e os canais ligados.
+
+**Contrato `notify?: boolean`** viaja cru nos payloads de evento de `scheduling` (nunca
+interpretado lá — regra de fronteira entre domínios) e só é resolvido em
+`customerMessageSettingService.shouldNotify`, chamado pelo dispatcher.
+
+**`Appointment.origin`** (`PANEL`/`PUBLIC`, persistida, default `PANEL`) discrimina
+`appointment_requested` (pedido nascido na vitrine) de `appointment_created` (painel); a
+confirmação só notifica pedido nascido online por padrão — resolve a mensagem duplicada da
+§6.4.
+
+**`<CustomerMessageToggle>`** está plugado nos 5 pontos de ação (criar/cancelar/confirmar/
+remarcar/no-show) — reaproveite-o em qualquer tela nova que precise de controle de envio.
+
+**2 bugs corrigidos:** o switch "Enviar confirmação via WhatsApp" nunca funcionou (mandava
+`notificationMessage: ''`, falsy, gateway caía no template e enviava mesmo desligado); e o
+agendamento online mandava 2 mensagens quase idênticas ao cliente.
+
+**Regressão consciente:** a mensagem de confirmação parou de injetar o valor cobrado
+automaticamente — quem quiser de volta usa `{{valor}}` no template.
+
+### Runbook de produção (Fase 2)
+
+1. Merge do PR.
+2. `npx prisma migrate deploy` — manual, porta **5432** do Supabase (a 6543 trava em DDL).
+3. **Não há backfill** — ausência de registro já significa "padrão do catálogo".
+4. `npx prisma migrate status` — confirmar limpo.
+5. Verificação funcional: matriz de Mensagens ao cliente carrega os 10 eventos (7 ligados, 3
+   desligados); desligar um evento e recarregar confirma que persistiu; agendar pela vitrine
+   → "recebemos seu pedido" (não "confirmado"); confirmar esse pedido no painel → "está
+   confirmado"; agendar pelo painel e confirmar → nenhuma segunda mensagem; registrar um
+   no-show → o diálogo mostra o texto e permite desligar.
+
+---
+
+## O que falta — Fases 3 a 5
+
+### Fase 3 — Campanhas segmentadas (próxima)
 Seção 7. Models `Campaign` e `CampaignRecipient`, `Customer.marketingOptOut`, construtor de
 segmento, editor com imagem, fila throttled (~150 msg/h com o cron de 10 min), janela de
 horário, teste obrigatório antes de disparar, opt-out por "PARE" no webhook, permissão nova
@@ -115,6 +162,17 @@ FAILED com a causa preservada.
 
 **Twilio é código morto** (só Evolution é usada). Não invista nele. Candidato a remoção
 completa numa PR curta.
+
+**Switch de UI que "desliga" mandando string vazia é suspeito.** `''` é *falsy* e vira
+fallback silencioso em vez de um "não" explícito — foi exatamente o bug do switch de
+confirmação na Fase 2 (`notificationMessage: ''`, o gateway caía no template e enviava mesmo
+assim). Prefira um campo `boolean` explícito (`notify?: boolean`) para "enviar ou não", nunca
+inferir isso do texto estar vazio.
+
+**A spec pode estar desatualizada em detalhes de UI que já mudaram no código.** A §6.3 da
+spec original dizia que o no-show "dispara com um toque, sem diálogo" — mas o
+`AlertDialog` de confirmação já existia no código quando a Fase 2 foi implementada; faltava
+só o toggle dentro dele. Leia o componente real antes de assumir o que a spec descreve.
 
 ---
 
