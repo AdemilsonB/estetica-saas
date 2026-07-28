@@ -32,6 +32,12 @@ type AppointmentEventPayload = {
   };
   notificationMessage?: string;
   origin?: "panel" | "public";
+  /**
+   * Override pontual vindo da ação (`notify` na rota). `undefined` significa
+   * "não opinei" — o padrão do negócio decide, resolvido no domínio de notificações.
+   * Nunca interprete este campo dentro de scheduling.
+   */
+  notify?: boolean;
 };
 
 type RescheduledEventPayload = {
@@ -40,12 +46,14 @@ type RescheduledEventPayload = {
   customerId: string;
   customerName: string;
   customerPhone: string | null;
+  customerEmail: string | null;
   serviceName: string;
   professionalName: string;
   oldStartsAt: Date;
   newStartsAt: Date;
   newEndsAt: Date;
   notificationMessage: string;
+  notify?: boolean;
 };
 
 export type DomainEvent =
