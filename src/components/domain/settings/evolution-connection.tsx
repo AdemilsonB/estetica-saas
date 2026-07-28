@@ -150,29 +150,40 @@ export function EvolutionConnection({ onImportContacts }: Props) {
   }
 
   return (
-    <div className="flex items-start justify-between rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-      <div className="flex items-center gap-3">
-        {status === "ERROR" ? (
-          <AlertTriangle className="mt-0.5 size-5 text-amber-500" />
-        ) : (
-          <Smartphone className="mt-0.5 size-5 text-slate-400" />
-        )}
-        <div>
-          <p className="font-medium text-slate-950">Conectar WhatsApp próprio</p>
-          <p className="text-sm text-slate-500">
-            {status === "ERROR"
-              ? "Erro na instância anterior. Clique em Conectar para reconectar."
-              : "Conecte o número do seu negócio para enviar mensagens diretamente do seu WhatsApp."}
-          </p>
-          <p className="mt-1 text-xs text-slate-400">
-            Conexão via QR Code. Mantenha o WhatsApp no celular conectado à internet.
-          </p>
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          {status === "ERROR" ? (
+            <AlertTriangle className="mt-0.5 size-5 text-amber-500" />
+          ) : (
+            <Smartphone className="mt-0.5 size-5 text-slate-400" />
+          )}
+          <div>
+            <p className="font-medium text-slate-950">Conectar WhatsApp próprio</p>
+            <p className="text-sm text-slate-500">
+              {status === "ERROR"
+                ? "Erro na instância anterior. Clique em Conectar para reconectar."
+                : "Conecte o número do seu negócio para enviar mensagens diretamente do seu WhatsApp."}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Conexão via QR Code. Mantenha o WhatsApp no celular conectado à internet.
+            </p>
+          </div>
         </div>
+        <Button size="sm" onClick={handleConnect} disabled={isConnecting} className="gap-2">
+          {isConnecting ? <Loader2 className="size-4 animate-spin" /> : <Smartphone className="size-4" />}
+          {isConnecting ? "Aguarde..." : "Conectar"}
+        </Button>
       </div>
-      <Button size="sm" onClick={handleConnect} disabled={isConnecting} className="gap-2">
-        {isConnecting ? <Loader2 className="size-4 animate-spin" /> : <Smartphone className="size-4" />}
-        {isConnecting ? "Aguarde..." : "Conectar"}
-      </Button>
+      <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
+        <p className="text-xs text-amber-700">
+          Use um número dedicado só para o Agendê, não o seu WhatsApp pessoal (nem o Business
+          que você usa no dia a dia). Assim que o número fica conectado aqui, o celular dele para
+          de notificar as mensagens recebidas — é o próprio WhatsApp que suprime a notificação
+          quando existe um aparelho vinculado ativo, vale para conta pessoal ou Business.
+        </p>
+      </div>
     </div>
   );
 }
