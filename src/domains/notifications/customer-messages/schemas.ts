@@ -36,3 +36,19 @@ export const updateCustomerMessageSettingSchema = z.object({
 export type UpdateCustomerMessageSettingInput = z.infer<
   typeof updateCustomerMessageSettingSchema
 >;
+
+export const customerMessagePreviewSchema = z
+  .object({
+    event: customerMessageEventSchema,
+    appointmentId: z.string().min(1).optional(),
+    customerId: z.string().min(1).optional(),
+    serviceId: z.string().min(1).optional(),
+    professionalId: z.string().min(1).optional(),
+    startsAt: z.string().datetime().optional(),
+  })
+  .refine((d) => d.appointmentId || d.customerId, {
+    message: "Informe appointmentId ou customerId.",
+    path: ["customerId"],
+  });
+
+export type CustomerMessagePreviewInput = z.infer<typeof customerMessagePreviewSchema>;
