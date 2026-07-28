@@ -112,6 +112,8 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
   const [editTime, setEditTime] = useState('')
   const [editMessage, setEditMessage] = useState('')
   const [notifyReagendamento, setNotifyReagendamento] = useState<boolean | undefined>(undefined)
+  const [notifyNoShow, setNotifyNoShow] = useState<boolean | undefined>(undefined)
+  const [mensagemNoShow, setMensagemNoShow] = useState('')
 
   const { data: teamMembers = [] } = useTeamMembers()
   const { can } = usePermissions()
@@ -191,6 +193,27 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
         },
         onError: (err) => {
           toast.error(err instanceof Error ? err.message : 'Erro ao atualizar status')
+        },
+      },
+    )
+  }
+
+  function handleNoShow() {
+    if (!appointment) return
+    updateStatus.mutate(
+      {
+        id: appointment.id,
+        status: 'NO_SHOW',
+        notificationMessage: mensagemNoShow || undefined,
+        notify: notifyNoShow,
+      },
+      {
+        onSuccess: () => {
+          toast.success('No-show registrado')
+          onClose()
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : 'Erro ao registrar não comparecimento')
         },
       },
     )
@@ -490,7 +513,11 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
                       <Button
                         variant="outline"
                         className="flex-1 border-amber-200 text-amber-700 hover:bg-amber-50"
-                        onClick={() => setNoShowModalOpen(true)}
+                        onClick={() => {
+                          setNotifyNoShow(undefined)
+                          setMensagemNoShow('')
+                          setNoShowModalOpen(true)
+                        }}
                         disabled={updateStatus.isPending}
                       >
                         Não compareceu
@@ -523,18 +550,30 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
       </Sheet>
 
       <AlertDialog open={noShowModalOpen} onOpenChange={setNoShowModalOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>Registrar não comparecimento?</AlertDialogTitle>
             <AlertDialogDescription>
-              O agendamento será marcado como não compareceu. Esta ação não pode ser desfeita.
+              O agendamento será marcado como não compareceu e o horário fica registrado
+              como falta. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          <CustomerMessageToggle
+            event="appointment_no_show"
+            appointmentId={appointment.id}
+            customerId={appointment.customerId}
+            value={notifyNoShow}
+            onChange={setNotifyNoShow}
+            message={mensagemNoShow}
+            onMessageChange={setMensagemNoShow}
+          />
+
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="min-h-11">Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => handleStatus('NO_SHOW')}
-              className="bg-orange-600 hover:bg-orange-700"
+              onClick={() => handleNoShow()}
+              className="min-h-11 bg-orange-600 hover:bg-orange-700"
             >
               Confirmar
             </AlertDialogAction>
