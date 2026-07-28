@@ -1,7 +1,6 @@
 import type { Job } from "pg-boss";
 
 import { prisma } from "@/shared/database/prisma";
-import { NotificationChannel } from "@prisma/client";
 
 import { startPgBoss } from "@/shared/queue/pg-boss";
 
@@ -38,17 +37,19 @@ export async function handleAppointmentReminder(
     });
 
     if (!appointment || appointment.status === "CANCELLED") continue;
-    if (!appointment.customer.phone) continue;
 
-    const { notificationService } = await import("@/domains/notifications/notification.service");
+    const { customerMessageDispatcher } = await import(
+      "@/domains/notifications/customer-messages/customer-message-dispatcher.service"
+    );
 
-    await notificationService.logAndDispatch({
+    // Sem override: o lembrete é automático, então quem manda é sempre o padrão do
+    // negócio configurado em Configurações › Notificações › Mensagens ao cliente.
+    await customerMessageDispatcher.dispatch({
       tenantId,
+      event: "appointment_reminder",
       appointmentId,
       customerId: appointment.customerId,
-      channel: NotificationChannel.WHATSAPP,
-      template: "appointment-reminder",
-      recipient: appointment.customer.phone,
+      recipient: { phone: appointment.customer.phone, email: appointment.customer.email },
       payload: {
         appointmentId,
         startsAt: appointment.startsAt.toISOString(),
