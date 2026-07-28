@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
@@ -46,6 +45,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { CancelAppointmentModal } from './cancel-appointment-modal'
 import { ConfirmAppointmentModal } from './confirm-appointment-modal'
+import { CustomerMessageToggle } from '@/components/domain/notifications/customer-message-toggle'
 import { RegisterPaymentModal } from '@/components/domain/financial/register-payment-modal'
 import { AppointmentProductsSection } from '@/components/domain/inventory/AppointmentProductsSection'
 import { AppointmentAnamnesePanel } from './appointment-anamnese-panel'
@@ -65,9 +65,6 @@ const STATUS_BADGE: Record<string, string> = {
   CANCELLED: 'bg-red-100 text-red-700',
   NO_SHOW: 'bg-orange-100 text-orange-700',
 }
-
-const RESCHEDULE_TEMPLATE =
-  'Olá, {nome}! Seu agendamento de {serviço} foi remarcado para {data} às {hora} com {profissional}. Qualquer dúvida, estamos à disposição. Te esperamos! 🤍'
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString('pt-BR', {
@@ -114,14 +111,14 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
   const [editDate, setEditDate] = useState('')
   const [editTime, setEditTime] = useState('')
   const [editMessage, setEditMessage] = useState('')
+  const [notifyReagendamento, setNotifyReagendamento] = useState<boolean | undefined>(undefined)
+  const [notifyNoShow, setNotifyNoShow] = useState<boolean | undefined>(undefined)
+  const [mensagemNoShow, setMensagemNoShow] = useState('')
 
   const { data: teamMembers = [] } = useTeamMembers()
-  const { data: evolutionStatus } = useEvolutionStatus()
   const { can } = usePermissions()
   const canCheckout = can('financeiro', 'edit')
   const reschedule = useRescheduleAppointment()
-  // Só sabemos que não vai enviar quando o status já carregou e está desconectado
-  const whatsappOffline = evolutionStatus !== undefined && !evolutionStatus.connected
 
   const { data: slots = [], isLoading: loadingSlots } = useAvailableSlots(
     isEditing ? editProfessionalId || null : null,
@@ -136,33 +133,13 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, startInEditMode])
 
-  useEffect(() => {
-    if (!appointment || !editTime || !editDate) return
-    const professionalName =
-      teamMembers.find((m) => m.id === editProfessionalId)?.name ??
-      appointment.professional?.name ?? '—'
-    const dateLabel = new Date(editDate + 'T12:00:00').toLocaleDateString('pt-BR', {
-      weekday: 'long',
-      day: '2-digit',
-      month: 'long',
-    })
-    setEditMessage(
-      RESCHEDULE_TEMPLATE
-        .replace('{nome}', appointment.customer.name.split(' ')[0])
-        .replace('{serviço}', appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço')
-        .replace('{data}', dateLabel)
-        .replace('{hora}', editTime.replace(':', 'h'))
-        .replace('{profissional}', professionalName.split(' ')[0]),
-    )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editTime, editDate, editProfessionalId])
-
   function startEditing() {
     if (!appointment) return
     setEditProfessionalId(appointment.professionalId)
     setEditDate(toDateInput(appointment.startsAt))
     setEditTime(toTimeInput(appointment.startsAt))
     setEditMessage('')
+    setNotifyReagendamento(undefined)
     setIsEditing(true)
   }
 
@@ -178,7 +155,8 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
         startsAt: newStartsAt,
         endsAt: newEndsAt,
         professionalId: editProfessionalId,
-        notificationMessage: editMessage,
+        notificationMessage: editMessage || undefined,
+        notify: notifyReagendamento,
       },
       {
         onSuccess: () => {
@@ -215,6 +193,27 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
         },
         onError: (err) => {
           toast.error(err instanceof Error ? err.message : 'Erro ao atualizar status')
+        },
+      },
+    )
+  }
+
+  function handleNoShow() {
+    if (!appointment) return
+    updateStatus.mutate(
+      {
+        id: appointment.id,
+        status: 'NO_SHOW',
+        notificationMessage: mensagemNoShow || undefined,
+        notify: notifyNoShow,
+      },
+      {
+        onSuccess: () => {
+          toast.success('No-show registrado')
+          onClose()
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : 'Erro ao registrar não comparecimento')
         },
       },
     )
@@ -335,28 +334,21 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
                   </div>
                 </div>
 
-                {/* Mensagem WhatsApp */}
-                <div className="space-y-1.5">
-                  <Label>Mensagem enviada ao cliente via WhatsApp</Label>
-                  <Textarea
-                    value={editMessage}
-                    onChange={(e) => setEditMessage(e.target.value)}
-                    placeholder="Selecione um horário para pré-preencher a mensagem..."
-                    className="min-h-[100px] resize-none text-sm"
-                  />
-                  {whatsappOffline ? (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                      WhatsApp não está conectado, então esta mensagem não será enviada.
-                      Conecte em <span className="font-medium">Configurações → WhatsApp</span>.
-                    </div>
-                  ) : (
-                    !appointment.customer.phone && (
-                      <p className="text-xs text-slate-400">
-                        Este cliente não tem telefone cadastrado. A mensagem não será enviada.
-                      </p>
-                    )
-                  )}
-                </div>
+                {/* Mensagem ao cliente */}
+                <CustomerMessageToggle
+                  event="appointment_rescheduled"
+                  appointmentId={appointment.id}
+                  customerId={appointment.customerId}
+                  startsAt={
+                    editDate && editTime
+                      ? new Date(`${editDate}T${editTime}:00`).toISOString()
+                      : undefined
+                  }
+                  value={notifyReagendamento}
+                  onChange={setNotifyReagendamento}
+                  message={editMessage}
+                  onMessageChange={setEditMessage}
+                />
 
                 {/* Botões */}
                 <div className="flex gap-2 pt-1">
@@ -521,7 +513,11 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
                       <Button
                         variant="outline"
                         className="flex-1 border-amber-200 text-amber-700 hover:bg-amber-50"
-                        onClick={() => setNoShowModalOpen(true)}
+                        onClick={() => {
+                          setNotifyNoShow(undefined)
+                          setMensagemNoShow('')
+                          setNoShowModalOpen(true)
+                        }}
                         disabled={updateStatus.isPending}
                       >
                         Não compareceu
@@ -554,18 +550,30 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
       </Sheet>
 
       <AlertDialog open={noShowModalOpen} onOpenChange={setNoShowModalOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>Registrar não comparecimento?</AlertDialogTitle>
             <AlertDialogDescription>
-              O agendamento será marcado como não compareceu. Esta ação não pode ser desfeita.
+              O agendamento será marcado como não compareceu e o horário fica registrado
+              como falta. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          <CustomerMessageToggle
+            event="appointment_no_show"
+            appointmentId={appointment.id}
+            customerId={appointment.customerId}
+            value={notifyNoShow}
+            onChange={setNotifyNoShow}
+            message={mensagemNoShow}
+            onMessageChange={setMensagemNoShow}
+          />
+
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="min-h-11">Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => handleStatus('NO_SHOW')}
-              className="bg-orange-600 hover:bg-orange-700"
+              onClick={() => handleNoShow()}
+              className="min-h-11 bg-orange-600 hover:bg-orange-700"
             >
               Confirmar
             </AlertDialogAction>

@@ -37,6 +37,8 @@ export type CustomerMessageCatalogEntry = {
   description: string;
   nature: CustomerMessageNature;
   defaultEnabled: boolean;
+  /** Canais ligados por padrão. Tenant sem registro em CustomerMessageSetting usa isto. */
+  defaultChannels: CustomerMessageChannel[];
   variables: string[];
   defaults: Record<CustomerMessageChannel, { subject: string | null; body: string }>;
   legacy: LegacyTemplateBinding | null;

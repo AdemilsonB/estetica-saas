@@ -53,6 +53,7 @@ export const createAppointmentSchema = z.object({
   allowOverlap: z.boolean().optional().default(false),
   allowPastDate: z.boolean().optional().default(false),
   notificationMessage: z.string().trim().optional(),
+  notify: z.boolean().optional(),
 }).refine((d) => d.serviceId || d.packageId, {
   message: 'serviceId ou packageId é obrigatório',
 });
@@ -61,6 +62,7 @@ export const updateAppointmentStatusSchema = z.object({
   status: z.nativeEnum(AppointmentStatus),
   notificationMessage: z.string().trim().optional(),
   confirmedPrice: z.number().nonnegative().optional(),
+  notify: z.boolean().optional(),
 });
 
 export type CreateServiceInput = z.infer<typeof createServiceSchema>;
@@ -76,6 +78,7 @@ export const updateAppointmentSchema = z
     professionalId: z.string().uuid().optional(),
     serviceId: z.string().cuid().optional(),
     notificationMessage: z.string().min(1).max(1000).optional(),
+    notify: z.boolean().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, "Informe ao menos um campo para atualizar.");
 

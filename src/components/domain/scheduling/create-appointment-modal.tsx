@@ -12,7 +12,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -30,12 +29,12 @@ import { usePromotions } from '@/hooks/scheduling/use-promotions'
 import { ServicePickerWithCategories, type PickerSelection } from '@/components/domain/services/service-picker-with-categories'
 import { useCustomersSearch } from '@/hooks/crm/use-customers-search'
 import { CreateCustomerModal } from '@/components/domain/crm/create-customer-modal'
+import { CustomerMessageToggle } from '@/components/domain/notifications/customer-message-toggle'
 import { useCreateAppointment } from '@/hooks/scheduling/use-appointments'
 import { useAvailableSlots } from '@/hooks/scheduling/use-availability'
 import { useTeamMembers, useProfessionalsByService } from '@/hooks/iam/use-team'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { usePermissions } from '@/hooks/use-permissions'
-import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
 
 type Props = {
   open: boolean
@@ -49,36 +48,6 @@ function toDateInput(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
-function formatDateLabel(dateStr: string): string {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('pt-BR', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-  })
-}
-
-function formatHour(time: string): string {
-  return time.replace(':', 'h')
-}
-
-const CONFIRM_TEMPLATE =
-  'Olá, {nome}! Seu agendamento de {serviço} foi criado para {data} às {hora} com {profissional}. Te esperamos! 🤍'
-
-function renderConfirmTemplate(params: {
-  nome: string
-  serviço: string
-  data: string
-  hora: string
-  profissional: string
-}): string {
-  return CONFIRM_TEMPLATE
-    .replace('{nome}', params.nome)
-    .replace('{serviço}', params.serviço)
-    .replace('{data}', params.data)
-    .replace('{hora}', params.hora)
-    .replace('{profissional}', params.profissional)
-}
-
 export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCustomerId, defaultCustomerName }: Props) {
   const { data: currentUser } = useCurrentUser()
   const { can } = usePermissions()
@@ -87,18 +56,14 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
   const { data: packages = [] } = usePackages()
   const { data: promotions = [] } = usePromotions()
   const { data: teamMembers = [] } = useTeamMembers()
-  const { data: evolutionStatus } = useEvolutionStatus()
   const createAppointment = useCreateAppointment()
 
   const canManage = can('agenda', 'edit')
-  // Só sabemos que não vai enviar quando o status já carregou e está desconectado
-  const whatsappOffline = evolutionStatus !== undefined && !evolutionStatus.connected
 
   const [professionalId, setProfessionalId] = useState('')
   const [serviceId, setServiceId] = useState('')
   const [packageId, setPackageId] = useState('')
   const [promotionId, setPromotionId] = useState('')
-  const [selectedItemName, setSelectedItemName] = useState('')
   const [date, setDate] = useState(defaultDate ?? toDateInput(new Date()))
   const [selectedTime, setSelectedTime] = useState('')
   const [customTime, setCustomTime] = useState('')
@@ -109,6 +74,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
   const [allowOverlap, setAllowOverlap] = useState(false)
   const [allowPastDate, setAllowPastDate] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState('')
+  const [notify, setNotify] = useState<boolean | undefined>(undefined)
 
   const { data: professionalsByService } = useProfessionalsByService(serviceId || null)
 
@@ -149,26 +115,6 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
     }
   }, [serviceId, packageId, canManage])
 
-  useEffect(() => {
-    if (!customerId || (!serviceId && !packageId) || !date || !selectedTime || !professionalId) return
-
-    const customerName = defaultCustomerName
-      ? defaultCustomerName.split(' ')[0]
-      : customers.find((c) => c.id === customerId)?.name.split(' ')[0]
-    const professional = teamMembers.find((m) => m.id === professionalId)
-    if (!customerName || !selectedItemName || !professional) return
-
-    setNotificationMessage(
-      renderConfirmTemplate({
-        nome: customerName,
-        serviço: selectedItemName,
-        data: formatDateLabel(date),
-        hora: formatHour(selectedTime),
-        profissional: professional.name.split(' ')[0],
-      }),
-    )
-  }, [customerId, serviceId, packageId, selectedItemName, date, selectedTime, professionalId, customers, teamMembers, defaultCustomerName])
-
   function handlePickerSelect(selection: PickerSelection) {
     setServiceId('')
     setPackageId('')
@@ -178,15 +124,12 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
 
     if (selection.type === 'service') {
       setServiceId(selection.item.id)
-      setSelectedItemName(selection.item.name)
     } else if (selection.type === 'package') {
       setPackageId(selection.item.id)
-      setSelectedItemName(selection.item.name)
       if (canManage) setProfessionalId('')
     } else if (selection.type === 'promotion') {
       setServiceId(selection.service.id)
       setPromotionId(selection.promotionId)
-      setSelectedItemName(selection.service.name)
     }
   }
 
@@ -195,7 +138,6 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
     setServiceId('')
     setPackageId('')
     setPromotionId('')
-    setSelectedItemName('')
     setDate(defaultDate ?? toDateInput(new Date()))
     setSelectedTime('')
     setCustomTime('')
@@ -206,6 +148,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
     setAllowOverlap(false)
     setAllowPastDate(false)
     setNotificationMessage('')
+    setNotify(undefined)
     onClose()
   }
 
@@ -226,6 +169,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
         allowOverlap,
         allowPastDate,
         notificationMessage: notificationMessage || undefined,
+        notify,
       },
       {
         onSuccess: () => {
@@ -501,29 +445,23 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
             )}
           </div>
 
-          {/* 6. Mensagem WhatsApp — só quando formulário completo */}
+          {/* 6. Mensagem ao cliente — só quando formulário completo */}
           {isFormValid && (
-            <div className="space-y-1.5">
-              <Label>Mensagem enviada ao cliente via WhatsApp</Label>
-              <Textarea
-                value={notificationMessage}
-                onChange={(e) => setNotificationMessage(e.target.value)}
-                placeholder="A mensagem será gerada automaticamente ao selecionar o horário..."
-                className="min-h-[90px] resize-none text-sm"
-              />
-              {whatsappOffline ? (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  WhatsApp não está conectado, então esta mensagem não será enviada.
-                  Conecte em <span className="font-medium">Configurações → WhatsApp</span>.
-                </div>
-              ) : (
-                selectedCustomer && !selectedCustomer.phone && (
-                  <p className="text-xs text-slate-400">
-                    Este cliente não tem telefone cadastrado. A mensagem não será enviada.
-                  </p>
-                )
-              )}
-            </div>
+            <CustomerMessageToggle
+              event="appointment_created"
+              customerId={customerId}
+              serviceId={serviceId || undefined}
+              professionalId={professionalId || undefined}
+              startsAt={
+                date && selectedTime
+                  ? new Date(`${date}T${selectedTime}:00`).toISOString()
+                  : undefined
+              }
+              value={notify}
+              onChange={setNotify}
+              message={notificationMessage}
+              onMessageChange={setNotificationMessage}
+            />
           )}
 
           {/* 7. Botões */}

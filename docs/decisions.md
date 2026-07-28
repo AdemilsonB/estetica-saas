@@ -433,3 +433,35 @@ Durante a implementação, o teste de equivalência descobriu um **bug ativo em 
 - `Tenant.whatsappTemplateConfig` permanece no schema, sem leitura, até a Fase 1 estar validada em produção. Remoção fica para limpeza posterior.
 - **Achado reutilizável**: `AlertDialog` do Radix **não aceita** `modal={false}` — a tipagem faz `Omit<DialogProps, 'modal'>`. A regra do projeto sobre Dialog aninhado é inaplicável a ele; a saída é `Dialog` comum com `role="alertdialog"`, como `picker-detail-modal.tsx` já fazia.
 - As 4 falhas de teste pré-existentes (`scheduling.service.update.test.ts`, `appointment-reminder.test.ts`, `customer-history-client.test.tsx` ×2) seguem presentes e não têm relação com esta entrega — verificadas em worktree do commit pai.
+
+## ADR-018 — Motor de mensagens ao cliente: controle de disparo por evento (Fase 2, 2026-07-27)
+
+**Data**: 2026-07-27
+**Status**: Aceito
+
+**Contexto**: A Fase 1 (ADR-017) resolveu o **texto** de cada mensagem, mas não o **disparo**. Não havia liga/desliga por evento — só `Tenant.whatsappEnabled`, tudo-ou-nada. O agendamento nascido na vitrine pública mandava duas mensagens quase idênticas ao cliente (uma na criação, outra na confirmação manual). O switch "Enviar confirmação via WhatsApp" do modal de confirmação **não funcionava**: desligá-lo mandava `notificationMessage: ''`, string vazia é *falsy*, o gateway caía no fallback do template e enviava a mensagem assim mesmo — o controle nunca teve efeito real. Três textos de mensagem ao cliente ainda viviam hardcoded no frontend (`CANCEL_TEMPLATE`, `buildDefaultMessage`, `RESCHEDULE_TEMPLATE`), ignorando por completo o template que o tenant configurou em Configurações — era possível editar o texto de cancelamento e continuar vendo o texto antigo no modal.
+
+**Decisão**:
+
+1. **Ausência de registro = padrão do catálogo, sem seed e sem backfill.** Model novo `CustomerMessageSetting` guarda **apenas** o que o tenant mudou (`enabled`, `channels`), mesma arquitetura de duas camadas do `CustomerMessageTemplate` (ADR-017). Tenant novo já nasce no padrão certo sem nenhuma linha no banco: os 7 eventos transacionais ligados, os 3 promocionais (`birthday`, `return_due`, `winback`) desligados — opt-in por LGPD, consistente com a §3.3 da spec, nunca `true` para os 10. Canal padrão é sempre `["WHATSAPP"]` — canal é *por onde*, não *se* envia.
+
+2. **`notify` cru no evento de domínio, resolvido só em `notifications`.** `scheduling` não pode importar `notifications` (regra do `CLAUDE.md`). O campo `notify?: boolean` que a ação manda na rota atravessa `scheduling` sem ser interpretado, viaja no payload do evento, e só o `customerMessageSettingService.shouldNotify(tenantId, event, override)` do lado de notifications decide `override ?? padrão do tenant`. `undefined` significa "não opinei" — o `JSON.stringify` do frontend omite a chave, o Zod schema resolve `undefined`, e o padrão do negócio decide. Nunca trocar por `notify ?? false`: isso transformaria silenciosamente "não opinei" em "não envie".
+
+3. **`Appointment.origin` (`PANEL`/`PUBLIC`) persistida no banco.** A regra "`appointment_confirmed` só dispara ao cliente quando o agendamento nasceu como pedido online" (spec §6.4) precisa saber a origem na hora da confirmação, que acontece bem depois da criação. Sem persistir, a regra é indecidível. Alternativas descartadas: inferir por `createdByUserId === owner` (falso positivo sempre que o dono agenda pelo painel) e consultar o `NotificationLog` atrás de um `appointment-requested` anterior (acopla a regra ao log e falha se a mensagem estava desligada).
+
+4. **Dispatcher único (`customerMessageDispatcherService`) como único caminho de envio ao cliente.** Antes, oito pontos diferentes (5 subscriptions + 2 jobs + 1 rota de lembrete em massa) chamavam `notificationService.logAndDispatch` direto, cada um decidindo "envia?" e "por onde?" à própria maneira — oito lugares para esquecer o padrão do tenant. Agora resolvem `shouldNotify`, escolhem canais e delegam, num só lugar.
+
+5. **Vitrine pública ganha o evento `appointment_requested`, distinto de `appointment_created`.** Resolve a mensagem duplicada da §6.4: pedido online → "recebemos seu pedido"; confirmação manual do pedido online → "está confirmado"; agendamento pelo painel → só "confirmado", sem segunda mensagem.
+
+**Alternativas rejeitadas**:
+- **Seed de `CustomerMessageSetting` na criação do tenant** (o que a spec original §6.1 sugeria): exigiria um backfill de produção e um hook na criação do tenant — dois pontos de falha para obter exatamente o mesmo resultado observável que a resolução por ausência de registro já entrega sem migration nem script.
+- **Inferir a origem do agendamento sem persistir coluna nova**: ver Decisão 3.
+- **Consertar o switch de confirmação isoladamente**, sem o dispatcher: teria corrigido só um dos oito pontos: os outros sete continuariam sem controle real por evento.
+
+**Consequências**:
+- **Migration `20260727120000_add_customer_message_setting` precisa ser aplicada manualmente em produção**: `npx prisma migrate deploy`, porta **5432** do Supabase (pooler em modo *session* — a 6543, modo *transaction*, trava em DDL/advisory lock). **Não há backfill** — ausência de registro já significa "usa o padrão do catálogo", então tenants existentes não mudam de comportamento no deploy.
+- **Regressão consciente**: a mensagem de confirmação deixou de injetar automaticamente o valor cobrado (o campo "Valor a cobrar" reescrevia o texto local antes). Quem quiser o valor de volta na mensagem adiciona `{{valor}}` ao template em Configurações.
+- **Agendamentos históricos da vitrine ficam com `origin = PANEL`** (a coluna nasce com esse default para todo o histórico). Confirmar um agendamento antigo desses não avisa o cliente por padrão — o profissional pode ligar o toggle na própria ação para forçar o envio. Aceito: a alternativa exigiria inferir origem histórica sem dado confiável (ver Decisão 3).
+- Canal `EMAIL`, quando ligado por um tenant na matriz, passa a mandar e-mail em eventos que hoje só mandam WhatsApp — é opt-in explícito, o padrão continua só WhatsApp.
+- **Achado reutilizável**: qualquer switch de UI que "desliga" mandando string vazia é suspeito — `''` é *falsy* e costuma virar fallback silencioso em vez de um "não" explícito. Foi exatamente o bug do switch de confirmação nesta fase; o contrato `notify?: boolean` existe em parte para não repetir essa classe de erro.
+- As 4 falhas de teste pré-existentes (`scheduling.service.update.test.ts`, `appointment-reminder.test.ts`, `customer-history-client.test.tsx` ×2) seguem presentes e não têm relação com esta entrega.

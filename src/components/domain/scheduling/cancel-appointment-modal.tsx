@@ -10,19 +10,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { CustomerMessageToggle } from '@/components/domain/notifications/customer-message-toggle'
 import { useUpdateAppointmentStatus } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
-
-const CANCEL_TEMPLATE =
-  'Olá, {nome}! Seu agendamento de {serviço} foi cancelado. Para reagendar, fale conosco. 😊'
-
-function renderCancelTemplate(params: { nome: string; serviço: string }): string {
-  return CANCEL_TEMPLATE
-    .replace('{nome}', params.nome)
-    .replace('{serviço}', params.serviço)
-}
 
 type Props = {
   appointment: Appointment | null
@@ -33,17 +23,14 @@ type Props = {
 export function CancelAppointmentModal({ appointment, open, onClose }: Props) {
   const updateStatus = useUpdateAppointmentStatus()
   const [message, setMessage] = useState('')
+  const [notify, setNotify] = useState<boolean | undefined>(undefined)
 
   useEffect(() => {
-    if (appointment && open) {
-      setMessage(
-        renderCancelTemplate({
-          nome: appointment.customer.name.split(' ')[0],
-          serviço: appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço',
-        }),
-      )
+    if (open) {
+      setMessage('')
+      setNotify(undefined)
     }
-  }, [appointment, open])
+  }, [open])
 
   if (!appointment) return null
 
@@ -52,7 +39,12 @@ export function CancelAppointmentModal({ appointment, open, onClose }: Props) {
   function handleConfirm() {
     if (!appointment) return
     updateStatus.mutate(
-      { id: appointment.id, status: 'CANCELLED', notificationMessage: message || undefined },
+      {
+        id: appointment.id,
+        status: 'CANCELLED',
+        notificationMessage: message || undefined,
+        notify,
+      },
       {
         onSuccess: () => {
           toast.success('Agendamento cancelado')
@@ -67,7 +59,7 @@ export function CancelAppointmentModal({ appointment, open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Cancelar agendamento</DialogTitle>
         </DialogHeader>
@@ -90,19 +82,15 @@ export function CancelAppointmentModal({ appointment, open, onClose }: Props) {
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <Label>Mensagem enviada ao cliente via WhatsApp</Label>
-            <Textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="min-h-[90px] resize-none text-sm"
-            />
-            {!appointment.customer.phone && (
-              <p className="text-xs text-slate-400">
-                Este cliente não tem telefone cadastrado. A mensagem não será enviada.
-              </p>
-            )}
-          </div>
+          <CustomerMessageToggle
+            event="appointment_cancelled"
+            appointmentId={appointment.id}
+            customerId={appointment.customerId}
+            value={notify}
+            onChange={setNotify}
+            message={message}
+            onMessageChange={setMessage}
+          />
 
           <div className="flex gap-2">
             <Button

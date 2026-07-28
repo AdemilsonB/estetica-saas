@@ -1,6 +1,5 @@
 import type { PgBoss, Job } from 'pg-boss'
 import { prisma } from '@/shared/database/prisma'
-import { NotificationChannel } from '@prisma/client'
 
 export const BIRTHDAY_REMINDER_JOB = 'birthday-reminder'
 
@@ -26,20 +25,20 @@ export async function handleBirthdayReminder(_jobs: Job<Record<string, never>>[]
 
   if (customers.length === 0) return
 
-  const { notificationService } = await import('@/domains/notifications/notification.service')
+  const { customerMessageDispatcher } = await import(
+    '@/domains/notifications/customer-messages/customer-message-dispatcher.service'
+  )
 
   for (const customer of customers) {
-    await notificationService.logAndDispatch({
+    await customerMessageDispatcher.dispatch({
       tenantId: customer.tenantId,
+      event: 'birthday',
       customerId: customer.id,
-      channel: NotificationChannel.WHATSAPP,
-      template: 'birthday',
-      recipient: customer.phone,
-      provider: 'evolution',
-      payload: {
-        customerName: customer.name,
-        ...(customer.birthdayMessage ? { customMessage: customer.birthdayMessage } : {}),
-      },
+      recipient: { phone: customer.phone, email: null },
+      // `birthdayMessage` do tenant é a mensagem pontual: continua tendo precedência
+      // sobre o template, como antes.
+      message: customer.birthdayMessage ?? undefined,
+      payload: { customerName: customer.name },
     })
   }
 }

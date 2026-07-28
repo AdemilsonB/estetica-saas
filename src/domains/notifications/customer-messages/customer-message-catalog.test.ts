@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   CUSTOMER_MESSAGE_CATALOG,
   CUSTOMER_MESSAGE_CATALOG_MAP,
+  CUSTOMER_MESSAGE_TEMPLATE_KEY,
   getCatalogEntry,
   LEGACY_TEMPLATE_TO_EVENT,
 } from "./customer-message-catalog";
@@ -63,5 +64,39 @@ describe("catálogo de mensagens ao cliente", () => {
 
   it("getCatalogEntry devolve a entrada e nunca undefined para evento válido", () => {
     expect(getCatalogEntry("winback").label).toBeTruthy();
+  });
+
+  it("transacional nasce ligado, promocional nasce desligado (opt-in por LGPD)", () => {
+    for (const entrada of CUSTOMER_MESSAGE_CATALOG) {
+      expect(entrada.defaultEnabled).toBe(entrada.nature === "transactional");
+    }
+  });
+
+  it("todo evento nasce com o canal WhatsApp", () => {
+    for (const entrada of CUSTOMER_MESSAGE_CATALOG) {
+      expect(entrada.defaultChannels).toEqual(["WHATSAPP"]);
+    }
+  });
+
+  it("CUSTOMER_MESSAGE_TEMPLATE_KEY cobre os 10 eventos", () => {
+    for (const entrada of CUSTOMER_MESSAGE_CATALOG) {
+      expect(CUSTOMER_MESSAGE_TEMPLATE_KEY[entrada.event]).toBeTruthy();
+    }
+    expect(Object.keys(CUSTOMER_MESSAGE_TEMPLATE_KEY)).toHaveLength(10);
+  });
+
+  it("nenhum evento compartilha chave de log com outro", () => {
+    // O invariante que a derivação de LEGACY_TEMPLATE_TO_EVENT pode violar: duas
+    // entradas com a mesma chave colapsam em uma, e o evento perdido passa a
+    // falhar como "Template desconhecido" no gateway, sem erro visível aqui.
+    const chaves = Object.values(CUSTOMER_MESSAGE_TEMPLATE_KEY);
+    expect(new Set(chaves).size).toBe(chaves.length);
+    expect(Object.keys(LEGACY_TEMPLATE_TO_EVENT)).toHaveLength(chaves.length);
+  });
+
+  it("a chave de log de cada evento volta ao próprio evento", () => {
+    for (const [evento, chave] of Object.entries(CUSTOMER_MESSAGE_TEMPLATE_KEY)) {
+      expect(LEGACY_TEMPLATE_TO_EVENT[chave]).toBe(evento);
+    }
   });
 });

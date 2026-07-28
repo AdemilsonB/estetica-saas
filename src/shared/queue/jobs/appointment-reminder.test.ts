@@ -13,7 +13,12 @@ vi.mock("@/shared/queue/pg-boss", () => ({
   getPgBoss: () => bossMock,
 }));
 
-import { scheduleAppointmentReminder } from "./appointment-reminder";
+const dispatch = vi.fn();
+vi.mock("@/domains/notifications/customer-messages/customer-message-dispatcher.service", () => ({
+  customerMessageDispatcher: { dispatch: (...args: unknown[]) => dispatch(...args) },
+}));
+
+import { scheduleAppointmentReminder, handleAppointmentReminder } from "./appointment-reminder";
 
 describe("scheduleAppointmentReminder", () => {
   beforeEach(() => {
@@ -64,5 +69,31 @@ describe("scheduleAppointmentReminder", () => {
     await scheduleAppointmentReminder("tenant1", "appt1", startsAt);
 
     expect(bossMock.send).not.toHaveBeenCalled();
+  });
+});
+
+describe("handleAppointmentReminder", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("o lembrete sai pelo dispatcher, que respeita o padrão do tenant", async () => {
+    prismaMock.appointment.findFirst.mockResolvedValue({
+      id: "a1",
+      tenantId: "t1",
+      customerId: "c1",
+      status: "SCHEDULED",
+      startsAt: new Date("2026-08-02T17:00:00.000Z"),
+      customer: { id: "c1", name: "Maria Silva", phone: "11999990000", email: "maria@ex.com" },
+      service: { id: "s1", name: "Escova" },
+    } as never);
+
+    await handleAppointmentReminder([
+      { data: { appointmentId: "a1", tenantId: "t1" } } as never,
+    ]);
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: "t1", event: "appointment_reminder" }),
+    );
   });
 });

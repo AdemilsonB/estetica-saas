@@ -43,6 +43,7 @@ export type CreateAppointmentInput = {
   allowOverlap?: boolean
   allowPastDate?: boolean
   notificationMessage?: string
+  notify?: boolean
 }
 
 export type UpdateAppointmentInput = {
@@ -51,6 +52,7 @@ export type UpdateAppointmentInput = {
   professionalId?: string
   serviceId?: string
   notificationMessage?: string
+  notify?: boolean
 }
 
 type ListParams = {
@@ -100,11 +102,12 @@ async function updateAppointmentStatus(
   status: AppointmentStatus,
   notificationMessage?: string,
   confirmedPrice?: number,
+  notify?: boolean,
 ): Promise<Appointment> {
   const res = await fetch(`/api/scheduling/appointments/${id}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status, notificationMessage, confirmedPrice }),
+    body: JSON.stringify({ status, notificationMessage, confirmedPrice, notify }),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -139,12 +142,14 @@ export function useUpdateAppointmentStatus() {
       status,
       notificationMessage,
       confirmedPrice,
+      notify,
     }: {
       id: string
       status: AppointmentStatus
       notificationMessage?: string
       confirmedPrice?: number
-    }) => updateAppointmentStatus(id, status, notificationMessage, confirmedPrice),
+      notify?: boolean
+    }) => updateAppointmentStatus(id, status, notificationMessage, confirmedPrice, notify),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] })
     },

@@ -12,9 +12,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Switch } from '@/components/ui/switch'
+import { CustomerMessageToggle } from '@/components/domain/notifications/customer-message-toggle'
 import { useUpdateAppointmentStatus } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import type { SugestaoPreco } from '@/domains/crm/price-suggestion'
@@ -32,19 +31,6 @@ type AnamneseData = {
 
 function formatCurrency(v: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
-}
-
-function buildDefaultMessage(appointment: Appointment, valorFinal: number): string {
-  const data = new Date(appointment.startsAt)
-  const dia = data.toLocaleDateString('pt-BR', {
-    weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
-  })
-  const hora = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-  const serviceName = appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'
-  const profName = appointment.professional?.name ?? 'Profissional'
-  return `Olá ${appointment.customer.name}! Seu agendamento de ${serviceName} com ${profName} em ${dia} às ${hora} foi confirmado. Valor: ${formatCurrency(valorFinal)}. Aguardamos você!`
 }
 
 type Props = {
@@ -69,14 +55,14 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
 
   const [valorFinal, setValorFinal] = useState<number>(Number(appointment.price))
   const [mensagem, setMensagem] = useState<string>('')
-  const [sendWhatsApp, setSendWhatsApp] = useState(true)
+  const [notify, setNotify] = useState<boolean | undefined>(undefined)
 
   useEffect(() => {
     if (!open) return
     const price = anamneseData?.sugestaoPreco?.valorSugerido ?? Number(appointment.price)
     setValorFinal(price)
-    setMensagem(buildDefaultMessage(appointment, price))
-    setSendWhatsApp(true)
+    setMensagem('')
+    setNotify(undefined)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -88,8 +74,9 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
       {
         id: appointment.id,
         status: 'CONFIRMED',
-        notificationMessage: sendWhatsApp ? mensagem : '',
+        notificationMessage: mensagem || undefined,
         confirmedPrice: valorFinal,
+        notify,
       },
       {
         onSuccess: () => {
@@ -106,7 +93,7 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Confirmar agendamento</DialogTitle>
         </DialogHeader>
@@ -137,40 +124,20 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
               max={999999.99}
               step={0.01}
               value={valorFinal}
-              onChange={(e) => {
-                const novoValor = Number(e.target.value)
-                setValorFinal(novoValor)
-                setMensagem((prev) =>
-                  prev.replace(/R\$\s*[\d.,]+/, formatCurrency(novoValor)),
-                )
-              }}
+              onChange={(e) => setValorFinal(Number(e.target.value))}
               required
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5">
-            <Label htmlFor="send-whatsapp" className="cursor-pointer text-sm font-medium text-slate-700">
-              Enviar confirmação via WhatsApp
-            </Label>
-            <Switch
-              id="send-whatsapp"
-              checked={sendWhatsApp}
-              onCheckedChange={setSendWhatsApp}
-            />
-          </div>
-
-          {sendWhatsApp && (
-            <div className="space-y-1.5">
-              <Label htmlFor="mensagem-cliente">Mensagem para o cliente</Label>
-              <Textarea
-                id="mensagem-cliente"
-                value={mensagem}
-                onChange={(e) => setMensagem(e.target.value)}
-                rows={4}
-                className="resize-none text-sm"
-              />
-            </div>
-          )}
+          <CustomerMessageToggle
+            event="appointment_confirmed"
+            appointmentId={appointment.id}
+            customerId={appointment.customerId}
+            value={notify}
+            onChange={setNotify}
+            message={mensagem}
+            onMessageChange={setMensagem}
+          />
 
           <div className="flex gap-2 pt-1">
             <Button

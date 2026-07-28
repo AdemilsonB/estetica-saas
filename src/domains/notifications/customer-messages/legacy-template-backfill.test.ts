@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { interpolateTemplate } from "../user-notifications/notification-template-engine";
 import { buildCustomerMessageVariables } from "./customer-message-variables";
-import { CUSTOMER_MESSAGE_CATALOG, LEGACY_TEMPLATE_TO_EVENT } from "./customer-message-catalog";
+import {
+  CUSTOMER_MESSAGE_CATALOG,
+  CUSTOMER_MESSAGE_TEMPLATE_KEY,
+  LEGACY_TEMPLATE_TO_EVENT,
+} from "./customer-message-catalog";
 import { buildLegacyBody } from "./legacy-template-backfill";
 
 const tenant = {
@@ -104,8 +108,12 @@ describe("equivalência entre o texto legado e o template migrado", () => {
   // (evolution.provider.ts:57-62 — sem entrada em TEMPLATE_TO_CONFIG_KEY, `defaults` vem
   // undefined). O comportamento atual em produção é "nenhuma mensagem é enviada". O teste
   // abaixo documenta isso; o template novo do catálogo é uma correção, não uma regressão.
-  const templatesLegados = Object.keys(LEGACY_TEMPLATE_TO_EVENT).filter(
-    (t) => t !== "appointment-rescheduled",
+  // A lista sai do catálogo, não das chaves do mapa: só há equivalência a provar onde
+  // existe binding legado (`legacy !== null`). `appointment-rescheduled` continua fora
+  // pelo motivo do comentário acima — tem `legacy: null` desde a Fase 1, então já cai
+  // naturalmente neste filtro, e os eventos novos da Fase 2 também.
+  const templatesLegados = CUSTOMER_MESSAGE_CATALOG.filter((e) => e.legacy !== null).map(
+    (e) => CUSTOMER_MESSAGE_TEMPLATE_KEY[e.event],
   );
 
   it.each(templatesLegados)(

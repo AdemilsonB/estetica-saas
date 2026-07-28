@@ -18,6 +18,18 @@ if (typeof globalThis.IntersectionObserver === 'undefined') {
   globalThis.IntersectionObserver = IntersectionObserverStub
 }
 
+// Stub de ResizeObserver para componentes Radix (@radix-ui/react-use-size, usado por
+// Switch/Slider/etc) — o jsdom também não implementa. Mesmo padrão do stub acima.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  class ResizeObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  // @ts-expect-error — stub mínimo apenas para testes
+  globalThis.ResizeObserver = ResizeObserverStub
+}
+
 vi.mock('@/shared/database/prisma', () => ({
   prisma: {},
 }))

@@ -1,11 +1,9 @@
-import { NotificationChannel } from "@prisma/client";
-
 import { prisma } from "@/shared/database/prisma";
 import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
 import { ensurePermission, PERMISSIONS } from "@/shared/auth/permissions";
 import { getSessionContext } from "@/shared/auth/session";
 import { handleApiError } from "@/shared/http/handle-api-error";
-import { notificationService } from "@/domains/notifications/notification.service";
+import { customerMessageDispatcher } from "@/domains/notifications/customer-messages/customer-message-dispatcher.service";
 
 export async function POST(request: Request) {
   initializeDomainRuntime();
@@ -34,15 +32,14 @@ export async function POST(request: Request) {
       (a) => a.customer.phone && a.customer.consentGiven,
     );
 
-    await Promise.all(
+    const resultados = await Promise.all(
       eligible.map((a) =>
-        notificationService.logAndDispatch({
+        customerMessageDispatcher.dispatch({
           tenantId: session.tenantId,
+          event: "appointment_reminder",
           appointmentId: a.id,
           customerId: a.customerId,
-          channel: NotificationChannel.WHATSAPP,
-          template: "appointment-reminder",
-          recipient: a.customer.phone!,
+          recipient: { phone: a.customer.phone, email: null },
           payload: {
             appointmentId: a.id,
             startsAt: a.startsAt.toISOString(),
@@ -53,7 +50,10 @@ export async function POST(request: Request) {
       ),
     );
 
-    return Response.json({ sent: eligible.length });
+    const sent = resultados.filter((r) => r.dispatched.length > 0).length;
+    // `skipped` inclui o caso "o tenant desligou o lembrete na matriz": a rota não
+    // pode reportar como enviado o que o padrão do negócio bloqueou.
+    return Response.json({ sent, skipped: resultados.length - sent });
   } catch (error) {
     return handleApiError(error);
   }

@@ -1,6 +1,7 @@
 import {
   AppointmentStatus,
   AppointmentPaymentStatus,
+  AppointmentOrigin,
   PaymentMethod,
   Prisma,
   PriceType,
@@ -205,6 +206,7 @@ export class SchedulingService {
               price,
               createdByUserId: userId,
               allowOverlap: input.allowOverlap ?? false,
+              origin: origin === "public" ? AppointmentOrigin.PUBLIC : AppointmentOrigin.PANEL,
             },
             tx,
           );
@@ -231,6 +233,7 @@ export class SchedulingService {
       payload: {
         ...this.toAppointmentEventPayload(tenantId, appointmentDetails),
         notificationMessage: input.notificationMessage,
+        notify: input.notify,
         origin,
       },
     });
@@ -283,7 +286,18 @@ export class SchedulingService {
         type: eventType,
         payload: {
           ...this.toAppointmentEventPayload(tenantId, appointment),
-          ...([AppointmentStatus.CANCELLED, AppointmentStatus.CONFIRMED] as AppointmentStatus[]).includes(input.status)
+          // `notify` vale para QUALQUER status — inclusive no-show, que é o disparo
+          // mais delicado e por isso precisa de override no momento da ação.
+          notify: input.notify,
+          // NO_SHOW entrou nesta lista na Fase 2: o <CustomerMessageToggle> do diálogo
+          // de não comparecimento oferece "escrever outra mensagem" como em todos os
+          // outros pontos, e sem NO_SHOW aqui esse botão salvaria um texto que nunca
+          // chegaria ao dispatcher — um controle que não faz nada.
+          ...([
+            AppointmentStatus.CANCELLED,
+            AppointmentStatus.CONFIRMED,
+            AppointmentStatus.NO_SHOW,
+          ] as AppointmentStatus[]).includes(input.status)
             ? { notificationMessage: input.notificationMessage }
             : {},
         },
@@ -348,12 +362,14 @@ export class SchedulingService {
         customerId: updated.customerId,
         customerName: current.customer.name,
         customerPhone: current.customer.phone,
+        customerEmail: current.customer.email,
         serviceName: current.service?.name ?? current.package?.name ?? current.promotion?.name ?? "",
         professionalName: updated.professional.name,
         oldStartsAt: current.startsAt,
         newStartsAt: updated.startsAt,
         newEndsAt: updated.endsAt,
         notificationMessage: input.notificationMessage ?? "",
+        notify: input.notify,
       },
     });
 
@@ -634,6 +650,7 @@ export class SchedulingService {
         startsAt: appointment.startsAt,
         endsAt: appointment.endsAt,
         status: appointment.status,
+        origin: appointment.origin,
         paymentStatus: appointment.paymentStatus,
         paymentMethod: appointment.paymentMethod,
         discountTypeId: appointment.discountTypeId,

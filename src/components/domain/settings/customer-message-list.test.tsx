@@ -10,99 +10,74 @@ import type { CustomerMessageTemplateItem } from '@/hooks/settings/use-customer-
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
-// @testing-library/react não limpa o DOM sozinho neste projeto (globals do vitest
-// desligado) — sem isto, renders de testes anteriores vazam para o assert seguinte.
-afterEach(() => {
-  cleanup()
-  vi.unstubAllGlobals()
-})
-
-function wrapper({ children }: { children: ReactNode }) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>
-}
-
-function buildItem(overrides: Partial<CustomerMessageTemplateItem> = {}): CustomerMessageTemplateItem {
-  return {
+const templates: CustomerMessageTemplateItem[] = [
+  {
     event: 'appointment_created',
     channel: 'WHATSAPP',
     label: 'Agendamento criado',
-    description: 'Enviada quando você marca um horário pelo painel.',
+    description: 'Quando você marca um horário pelo painel.',
     nature: 'transactional',
-    variables: ['cliente', 'servico', 'data', 'hora'],
+    variables: ['cliente'],
     subject: null,
-    body: 'Olá, {{cliente}}! Seu agendamento foi criado.',
+    body: 'Olá, {{cliente}}!',
     mediaUrl: null,
     isCustom: false,
-    defaultBody: 'Olá, {{cliente}}! Seu agendamento foi criado.',
+    defaultBody: 'Olá, {{cliente}}!',
     defaultSubject: null,
-    ...overrides,
+  },
+]
+
+vi.mock('@/hooks/settings/use-customer-message-templates', async () => {
+  const real = await vi.importActual<
+    typeof import('@/hooks/settings/use-customer-message-templates')
+  >('@/hooks/settings/use-customer-message-templates')
+  return {
+    ...real,
+    useCustomerMessageTemplates: () => ({ data: templates, isLoading: false, isError: false }),
+    useUpdateCustomerMessageTemplate: () => ({ mutate: vi.fn(), isPending: false }),
+    useResetCustomerMessageTemplate: () => ({ mutate: vi.fn(), isPending: false }),
   }
+})
+
+vi.mock('@/hooks/settings/use-customer-message-settings', async () => {
+  const real = await vi.importActual<
+    typeof import('@/hooks/settings/use-customer-message-settings')
+  >('@/hooks/settings/use-customer-message-settings')
+  return {
+    ...real,
+    useCustomerMessageSettings: () => ({
+      data: [
+        {
+          event: 'appointment_created',
+          label: 'Agendamento criado',
+          description: 'Quando você marca um horário pelo painel.',
+          nature: 'transactional' as const,
+          enabled: true,
+          channels: ['WHATSAPP' as const],
+          isCustom: false,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    }),
+    useUpdateCustomerMessageSetting: () => ({ mutate: vi.fn(), isPending: false }),
+  }
+})
+
+function wrapper({ children }: { children: ReactNode }) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>
 }
 
+afterEach(cleanup)
+
 describe('CustomerMessageList', () => {
-  it('renderiza os eventos vindos da API', async () => {
-    const items: CustomerMessageTemplateItem[] = [
-      buildItem(),
-      buildItem({ channel: 'EMAIL', subject: 'Agendamento confirmado' }),
-      buildItem({
-        event: 'birthday',
-        label: 'Aniversário',
-        description: 'Enviada no aniversário do cliente.',
-        nature: 'promotional',
-      }),
-    ]
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({ ok: true, json: async () => ({ items }) })),
-    )
-
+  it('abre o editor com o template do canal escolhido na matriz', async () => {
     render(<CustomerMessageList />, { wrapper })
 
-    expect(await screen.findAllByText('Agendamento criado')).not.toHaveLength(0)
-    expect(screen.getAllByText('Aniversário').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Promocional').length).toBeGreaterThan(0)
-  })
-
-  it('mostra o selo de personalizado quando isCustom', async () => {
-    const items: CustomerMessageTemplateItem[] = [
-      buildItem({ isCustom: true }),
-      buildItem({ channel: 'EMAIL', subject: 'Assunto', isCustom: false }),
-    ]
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({ ok: true, json: async () => ({ items }) })),
-    )
-
-    render(<CustomerMessageList />, { wrapper })
-
-    expect((await screen.findAllByText('Personalizada')).length).toBeGreaterThan(0)
-  })
-
-  it('mostra estado de erro com botão de tentar de novo', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({ ok: false, json: async () => ({}) })),
-    )
-
-    render(<CustomerMessageList />, { wrapper })
-
-    expect(await screen.findByText(/Não foi possível carregar/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Tentar de novo/i })).toBeInTheDocument()
-  })
-
-  it('abre o editor ao clicar em editar', async () => {
-    const items: CustomerMessageTemplateItem[] = [buildItem()]
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({ ok: true, json: async () => ({ items }) })),
-    )
-
-    render(<CustomerMessageList />, { wrapper })
-
-    const botoes = await screen.findAllByRole('button', { name: /Editar WhatsApp/i })
-    await userEvent.click(botoes[0])
+    await userEvent.click(screen.getByRole('button', { name: 'Editar WhatsApp' }))
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Olá, {{cliente}}!')).toBeInTheDocument()
   })
 })

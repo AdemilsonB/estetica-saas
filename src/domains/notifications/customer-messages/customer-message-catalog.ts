@@ -59,6 +59,7 @@ export const CUSTOMER_MESSAGE_CATALOG: CustomerMessageCatalogEntry[] = [
       "Enviada quando o cliente agenda pela vitrine pública e o horário ainda aguarda sua confirmação.",
     nature: "transactional",
     defaultEnabled: true,
+    defaultChannels: ["WHATSAPP"],
     variables: VARS_AGENDAMENTO,
     defaults: {
       WHATSAPP: {
@@ -78,6 +79,7 @@ export const CUSTOMER_MESSAGE_CATALOG: CustomerMessageCatalogEntry[] = [
     description: "Enviada quando você marca um horário pelo painel.",
     nature: "transactional",
     defaultEnabled: true,
+    defaultChannels: ["WHATSAPP"],
     variables: VARS_AGENDAMENTO,
     defaults: {
       WHATSAPP: {
@@ -102,6 +104,7 @@ export const CUSTOMER_MESSAGE_CATALOG: CustomerMessageCatalogEntry[] = [
     description: "Enviada quando você confirma um pedido feito pela vitrine pública.",
     nature: "transactional",
     defaultEnabled: true,
+    defaultChannels: ["WHATSAPP"],
     variables: VARS_AGENDAMENTO,
     defaults: {
       WHATSAPP: {
@@ -126,6 +129,7 @@ export const CUSTOMER_MESSAGE_CATALOG: CustomerMessageCatalogEntry[] = [
     description: "Enviada quando a data ou a hora de um agendamento muda.",
     nature: "transactional",
     defaultEnabled: true,
+    defaultChannels: ["WHATSAPP"],
     variables: VARS_AGENDAMENTO,
     defaults: {
       WHATSAPP: {
@@ -145,6 +149,7 @@ export const CUSTOMER_MESSAGE_CATALOG: CustomerMessageCatalogEntry[] = [
     description: "Enviada quando um agendamento é cancelado.",
     nature: "transactional",
     defaultEnabled: true,
+    defaultChannels: ["WHATSAPP"],
     variables: VARS_AGENDAMENTO,
     defaults: {
       WHATSAPP: {
@@ -172,6 +177,7 @@ export const CUSTOMER_MESSAGE_CATALOG: CustomerMessageCatalogEntry[] = [
     description: "Enviada quando você registra que o cliente não compareceu.",
     nature: "transactional",
     defaultEnabled: true,
+    defaultChannels: ["WHATSAPP"],
     variables: VARS_AGENDAMENTO,
     defaults: {
       WHATSAPP: {
@@ -199,6 +205,7 @@ export const CUSTOMER_MESSAGE_CATALOG: CustomerMessageCatalogEntry[] = [
     description: "Enviada automaticamente antes do atendimento, no prazo que você configurou.",
     nature: "transactional",
     defaultEnabled: true,
+    defaultChannels: ["WHATSAPP"],
     variables: VARS_AGENDAMENTO,
     defaults: {
       WHATSAPP: {
@@ -223,6 +230,7 @@ export const CUSTOMER_MESSAGE_CATALOG: CustomerMessageCatalogEntry[] = [
     description: "Enviada no aniversário do cliente.",
     nature: "promotional",
     defaultEnabled: false,
+    defaultChannels: ["WHATSAPP"],
     variables: VARS_CLIENTE,
     defaults: {
       WHATSAPP: {
@@ -251,6 +259,7 @@ export const CUSTOMER_MESSAGE_CATALOG: CustomerMessageCatalogEntry[] = [
       "Enviada quando chega a data de retorno recomendada do serviço que o cliente fez.",
     nature: "promotional",
     defaultEnabled: false,
+    defaultChannels: ["WHATSAPP"],
     variables: [...VARS_CLIENTE, "ultimo_servico", "dias_sem_vir"],
     defaults: {
       WHATSAPP: {
@@ -270,6 +279,7 @@ export const CUSTOMER_MESSAGE_CATALOG: CustomerMessageCatalogEntry[] = [
     description: "Enviada para clientes que estão há muito tempo sem aparecer.",
     nature: "promotional",
     defaultEnabled: false,
+    defaultChannels: ["WHATSAPP"],
     variables: [...VARS_CLIENTE, "ultimo_servico", "dias_sem_vir"],
     defaults: {
       WHATSAPP: {
@@ -294,15 +304,30 @@ export function getCatalogEntry(event: CustomerMessageEventKey): CustomerMessage
 }
 
 /**
+ * Evento → string gravada em `NotificationLog.template`. É o caminho que o dispatcher
+ * usa; `LEGACY_TEMPLATE_TO_EVENT` é o inverso, usado pelo gateway e pelo serviço de
+ * e-mail para voltar de string a evento. Os dois têm de ser inversos exatos — há um
+ * teste garantindo isso, porque uma chave só de um lado vira "Template desconhecido"
+ * e a mensagem some sem sair.
+ */
+export const CUSTOMER_MESSAGE_TEMPLATE_KEY: Record<CustomerMessageEventKey, string> = {
+  appointment_requested: "appointment-requested",
+  appointment_created: "appointment-created",
+  appointment_confirmed: "appointment-confirmed",
+  appointment_rescheduled: "appointment-rescheduled",
+  appointment_cancelled: "appointment-cancelled",
+  appointment_no_show: "appointment-no-show",
+  appointment_reminder: "appointment-reminder",
+  birthday: "birthday",
+  return_due: "return-due",
+  winback: "winback",
+};
+
+/**
  * `NotificationDraft.template` ainda usa os nomes antigos com hífen. Este mapa permite
  * traduzir sem tocar em `subscriptions.ts` nem nos jobs nesta fase.
  */
-export const LEGACY_TEMPLATE_TO_EVENT: Record<string, CustomerMessageEventKey> = {
-  "appointment-created": "appointment_created",
-  "appointment-confirmed": "appointment_confirmed",
-  "appointment-rescheduled": "appointment_rescheduled",
-  "appointment-cancelled": "appointment_cancelled",
-  "appointment-no-show": "appointment_no_show",
-  "appointment-reminder": "appointment_reminder",
-  birthday: "birthday",
-};
+export const LEGACY_TEMPLATE_TO_EVENT: Record<string, CustomerMessageEventKey> =
+  Object.fromEntries(
+    Object.entries(CUSTOMER_MESSAGE_TEMPLATE_KEY).map(([evento, chave]) => [chave, evento]),
+  ) as Record<string, CustomerMessageEventKey>;
