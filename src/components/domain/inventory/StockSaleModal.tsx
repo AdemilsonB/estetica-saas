@@ -10,7 +10,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import { NumberInput } from '@/components/ui/number-input'
 import { Label } from '@/components/ui/label'
 import { ComboboxField } from '@/components/ui/combobox-field'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -27,7 +28,7 @@ export function StockSaleModal({ open, onClose }: Props) {
   const products = productsResponse?.data ?? []
 
   const [productId, setProductId] = useState('')
-  const [quantity, setQuantity] = useState(1)
+  const [quantity, setQuantity] = useState('1')
   const [unitPrice, setUnitPrice] = useState<string>('')
   const [loading, setLoading] = useState(false)
 
@@ -40,9 +41,11 @@ export function StockSaleModal({ open, onClose }: Props) {
     }
   }, [productId, selectedProduct])
 
+  const quantityNum = quantity === '' ? 0 : Number(quantity)
+
   function handleClose() {
     setProductId('')
-    setQuantity(1)
+    setQuantity('1')
     setUnitPrice('')
     onClose()
   }
@@ -53,14 +56,14 @@ export function StockSaleModal({ open, onClose }: Props) {
       toast.error('Selecione um produto')
       return
     }
-    if (quantity <= 0) {
+    if (quantityNum <= 0) {
       toast.error('Quantidade deve ser maior que zero')
       return
     }
     if (
       selectedProduct &&
       selectedProduct.stockQuantity !== undefined &&
-      quantity > selectedProduct.stockQuantity
+      quantityNum > selectedProduct.stockQuantity
     ) {
       toast.error(
         `Estoque insuficiente. Disponível: ${selectedProduct.stockQuantity} unidade(s)`,
@@ -70,7 +73,7 @@ export function StockSaleModal({ open, onClose }: Props) {
 
     setLoading(true)
     try {
-      const body: { quantity: number; unitPrice?: number } = { quantity }
+      const body: { quantity: number; unitPrice?: number } = { quantity: quantityNum }
       const parsedPrice = parseFloat(unitPrice)
       if (!isNaN(parsedPrice) && parsedPrice > 0) {
         body.unitPrice = parsedPrice
@@ -141,36 +144,33 @@ export function StockSaleModal({ open, onClose }: Props) {
               <Label htmlFor="sale-qty">
                 Quantidade <span className="text-rose-500">*</span>
               </Label>
-              <Input
+              <NumberInput
                 id="sale-qty"
-                type="number"
-                min="1"
+                min={1}
                 max={selectedProduct?.stockQuantity}
+                suffix="un"
                 value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                onChange={setQuantity}
                 required
               />
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="sale-price">Valor Unitário (R$)</Label>
-              <Input
+              <CurrencyInput
                 id="sale-price"
-                type="number"
-                step="0.01"
-                min="0"
                 placeholder="Opcional"
                 value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
+                onChange={setUnitPrice}
               />
             </div>
           </div>
 
-          {unitPrice && !isNaN(parseFloat(unitPrice)) && parseFloat(unitPrice) > 0 && quantity > 0 && (
+          {unitPrice && !isNaN(parseFloat(unitPrice)) && parseFloat(unitPrice) > 0 && quantityNum > 0 && (
             <p className="text-sm text-slate-500">
               Total:{' '}
               <span className="font-medium text-slate-700">
-                R$ {(parseFloat(unitPrice) * quantity).toFixed(2)}
+                R$ {(parseFloat(unitPrice) * quantityNum).toFixed(2)}
               </span>
             </p>
           )}
@@ -179,7 +179,7 @@ export function StockSaleModal({ open, onClose }: Props) {
             <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading || !productId}>
+            <Button type="submit" disabled={loading || !productId || quantity === ''}>
               {loading ? 'Registrando...' : 'Registrar venda'}
             </Button>
           </div>

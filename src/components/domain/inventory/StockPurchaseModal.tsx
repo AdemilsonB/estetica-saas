@@ -10,7 +10,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import { NumberInput } from '@/components/ui/number-input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ComboboxField } from '@/components/ui/combobox-field'
@@ -28,8 +29,8 @@ export function StockPurchaseModal({ open, onClose }: Props) {
   const products = productsResponse?.data ?? []
 
   const [productId, setProductId] = useState('')
-  const [quantity, setQuantity] = useState(1)
-  const [unitPrice, setUnitPrice] = useState(0)
+  const [quantity, setQuantity] = useState('1')
+  const [unitPrice, setUnitPrice] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -37,14 +38,18 @@ export function StockPurchaseModal({ open, onClose }: Props) {
   useEffect(() => {
     const selected = products.find((p) => p.id === productId)
     if (selected) {
-      setUnitPrice(parseFloat(selected.costPrice) || 0)
+      setUnitPrice((parseFloat(selected.costPrice) || 0).toFixed(2))
     }
   }, [productId, products])
 
+  // Campo vazio vale 0 nos cálculos, mas continua vazio na tela.
+  const quantityNum = quantity === '' ? 0 : Number(quantity)
+  const unitPriceNum = unitPrice === '' ? 0 : Number(unitPrice)
+
   function handleClose() {
     setProductId('')
-    setQuantity(1)
-    setUnitPrice(0)
+    setQuantity('1')
+    setUnitPrice('')
     setNotes('')
     onClose()
   }
@@ -55,7 +60,7 @@ export function StockPurchaseModal({ open, onClose }: Props) {
       toast.error('Selecione um produto')
       return
     }
-    if (quantity <= 0) {
+    if (quantityNum <= 0) {
       toast.error('Quantidade deve ser maior que zero')
       return
     }
@@ -65,8 +70,8 @@ export function StockPurchaseModal({ open, onClose }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          quantity,
-          unitPrice,
+          quantity: quantityNum,
+          unitPrice: unitPriceNum,
           notes: notes || undefined,
         }),
       })
@@ -122,34 +127,31 @@ export function StockPurchaseModal({ open, onClose }: Props) {
               <Label htmlFor="purchase-qty">
                 Quantidade <span className="text-rose-500">*</span>
               </Label>
-              <Input
+              <NumberInput
                 id="purchase-qty"
-                type="number"
-                min="1"
+                min={1}
+                suffix="un"
                 value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                onChange={setQuantity}
                 required
               />
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="purchase-price">Valor Unitário (R$)</Label>
-              <Input
+              <CurrencyInput
                 id="purchase-price"
-                type="number"
-                step="0.01"
-                min="0"
                 value={unitPrice}
-                onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                onChange={setUnitPrice}
               />
             </div>
           </div>
 
-          {unitPrice > 0 && quantity > 0 && (
+          {unitPriceNum > 0 && quantityNum > 0 && (
             <p className="text-sm text-slate-500">
               Total:{' '}
               <span className="font-medium text-slate-700">
-                R$ {(unitPrice * quantity).toFixed(2)}
+                R$ {(unitPriceNum * quantityNum).toFixed(2)}
               </span>
             </p>
           )}
@@ -170,7 +172,7 @@ export function StockPurchaseModal({ open, onClose }: Props) {
             <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading || !productId}>
+            <Button type="submit" disabled={loading || !productId || quantity === ''}>
               {loading ? 'Registrando...' : 'Registrar compra'}
             </Button>
           </div>

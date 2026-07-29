@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CustomerMessageToggle } from '@/components/domain/notifications/customer-message-toggle'
 import { useUpdateAppointmentStatus } from '@/hooks/scheduling/use-appointments'
@@ -53,14 +53,14 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
     staleTime: 2 * 60 * 1000,
   })
 
-  const [valorFinal, setValorFinal] = useState<number>(Number(appointment.price))
+  const [valorFinal, setValorFinal] = useState<string>(Number(appointment.price).toFixed(2))
   const [mensagem, setMensagem] = useState<string>('')
   const [notify, setNotify] = useState<boolean | undefined>(undefined)
 
   useEffect(() => {
     if (!open) return
     const price = anamneseData?.sugestaoPreco?.valorSugerido ?? Number(appointment.price)
-    setValorFinal(price)
+    setValorFinal(price.toFixed(2))
     setMensagem('')
     setNotify(undefined)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -68,14 +68,18 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
 
   const suggestedPrice = anamneseData?.sugestaoPreco?.valorSugerido ?? null
 
+  // Vazio nao e zero: sem valor informado, o envio fica bloqueado.
+  const valorPreenchido = valorFinal !== ''
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!valorPreenchido) return
     updateStatus.mutate(
       {
         id: appointment.id,
         status: 'CONFIRMED',
         notificationMessage: mensagem || undefined,
-        confirmedPrice: valorFinal,
+        confirmedPrice: Number(valorFinal),
         notify,
       },
       {
@@ -117,14 +121,10 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
 
           <div className="space-y-1.5">
             <Label htmlFor="valor-final">Valor a cobrar (R$)</Label>
-            <Input
+            <CurrencyInput
               id="valor-final"
-              type="number"
-              min={0}
-              max={999999.99}
-              step={0.01}
               value={valorFinal}
-              onChange={(e) => setValorFinal(Number(e.target.value))}
+              onChange={setValorFinal}
               required
             />
           </div>
@@ -152,7 +152,7 @@ export function ConfirmAppointmentModal({ appointment, open, onClose }: Props) {
             <Button
               type="submit"
               className="flex-1 bg-blue-600 text-white hover:bg-blue-700"
-              disabled={updateStatus.isPending}
+              disabled={updateStatus.isPending || !valorPreenchido}
             >
               {updateStatus.isPending ? 'Confirmando...' : 'Confirmar e enviar'}
             </Button>

@@ -7,7 +7,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { PercentageInput } from "@/components/ui/percentage-input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -43,12 +44,12 @@ type Props = {
 };
 
 export function RegisterPaymentModal({ appointment, open, onClose, onAfterCheckout }: Props) {
-  const [baseAmount, setBaseAmount] = useState<number>(0);
+  const [baseAmount, setBaseAmount] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [discountTypeId, setDiscountTypeId] = useState<string | undefined>();
   const [discountApplyType, setDiscountApplyType] = useState<"PERCENTAGE" | "FIXED_VALUE">("PERCENTAGE");
-  const [discountValue, setDiscountValue] = useState<number>(0);
-  const [tipAmount, setTipAmount] = useState<number>(0);
+  const [discountValue, setDiscountValue] = useState<string>("");
+  const [tipAmount, setTipAmount] = useState<string>("");
   const [discountOpen, setDiscountOpen] = useState(false);
   const [paymentMethodError, setPaymentMethodError] = useState(false);
 
@@ -64,29 +65,37 @@ export function RegisterPaymentModal({ appointment, open, onClose, onAfterChecko
 
   useEffect(() => {
     if (open && appointment) {
-      setBaseAmount(originalAmount);
+      setBaseAmount(originalAmount.toFixed(2));
       setPaymentMethod("");
       setDiscountTypeId(undefined);
-      setDiscountValue(0);
-      setTipAmount(0);
+      setDiscountValue("");
+      setTipAmount("");
       setPaymentMethodError(false);
     }
   }, [open, appointment]);
 
-  const computedDiscount = discountApplyType === "PERCENTAGE"
-    ? baseAmount * discountValue / 100
-    : discountValue;
-  const subtotal = baseAmount - computedDiscount;
-  const net = subtotal + tipAmount;
+  // Campo vazio conta como ausencia de valor (0) nos calculos, mas continua
+  // vazio na tela — nunca reintroduz um "0" que o usuario nao consegue apagar.
+  const baseAmountNum = baseAmount === "" ? 0 : Number(baseAmount);
+  const discountValueNum = discountValue === "" ? 0 : Number(discountValue);
+  const tipAmountNum = tipAmount === "" ? 0 : Number(tipAmount);
 
-  const baseChanged = baseAmount !== originalAmount;
+  const computedDiscount = discountApplyType === "PERCENTAGE"
+    ? baseAmountNum * discountValueNum / 100
+    : discountValueNum;
+  const subtotal = baseAmountNum - computedDiscount;
+  const net = subtotal + tipAmountNum;
+
+  const baseChanged = baseAmountNum !== originalAmount;
+  // Valor do servico e obrigatorio: vazio bloqueia o envio (0 explicito e valido).
+  const baseAmountPreenchido = baseAmount !== "";
 
   function handleSelectDiscount(id: string) {
     const found = discountTypes.find((d: { id: string; type: string; defaultValue: number | null }) => d.id === id);
     if (found) {
       setDiscountTypeId(id);
       setDiscountApplyType(found.type as "PERCENTAGE" | "FIXED_VALUE");
-      setDiscountValue(found.defaultValue ? Number(found.defaultValue) : 0);
+      setDiscountValue(found.defaultValue ? Number(found.defaultValue).toFixed(2) : "");
     }
     setDiscountOpen(false);
   }
@@ -94,6 +103,7 @@ export function RegisterPaymentModal({ appointment, open, onClose, onAfterChecko
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!appointment || checkout.isPending) return;
+    if (!baseAmountPreenchido) return;
     if (!paymentMethod) {
       setPaymentMethodError(true);
       return;
@@ -104,9 +114,9 @@ export function RegisterPaymentModal({ appointment, open, onClose, onAfterChecko
         input: {
           paymentMethod,
           discountTypeId,
-          discountValue: discountValue || undefined,
-          tipAmount,
-          ...(baseChanged && { baseAmount }),
+          discountValue: discountValueNum || undefined,
+          tipAmount: tipAmountNum,
+          ...(baseChanged && { baseAmount: baseAmountNum }),
         },
       },
       {
@@ -162,10 +172,10 @@ export function RegisterPaymentModal({ appointment, open, onClose, onAfterChecko
                   <span>-{fmt(computedDiscount)}</span>
                 </div>
               )}
-              {tipAmount > 0 && (
+              {tipAmountNum > 0 && (
                 <div className="flex justify-between text-emerald-600">
                   <span>Gorjeta</span>
-                  <span>+{fmt(tipAmount)}</span>
+                  <span>+{fmt(tipAmountNum)}</span>
                 </div>
               )}
               <div className="flex justify-between border-t border-slate-200 pt-1 text-base font-bold">
@@ -185,15 +195,12 @@ export function RegisterPaymentModal({ appointment, open, onClose, onAfterChecko
                 </span>
               )}
             </Label>
-            <Input
+            <CurrencyInput
               id="base-amount"
-              type="number"
-              min={0}
-              step={0.01}
               value={baseAmount}
-              onChange={(e) => {
-                setBaseAmount(Number(e.target.value));
-                setDiscountValue(0);
+              onChange={(v) => {
+                setBaseAmount(v);
+                setDiscountValue("");
                 setDiscountTypeId(undefined);
               }}
             />
@@ -227,17 +234,20 @@ export function RegisterPaymentModal({ appointment, open, onClose, onAfterChecko
                   </Command>
                 </PopoverContent>
               </Popover>
-              <div className="flex items-center gap-1">
-                <Input
-                  id="discount-value"
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={discountValue}
-                  onChange={(e) => setDiscountValue(Number(e.target.value))}
-                  className="w-20"
-                />
-                <span className="text-sm text-slate-500">{discountApplyType === "PERCENTAGE" ? "%" : "R$"}</span>
+              <div className="w-28 shrink-0">
+                {discountApplyType === "PERCENTAGE" ? (
+                  <PercentageInput
+                    id="discount-value"
+                    value={discountValue}
+                    onChange={setDiscountValue}
+                  />
+                ) : (
+                  <CurrencyInput
+                    id="discount-value"
+                    value={discountValue}
+                    onChange={setDiscountValue}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -245,17 +255,12 @@ export function RegisterPaymentModal({ appointment, open, onClose, onAfterChecko
           {/* Gorjeta */}
           <div className="space-y-1.5">
             <Label htmlFor="tip-amount">Gorjeta (opcional)</Label>
-            <div className="flex items-center gap-2">
-              <Input
+            <div className="w-40">
+              <CurrencyInput
                 id="tip-amount"
-                type="number"
-                min={0}
-                step={0.5}
                 value={tipAmount}
-                onChange={(e) => setTipAmount(Number(e.target.value))}
-                className="w-32"
+                onChange={setTipAmount}
               />
-              <span className="text-sm text-slate-500">R$</span>
             </div>
           </div>
 
@@ -308,7 +313,7 @@ export function RegisterPaymentModal({ appointment, open, onClose, onAfterChecko
             <Button
               type="submit"
               className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
-              disabled={checkout.isPending}
+              disabled={checkout.isPending || !baseAmountPreenchido}
             >
               {checkout.isPending ? "Salvando..." : "Confirmar"}
             </Button>

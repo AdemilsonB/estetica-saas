@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import { NumberInput } from '@/components/ui/number-input'
 import { Label } from '@/components/ui/label'
 import { ComboboxField } from '@/components/ui/combobox-field'
 import { useCreateProduct, useUpdateProduct } from '@/hooks/inventory/use-products'
@@ -114,6 +116,7 @@ export function ProductFormModal({ open, onClose, product }: Props) {
 
   const {
     register,
+    control,
     handleSubmit,
     setValue,
     watch,
@@ -269,13 +272,17 @@ export function ProductFormModal({ open, onClose, product }: Props) {
               <Label htmlFor="prod-cost">
                 Preço de Custo (R$) <span className="text-rose-500">*</span>
               </Label>
-              <Input
-                id="prod-cost"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0,00"
-                {...register('costPrice')}
+              <Controller
+                control={control}
+                name="costPrice"
+                render={({ field }) => (
+                  <CurrencyInput
+                    id="prod-cost"
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
               />
               {errors.costPrice && (
                 <p className="text-xs text-rose-500">{errors.costPrice.message}</p>
@@ -286,13 +293,17 @@ export function ProductFormModal({ open, onClose, product }: Props) {
               <Label htmlFor="prod-sale">
                 Preço de Venda (R$)
               </Label>
-              <Input
-                id="prod-sale"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0,00"
-                {...register('salePrice')}
+              <Controller
+                control={control}
+                name="salePrice"
+                render={({ field }) => (
+                  <CurrencyInput
+                    id="prod-sale"
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
               />
               {errors.salePrice && (
                 <p className="text-xs text-rose-500">{errors.salePrice.message}</p>
@@ -303,12 +314,20 @@ export function ProductFormModal({ open, onClose, product }: Props) {
           {!isEditing && (
             <div className="space-y-1.5">
               <Label htmlFor="prod-stock">Quantidade Inicial em Estoque</Label>
-              <Input
-                id="prod-stock"
-                type="number"
-                min="0"
-                placeholder="0"
-                {...register('stockQuantity')}
+              <Controller
+                control={control}
+                name="stockQuantity"
+                render={({ field }) => (
+                  <NumberInput
+                    id="prod-stock"
+                    min={0}
+                    placeholder="0"
+                    suffix="un"
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
               />
               {errors.stockQuantity && (
                 <p className="text-xs text-rose-500">{errors.stockQuantity.message}</p>
@@ -337,17 +356,17 @@ export function ProductFormModal({ open, onClose, product }: Props) {
               <div className="space-y-1.5">
                 <Label htmlFor="prod-adjust">Ajustar estoque para (unidades)</Label>
                 <div className="flex gap-2">
-                  <Input
-                    id="prod-adjust"
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={adjustTarget}
-                    onChange={(e) => setAdjustTarget(e.target.value)}
-                    placeholder={String(product.stockQuantity)}
-                    disabled={adjusting}
-                    className="flex-1"
-                  />
+                  <div className="flex-1">
+                    <NumberInput
+                      id="prod-adjust"
+                      min={0}
+                      value={adjustTarget}
+                      onChange={setAdjustTarget}
+                      placeholder={String(product.stockQuantity)}
+                      disabled={adjusting}
+                      suffix="un"
+                    />
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
@@ -363,12 +382,20 @@ export function ProductFormModal({ open, onClose, product }: Props) {
 
           <div className="space-y-1.5">
             <Label htmlFor="prod-alert">Alerta de Estoque Mínimo</Label>
-            <Input
-              id="prod-alert"
-              type="number"
-              min="0"
-              placeholder="Ex: 5"
-              {...register('lowStockAlert')}
+            <Controller
+              control={control}
+              name="lowStockAlert"
+              render={({ field }) => (
+                <NumberInput
+                  id="prod-alert"
+                  min={0}
+                  placeholder="Ex: 5"
+                  suffix="un"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
+              )}
             />
             {errors.lowStockAlert && (
               <p className="text-xs text-rose-500">{errors.lowStockAlert.message}</p>

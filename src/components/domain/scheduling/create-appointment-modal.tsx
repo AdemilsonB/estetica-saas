@@ -377,7 +377,7 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
                     setCustomTime(e.target.value)
                     setSelectedTime(e.target.value)
                   }}
-                  className="h-8 text-sm"
+                  className="h-8"
                 />
               </div>
             </div>
@@ -477,19 +477,22 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
             </Button>
           </div>
         </form>
-
-          <CreateCustomerModal
-            open={newCustomerOpen}
-            onClose={() => setNewCustomerOpen(false)}
-            modal={false}
-            onCreated={(customer) => {
-              setCustomerId(customer.id)
-              setCreatedCustomerName(customer.name)
-              setCustomerSearch('')
-              setNewCustomerOpen(false)
-            }}
-          />
       </DialogContent>
+
+      {/* Fora do DialogContent: aninhado dentro dele, o modal ficava preso no
+          container com overflow-y-auto do agendamento. `modal={false}` evita o
+          aria-hidden preso do Radix e `stacked` devolve o fundo escurecido. */}
+      <CreateCustomerModal
+        open={newCustomerOpen}
+        onClose={() => setNewCustomerOpen(false)}
+        modal={false}
+        onCreated={(customer) => {
+          setCustomerId(customer.id)
+          setCreatedCustomerName(customer.name)
+          setCustomerSearch('')
+          setNewCustomerOpen(false)
+        }}
+      />
     </Dialog>
   )
 }

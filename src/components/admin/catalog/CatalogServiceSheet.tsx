@@ -5,6 +5,8 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import { NumberInput } from '@/components/ui/number-input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -37,8 +39,8 @@ export function CatalogServiceSheet({ open, onClose, item, categories }: Props) 
 
   const [form, setForm] = useState({
     name: '', slug: '', description: '', segments: [] as string[],
-    categoryId: '', suggestedDuration: 60, suggestedPrice: 0,
-    priceType: 'FIXED' as 'FIXED' | 'STARTING_FROM', order: 0, active: true,
+    categoryId: '', suggestedDuration: '60', suggestedPrice: '',
+    priceType: 'FIXED' as 'FIXED' | 'STARTING_FROM', order: '0', active: true,
   })
   const [slugManual, setSlugManual] = useState(false)
 
@@ -47,14 +49,14 @@ export function CatalogServiceSheet({ open, onClose, item, categories }: Props) 
       setForm({
         name: item.name, slug: item.slug, description: item.description ?? '',
         segments: item.segments, categoryId: item.categoryId ?? '',
-        suggestedDuration: item.suggestedDuration,
-        suggestedPrice: Number(item.suggestedPrice),
-        priceType: item.priceType, order: item.order, active: item.active,
+        suggestedDuration: String(item.suggestedDuration),
+        suggestedPrice: Number(item.suggestedPrice).toFixed(2),
+        priceType: item.priceType, order: String(item.order), active: item.active,
       })
       setSlugManual(true)
     } else {
       setForm({ name: '', slug: '', description: '', segments: [], categoryId: '',
-        suggestedDuration: 60, suggestedPrice: 0, priceType: 'FIXED', order: 0, active: true })
+        suggestedDuration: '60', suggestedPrice: '', priceType: 'FIXED', order: '0', active: true })
       setSlugManual(false)
     }
   }, [item, open])
@@ -83,10 +85,10 @@ export function CatalogServiceSheet({ open, onClose, item, categories }: Props) 
         description: form.description || undefined,
         segments: form.segments,
         categoryId: form.categoryId || undefined,
-        suggestedDuration: form.suggestedDuration,
-        suggestedPrice: form.suggestedPrice,
+        suggestedDuration: Number(form.suggestedDuration),
+        suggestedPrice: Number(form.suggestedPrice),
         priceType: form.priceType,
-        order: form.order,
+        order: form.order === '' ? 0 : Number(form.order),
         active: form.active,
       }
       if (isEditing) {
@@ -150,13 +152,13 @@ export function CatalogServiceSheet({ open, onClose, item, categories }: Props) 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="dur">Duração (min) *</Label>
-              <Input id="dur" type="number" min={1} value={form.suggestedDuration}
-                onChange={e => setForm(f => ({ ...f, suggestedDuration: Number(e.target.value) }))} required />
+              <NumberInput id="dur" min={1} suffix="min" value={form.suggestedDuration}
+                onChange={v => setForm(f => ({ ...f, suggestedDuration: v }))} required />
             </div>
             <div className="space-y-1">
               <Label htmlFor="price">Preço sugerido (R$) *</Label>
-              <Input id="price" type="number" min={0} step={0.01} value={form.suggestedPrice}
-                onChange={e => setForm(f => ({ ...f, suggestedPrice: Number(e.target.value) }))} required />
+              <CurrencyInput id="price" value={form.suggestedPrice}
+                onChange={v => setForm(f => ({ ...f, suggestedPrice: v }))} required />
             </div>
           </div>
           <div className="space-y-1">
@@ -174,8 +176,8 @@ export function CatalogServiceSheet({ open, onClose, item, categories }: Props) 
           <div className="grid grid-cols-2 gap-3 items-end">
             <div className="space-y-1">
               <Label htmlFor="order">Ordem</Label>
-              <Input id="order" type="number" value={form.order}
-                onChange={e => setForm(f => ({ ...f, order: Number(e.target.value) }))} />
+              <NumberInput id="order" min={0} value={form.order}
+                onChange={v => setForm(f => ({ ...f, order: v }))} />
             </div>
             <div className="flex items-center gap-2 pb-1">
               <Switch id="active" checked={form.active}

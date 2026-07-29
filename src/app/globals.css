@@ -169,3 +169,15 @@ html {
   font-family: var(--font-plus-jakarta-sans), var(--font-sans), system-ui, sans-serif;
   letter-spacing: -0.02em;
 }
+/* === Mobile: impede o auto-zoom do navegador ao focar um campo ===
+   iOS e Android aproximam a página quando o campo focado tem font-size < 16px.
+   Overrides pontuais de `text-sm`/`text-xs` em inputs derrubavam para 14px e
+   disparavam esse zoom (mais visível no modal de novo agendamento).
+   O pinch-zoom manual do usuário continua disponível — o viewport não é travado. */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}

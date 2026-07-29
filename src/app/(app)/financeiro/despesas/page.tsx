@@ -6,6 +6,7 @@ import { Plus, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -37,8 +38,8 @@ function ExpenseForm({ onSubmit, loading }: {
         </div>
         <div className="space-y-1.5">
           <Label>Valor (R$) *</Label>
-          <Input type="number" min={0.01} step={0.01} value={form.amount}
-            onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+          <CurrencyInput value={form.amount}
+            onChange={(v) => setForm({ ...form, amount: v })} />
         </div>
       </div>
       <div className="space-y-1.5">
@@ -75,8 +76,8 @@ function RecurringForm({ onSubmit, loading }: {
         </div>
         <div className="space-y-1.5">
           <Label>Valor (R$) *</Label>
-          <Input type="number" min={0.01} step={0.01} value={form.amount}
-            onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+          <CurrencyInput value={form.amount}
+            onChange={(v) => setForm({ ...form, amount: v })} />
         </div>
       </div>
       <div className="space-y-1.5">

@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { Plus, Archive, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { PercentageInput } from "@/components/ui/percentage-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -32,7 +34,7 @@ function DiscountForm({ initial, onSubmit, loading }: {
   loading: boolean;
 }) {
   const [form, setForm] = useState<DiscountFormData>(
-    initial ?? { name: "", type: "PERCENTAGE", defaultValue: "0" },
+    initial ?? { name: "", type: "PERCENTAGE", defaultValue: "" },
   );
   return (
     <div className="space-y-4">
@@ -53,8 +55,17 @@ function DiscountForm({ initial, onSubmit, loading }: {
         </div>
         <div className="space-y-1.5">
           <Label>Valor padrão</Label>
-          <Input type="number" min={0} step={0.5} value={form.defaultValue}
-            onChange={(e) => setForm({ ...form, defaultValue: e.target.value })} />
+          {form.type === "PERCENTAGE" ? (
+            <PercentageInput
+              value={form.defaultValue}
+              onChange={(v) => setForm({ ...form, defaultValue: v })}
+            />
+          ) : (
+            <CurrencyInput
+              value={form.defaultValue}
+              onChange={(v) => setForm({ ...form, defaultValue: v })}
+            />
+          )}
         </div>
       </div>
       <Button

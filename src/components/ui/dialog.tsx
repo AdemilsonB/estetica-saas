@@ -61,23 +61,96 @@ function isTextEntryElement(el: Element | null): el is HTMLElement {
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT"
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+/**
+ * Prende o Tab dentro do dialog empilhado.
+ *
+ * Um Dialog aberto sobre outro precisa de `modal={false}` para não deixar
+ * `aria-hidden` preso na raiz do app (bug do Radix com dois Dialogs modais
+ * simultâneos), mas o modo não-modal também desliga o focus trap nativo — sem
+ * isso o Tab escaparia para o formulário de trás.
+ */
+function useStackedFocusTrap(enabled: boolean) {
+  const ref = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    const node = ref.current
+    if (!enabled || !node) return
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Tab" || !node) return
+      const items = Array.from(
+        node.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      ).filter((el) => el.offsetParent !== null || el === document.activeElement)
+      if (items.length === 0) return
+
+      const first = items[0]
+      const last = items[items.length - 1]
+      const active = document.activeElement
+
+      if (!node.contains(active)) {
+        event.preventDefault()
+        first.focus()
+        return
+      }
+      if (event.shiftKey && active === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown, true)
+    return () => document.removeEventListener("keydown", handleKeyDown, true)
+  }, [enabled])
+
+  return ref
+}
+
 function DialogContent({
   className,
   children,
   showCloseButton = true,
+  stacked = false,
   onOpenAutoFocus,
   onClick,
+  ref: forwardedRef,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  /**
+   * Marca este dialog como aberto por cima de outro. O Radix não renderiza
+   * `DialogOverlay` quando `modal={false}`, então sem isto o dialog de cima fica
+   * sem fundo algum e os dois formulários aparecem igualmente nítidos.
+   */
+  stacked?: boolean
 }) {
+  const trapRef = useStackedFocusTrap(stacked)
+
   return (
     <DialogPortal>
-      <DialogOverlay />
+      {stacked ? (
+        <div
+          data-slot="dialog-stacked-backdrop"
+          className="fixed inset-0 z-60 bg-black/40 supports-backdrop-filter:backdrop-blur-sm"
+        />
+      ) : (
+        <DialogOverlay />
+      )}
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        ref={(node: HTMLDivElement | null) => {
+          trapRef.current = node
+          if (typeof forwardedRef === "function") forwardedRef(node)
+          else if (forwardedRef) forwardedRef.current = node
+        }}
         className={cn(
           "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-x-hidden rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          stacked && "z-60",
           className
         )}
         onOpenAutoFocus={(event) => {

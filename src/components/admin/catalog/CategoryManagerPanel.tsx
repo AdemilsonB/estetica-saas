@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Plus, PowerOff, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/ui/number-input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -46,15 +47,15 @@ function CategoryFormDialog({
   isPending: boolean
 }) {
   const isEditing = !!item
-  const [form, setForm] = useState({ name: '', slug: '', segments: [] as string[], order: 0 })
+  const [form, setForm] = useState({ name: '', slug: '', segments: [] as string[], order: '0' })
   const [slugManual, setSlugManual] = useState(false)
 
   useEffect(() => {
     if (item) {
-      setForm({ name: item.name, slug: item.slug, segments: item.segments, order: item.order })
+      setForm({ name: item.name, slug: item.slug, segments: item.segments, order: String(item.order) })
       setSlugManual(true)
     } else {
-      setForm({ name: '', slug: '', segments: [], order: 0 })
+      setForm({ name: '', slug: '', segments: [], order: '0' })
       setSlugManual(false)
     }
   }, [item, open])
@@ -72,7 +73,7 @@ function CategoryFormDialog({
       toast.error('Preencha nome, slug e ao menos um segmento.')
       return
     }
-    onSave(form)
+    onSave({ ...form, order: form.order === '' ? 0 : Number(form.order) })
   }
 
   return (
@@ -117,11 +118,11 @@ function CategoryFormDialog({
           </div>
           <div className="space-y-1">
             <Label htmlFor="cat-order">Ordem</Label>
-            <Input
+            <NumberInput
               id="cat-order"
-              type="number"
+              min={0}
               value={form.order}
-              onChange={e => setForm(f => ({ ...f, order: Number(e.target.value) }))}
+              onChange={v => setForm(f => ({ ...f, order: v }))}
             />
           </div>
           <DialogFooter>
