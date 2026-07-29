@@ -117,7 +117,7 @@ export function AppointmentCard({ appointment, onClick, onConfirm, onPay, onEdit
                 onClick={() => onPay?.(appointment)}
                 className="flex w-full items-center justify-center rounded-xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition min-h-11"
               >
-                Fechar pagamento
+                Concluir atendimento
               </button>
             )}
           </div>
