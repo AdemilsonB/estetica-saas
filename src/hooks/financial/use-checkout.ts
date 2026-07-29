@@ -14,7 +14,10 @@ async function postCheckout(appointmentId: string, input: CheckoutInput) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
   });
-  if (!res.ok) throw new Error("Erro ao processar checkout");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: { message?: string } }).error?.message ?? "Erro ao processar checkout");
+  }
   return res.json();
 }
 

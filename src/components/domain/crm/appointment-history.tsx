@@ -39,7 +39,7 @@ export function AppointmentHistory({ appointments }: Props) {
           >
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-slate-950">
-                {appt.service.name}
+                {appt.service?.name ?? appt.package?.name ?? appt.promotion?.name ?? 'Serviço'}
               </p>
               <p className="text-xs text-slate-500">
                 {new Date(appt.startsAt).toLocaleString('pt-BR', {

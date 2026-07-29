@@ -8,7 +8,9 @@ export type CustomerAppointment = {
   endsAt: string
   status: string
   price: string
-  service: { id: string; name: string }
+  service: { id: string; name: string } | null
+  package: { id: string; name: string } | null
+  promotion: { id: string; name: string } | null
   professional: { id: string; name: string }
 }
 
