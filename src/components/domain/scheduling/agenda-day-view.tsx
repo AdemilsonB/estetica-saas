@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { Plus, CalendarDays, LayoutList, CalendarRange } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AppointmentCard } from './appointment-card'
@@ -13,7 +14,7 @@ import { ConfirmAppointmentModal } from './confirm-appointment-modal'
 import { AgendaWeekStrip } from './agenda-week-strip'
 import { AgendaMonthView } from './agenda-month-view'
 import { AgendaWeekGrid } from './agenda-week-grid'
-import { useAppointments } from '@/hooks/scheduling/use-appointments'
+import { useAppointments, useUpdateAppointmentStatus } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useCurrentUser } from '@/hooks/use-current-user'
@@ -96,6 +97,7 @@ export function AgendaDayView() {
   const [confirmModalAppointment, setConfirmModalAppointment] = useState<Appointment | null>(null)
   const [drawerEditMode, setDrawerEditMode] = useState(false)
   const { can } = usePermissions()
+  const updateStatus = useUpdateAppointmentStatus()
 
   // Esconde o bottom nav quando o drawer está aberto
   useEffect(() => {
@@ -111,6 +113,24 @@ export function AgendaDayView() {
   function handlePayInline(appt: Appointment) {
     setPaymentAppointment(appt)
     setPaymentModalOpen(true)
+  }
+
+  // Mesma sequência do botão "Concluir atendimento" da gaveta de detalhe: o pagamento é
+  // registrado primeiro e só depois o agendamento vira COMPLETED (onAfterCheckout do
+  // RegisterPaymentModal). Antes esse handler não existia aqui — pagar pelo card deixava o
+  // agendamento para sempre CONFIRMED (pago, mas nunca concluído).
+  function handleAfterCheckoutInline() {
+    const appt = paymentAppointment
+    setPaymentModalOpen(false)
+    setPaymentAppointment(null)
+    if (!appt) return
+    updateStatus.mutate(
+      { id: appt.id, status: 'COMPLETED' },
+      {
+        onSuccess: () => toast.success('Atendimento concluído'),
+        onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao concluir atendimento'),
+      },
+    )
   }
 
   function handleEditInline(appt: Appointment) {
@@ -466,6 +486,7 @@ export function AgendaDayView() {
           setPaymentModalOpen(false)
           setPaymentAppointment(null)
         }}
+        onAfterCheckout={handleAfterCheckoutInline}
       />
 
       {confirmModalAppointment && (

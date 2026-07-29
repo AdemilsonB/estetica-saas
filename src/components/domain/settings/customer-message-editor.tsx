@@ -159,73 +159,75 @@ export function CustomerMessageEditor({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="flex max-h-[85vh] flex-col overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="flex max-h-[85dvh] flex-col overflow-hidden sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="pr-6">
               Editar mensagem — {item.label} ({CHANNEL_LABEL[item.channel]})
             </DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-3">
-              {isEmail && (
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-3">
+                {isEmail && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="msg-subject">Assunto do e-mail</Label>
+                    <Input id="msg-subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+                  </div>
+                )}
+
                 <div className="space-y-1.5">
-                  <Label htmlFor="msg-subject">Assunto do e-mail</Label>
-                  <Input id="msg-subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+                  <Label htmlFor="msg-body">Mensagem</Label>
+                  <Textarea
+                    id="msg-body"
+                    ref={bodyRef}
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    rows={7}
+                    className="resize-none"
+                  />
+                  <p className={`text-right text-xs ${overLimit ? "text-destructive" : "text-muted-foreground"}`}>
+                    {body.length}/{CORPO_MAX}
+                  </p>
                 </div>
-              )}
 
-              <div className="space-y-1.5">
-                <Label htmlFor="msg-body">Mensagem</Label>
-                <Textarea
-                  id="msg-body"
-                  ref={bodyRef}
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  rows={7}
-                  className="resize-none"
-                />
-                <p className={`text-right text-xs ${overLimit ? "text-destructive" : "text-muted-foreground"}`}>
-                  {body.length}/{CORPO_MAX}
-                </p>
+                {/* Prévia visível logo abaixo do textarea no mobile; some no desktop, onde ocupa a coluna à direita. */}
+                <div className="md:hidden">{previewBlock}</div>
+
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground">Toque para inserir uma variável</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {item.variables.map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => insertVariable(v)}
+                        className="min-h-11 shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-muted/70"
+                      >
+                        {`{{${v}}}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {item.isCustom && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="min-h-11"
+                    onClick={() => setConfirmResetOpen(true)}
+                  >
+                    Restaurar padrão
+                  </Button>
+                )}
               </div>
 
-              {/* Prévia visível logo abaixo do textarea no mobile; some no desktop, onde ocupa a coluna à direita. */}
-              <div className="md:hidden">{previewBlock}</div>
-
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground">Toque para inserir uma variável</p>
-                <div className="flex gap-1.5 overflow-x-auto pb-1">
-                  {item.variables.map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => insertVariable(v)}
-                      className="min-h-11 shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-muted/70"
-                    >
-                      {`{{${v}}}`}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {item.isCustom && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="min-h-11"
-                  onClick={() => setConfirmResetOpen(true)}
-                >
-                  Restaurar padrão
-                </Button>
-              )}
+              <div className="hidden md:block">{previewBlock}</div>
             </div>
-
-            <div className="hidden md:block">{previewBlock}</div>
           </div>
 
-          <DialogFooter className="sticky bottom-0">
+          <DialogFooter>
             <Button onClick={handleSave} disabled={saveDisabled} className="min-h-11 w-full sm:w-auto">
               {update.isPending ? "Salvando..." : "Salvar mensagem"}
             </Button>
