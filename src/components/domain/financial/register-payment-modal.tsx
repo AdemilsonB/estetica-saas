@@ -50,6 +50,7 @@ export function RegisterPaymentModal({ appointment, open, onClose, onAfterChecko
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [tipAmount, setTipAmount] = useState<number>(0);
   const [discountOpen, setDiscountOpen] = useState(false);
+  const [paymentMethodError, setPaymentMethodError] = useState(false);
 
   const checkout = useCheckout();
   const markCourtesy = useMarkCourtesy();
@@ -68,6 +69,7 @@ export function RegisterPaymentModal({ appointment, open, onClose, onAfterChecko
       setDiscountTypeId(undefined);
       setDiscountValue(0);
       setTipAmount(0);
+      setPaymentMethodError(false);
     }
   }, [open, appointment]);
 
@@ -91,7 +93,11 @@ export function RegisterPaymentModal({ appointment, open, onClose, onAfterChecko
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!appointment || !paymentMethod) return;
+    if (!appointment || checkout.isPending) return;
+    if (!paymentMethod) {
+      setPaymentMethodError(true);
+      return;
+    }
     checkout.mutate(
       {
         appointmentId: appointment.id,
@@ -255,9 +261,20 @@ export function RegisterPaymentModal({ appointment, open, onClose, onAfterChecko
 
           {/* Forma de pagamento */}
           <div className="space-y-1.5">
-            <Label htmlFor="payment-method">Forma de pagamento *</Label>
-            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-              <SelectTrigger id="payment-method">
+            <Label htmlFor="payment-method" className={cn(paymentMethodError && "text-red-600")}>
+              Forma de pagamento *
+            </Label>
+            <Select
+              value={paymentMethod}
+              onValueChange={(value) => {
+                setPaymentMethod(value);
+                setPaymentMethodError(false);
+              }}
+            >
+              <SelectTrigger
+                id="payment-method"
+                className={cn(paymentMethodError && "border-red-500 focus:ring-red-500")}
+              >
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
@@ -266,6 +283,9 @@ export function RegisterPaymentModal({ appointment, open, onClose, onAfterChecko
                 ))}
               </SelectContent>
             </Select>
+            {paymentMethodError && (
+              <p className="text-xs text-red-600">Selecione a forma de pagamento para concluir.</p>
+            )}
           </div>
 
           <div className="flex gap-2 pt-2">
@@ -288,7 +308,7 @@ export function RegisterPaymentModal({ appointment, open, onClose, onAfterChecko
             <Button
               type="submit"
               className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
-              disabled={!paymentMethod || checkout.isPending}
+              disabled={checkout.isPending}
             >
               {checkout.isPending ? "Salvando..." : "Confirmar"}
             </Button>

@@ -212,6 +212,8 @@ export class CustomerRepository {
         appointments: {
           include: {
             service: { select: { id: true, name: true } },
+            package: { select: { id: true, name: true } },
+            promotion: { select: { id: true, name: true } },
             professional: { select: { id: true, name: true } },
           },
           orderBy: { startsAt: "desc" },
