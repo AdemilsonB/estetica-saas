@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
+import { PercentageInput } from "@/components/ui/percentage-input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCommissions, useUpsertCommission, useApplyCommissionToRole } from "@/hooks/settings/use-commissions";
@@ -94,19 +94,14 @@ export function CommissionsGrid({ readOnly = false }: Props) {
 
   function renderCell(serviceId: string, professionalId: string, className: string) {
     return (
-      <Input
-        type="number"
-        min={0}
-        max={100}
-        step={1}
+      <PercentageInput
         disabled={readOnly}
         className={className}
-        style={{ fontSize: '16px' }}
         value={getCellValue(serviceId, professionalId)}
         placeholder="—"
-        onChange={(e) => handleChange(serviceId, professionalId, e.target.value)}
+        onChange={(v) => handleChange(serviceId, professionalId, v)}
         onFocus={(e) => e.target.select()}
-        onBlur={(e) => handleBlur(serviceId, professionalId, e.target.value)}
+        onBlur={() => handleBlur(serviceId, professionalId, getCellValue(serviceId, professionalId))}
       />
     );
   }
@@ -127,17 +122,13 @@ export function CommissionsGrid({ readOnly = false }: Props) {
             </Select>
           </div>
           <div className="flex items-end gap-2">
-            <Input
-              type="number"
-              min={0}
-              max={100}
-              step={1}
-              placeholder="%"
-              className="h-10 w-20 shrink-0"
-              style={{ fontSize: '16px' }}
-              value={bulkRate}
-              onChange={(e) => setBulkRate(e.target.value)}
-            />
+            <div className="w-24 shrink-0">
+              <PercentageInput
+                className="h-10"
+                value={bulkRate}
+                onChange={setBulkRate}
+              />
+            </div>
             <Button
               type="button"
               size="sm"

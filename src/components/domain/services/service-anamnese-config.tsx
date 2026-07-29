@@ -1,7 +1,7 @@
 'use client'
 
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/ui/number-input'
 
 type AnamneseMode = 'NONE' | 'OPTIONAL' | 'REQUIRED'
 
@@ -48,15 +48,16 @@ export function ServiceAnamneseConfig({ mode, validityDays, onModeChange, onVali
           <Label htmlFor="validity-days" className="text-sm font-medium">
             Validade da ficha (dias)
           </Label>
-          <Input
-            id="validity-days"
-            type="number"
-            min={7}
-            max={365}
-            value={validityDays}
-            onChange={(e) => onValidityDaysChange(Math.max(7, Math.min(365, Number(e.target.value))))}
-            className="w-28 text-sm"
-          />
+          <div className="w-32">
+            <NumberInput
+              id="validity-days"
+              min={7}
+              max={365}
+              suffix="dias"
+              value={String(validityDays)}
+              onChange={(v) => onValidityDaysChange(v === '' ? 7 : Number(v))}
+            />
+          </div>
           <p className="text-xs text-muted-foreground">
             Após esse prazo o cliente será solicitado a atualizar a ficha.
           </p>

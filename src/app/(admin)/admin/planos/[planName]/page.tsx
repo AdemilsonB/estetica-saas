@@ -6,6 +6,8 @@ import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import { NumberInput } from '@/components/ui/number-input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
@@ -33,18 +35,19 @@ export default function PlanEditorPage() {
   const otherWarnings = warnings.filter((w) => w.plan !== planName)
 
   const [displayName, setDisplayName] = useState('')
-  const [price, setPrice] = useState('0')
+  const [price, setPrice] = useState('')
   const [description, setDescription] = useState('')
   const [trialDays, setTrialDays] = useState('14')
   const [stripePriceId, setStripePriceId] = useState('')
   const [isActive, setIsActive] = useState(true)
   const [featureState, setFeatureState] = useState<Record<string, boolean>>({})
-  const [limitState, setLimitState] = useState<Record<string, number>>({})
+  // Guardado como texto para o campo poder ficar vazio; convertido na hora de salvar.
+  const [limitState, setLimitState] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (plan) {
       setDisplayName(plan.displayName)
-      setPrice(String(plan.price))
+      setPrice(Number(plan.price).toFixed(2))
       setDescription(plan.description ?? '')
       setTrialDays(String(plan.trialDays))
       setStripePriceId(plan.stripePriceId ?? '')
@@ -62,7 +65,7 @@ export default function PlanEditorPage() {
 
   useEffect(() => {
     if (limits.length > 0) {
-      setLimitState(Object.fromEntries(limits.map((l) => [l.limitKey, l.value])))
+      setLimitState(Object.fromEntries(limits.map((l) => [l.limitKey, String(l.value)])))
     }
   }, [limits])
 
@@ -84,7 +87,10 @@ export default function PlanEditorPage() {
   const enabledCapabilityKeys = Object.entries(featureState)
     .filter(([, enabled]) => enabled)
     .map(([key]) => key)
-  const previewBenefits = buildPlanBenefits({ enabledCapabilityKeys, limits: limitState })
+  const numericLimits = Object.fromEntries(
+    Object.entries(limitState).map(([k, v]) => [k, v === '' ? 0 : Number(v)]),
+  )
+  const previewBenefits = buildPlanBenefits({ enabledCapabilityKeys, limits: numericLimits })
 
   function handleSaveMetadata() {
     updatePlan.mutate(
@@ -108,7 +114,7 @@ export default function PlanEditorPage() {
 
   function handleSaveLimits() {
     updateLimits.mutate(
-      { planName, limits: Object.entries(limitState).map(([limitKey, value]) => ({ limitKey, value })) },
+      { planName, limits: Object.entries(numericLimits).map(([limitKey, value]) => ({ limitKey, value })) },
       {
         onSuccess: () => toast.success('Limites salvos'),
         onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro'),
@@ -154,7 +160,7 @@ export default function PlanEditorPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Preço mensal (R$)</Label>
-              <Input type="number" min={0} step={0.01} value={price} onChange={(e) => setPrice(e.target.value)} />
+              <CurrencyInput value={price} onChange={setPrice} />
             </div>
             <div className="space-y-1.5">
               <Label>Destaques (opcional)</Label>
@@ -195,12 +201,12 @@ export default function PlanEditorPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Dias de trial grátis</Label>
-              <Input
-                type="number"
+              <NumberInput
                 min={0}
                 max={365}
+                suffix="dias"
                 value={trialDays}
-                onChange={(e) => setTrialDays(e.target.value)}
+                onChange={setTrialDays}
               />
               <p className="text-xs text-slate-400">0 = sem trial. O Stripe cobrará imediatamente ao assinar.</p>
             </div>
@@ -293,13 +299,13 @@ export default function PlanEditorPage() {
                 {entries.map(([key, meta]) => (
                   <div key={key} className="flex flex-wrap items-center gap-2 sm:gap-4">
                     <Label className="w-full sm:w-48 sm:shrink-0">{meta.label}</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      className="w-28"
-                      value={limitState[key] ?? 0}
-                      onChange={(e) => setLimitState((s) => ({ ...s, [key]: parseInt(e.target.value) || 0 }))}
-                    />
+                    <div className="w-28">
+                      <NumberInput
+                        min={0}
+                        value={limitState[key] ?? ''}
+                        onChange={(v) => setLimitState((s) => ({ ...s, [key]: v }))}
+                      />
+                    </div>
                     <span className="text-xs text-slate-400">{meta.unit} · {meta.unlimitedThreshold} = ilimitado</span>
                   </div>
                 ))}

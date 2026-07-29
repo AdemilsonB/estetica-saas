@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/ui/number-input'
 import { Label } from '@/components/ui/label'
 import { useAdjustStock } from '@/hooks/inventory/use-products'
 
@@ -70,14 +70,13 @@ export function AdjustStockModal({ open, onClose, product }: Props) {
 
           <div className="space-y-1.5">
             <Label htmlFor="adjust-qty">Nova quantidade (unidades)</Label>
-            <Input
+            <NumberInput
               id="adjust-qty"
-              type="number"
               min={0}
-              step={1}
+              suffix="un"
               placeholder={String(current)}
               value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
+              onChange={setQuantity}
             />
             {diff !== null && (
               <p className={`text-xs ${diff === 0 ? 'text-muted-foreground' : diff > 0 ? 'text-emerald-600' : 'text-orange-600'}`}>

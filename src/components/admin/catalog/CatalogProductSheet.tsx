@@ -5,6 +5,8 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import { NumberInput } from '@/components/ui/number-input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -37,7 +39,7 @@ export function CatalogProductSheet({ open, onClose, item, categories }: Props) 
 
   const [form, setForm] = useState({
     name: '', slug: '', description: '', segments: [] as string[],
-    categoryId: '', suggestedPrice: 0, order: 0, active: true,
+    categoryId: '', suggestedPrice: '', order: '0', active: true,
   })
   const [slugManual, setSlugManual] = useState(false)
 
@@ -46,12 +48,12 @@ export function CatalogProductSheet({ open, onClose, item, categories }: Props) 
       setForm({
         name: item.name, slug: item.slug, description: item.description ?? '',
         segments: item.segments, categoryId: item.categoryId ?? '',
-        suggestedPrice: Number(item.suggestedPrice), order: item.order, active: item.active,
+        suggestedPrice: Number(item.suggestedPrice).toFixed(2), order: String(item.order), active: item.active,
       })
       setSlugManual(true)
     } else {
       setForm({ name: '', slug: '', description: '', segments: [], categoryId: '',
-        suggestedPrice: 0, order: 0, active: true })
+        suggestedPrice: '', order: '0', active: true })
       setSlugManual(false)
     }
   }, [item, open])
@@ -80,8 +82,8 @@ export function CatalogProductSheet({ open, onClose, item, categories }: Props) 
         description: form.description || undefined,
         segments: form.segments,
         categoryId: form.categoryId || undefined,
-        suggestedPrice: form.suggestedPrice,
-        order: form.order,
+        suggestedPrice: Number(form.suggestedPrice),
+        order: form.order === '' ? 0 : Number(form.order),
         active: form.active,
       }
       if (isEditing) {
@@ -144,14 +146,14 @@ export function CatalogProductSheet({ open, onClose, item, categories }: Props) 
           </div>
           <div className="space-y-1">
             <Label htmlFor="price">Preço sugerido (R$) *</Label>
-            <Input id="price" type="number" min={0} step={0.01} value={form.suggestedPrice}
-              onChange={e => setForm(f => ({ ...f, suggestedPrice: Number(e.target.value) }))} required />
+            <CurrencyInput id="price" value={form.suggestedPrice}
+              onChange={v => setForm(f => ({ ...f, suggestedPrice: v }))} required />
           </div>
           <div className="grid grid-cols-2 gap-3 items-end">
             <div className="space-y-1">
               <Label htmlFor="order">Ordem</Label>
-              <Input id="order" type="number" value={form.order}
-                onChange={e => setForm(f => ({ ...f, order: Number(e.target.value) }))} />
+              <NumberInput id="order" min={0} value={form.order}
+                onChange={v => setForm(f => ({ ...f, order: v }))} />
             </div>
             <div className="flex items-center gap-2 pb-1">
               <Switch id="active" checked={form.active}

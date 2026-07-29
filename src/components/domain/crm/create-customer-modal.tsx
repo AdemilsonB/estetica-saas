@@ -64,7 +64,7 @@ export function CreateCustomerModal({ open, onClose, onCreated, modal = true }: 
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()} modal={modal}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-sm" stacked={!modal}>
         <DialogHeader>
           <DialogTitle>Novo cliente</DialogTitle>
         </DialogHeader>
