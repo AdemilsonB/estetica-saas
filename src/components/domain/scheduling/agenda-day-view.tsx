@@ -6,7 +6,6 @@ import { Plus, CalendarDays, LayoutList, CalendarRange } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AppointmentCard } from './appointment-card'
 import { AppointmentDrawer } from './appointment-drawer'
 import { CreateAppointmentModal } from './create-appointment-modal'
 import { RegisterPaymentModal } from '@/components/domain/financial/register-payment-modal'
@@ -14,12 +13,15 @@ import { ConfirmAppointmentModal } from './confirm-appointment-modal'
 import { AgendaWeekStrip } from './agenda-week-strip'
 import { AgendaMonthView } from './agenda-month-view'
 import { AgendaWeekGrid } from './agenda-week-grid'
+import { AgendaDayTimeline, type TimelineColumn } from './agenda-day-timeline'
 import { useAppointments, useUpdateAppointmentStatus } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { useTeamMembers } from '@/hooks/iam/use-team'
 import type { TeamMember } from '@/hooks/iam/use-team'
+import { useBusinessHours } from '@/hooks/scheduling/use-business-hours'
+import { buildDaySlots, slotBucket, toDateInputLocal } from '@/shared/utils/day-slots'
 import { ProfessionalFilter } from './ProfessionalFilter'
 
 function startOfDay(d: Date) {
@@ -53,19 +55,6 @@ function formatDayLabel(d: Date) {
   return isToday ? `Hoje, ${label}` : label
 }
 
-function groupByHour(appointments: Appointment[]) {
-  const groups: Record<string, Appointment[]> = {}
-  for (const appt of appointments) {
-    const hour = new Date(appt.startsAt).toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-    if (!groups[hour]) groups[hour] = []
-    groups[hour].push(appt)
-  }
-  return groups
-}
-
 function groupByDay(appointments: Appointment[]) {
   const groups: Record<string, Appointment[]> = {}
   for (const appt of appointments) {
@@ -85,6 +74,12 @@ function toHour(appt: Appointment) {
 
 type ViewMode = 'day' | 'week' | 'month'
 
+type CreateDraft = {
+  date?: string
+  professionalId?: string
+  time?: string
+}
+
 export function AgendaDayView() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<ViewMode>('day')
@@ -92,6 +87,7 @@ export function AgendaDayView() {
     useState<Appointment | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [createDraft, setCreateDraft] = useState<CreateDraft | null>(null)
   const [paymentAppointment, setPaymentAppointment] = useState<Appointment | null>(null)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   const [confirmModalAppointment, setConfirmModalAppointment] = useState<Appointment | null>(null)
@@ -212,15 +208,10 @@ export function AgendaDayView() {
     (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
   )
 
-  const groups = groupByHour(sorted)
-  const hours = Object.keys(groups).sort()
-
   const dayGroups = groupByDay(sorted)
   const dayKeys = Object.keys(dayGroups).sort(
     (a, b) => new Date(a).getTime() - new Date(b).getTime(),
   )
-
-  const isEmpty = viewMode === 'day' ? hours.length === 0 : dayKeys.length === 0
 
   const byProfessional = selectedProfessionalIds.map((profId) => ({
     professional: teamMembers.find((m) => m.id === profId) ?? ({
@@ -242,9 +233,55 @@ export function AgendaDayView() {
     appointments: sorted.filter((a) => a.professionalId === profId),
   }))
 
-  const allColumnHours = [
-    ...new Set(byProfessional.flatMap(({ appointments: a }) => a.map(toHour))),
-  ].sort()
+  // Visão Dia: timeline de slots de 30 em 30 min (vazios inclusive), com 1
+  // coluna quando 0/1 profissional está no filtro (ou não pode ver todos), N
+  // colunas quando N profissionais estão selecionados.
+  const { data: businessHoursData, isLoading: isLoadingBusinessHours } = useBusinessHours()
+  const slotIntervalMinutes = businessHoursData?.slotIntervalMinutes ?? 30
+  const multiColumn = canViewAll && selectedProfessionalIds.length > 1
+
+  const singleColumn: TimelineColumn = !canViewAll
+    ? { professionalId: currentUser?.id ?? '', professionalName: currentUser?.name ?? 'Você' }
+    : selectedProfessionalIds.length === 1
+      ? {
+          professionalId: selectedProfessionalIds[0],
+          professionalName: teamMembers.find((m) => m.id === selectedProfessionalIds[0])?.name ?? 'Profissional',
+        }
+      : { professionalId: '', professionalName: 'Todos' }
+
+  const timelineColumns: TimelineColumn[] = multiColumn
+    ? byProfessional.map(({ professional }) => ({ professionalId: professional.id, professionalName: professional.name }))
+    : [singleColumn]
+
+  const appointmentsByProfessional: Record<string, Appointment[]> = multiColumn
+    ? Object.fromEntries(byProfessional.map(({ professional, appointments: a }) => [professional.id, a]))
+    : { [singleColumn.professionalId]: sorted }
+
+  const generatedSlots = buildDaySlots(
+    businessHoursData?.businessHours?.[String(selectedDate.getDay())],
+    slotIntervalMinutes,
+  )
+  const apptBucketSlots = sorted.map((a) => slotBucket(toHour(a), slotIntervalMinutes))
+  const daySlots = [...new Set([...generatedSlots, ...apptBucketSlots])].sort()
+
+  const isEmpty = viewMode === 'day' ? daySlots.length === 0 : dayKeys.length === 0
+
+  function canClickSlot(professionalId: string): boolean {
+    if (!can('agenda', 'create')) return false
+    if (!professionalId) return false
+    if (professionalId === currentUser?.id) return true
+    return can('agenda', 'edit')
+  }
+
+  function handleSlotClick(professionalId: string, time: string) {
+    setCreateDraft({ date: toDateInputLocal(selectedDate), professionalId, time })
+    setCreateModalOpen(true)
+  }
+
+  function openCreateModal() {
+    setCreateDraft({ date: toDateInputLocal(selectedDate) })
+    setCreateModalOpen(true)
+  }
 
   function handleCardClick(appt: Appointment) {
     setSelectedAppointment(appt)
@@ -310,7 +347,7 @@ export function AgendaDayView() {
 
           {can('agenda', 'create') && (
             <Button
-              onClick={() => setCreateModalOpen(true)}
+              onClick={openCreateModal}
               size="icon"
               className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 size-8 shrink-0"
               aria-label="Novo agendamento"
@@ -340,7 +377,7 @@ export function AgendaDayView() {
       {/* Modos Dia e Semana */}
       {viewMode !== 'month' && (
         <>
-          {isLoading ? (
+          {isLoading || (viewMode === 'day' && isLoadingBusinessHours) ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-24 w-full rounded-2xl" />
@@ -368,7 +405,7 @@ export function AgendaDayView() {
               </p>
               {can('agenda', 'create') && (
                 <Button
-                  onClick={() => setCreateModalOpen(true)}
+                  onClick={openCreateModal}
                   variant="outline"
                   size="sm"
                   className="mt-4 rounded-full"
@@ -388,78 +425,20 @@ export function AgendaDayView() {
               onAppointmentClick={handleCardClick}
               professionalId={queryProfessionalId}
             />
-          ) : viewMode === 'day' && canViewAll && selectedProfessionalIds.length > 1 ? (
-            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-              <div className="inline-flex min-w-full flex-col">
-                <div className="mb-2 flex">
-                  <div className="w-10 sm:w-14 shrink-0" />
-                  {byProfessional.map(({ professional }) => (
-                    <div key={professional.id} className="min-w-44 sm:min-w-60 flex-1 px-1 sm:px-2">
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <div className="flex size-6 sm:size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] sm:text-xs font-semibold text-slate-600">
-                          {professional.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="truncate text-xs sm:text-sm font-medium text-slate-700">
-                          {professional.name}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {allColumnHours.map((hour) => (
-                  <div key={hour} className="flex items-start border-t border-slate-100/80">
-                    <div className="sticky left-0 z-10 w-10 sm:w-14 shrink-0 bg-background pt-1.5">
-                      <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-700">
-                        {hour}
-                      </span>
-                    </div>
-                    {byProfessional.map(({ professional, appointments: profAppts }) => {
-                      const appts = profAppts.filter((a) => toHour(a) === hour)
-                      return (
-                        <div
-                          key={professional.id}
-                          className="min-w-44 sm:min-w-60 flex-1 space-y-1.5 px-1 pb-2"
-                        >
-                          {appts.map((appt) => (
-                            <AppointmentCard
-                              key={appt.id}
-                              appointment={appt}
-                              onClick={handleCardClick}
-                              onConfirm={handleConfirmInline}
-                              onPay={handlePayInline}
-                              onEdit={handleEditInline}
-                            />
-                          ))}
-                        </div>
-                      )
-                    })}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : viewMode === 'day' ? (
-            <div className="space-y-6">
-              {hours.map((hour) => (
-                <div key={hour}>
-                  <p className="mb-2 text-xs font-semibold tracking-wide text-slate-700 uppercase">
-                    {hour}
-                  </p>
-                  <div className="space-y-2">
-                    {groups[hour].map((appt) => (
-                      <AppointmentCard
-                        key={appt.id}
-                        appointment={appt}
-                        onClick={handleCardClick}
-                        onConfirm={handleConfirmInline}
-                        onPay={handlePayInline}
-                        onEdit={handleEditInline}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
+          ) : (
+            <AgendaDayTimeline
+              slots={daySlots}
+              columns={timelineColumns}
+              appointmentsByProfessional={appointmentsByProfessional}
+              slotIntervalMinutes={slotIntervalMinutes}
+              canClickSlot={canClickSlot}
+              onSlotClick={handleSlotClick}
+              onAppointmentClick={handleCardClick}
+              onConfirm={handleConfirmInline}
+              onPay={handlePayInline}
+              onEdit={handleEditInline}
+            />
+          )}
         </>
       )}
 
@@ -477,6 +456,9 @@ export function AgendaDayView() {
       <CreateAppointmentModal
         open={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
+        defaultDate={createDraft?.date}
+        defaultProfessionalId={createDraft?.professionalId}
+        defaultTime={createDraft?.time}
       />
 
       <RegisterPaymentModal
