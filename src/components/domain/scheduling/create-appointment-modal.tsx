@@ -42,13 +42,23 @@ type Props = {
   defaultDate?: string
   defaultCustomerId?: string
   defaultCustomerName?: string
+  defaultProfessionalId?: string
+  defaultTime?: string
 }
 
 function toDateInput(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
-export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCustomerId, defaultCustomerName }: Props) {
+export function CreateAppointmentModal({
+  open,
+  onClose,
+  defaultDate,
+  defaultCustomerId,
+  defaultCustomerName,
+  defaultProfessionalId,
+  defaultTime,
+}: Props) {
   const { data: currentUser } = useCurrentUser()
   const { can } = usePermissions()
   const { data: services = [] } = useServices()
@@ -60,13 +70,13 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
 
   const canManage = can('agenda', 'edit')
 
-  const [professionalId, setProfessionalId] = useState('')
+  const [professionalId, setProfessionalId] = useState(defaultProfessionalId ?? '')
   const [serviceId, setServiceId] = useState('')
   const [packageId, setPackageId] = useState('')
   const [promotionId, setPromotionId] = useState('')
   const [date, setDate] = useState(defaultDate ?? toDateInput(new Date()))
-  const [selectedTime, setSelectedTime] = useState('')
-  const [customTime, setCustomTime] = useState('')
+  const [selectedTime, setSelectedTime] = useState(defaultTime ?? '')
+  const [customTime, setCustomTime] = useState(defaultTime ?? '')
   const [customerSearch, setCustomerSearch] = useState('')
   const [customerId, setCustomerId] = useState('')
   const [newCustomerOpen, setNewCustomerOpen] = useState(false)
@@ -88,32 +98,43 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
     packageId || null,
   )
 
+  // Seed único disparado a cada abertura do modal — lê os defaults mais
+  // recentes de uma vez só. Evita a corrida entre vários efeitos reativos a
+  // props isoladas (ex.: seedar profissional+horário de um clique na
+  // timeline e, no commit seguinte, um efeito de "limpar horário quando o
+  // profissional muda" apagar o que acabou de ser preenchido).
   useEffect(() => {
-    if (currentUser && !canManage) {
-      setProfessionalId(currentUser.id)
-    }
+    if (!open) return
+    setDate(defaultDate ?? toDateInput(new Date()))
+    setSelectedTime(defaultTime ?? '')
+    setCustomTime(defaultTime ?? '')
+    setCustomerId(defaultCustomerId ?? '')
+    setProfessionalId(defaultProfessionalId ?? currentUser?.id ?? '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed só na transição de abertura
+  }, [open])
+
+  // Profissional logado é sempre o profissional pra quem não pode gerenciar —
+  // campo fica oculto, nunca é outra pessoa, mesmo que currentUser carregue
+  // depois do modal já estar aberto (currentUser some no primeiro render).
+  useEffect(() => {
+    if (currentUser && !canManage) setProfessionalId(currentUser.id)
   }, [currentUser, canManage])
 
+  // Quando o serviço muda, prioriza o profissional vinculado a ele: só 1
+  // vinculado → seleciona automaticamente; vários e o atual não é um deles →
+  // limpa pra escolha manual (não dá pra adivinhar); ninguém vinculado →
+  // mantém o que já estava selecionado (o default do profissional logado).
   useEffect(() => {
-    if (defaultDate) setDate(defaultDate)
-  }, [defaultDate])
+    if (!canManage) return
+    if (!serviceId || !professionalsByService?.filtered) return
 
-  useEffect(() => {
-    if (defaultCustomerId) {
-      setCustomerId(defaultCustomerId)
-    }
-  }, [defaultCustomerId])
-
-  useEffect(() => {
-    setSelectedTime('')
-    setCustomTime('')
-  }, [professionalId, date, serviceId, packageId])
-
-  useEffect(() => {
-    if (canManage) {
+    const linked = professionalsByService.professionals
+    if (linked.length === 1) {
+      if (professionalId !== linked[0].id) setProfessionalId(linked[0].id)
+    } else if (!linked.some((p) => p.id === professionalId)) {
       setProfessionalId('')
     }
-  }, [serviceId, packageId, canManage])
+  }, [serviceId, professionalsByService, canManage, professionalId])
 
   function handlePickerSelect(selection: PickerSelection) {
     setServiceId('')
@@ -126,7 +147,6 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
       setServiceId(selection.item.id)
     } else if (selection.type === 'package') {
       setPackageId(selection.item.id)
-      if (canManage) setProfessionalId('')
     } else if (selection.type === 'promotion') {
       setServiceId(selection.service.id)
       setPromotionId(selection.promotionId)
@@ -134,13 +154,9 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
   }
 
   function handleClose() {
-    setProfessionalId(canManage ? '' : (currentUser?.id ?? ''))
     setServiceId('')
     setPackageId('')
     setPromotionId('')
-    setDate(defaultDate ?? toDateInput(new Date()))
-    setSelectedTime('')
-    setCustomTime('')
     setCustomerSearch('')
     setCustomerId(defaultCustomerId ?? '')
     setNewCustomerOpen(false)
@@ -273,23 +289,42 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
             </>
           )}
 
-          {/* 3. Data */}
-          <div className="space-y-2">
-            <Label htmlFor="apt-date">Data</Label>
-            <Input
-              id="apt-date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-            />
+          {/* 3. Data + horário específico — 75/25 em telas maiores, encolhe junto no mobile */}
+          <div className="flex min-w-0 gap-3">
+            <div className="w-3/4 min-w-0 space-y-2">
+              <Label htmlFor="apt-date">Data</Label>
+              <Input
+                id="apt-date"
+                type="date"
+                value={date}
+                onChange={(e) => {
+                  setDate(e.target.value)
+                  setSelectedTime('')
+                  setCustomTime('')
+                }}
+                required
+              />
+            </div>
+            <div className="w-1/4 min-w-21 space-y-2">
+              <Label htmlFor="custom-time">Horário</Label>
+              <Input
+                id="custom-time"
+                type="time"
+                value={customTime}
+                onChange={(e) => {
+                  setCustomTime(e.target.value)
+                  setSelectedTime(e.target.value)
+                }}
+                className="px-1.5"
+              />
+            </div>
           </div>
 
-          {/* 4. Horário — só aparece quando profissional + serviço/pacote + data estão definidos */}
+          {/* 4. Sugestões de horário — só aparece quando profissional + serviço/pacote + data estão definidos */}
           {professionalId && (serviceId || packageId) && date && (
             <div className="space-y-2">
               <div className="flex flex-col gap-2">
-                <Label>Horário</Label>
+                <Label>Horários sugeridos</Label>
                 {canManage && (
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
                     <div className="flex items-center gap-2">
@@ -364,22 +399,6 @@ export function CreateAppointmentModal({ open, onClose, defaultDate, defaultCust
                   })}
                 </div>
               )}
-
-              <div className="space-y-1.5">
-                <Label htmlFor="custom-time" className="text-xs text-slate-500">
-                  Ou informe um horário específico:
-                </Label>
-                <Input
-                  id="custom-time"
-                  type="time"
-                  value={customTime}
-                  onChange={(e) => {
-                    setCustomTime(e.target.value)
-                    setSelectedTime(e.target.value)
-                  }}
-                  className="h-8"
-                />
-              </div>
             </div>
           )}
 

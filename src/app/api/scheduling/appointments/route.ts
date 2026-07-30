@@ -53,6 +53,15 @@ export async function POST(request: Request) {
       throw new ForbiddenError("Apenas OWNER e MANAGER podem autorizar conflito de horario.");
     }
 
+    // Quem não tem agenda:edit só pode agendar pra si mesmo — o campo de
+    // profissional some do formulário pra esse perfil, mas isso é só UI;
+    // sem essa checagem, uma requisição direta poderia atribuir o
+    // agendamento a qualquer colega do tenant.
+    const canAssignOthers = session.isOwner || session.permissions['agenda']?.includes('edit')
+    if (input.professionalId !== session.userId && !canAssignOthers) {
+      throw new ForbiddenError("Sem permissao para agendar em nome de outro profissional.");
+    }
+
     const appointment = await schedulingService.createAppointment(
       session.tenantId,
       session.userId,
