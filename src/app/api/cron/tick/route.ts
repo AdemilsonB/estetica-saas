@@ -31,6 +31,7 @@ import {
   type TeamNotificationEmailPayload,
 } from "@/shared/queue/jobs/team-notification-email";
 import { TEAM_DAILY_DIGEST_JOB, handleTeamDailyDigest } from "@/shared/queue/jobs/team-daily-digest";
+import { scheduledMessageService } from "@/domains/notifications/scheduled-messages/scheduled-message.service";
 
 type EmptyPayload = Record<string, never>;
 type PgBossInstance = Awaited<ReturnType<typeof startPgBoss>>;
@@ -72,6 +73,19 @@ async function runScheduled(
     console.error(`[cron:tick] ${name} falhou:`, err);
     await boss.fail(name, jobs.map((j) => j.id));
     return 0;
+  }
+}
+
+// Mensagens agendadas NÃO são um job do pg-boss de propósito: a idempotência já vem do
+// claim atômico na própria tabela (`ScheduledMessage.status`), e enfileirar criaria
+// backlog — o tick é o único worker e cada tick buscaria um job só. O try/catch local
+// existe para que uma falha aqui não zere o processamento dos demais jobs do tick.
+async function runMensagensAgendadas() {
+  try {
+    return await scheduledMessageService.deliverDue();
+  } catch (err) {
+    console.error("[cron:tick] mensagens agendadas falharam:", err);
+    return { enviadas: 0, falhas: 0, expiradas: 0 };
   }
 }
 
@@ -140,6 +154,8 @@ export async function GET(request: NextRequest) {
         runScheduled(boss, TEAM_DAILY_DIGEST_JOB, handleTeamDailyDigest),
       ]);
 
+    const scheduledMessages = await runMensagensAgendadas();
+
     return Response.json({
       ok: true,
       processed: {
@@ -155,6 +171,7 @@ export async function GET(request: NextRequest) {
         userBirthday,
         teamEmail,
         teamDigest,
+        scheduledMessages,
       },
     });
   } catch (err) {
