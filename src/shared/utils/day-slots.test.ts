@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildDaySlots, slotBucket, toDateInputLocal } from './day-slots'
+import { appointmentSlotSpan, buildDaySlots, slotBucket, toDateInputLocal } from './day-slots'
 
 describe('buildDaySlots', () => {
   it('gera slots de 30 em 30 min dentro do expediente', () => {
@@ -54,5 +54,24 @@ describe('toDateInputLocal', () => {
   it('preenche mês e dia com zero à esquerda', () => {
     const d = new Date(2026, 0, 5)
     expect(toDateInputLocal(d)).toBe('2026-01-05')
+  })
+})
+
+describe('appointmentSlotSpan', () => {
+  it('agendamento de exatamente 1 intervalo ocupa 1 linha', () => {
+    expect(appointmentSlotSpan('2026-08-03T09:00:00', '2026-08-03T09:30:00', 30)).toBe(1)
+  })
+
+  it('agendamento de 4 horas num grid de 30min ocupa 8 linhas', () => {
+    expect(appointmentSlotSpan('2026-08-03T09:00:00', '2026-08-03T13:00:00', 30)).toBe(8)
+  })
+
+  it('arredonda pra cima quando a duração não é múltipla do intervalo', () => {
+    // 45min num grid de 30min precisa de 2 linhas, não 1,5.
+    expect(appointmentSlotSpan('2026-08-03T09:00:00', '2026-08-03T09:45:00', 30)).toBe(2)
+  })
+
+  it('nunca retorna menos de 1 linha', () => {
+    expect(appointmentSlotSpan('2026-08-03T09:00:00', '2026-08-03T09:10:00', 30)).toBe(1)
   })
 })

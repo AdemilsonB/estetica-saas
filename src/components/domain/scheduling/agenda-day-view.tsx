@@ -23,6 +23,7 @@ import type { TeamMember } from '@/hooks/iam/use-team'
 import { useBusinessHours } from '@/hooks/scheduling/use-business-hours'
 import { buildDaySlots, slotBucket, toDateInputLocal } from '@/shared/utils/day-slots'
 import { ProfessionalFilter } from './ProfessionalFilter'
+import { useAgendaDateStore } from '@/stores/agenda-date.store'
 
 function startOfDay(d: Date) {
   const r = new Date(d)
@@ -81,7 +82,8 @@ type CreateDraft = {
 }
 
 export function AgendaDayView() {
-  const [selectedDate, setSelectedDate] = useState(new Date())
+  const selectedDate = useAgendaDateStore((s) => s.selectedDate)
+  const setSelectedDate = useAgendaDateStore((s) => s.setSelectedDate)
   const [viewMode, setViewMode] = useState<ViewMode>('day')
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null)

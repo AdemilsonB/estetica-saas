@@ -34,3 +34,11 @@ export function slotBucket(time: string, intervalMinutes: number): string {
   const bm = totalMin % 60
   return `${String(bh).padStart(2, '0')}:${String(bm).padStart(2, '0')}`
 }
+
+// Quantas linhas de `intervalMinutes` um agendamento cobre na timeline,
+// arredondado pra cima — nunca sub-bloquear o intervalo (ex.: 45min num grid
+// de 30min precisa de 2 linhas, não 1,5).
+export function appointmentSlotSpan(startsAt: string, endsAt: string, intervalMinutes: number): number {
+  const durationMinutes = (new Date(endsAt).getTime() - new Date(startsAt).getTime()) / 60000
+  return Math.max(1, Math.ceil(durationMinutes / intervalMinutes))
+}
