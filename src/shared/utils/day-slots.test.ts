@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { appointmentSlotSpan, buildDaySlots, slotBucket, toDateInputLocal } from './day-slots'
+import {
+  appointmentSlotSpan,
+  appointmentSlotTimes,
+  buildDaySlots,
+  occupiesSlot,
+  slotBucket,
+  toDateInputLocal,
+} from './day-slots'
 
 describe('buildDaySlots', () => {
   it('gera slots de 30 em 30 min dentro do expediente', () => {
@@ -73,5 +80,37 @@ describe('appointmentSlotSpan', () => {
 
   it('nunca retorna menos de 1 linha', () => {
     expect(appointmentSlotSpan('2026-08-03T09:00:00', '2026-08-03T09:10:00', 30)).toBe(1)
+  })
+})
+
+describe('occupiesSlot', () => {
+  it('desmarcado e não compareceu deixam o horário livre', () => {
+    expect(occupiesSlot('CANCELLED')).toBe(false)
+    expect(occupiesSlot('NO_SHOW')).toBe(false)
+  })
+
+  it('agendado, confirmado e concluído seguem ocupando o horário', () => {
+    expect(occupiesSlot('SCHEDULED')).toBe(true)
+    expect(occupiesSlot('CONFIRMED')).toBe(true)
+    // Concluir o atendimento não devolve o horário para a grade.
+    expect(occupiesSlot('COMPLETED')).toBe(true)
+  })
+})
+
+describe('appointmentSlotTimes', () => {
+  it('devolve todas as linhas da duração, não só a de início', () => {
+    expect(appointmentSlotTimes('2026-08-03T09:00:00', '2026-08-03T10:30:00', 30)).toEqual([
+      '09:00', '09:30', '10:00',
+    ])
+  })
+
+  it('parte do bucket quando o horário não bate com a linha exata', () => {
+    expect(appointmentSlotTimes('2026-08-03T09:15:00', '2026-08-03T09:45:00', 30)).toEqual([
+      '09:00', '09:30',
+    ])
+  })
+
+  it('não vaza para o dia seguinte', () => {
+    expect(appointmentSlotTimes('2026-08-03T23:30:00', '2026-08-04T01:00:00', 30)).toEqual(['23:30'])
   })
 })

@@ -112,6 +112,20 @@ describe('CreateAppointmentModal — default de profissional', () => {
     expect(screen.queryByRole('button', { name: /10 de agosto/i })).not.toBeInTheDocument()
   })
 
+  it('mantém o horário vindo do clique na grade depois de escolher o serviço', () => {
+    // Regressão: o horário do slot clicado era apagado ao selecionar o
+    // serviço — e como o serviço é escolhido DEPOIS de abrir o modal, o campo
+    // sempre voltava vazio, anulando o pré-preenchimento da grade.
+    render(
+      <CreateAppointmentModal open onClose={() => {}} defaultProfessionalId="p2" defaultTime="09:30" />,
+    )
+    expect(screen.getByLabelText('Horário')).toHaveValue('09:30')
+
+    fireEvent.click(screen.getByText('stub-servico-Corte'))
+
+    expect(screen.getByLabelText('Horário')).toHaveValue('09:30')
+  })
+
   it('troca pro profissional vinculado ao serviço quando só um está vinculado', () => {
     useProfessionalsByServiceMock.mockReturnValue({
       data: { filtered: true, professionals: [{ id: 'p2', name: 'Bruna Cabelo' }] },

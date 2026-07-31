@@ -115,7 +115,7 @@ describe('AgendaDayTimeline', () => {
 
     render(
       <AgendaDayTimeline
-        slots={['09:00', '09:30']}
+        slots={['09:00', '09:30', '10:00']}
         columns={baseColumns}
         appointmentsByProfessional={{ p1: [appt] }}
         slotIntervalMinutes={30}
@@ -128,8 +128,13 @@ describe('AgendaDayTimeline', () => {
       />,
     )
 
-    // 09:30 continua vazio e clicável — o agendamento das 09:15 caiu no bucket de 09:00.
-    expect(screen.getByLabelText('Novo agendamento às 09:30')).toBeInTheDocument()
+    // O card é desenhado na linha das 09:00 (bucket do início)...
+    expect(screen.getByText('Maria')).toBeInTheDocument()
+    // ...e a linha das 09:30 fica bloqueada, porque o atendimento só termina
+    // 09:45 — invade a linha inteira. Antes ela seguia clicável e dava pra
+    // marcar em cima de um horário ocupado.
+    expect(screen.queryByLabelText('Novo agendamento às 09:30')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Novo agendamento às 10:00')).toBeInTheDocument()
   })
 
   it('um agendamento de várias horas bloqueia os slots seguintes só na coluna do profissional dele', () => {
@@ -163,6 +168,108 @@ describe('AgendaDayTimeline', () => {
     // O outro profissional (p2) não tem agendamento — todos os 4 slots dele continuam livres.
     const allSlotButtons = screen.getAllByLabelText(/Novo agendamento às/)
     expect(allSlotButtons).toHaveLength(4)
+  })
+
+  it('libera o horário quando o agendamento é desmarcado ou marcado como não compareceu', () => {
+    const cancelado = makeAppointment({
+      id: 'apt1',
+      status: 'CANCELLED',
+      startsAt: '2026-08-03T09:00:00',
+      endsAt: '2026-08-03T11:00:00',
+    })
+    const noShow = makeAppointment({
+      id: 'apt2',
+      status: 'NO_SHOW',
+      startsAt: '2026-08-03T11:00:00',
+      endsAt: '2026-08-03T11:30:00',
+      customer: { id: 'c2', name: 'Joana', phone: null, notes: null },
+    })
+
+    render(
+      <AgendaDayTimeline
+        slots={['09:00', '09:30', '10:00', '10:30', '11:00']}
+        columns={baseColumns}
+        appointmentsByProfessional={{ p1: [cancelado, noShow] }}
+        slotIntervalMinutes={30}
+        canClickSlot={() => true}
+        onSlotClick={vi.fn()}
+        onAppointmentClick={vi.fn()}
+        onConfirm={vi.fn()}
+        onPay={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    )
+
+    // Nenhum dos dois ocupa horário (mesma regra do backend) — todas as
+    // linhas voltam a ser slots vazios clicáveis e os cards somem da grade.
+    expect(screen.getAllByLabelText(/Novo agendamento às/)).toHaveLength(5)
+    expect(screen.queryByText('Maria')).not.toBeInTheDocument()
+    expect(screen.queryByText('Joana')).not.toBeInTheDocument()
+  })
+
+  it('mantém o bloqueio de um atendimento já concluído', () => {
+    const concluido = makeAppointment({
+      status: 'COMPLETED',
+      startsAt: '2026-08-03T09:00:00',
+      endsAt: '2026-08-03T10:00:00',
+    })
+
+    render(
+      <AgendaDayTimeline
+        slots={['09:00', '09:30', '10:00']}
+        columns={baseColumns}
+        appointmentsByProfessional={{ p1: [concluido] }}
+        slotIntervalMinutes={30}
+        canClickSlot={() => true}
+        onSlotClick={vi.fn()}
+        onAppointmentClick={vi.fn()}
+        onConfirm={vi.fn()}
+        onPay={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    )
+
+    // Concluir não devolve o horário: 09:00 e 09:30 seguem ocupados.
+    expect(screen.getByText('Maria')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Novo agendamento às 09:30')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Novo agendamento às 10:00')).toBeInTheDocument()
+  })
+
+  it('junta num bloco só dois agendamentos que se sobrepõem começando em horários diferentes', () => {
+    // Sem juntar, os dois viravam grid items sobrepostos na mesma coluna e um
+    // desenhava por cima do outro.
+    const longo = makeAppointment({
+      id: 'apt1',
+      startsAt: '2026-08-03T09:00:00',
+      endsAt: '2026-08-03T11:00:00',
+    })
+    const dentro = makeAppointment({
+      id: 'apt2',
+      startsAt: '2026-08-03T10:00:00',
+      endsAt: '2026-08-03T10:30:00',
+      customer: { id: 'c2', name: 'Joana', phone: null, notes: null },
+    })
+
+    render(
+      <AgendaDayTimeline
+        slots={['09:00', '09:30', '10:00', '10:30', '11:00']}
+        columns={baseColumns}
+        appointmentsByProfessional={{ p1: [longo, dentro] }}
+        slotIntervalMinutes={30}
+        canClickSlot={() => true}
+        onSlotClick={vi.fn()}
+        onAppointmentClick={vi.fn()}
+        onConfirm={vi.fn()}
+        onPay={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    )
+
+    // Os dois aparecem, mas dentro do mesmo bloco — só 11:00 fica livre.
+    expect(screen.getByText('Maria')).toBeInTheDocument()
+    expect(screen.getByText('Joana')).toBeInTheDocument()
+    expect(screen.getAllByLabelText(/Novo agendamento às/)).toHaveLength(1)
+    expect(screen.getByLabelText('Novo agendamento às 11:00')).toBeInTheDocument()
   })
 
   it('mantém dois agendamentos visíveis no mesmo horário quando há conflito autorizado', () => {

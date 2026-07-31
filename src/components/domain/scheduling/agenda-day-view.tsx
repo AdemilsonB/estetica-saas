@@ -21,7 +21,12 @@ import { useCurrentUser } from '@/hooks/use-current-user'
 import { useTeamMembers } from '@/hooks/iam/use-team'
 import type { TeamMember } from '@/hooks/iam/use-team'
 import { useBusinessHours } from '@/hooks/scheduling/use-business-hours'
-import { buildDaySlots, slotBucket, toDateInputLocal } from '@/shared/utils/day-slots'
+import {
+  appointmentSlotTimes,
+  buildDaySlots,
+  occupiesSlot,
+  toDateInputLocal,
+} from '@/shared/utils/day-slots'
 import { ProfessionalFilter } from './ProfessionalFilter'
 import { useAgendaDateStore } from '@/stores/agenda-date.store'
 
@@ -64,13 +69,6 @@ function groupByDay(appointments: Appointment[]) {
     groups[key].push(appt)
   }
   return groups
-}
-
-function toHour(appt: Appointment) {
-  return new Date(appt.startsAt).toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 type ViewMode = 'day' | 'week' | 'month'
@@ -263,8 +261,15 @@ export function AgendaDayView() {
     businessHoursData?.businessHours?.[String(selectedDate.getDay())],
     slotIntervalMinutes,
   )
-  const apptBucketSlots = sorted.map((a) => slotBucket(toHour(a), slotIntervalMinutes))
-  const daySlots = [...new Set([...generatedSlots, ...apptBucketSlots])].sort()
+  // Agendamento fora do expediente entra na grade com TODAS as linhas da sua
+  // duração, não só a de início — senão a grade fica com buraco (ex.: 08:00
+  // seguido de 09:00 num grid de 30min) e o cálculo de span, que assume
+  // linhas uniformes, passa a bloquear o intervalo errado. Desmarcado /
+  // não compareceu não ocupam horário, então não criam linha própria.
+  const apptSlots = sorted.flatMap((a) =>
+    occupiesSlot(a.status) ? appointmentSlotTimes(a.startsAt, a.endsAt, slotIntervalMinutes) : [],
+  )
+  const daySlots = [...new Set([...generatedSlots, ...apptSlots])].sort()
 
   const isEmpty = viewMode === 'day' ? daySlots.length === 0 : dayKeys.length === 0
 

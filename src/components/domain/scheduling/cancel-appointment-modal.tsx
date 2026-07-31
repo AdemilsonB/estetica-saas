@@ -47,11 +47,11 @@ export function CancelAppointmentModal({ appointment, open, onClose }: Props) {
       },
       {
         onSuccess: () => {
-          toast.success('Agendamento cancelado')
+          toast.success('Agendamento desmarcado')
           onClose()
         },
         onError: (err) => {
-          toast.error(err instanceof Error ? err.message : 'Erro ao cancelar agendamento')
+          toast.error(err instanceof Error ? err.message : 'Erro ao desmarcar agendamento')
         },
       },
     )
@@ -61,7 +61,7 @@ export function CancelAppointmentModal({ appointment, open, onClose }: Props) {
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Cancelar agendamento</DialogTitle>
+          <DialogTitle>Desmarcar agendamento</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 pt-2">
@@ -107,7 +107,7 @@ export function CancelAppointmentModal({ appointment, open, onClose }: Props) {
               onClick={handleConfirm}
               disabled={updateStatus.isPending}
             >
-              {updateStatus.isPending ? 'Cancelando...' : 'Confirmar cancelamento'}
+              {updateStatus.isPending ? 'Desmarcando...' : 'Confirmar desmarcação'}
             </Button>
           </div>
         </div>

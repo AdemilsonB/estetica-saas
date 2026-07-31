@@ -38,7 +38,53 @@ export function slotBucket(time: string, intervalMinutes: number): string {
 // Quantas linhas de `intervalMinutes` um agendamento cobre na timeline,
 // arredondado pra cima — nunca sub-bloquear o intervalo (ex.: 45min num grid
 // de 30min precisa de 2 linhas, não 1,5).
+//
+// A conta parte do INÍCIO DA LINHA (bucket), não do horário exato: um
+// agendamento das 09:15 às 09:45 dura 30min, mas invade a linha das 09:30 e
+// precisa de 2 linhas. Medir só a duração deixava essa linha clicável e
+// permitia marcar em cima de um horário ocupado.
 export function appointmentSlotSpan(startsAt: string, endsAt: string, intervalMinutes: number): number {
-  const durationMinutes = (new Date(endsAt).getTime() - new Date(startsAt).getTime()) / 60000
-  return Math.max(1, Math.ceil(durationMinutes / intervalMinutes))
+  const start = new Date(startsAt)
+  const durationMinutes = (new Date(endsAt).getTime() - start.getTime()) / 60000
+  const offsetFromBucket = (start.getHours() * 60 + start.getMinutes()) % intervalMinutes
+  return Math.max(1, Math.ceil((offsetFromBucket + durationMinutes) / intervalMinutes))
+}
+
+// Status que deixam de ocupar o horário. Espelha exatamente a regra de
+// conflito do backend (`appointment.repository.ts`, `notIn: [CANCELLED,
+// NO_SHOW]`) — se a grade divergir disso, a UI mostra bloqueado enquanto o
+// backend aceita agendar por cima.
+export const SLOT_FREEING_STATUSES = ['CANCELLED', 'NO_SHOW'] as const
+
+export function occupiesSlot(status: string): boolean {
+  return !(SLOT_FREEING_STATUSES as readonly string[]).includes(status)
+}
+
+// Todos os horários de linha que um agendamento ocupa, do bucket de início
+// até o fim da duração. Usado pra garantir que a timeline tenha linha pra
+// cada slot coberto — sem isso, um agendamento que começa fora do expediente
+// cria um buraco na grade e a matemática de span (que assume linhas de
+// `intervalMinutes` uniformes) passa a bloquear o intervalo errado.
+export function appointmentSlotTimes(
+  startsAt: string,
+  endsAt: string,
+  intervalMinutes: number,
+): string[] {
+  const start = new Date(startsAt)
+  const bucket = slotBucket(
+    `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`,
+    intervalMinutes,
+  )
+  const [bh, bm] = bucket.split(':').map(Number)
+  const span = appointmentSlotSpan(startsAt, endsAt, intervalMinutes)
+
+  const times: string[] = []
+  for (let i = 0; i < span; i++) {
+    const total = bh * 60 + bm + i * intervalMinutes
+    if (total >= 24 * 60) break // não vaza pro dia seguinte
+    times.push(
+      `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`,
+    )
+  }
+  return times
 }
