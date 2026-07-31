@@ -1,5 +1,5 @@
 import { initializeDomainRuntime } from "@/app/api/_lib/runtime";
-import { featureGuard, FEATURES } from "@/domains/billing/feature-guard";
+import { customerMessageBlockedReason } from "@/domains/notifications/customer-messages/customer-message-delivery";
 import { customerMessageService } from "@/domains/notifications/customer-messages/customer-message.service";
 import { customerMessageSettingService } from "@/domains/notifications/customer-messages/customer-message-setting.service";
 import { customerMessagePreviewSchema } from "@/domains/notifications/customer-messages/schemas";
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
       },
     );
 
-    const blockedReason = await motivoDeBloqueio({
+    const blockedReason = await customerMessageBlockedReason({
       tenantId,
       channels,
       cliente,
@@ -143,55 +143,4 @@ export async function POST(request: Request) {
   } catch (error) {
     return handleApiError(error);
   }
-}
-
-type MotivoArgs = {
-  tenantId: string;
-  channels: CustomerMessageChannel[];
-  cliente: { phone: string | null; email: string | null };
-  tenant: {
-    whatsappEnabled: boolean;
-    evolutionConnected: boolean;
-    evolutionStatus: string | null;
-  };
-};
-
-/**
- * Devolve o motivo legível SÓ quando nenhum canal ligado consegue entregar. Se ao
- * menos um consegue, a mensagem sai e o toggle não pode aparecer desabilitado.
- */
-async function motivoDeBloqueio(args: MotivoArgs): Promise<string | null> {
-  if (args.channels.length === 0) {
-    return "Nenhum canal está ligado para este aviso nas configurações.";
-  }
-
-  const emailEntrega = args.channels.includes("EMAIL") && Boolean(args.cliente.email);
-
-  if (!args.channels.includes("WHATSAPP")) {
-    return emailEntrega ? null : "Este cliente não tem e-mail cadastrado.";
-  }
-
-  let motivoWhatsApp: string | null = null;
-
-  try {
-    await featureGuard.assertAccess(args.tenantId, FEATURES.WHATSAPP_BASIC);
-  } catch {
-    motivoWhatsApp = "Seu plano não inclui o envio de WhatsApp.";
-  }
-
-  if (!motivoWhatsApp && !args.cliente.phone) {
-    motivoWhatsApp = "Este cliente não tem telefone cadastrado.";
-  }
-  if (!motivoWhatsApp && !args.tenant.whatsappEnabled) {
-    motivoWhatsApp = "O envio automático de WhatsApp está desligado nas configurações.";
-  }
-  if (
-    !motivoWhatsApp &&
-    (!args.tenant.evolutionConnected || args.tenant.evolutionStatus !== "CONNECTED")
-  ) {
-    motivoWhatsApp = "O WhatsApp do seu negócio não está conectado.";
-  }
-
-  if (!motivoWhatsApp) return null;
-  return emailEntrega ? null : motivoWhatsApp;
 }
