@@ -1,0 +1,144 @@
+import { prisma } from "@/shared/database/prisma";
+
+import type { ScheduledMessageForDelivery, ScheduledMessageWithAuthor } from "./types";
+
+export type CreateScheduledMessageData = {
+  customerId: string;
+  body: string;
+  scheduledAt: Date;
+  createdByUserId: string;
+};
+
+export type UpdateScheduledMessageData = {
+  body: string;
+  scheduledAt: Date;
+};
+
+const AUTOR = { createdByUser: { select: { id: true, name: true } } } as const;
+
+export class ScheduledMessageRepository {
+  /** `tenantId` vem sempre do argumento (extraído da sessão), nunca do input. */
+  async create(tenantId: string, data: CreateScheduledMessageData) {
+    return prisma.scheduledMessage.create({
+      data: {
+        tenantId,
+        customerId: data.customerId,
+        body: data.body,
+        scheduledAt: data.scheduledAt,
+        createdByUserId: data.createdByUserId,
+        // A v1 só entrega por WhatsApp. O campo existe para o e-mail plugar depois.
+        channel: "WHATSAPP",
+      },
+    });
+  }
+
+  async listByCustomer(
+    tenantId: string,
+    customerId: string,
+  ): Promise<ScheduledMessageWithAuthor[]> {
+    return prisma.scheduledMessage.findMany({
+      where: { tenantId, customerId },
+      include: AUTOR,
+      orderBy: { scheduledAt: "desc" },
+    });
+  }
+
+  async findById(tenantId: string, id: string): Promise<ScheduledMessageWithAuthor | null> {
+    return prisma.scheduledMessage.findFirst({
+      where: { id, tenantId },
+      include: AUTOR,
+    });
+  }
+
+  /**
+   * O `status: "PENDING"` no `where` não é redundância com a checagem do service: ele
+   * fecha a corrida entre a edição e a varredura do cron. Devolve `false` quando a
+   * linha já saiu do PENDING no meio do caminho.
+   */
+  async update(
+    tenantId: string,
+    id: string,
+    data: UpdateScheduledMessageData,
+  ): Promise<boolean> {
+    const { count } = await prisma.scheduledMessage.updateMany({
+      where: { id, tenantId, status: "PENDING" },
+      data: { body: data.body, scheduledAt: data.scheduledAt },
+    });
+    return count === 1;
+  }
+
+  /** Cancelar é mudar o status, nunca apagar a linha — o histórico fica. */
+  async cancel(tenantId: string, id: string): Promise<boolean> {
+    const { count } = await prisma.scheduledMessage.updateMany({
+      where: { id, tenantId, status: "PENDING" },
+      data: { status: "CANCELLED" },
+    });
+    return count === 1;
+  }
+
+  /**
+   * VARREDURA DO CRON — cross-tenant de propósito. O tick processa todos os tenants
+   * numa passada só; filtrar por tenant aqui exigiria varrer a tabela de tenants a
+   * cada 10 minutos. Este método não é alcançável a partir de nenhuma rota HTTP.
+   */
+  async findDue(now: Date, limit: number): Promise<ScheduledMessageForDelivery[]> {
+    return prisma.scheduledMessage.findMany({
+      where: { status: "PENDING", scheduledAt: { lte: now } },
+      include: {
+        customer: { select: { id: true, name: true, phone: true } },
+        tenant: {
+          select: { name: true, slug: true, timezone: true, phone: true, address: true },
+        },
+      },
+      orderBy: { scheduledAt: "asc" },
+      take: limit,
+    });
+  }
+
+  /**
+   * A reivindicação atômica que garante a idempotência: o `where` exige `PENDING`, e
+   * o Postgres só deixa um `updateMany` concorrente ver a linha nesse estado. Quem
+   * recebe `count === 1` é dono do envio; qualquer outro tick recebe `0` e desiste.
+   * Cross-tenant pelo mesmo motivo do `findDue`.
+   */
+  async claim(id: string): Promise<boolean> {
+    const { count } = await prisma.scheduledMessage.updateMany({
+      where: { id, status: "PENDING" },
+      data: { status: "SENDING" },
+    });
+    return count === 1;
+  }
+
+  async markSent(id: string, notificationLogId: string, sentAt: Date) {
+    return prisma.scheduledMessage.update({
+      where: { id },
+      data: { status: "SENT", sentAt, notificationLogId, failureReason: null },
+    });
+  }
+
+  async markFailed(id: string, failureReason: string, notificationLogId: string | null) {
+    return prisma.scheduledMessage.update({
+      where: { id },
+      data: { status: "FAILED", failureReason, notificationLogId },
+    });
+  }
+
+  /**
+   * Rede de segurança: se o processo morreu entre o `claim` e o desfecho, a linha
+   * ficaria em `SENDING` para sempre — invisível para o `findDue`, que só olha
+   * `PENDING`. Depois da janela, vira FAILED com motivo legível. Cross-tenant.
+   */
+  async expireStuck(before: Date): Promise<number> {
+    const { count } = await prisma.scheduledMessage.updateMany({
+      where: { status: "SENDING", updatedAt: { lt: before } },
+      data: {
+        status: "FAILED",
+        failureReason:
+          "O envio foi interrompido antes de terminar. Agende a mensagem de novo.",
+      },
+    });
+    return count;
+  }
+}
+
+export const scheduledMessageRepository = new ScheduledMessageRepository();
