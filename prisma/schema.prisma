@@ -227,6 +227,7 @@ model Tenant {
   userNotificationPreferences UserNotificationPreference[]
   customerMessageTemplates    CustomerMessageTemplate[]
   customerMessageSettings     CustomerMessageSetting[]
+  scheduledMessages           ScheduledMessage[]
 }
 
 model BrandingConfig {
@@ -336,6 +337,7 @@ model User {
   professionalServices     ProfessionalService[]
   userNotifications        UserNotification[]
   notificationPreferences  UserNotificationPreference[]
+  scheduledMessages        ScheduledMessage[]           @relation("ScheduledMessageCreatedBy")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -445,6 +447,7 @@ model Customer {
   appointments       Appointment[]
   anamnese           CustomerAnamnese?
   reviews            AppointmentReview[]
+  scheduledMessages  ScheduledMessage[]
 
   @@index([tenantId])
   @@index([tenantId, phone])
@@ -729,6 +732,46 @@ model CustomerMessageSetting {
 
   @@unique([tenantId, event])
   @@index([tenantId])
+}
+
+/// Mensagem avulsa que o profissional agenda para uma cliente específica: um texto,
+/// uma pessoa, uma data/hora. Não é campanha — quando a Fase 3 chegar, a campanha
+/// reusa esta máquina de agendamento (claim atômico + entrega pelo tick), não o
+/// contrário. `scheduledAt` é SEMPRE UTC; a conversão a partir da data/hora local
+/// acontece no service, com o fuso do tenant.
+model ScheduledMessage {
+  id                String                 @id @default(cuid())
+  tenantId          String
+  customerId        String
+  channel           NotificationChannel    @default(WHATSAPP)
+  body              String                 @db.Text
+  scheduledAt       DateTime
+  status            ScheduledMessageStatus @default(PENDING)
+  sentAt            DateTime?
+  failureReason     String?
+  notificationLogId String?
+  createdByUserId   String
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdByUser User     @relation("ScheduledMessageCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([tenantId, customerId, scheduledAt])
+  /// Índice da varredura do cron: sem tenantId de propósito, porque o tick processa
+  /// todos os tenants numa passada só.
+  @@index([status, scheduledAt])
+  @@index([createdByUserId])
+}
+
+enum ScheduledMessageStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+  CANCELLED
 }
 
 model WhatsAppAutoReplyLog {
