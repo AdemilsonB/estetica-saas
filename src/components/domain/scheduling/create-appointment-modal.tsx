@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, CalendarIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { ptBR } from 'react-day-picker/locale'
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,10 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
+import { toDateInputLocal } from '@/shared/utils/day-slots'
 import { useServices } from '@/hooks/scheduling/use-services'
 import { useServiceCategories } from '@/hooks/scheduling/use-service-categories'
 import { usePackages } from '@/hooks/scheduling/use-packages'
@@ -46,8 +50,13 @@ type Props = {
   defaultTime?: string
 }
 
-function toDateInput(d: Date): string {
-  return d.toISOString().slice(0, 10)
+function formatDateLabel(dateInput: string): string {
+  if (!dateInput) return 'Selecionar data'
+  return new Date(`${dateInput}T00:00:00`).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
 }
 
 export function CreateAppointmentModal({
@@ -74,7 +83,8 @@ export function CreateAppointmentModal({
   const [serviceId, setServiceId] = useState('')
   const [packageId, setPackageId] = useState('')
   const [promotionId, setPromotionId] = useState('')
-  const [date, setDate] = useState(defaultDate ?? toDateInput(new Date()))
+  const [date, setDate] = useState(defaultDate ?? toDateInputLocal(new Date()))
+  const [datePickerOpen, setDatePickerOpen] = useState(false)
   const [selectedTime, setSelectedTime] = useState(defaultTime ?? '')
   const [customTime, setCustomTime] = useState(defaultTime ?? '')
   const [customerSearch, setCustomerSearch] = useState('')
@@ -105,7 +115,7 @@ export function CreateAppointmentModal({
   // profissional muda" apagar o que acabou de ser preenchido).
   useEffect(() => {
     if (!open) return
-    setDate(defaultDate ?? toDateInput(new Date()))
+    setDate(defaultDate ?? toDateInputLocal(new Date()))
     setSelectedTime(defaultTime ?? '')
     setCustomTime(defaultTime ?? '')
     setCustomerId(defaultCustomerId ?? '')
@@ -289,23 +299,47 @@ export function CreateAppointmentModal({
             </>
           )}
 
-          {/* 3. Data + horário específico — 75/25 em telas maiores, encolhe junto no mobile */}
+          {/* 3. Data + horário específico — 60/40 em telas maiores (Horário
+              precisa de mais espaço que uma fração de 1/4 dava), encolhe
+              junto no mobile */}
           <div className="flex min-w-0 gap-3">
-            <div className="w-3/4 min-w-0 space-y-2">
+            <div className="w-3/5 min-w-0 space-y-2">
               <Label htmlFor="apt-date">Data</Label>
-              <Input
-                id="apt-date"
-                type="date"
-                value={date}
-                onChange={(e) => {
-                  setDate(e.target.value)
-                  setSelectedTime('')
-                  setCustomTime('')
-                }}
-                required
-              />
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="apt-date"
+                    type="button"
+                    variant="outline"
+                    className="w-full min-w-0 justify-start gap-2 font-normal"
+                  >
+                    <CalendarIcon className="size-4 shrink-0 text-muted-foreground" />
+                    <span className="truncate">{formatDateLabel(date)}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    className="[--cell-size:2.75rem]"
+                    locale={ptBR}
+                    // Sem isso o calendário sempre abre no mês de hoje, mesmo
+                    // quando a data já selecionada é de outro mês.
+                    defaultMonth={date ? new Date(`${date}T00:00:00`) : undefined}
+                    selected={date ? new Date(`${date}T00:00:00`) : undefined}
+                    onSelect={(d) => {
+                      if (!d) return
+                      // Aplica na hora — sem botão "Confirmar" extra, um
+                      // toque na data já fecha o popover.
+                      setDate(toDateInputLocal(d))
+                      setSelectedTime('')
+                      setCustomTime('')
+                      setDatePickerOpen(false)
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-            <div className="w-1/4 min-w-21 space-y-2">
+            <div className="w-2/5 min-w-24 space-y-2">
               <Label htmlFor="custom-time">Horário</Label>
               <Input
                 id="custom-time"

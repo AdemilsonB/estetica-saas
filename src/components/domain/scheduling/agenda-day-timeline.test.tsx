@@ -131,4 +131,65 @@ describe('AgendaDayTimeline', () => {
     // 09:30 continua vazio e clicável — o agendamento das 09:15 caiu no bucket de 09:00.
     expect(screen.getByLabelText('Novo agendamento às 09:30')).toBeInTheDocument()
   })
+
+  it('um agendamento de várias horas bloqueia os slots seguintes só na coluna do profissional dele', () => {
+    const appt = makeAppointment({ startsAt: '2026-08-03T09:00:00', endsAt: '2026-08-03T11:00:00' })
+    const columns: TimelineColumn[] = [
+      { professionalId: 'p1', professionalName: 'Bruna' },
+      { professionalId: 'p2', professionalName: 'Ademilson' },
+    ]
+
+    render(
+      <AgendaDayTimeline
+        slots={['09:00', '09:30', '10:00', '10:30']}
+        columns={columns}
+        appointmentsByProfessional={{ p1: [appt], p2: [] }}
+        slotIntervalMinutes={30}
+        canClickSlot={() => true}
+        onSlotClick={vi.fn()}
+        onAppointmentClick={vi.fn()}
+        onConfirm={vi.fn()}
+        onPay={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    )
+
+    // 2h de 30min = 4 linhas cobertas na coluna de p1 (09:00 é o card em si;
+    // 09:30/10:00/10:30 ficam bloqueadas — só sobra o botão de p2 em cada horário).
+    expect(screen.getAllByLabelText('Novo agendamento às 09:30')).toHaveLength(1)
+    expect(screen.getAllByLabelText('Novo agendamento às 10:00')).toHaveLength(1)
+    expect(screen.getAllByLabelText('Novo agendamento às 10:30')).toHaveLength(1)
+
+    // O outro profissional (p2) não tem agendamento — todos os 4 slots dele continuam livres.
+    const allSlotButtons = screen.getAllByLabelText(/Novo agendamento às/)
+    expect(allSlotButtons).toHaveLength(4)
+  })
+
+  it('mantém dois agendamentos visíveis no mesmo horário quando há conflito autorizado', () => {
+    const appt1 = makeAppointment({ id: 'apt1', startsAt: '2026-08-03T09:00:00', endsAt: '2026-08-03T09:30:00' })
+    const appt2 = makeAppointment({
+      id: 'apt2',
+      startsAt: '2026-08-03T09:00:00',
+      endsAt: '2026-08-03T09:30:00',
+      customer: { id: 'c2', name: 'Joana', phone: null, notes: null },
+    })
+
+    render(
+      <AgendaDayTimeline
+        slots={['09:00']}
+        columns={baseColumns}
+        appointmentsByProfessional={{ p1: [appt1, appt2] }}
+        slotIntervalMinutes={30}
+        canClickSlot={() => true}
+        onSlotClick={vi.fn()}
+        onAppointmentClick={vi.fn()}
+        onConfirm={vi.fn()}
+        onPay={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Maria')).toBeInTheDocument()
+    expect(screen.getByText('Joana')).toBeInTheDocument()
+  })
 })

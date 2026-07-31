@@ -95,7 +95,21 @@ describe('CreateAppointmentModal — default de profissional', () => {
 
   it('preenche a Data com o defaultDate recebido', () => {
     render(<CreateAppointmentModal open onClose={() => {}} defaultDate="2026-08-03" />)
-    expect(screen.getByLabelText('Data')).toHaveValue('2026-08-03')
+    // Campo Data é um botão (Popover + Calendar) — o valor aplicado aparece
+    // como texto formatado, não como .value de input.
+    expect(screen.getByLabelText('Data')).toHaveTextContent('03 de ago. de 2026')
+  })
+
+  it('aplica a data assim que um dia é clicado no calendário, sem botão de confirmar', () => {
+    render(<CreateAppointmentModal open onClose={() => {}} defaultDate="2026-08-03" />)
+
+    fireEvent.click(screen.getByLabelText('Data'))
+    fireEvent.click(screen.getByRole('button', { name: /10 de agosto/i }))
+
+    // O botão já reflete o novo valor e o calendário fechou sozinho — sem
+    // precisar de um segundo clique num "Confirmar".
+    expect(screen.getByLabelText('Data')).toHaveTextContent('10 de ago. de 2026')
+    expect(screen.queryByRole('button', { name: /10 de agosto/i })).not.toBeInTheDocument()
   })
 
   it('troca pro profissional vinculado ao serviço quando só um está vinculado', () => {

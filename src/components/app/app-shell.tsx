@@ -32,6 +32,8 @@ import { MobileHeader } from '@/components/app/mobile-header'
 import { SwipeNavWrapper } from '@/components/app/swipe-nav-wrapper'
 import { NotificationBell } from '@/components/domain/notifications/notification-bell'
 import { CreateAppointmentModal } from '@/components/domain/scheduling/create-appointment-modal'
+import { useAgendaDateStore } from '@/stores/agenda-date.store'
+import { toDateInputLocal } from '@/shared/utils/day-slots'
 
 function getInitials(name: string): string {
   return name
@@ -65,6 +67,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
   })
   const [newAppointmentOpen, setNewAppointmentOpen] = useState(false)
   const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false)
+  const agendaSelectedDate = useAgendaDateStore((s) => s.selectedDate)
 
   function toggleCollapsed() {
     if (typeof window !== 'undefined' && window.innerWidth < 1280) return
@@ -444,10 +447,12 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
         onNewAppointment={() => setNewAppointmentOpen(true)}
       />
 
-      {/* Modal novo agendamento */}
+      {/* Modal novo agendamento — herda a data selecionada na Agenda (mesma
+          fonte de verdade do "+" do header), pra não abrir sempre em hoje. */}
       <CreateAppointmentModal
         open={newAppointmentOpen}
         onClose={() => setNewAppointmentOpen(false)}
+        defaultDate={toDateInputLocal(agendaSelectedDate)}
       />
     </div>
     </TooltipProvider>
