@@ -78,7 +78,7 @@ describe('fiação do CustomerMessageToggle nos modais', () => {
       { wrapper },
     )
 
-    await userEvent.click(screen.getByRole('button', { name: /confirmar cancelamento/i }))
+    await userEvent.click(screen.getByRole('button', { name: /confirmar desmarcação/i }))
 
     expect(mutate).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'a1', status: 'CANCELLED', notify: undefined }),
@@ -93,7 +93,7 @@ describe('fiação do CustomerMessageToggle nos modais', () => {
     )
 
     await userEvent.click(screen.getByRole('switch'))
-    await userEvent.click(screen.getByRole('button', { name: /confirmar cancelamento/i }))
+    await userEvent.click(screen.getByRole('button', { name: /confirmar desmarcação/i }))
 
     expect(mutate).toHaveBeenCalledWith(
       expect.objectContaining({ notify: false }),

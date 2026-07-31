@@ -528,7 +528,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
                         onClick={() => setCancelModalOpen(true)}
                         disabled={updateStatus.isPending}
                       >
-                        Cancelar
+                        Desmarcar
                       </Button>
                     </div>
                   </div>
