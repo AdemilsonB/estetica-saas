@@ -1,5 +1,4 @@
 import { DashboardMetrics } from '@/components/domain/dashboard/dashboard-metrics'
-import { AgendaDayView } from '@/components/domain/scheduling/agenda-day-view'
 import { UsageWidget } from '@/components/domain/billing/usage-widget'
 import { ReviewsSummaryCard } from '@/components/domain/reviews/reviews-summary-card'
 
@@ -24,13 +23,6 @@ export default function DashboardPage() {
           Uso do plano
         </h2>
         <UsageWidget />
-      </div>
-
-      <div>
-        <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-slate-950">
-          Agenda de hoje
-        </h2>
-        <AgendaDayView />
       </div>
 
       <ReviewsSummaryCard />
