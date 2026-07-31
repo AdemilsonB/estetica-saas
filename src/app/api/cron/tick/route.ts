@@ -31,6 +31,7 @@ import {
   type TeamNotificationEmailPayload,
 } from "@/shared/queue/jobs/team-notification-email";
 import { TEAM_DAILY_DIGEST_JOB, handleTeamDailyDigest } from "@/shared/queue/jobs/team-daily-digest";
+import { scheduledMessageService } from "@/domains/notifications/scheduled-messages/scheduled-message.service";
 
 type EmptyPayload = Record<string, never>;
 type PgBossInstance = Awaited<ReturnType<typeof startPgBoss>>;
@@ -75,6 +76,19 @@ async function runScheduled(
   }
 }
 
+// Mensagens agendadas NÃO são um job do pg-boss de propósito: a idempotência já vem do
+// claim atômico na própria tabela (`ScheduledMessage.status`), e enfileirar criaria
+// backlog — o tick é o único worker e cada tick buscaria um job só. O try/catch local
+// existe para que uma falha aqui não zere o processamento dos demais jobs do tick.
+async function runMensagensAgendadas() {
+  try {
+    return await scheduledMessageService.deliverDue();
+  } catch (err) {
+    console.error("[cron:tick] mensagens agendadas falharam:", err);
+    return { enviadas: 0, falhas: 0, expiradas: 0 };
+  }
+}
+
 // CRON_SECRET é configurado manualmente na Vercel + secret do GitHub Actions
 // (ver docs/infra-setup.md). trim() evita falso-negativo por espaço/quebra de
 // linha colada sem querer no campo (textarea) de env var da Vercel.
@@ -84,6 +98,12 @@ export async function GET(request: NextRequest) {
   if (cronSecret && request.headers.get("authorization") !== `Bearer ${cronSecret}`) {
     return new Response("Unauthorized", { status: 401 });
   }
+
+  // Roda ANTES do pg-boss e fora do try dele de propósito: mensagens agendadas não
+  // dependem da fila (ver comentário de runMensagensAgendadas e ADR-019, decisão 3). Se o
+  // pg-boss falhar depois, a varredura já rodou de qualquer jeito — só não entra no JSON
+  // de resposta, que nesse caso vira 500 de qualquer forma.
+  const scheduledMessages = await runMensagensAgendadas();
 
   try {
     const boss = await startPgBoss();
@@ -155,6 +175,7 @@ export async function GET(request: NextRequest) {
         userBirthday,
         teamEmail,
         teamDigest,
+        scheduledMessages,
       },
     });
   } catch (err) {

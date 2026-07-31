@@ -30,7 +30,7 @@ function ligado(channels: ("WHATSAPP" | "EMAIL")[] = ["WHATSAPP"]) {
 describe("customerMessageDispatcher", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    logAndDispatch.mockResolvedValue({ id: "log-1" });
+    logAndDispatch.mockResolvedValue({ id: "log-1", status: "SENT", errorMessage: null });
   });
 
   it("envia por WhatsApp com a chave de log correta do evento", async () => {
@@ -67,7 +67,7 @@ describe("customerMessageDispatcher", () => {
       payload: {},
     });
 
-    expect(resultado).toEqual({ dispatched: [], skipReason: "desligado" });
+    expect(resultado).toEqual({ dispatched: [], skipReason: "desligado", logs: [] });
     expect(logAndDispatch).not.toHaveBeenCalled();
     // Nem chega a resolver canais quando já sabe que não envia.
     expect(settings.resolve).not.toHaveBeenCalled();
@@ -97,7 +97,7 @@ describe("customerMessageDispatcher", () => {
       payload: {},
     });
 
-    expect(resultado).toEqual({ dispatched: [], skipReason: "sem-destinatario" });
+    expect(resultado).toEqual({ dispatched: [], skipReason: "sem-destinatario", logs: [] });
     expect(logAndDispatch).not.toHaveBeenCalled();
   });
 
@@ -143,7 +143,7 @@ describe("customerMessageDispatcher", () => {
       payload: {},
     });
 
-    expect(resultado).toEqual({ dispatched: [], skipReason: null });
+    expect(resultado).toEqual({ dispatched: [], skipReason: null, logs: [] });
     expect(logAndDispatch).not.toHaveBeenCalled();
   });
 
@@ -159,5 +159,103 @@ describe("customerMessageDispatcher", () => {
     });
 
     expect(resultado.dispatched).toEqual(["EMAIL"]);
+  });
+
+  it("devolve o log criado por canal, com id e status — é assim que o chamador sabe se saiu", async () => {
+    ligado();
+    logAndDispatch.mockResolvedValue({ id: "log-42", status: "SENT", errorMessage: null });
+
+    const resultado = await customerMessageDispatcher.dispatch({
+      tenantId: "t1",
+      event: "appointment_created",
+      recipient: { phone: "11999990000" },
+      payload: {},
+    });
+
+    expect(resultado.logs).toEqual([
+      { channel: "WHATSAPP", notificationLogId: "log-42", status: "SENT", errorMessage: null },
+    ]);
+  });
+
+  it("log FAILED vem com o motivo real preservado — é o que a profissional vai ler", async () => {
+    ligado();
+    logAndDispatch.mockResolvedValue({
+      id: "log-43",
+      status: "FAILED",
+      errorMessage: "Limite mensal de WhatsApp atingido.",
+    });
+
+    const resultado = await customerMessageDispatcher.dispatch({
+      tenantId: "t1",
+      event: "appointment_created",
+      recipient: { phone: "11999990000" },
+      payload: {},
+    });
+
+    expect(resultado.logs).toEqual([
+      {
+        channel: "WHATSAPP",
+        notificationLogId: "log-43",
+        status: "FAILED",
+        errorMessage: "Limite mensal de WhatsApp atingido.",
+      },
+    ]);
+  });
+
+  it("modo direto não consulta o liga/desliga por evento — quem escreveu já decidiu enviar", async () => {
+    logAndDispatch.mockResolvedValue({ id: "log-1", status: "SENT", errorMessage: null });
+
+    const resultado = await customerMessageDispatcher.dispatch({
+      kind: "direct",
+      tenantId: "t1",
+      customerId: "c1",
+      channels: ["WHATSAPP"],
+      message: "Oi Maria, lembrete do seu horário.",
+      templateKey: "scheduled-message",
+      recipient: { phone: "11999990000" },
+      payload: { customerName: "Maria" },
+    });
+
+    expect(settings.shouldNotify).not.toHaveBeenCalled();
+    expect(settings.resolve).not.toHaveBeenCalled();
+    expect(resultado.dispatched).toEqual(["WHATSAPP"]);
+  });
+
+  it("modo direto manda o texto livre como `message` e a chave de log informada", async () => {
+    logAndDispatch.mockResolvedValue({ id: "log-1", status: "SENT", errorMessage: null });
+
+    await customerMessageDispatcher.dispatch({
+      kind: "direct",
+      tenantId: "t1",
+      customerId: "c1",
+      channels: ["WHATSAPP"],
+      message: "Texto escrito pela profissional",
+      templateKey: "scheduled-message",
+      recipient: { phone: "11999990000" },
+      payload: { customerName: "Maria" },
+    });
+
+    expect(logAndDispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        template: "scheduled-message",
+        payload: expect.objectContaining({ message: "Texto escrito pela profissional" }),
+      }),
+    );
+  });
+
+  it("modo direto sem destinatário no canal não envia e reporta o motivo", async () => {
+    const resultado = await customerMessageDispatcher.dispatch({
+      kind: "direct",
+      tenantId: "t1",
+      customerId: "c1",
+      channels: ["WHATSAPP"],
+      message: "Texto",
+      templateKey: "scheduled-message",
+      recipient: { phone: null },
+      payload: {},
+    });
+
+    expect(resultado).toEqual({ dispatched: [], skipReason: "sem-destinatario", logs: [] });
+    expect(logAndDispatch).not.toHaveBeenCalled();
   });
 });

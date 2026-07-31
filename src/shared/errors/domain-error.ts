@@ -314,3 +314,34 @@ export class ReviewAlreadyExistsError extends DomainError {
     super('Este atendimento já foi avaliado.', 'REVIEW_ALREADY_EXISTS', 409)
   }
 }
+
+// --- Scheduled Messages ---
+
+export class ScheduledMessageNotFoundError extends DomainError {
+  constructor() {
+    super("Mensagem agendada nao encontrada.", "SCHEDULED_MESSAGE_NOT_FOUND", 404);
+  }
+}
+
+/**
+ * Editar ou cancelar so vale enquanto a mensagem nao saiu. Depois de enviada, a
+ * cliente ja leu — mudar o registro seria reescrever o passado.
+ */
+export class ScheduledMessageNotEditableError extends DomainError {
+  constructor(status: string) {
+    super(
+      status === "SENT"
+        ? "Esta mensagem ja foi enviada e nao pode mais ser alterada."
+        : "Esta mensagem nao pode mais ser alterada.",
+      "SCHEDULED_MESSAGE_NOT_EDITABLE",
+      409,
+      { status },
+    );
+  }
+}
+
+export class ScheduledMessageInPastError extends DomainError {
+  constructor() {
+    super("Escolha uma data e um horario no futuro.", "SCHEDULED_MESSAGE_IN_PAST", 422);
+  }
+}
