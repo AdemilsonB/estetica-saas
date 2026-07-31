@@ -365,6 +365,29 @@ describe("scheduledMessageService.deliverDue", () => {
     );
   });
 
+  it("dispatcher falhando internamente (skipReason sem-destinatario com telefone OK) nao mente sobre o motivo", async () => {
+    // `entregar` já garantiu que o cliente TEM telefone antes de chamar o dispatcher.
+    // Se mesmo assim o dispatcher volta com `dispatched: []`/`skipReason:
+    // "sem-destinatario"`, é porque o catch interno dele engoliu uma falha ao gravar o
+    // NotificationLog — não porque falta telefone. O motivo salvo precisa refletir isso.
+    repo.findDue.mockResolvedValue([VENCIDA] as never);
+    repo.claim.mockResolvedValue(true);
+    dispatcher.dispatch.mockResolvedValue({
+      dispatched: [],
+      skipReason: "sem-destinatario",
+      logs: [],
+    });
+
+    const resumo = await scheduledMessageService.deliverDue(new Date());
+
+    expect(repo.markFailed).toHaveBeenCalledWith(
+      "sm-1",
+      "Nao foi possivel registrar o envio. Tente agendar de novo.",
+      null,
+    );
+    expect(resumo).toEqual({ enviadas: 0, falhas: 1, expiradas: 0 });
+  });
+
   it("derruba SENDING preso antes de varrer, e conta quantos", async () => {
     repo.expireStuck.mockResolvedValue(2);
 

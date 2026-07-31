@@ -258,7 +258,13 @@ export class ScheduledMessageService {
     errorMessage: string | null,
   ): string {
     if (errorMessage) return errorMessage;
-    if (skipReason === "sem-destinatario") return "Cliente sem telefone cadastrado.";
+    // `skipReason === "sem-destinatario"` NUNCA significa "cliente sem telefone" aqui:
+    // `entregar` já barrou esse caso antes de chamar o dispatcher, e no modo `direct`
+    // ele só volta quando o dispatcher engoliu uma falha ao gravar o NotificationLog
+    // (catch interno). Um texto de "sem telefone" mentiria sobre a causa real.
+    if (skipReason === "sem-destinatario") {
+      return "Nao foi possivel registrar o envio. Tente agendar de novo.";
+    }
     // Status PENDING no log: o gateway não chegou a tentar (WhatsApp desligado ou
     // desconectado). Não é erro de entrega, e por isso não tem errorMessage.
     return "O WhatsApp do seu negocio nao estava pronto para enviar.";
