@@ -23,9 +23,11 @@ import { AppointmentHistory } from '@/components/domain/crm/appointment-history'
 import { AnamneseSheet } from '@/components/domain/crm/anamnese-sheet'
 import { EditCustomerModal } from '@/components/domain/crm/edit-customer-modal'
 import { CreateAppointmentModal } from '@/components/domain/scheduling/create-appointment-modal'
+import { ScheduledMessagesDialog } from '@/components/domain/notifications/scheduled-messages-dialog'
 import { useCustomer } from '@/hooks/crm/use-customer'
 import { useBlockCustomer } from '@/hooks/crm/use-block-customer'
 import { useRestoreCustomer } from '@/hooks/crm/use-customers'
+import { useScheduledMessages } from '@/hooks/notifications/use-scheduled-messages'
 
 export default function CustomerProfilePage({
   params,
@@ -43,8 +45,15 @@ export default function CustomerProfilePage({
   const [blockDialogOpen, setBlockDialogOpen] = useState(false)
   const [unblockDialogOpen, setUnblockDialogOpen] = useState(false)
   const [blockReason, setBlockReason] = useState('')
+  const [lembretesOpen, setLembretesOpen] = useState(false)
   const { block, unblock, isBlocking, isUnblocking } = useBlockCustomer(id)
   const { mutate: restore, isPending: isRestoring } = useRestoreCustomer(id)
+
+  // A lista alimenta tanto o contador do botão quanto o dialog — uma requisição só,
+  // servida do cache do TanStack Query nos dois lugares.
+  const { data: lembretes } = useScheduledMessages(id)
+  const lembretesPendentes =
+    lembretes?.filter((lembrete) => lembrete.status === 'PENDING').length ?? 0
 
   useEffect(() => {
     if (customer) setNotes(customer.notes ?? '')
@@ -148,7 +157,11 @@ export default function CustomerProfilePage({
         </div>
       </div>
 
-      <CustomerProfileHeader customer={customer} />
+      <CustomerProfileHeader
+        customer={customer}
+        onScheduleMessage={() => setLembretesOpen(true)}
+        scheduledCount={lembretesPendentes}
+      />
 
       {/* Banner de arquivado */}
       {customer.deletedAt && (
@@ -287,6 +300,13 @@ export default function CustomerProfilePage({
         onClose={() => setScheduleOpen(false)}
         defaultCustomerId={id}
         defaultCustomerName={customer.name}
+      />
+
+      <ScheduledMessagesDialog
+        open={lembretesOpen}
+        onClose={() => setLembretesOpen(false)}
+        customerId={id}
+        customerName={customer.name}
       />
 
       {/* Dialog de bloqueio */}

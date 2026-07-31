@@ -3,13 +3,23 @@
 
 import { Phone, Mail, Tag, Calendar, AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { WhatsAppIcon } from '@/components/domain/vitrine/vitrine-icons'
 import type { CustomerProfile } from '@/hooks/crm/use-customer'
 
 type Props = {
   customer: CustomerProfile
+  /** Abre o painel de lembretes. Ausente = o botão não aparece. */
+  onScheduleMessage?: () => void
+  /** Quantos lembretes ainda vão sair, para o contador no botão. */
+  scheduledCount?: number
 }
 
-export function CustomerProfileHeader({ customer }: Props) {
+export function CustomerProfileHeader({
+  customer,
+  onScheduleMessage,
+  scheduledCount = 0,
+}: Props) {
   const lastAppointment = customer.appointments[0]
 
   return (
@@ -22,6 +32,22 @@ export function CustomerProfileHeader({ customer }: Props) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-xl font-semibold text-slate-950">{customer.name}</h2>
+            {onScheduleMessage && customer.phone && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onScheduleMessage}
+                className="min-h-11 gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+              >
+                <WhatsAppIcon className="size-4" />
+                Lembrete
+                {scheduledCount > 0 && (
+                  <span className="ml-0.5 flex size-5 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-semibold text-white">
+                    {scheduledCount}
+                  </span>
+                )}
+              </Button>
+            )}
             {customer.noShowCount > 0 && (
               <div
                 className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 border border-amber-200"
