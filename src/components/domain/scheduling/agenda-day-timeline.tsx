@@ -1,6 +1,7 @@
 // src/components/domain/scheduling/agenda-day-timeline.tsx
 'use client'
 
+import { useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { AppointmentCard } from './appointment-card'
 import { appointmentSlotSpan, occupiesSlot, slotBucket } from '@/shared/utils/day-slots'
@@ -24,6 +25,8 @@ type Props = {
   columns: TimelineColumn[]
   appointmentsByProfessional: Record<string, Appointment[]>
   slotIntervalMinutes: number
+  /** Fica fixo no topo junto com os nomes dos profissionais ao rolar o dia. */
+  dateLabel: string
   canClickSlot: (professionalId: string) => boolean
   onSlotClick: (professionalId: string, time: string) => void
   onAppointmentClick: (appointment: Appointment) => void
@@ -96,6 +99,7 @@ export function AgendaDayTimeline({
   columns,
   appointmentsByProfessional,
   slotIntervalMinutes,
+  dateLabel,
   canClickSlot,
   onSlotClick,
   onAppointmentClick,
@@ -113,155 +117,180 @@ export function AgendaDayTimeline({
     ]),
   )
 
-  const rowOffset = multiColumn ? 2 : 1
   const gridTemplateColumns = `var(--time-col) repeat(${columns.length}, ${
     multiColumn ? 'minmax(var(--col-min),1fr)' : '1fr'
   })`
-  const gridTemplateRows = `${multiColumn ? 'auto ' : ''}repeat(${slots.length}, minmax(2.75rem, auto))`
+  const gridTemplateRows = `repeat(${slots.length}, minmax(2.75rem, auto))`
+
+  // O cabeçalho não rola sozinho (overflow-hidden): ele só espelha o
+  // deslocamento horizontal do corpo, senão as colunas saem do lugar.
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const headerRef = useRef<HTMLDivElement>(null)
+
+  function syncHeaderScroll() {
+    if (headerRef.current && bodyRef.current) {
+      headerRef.current.scrollLeft = bodyRef.current.scrollLeft
+    }
+  }
 
   return (
-    // Rola nos dois eixos aqui dentro: é o que permite o cabeçalho dos
-    // profissionais e a coluna de horas grudarem enquanto o dia rola.
-    // Sem `px-4` de propósito — a folga lateral virava um vão pelo qual dava
-    // pra ver o bloco de agendamento passando por trás da coluna de horas
-    // fixa; o recuo do rótulo agora é padding da própria célula.
-    <div className="-mx-4 max-h-[calc(100dvh-17rem)] overflow-auto sm:mx-0 sm:max-h-[calc(100dvh-20rem)]">
-      <div
-        className="grid min-w-full [--col-min:11rem] [--time-col:3rem] sm:[--col-min:15rem] sm:[--time-col:4rem]"
-        style={{ gridTemplateColumns, gridTemplateRows }}
-      >
+    <div
+      className="relative -mx-4 sm:mx-0 [--col-min:11rem] [--time-col:3rem] sm:[--col-min:15rem] sm:[--time-col:4rem]"
+      // O app inteiro fica dentro de um swipe de rota (SwipeNavWrapper, drag
+      // no eixo X). Sem barrar aqui, arrastar a grade pro lado movia a página
+      // e a grade ao mesmo tempo — metade do "samba". Gesto horizontal que
+      // nasce na agenda pertence à agenda.
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      {/* Faixa fixa: data + nomes dos profissionais. Gruda logo abaixo do
+          cabeçalho do app (h-14, só no mobile). Os filtros ficam de fora de
+          propósito — rolam junto com a página. */}
+      <div className="sticky top-14 z-20 bg-background md:top-0">
+        <p className="px-4 pb-1.5 pt-2 text-sm font-semibold capitalize text-slate-600 sm:px-0">
+          {dateLabel}
+        </p>
         {multiColumn && (
-          <>
-            {/* Canto: cobre o cruzamento das duas faixas fixas. */}
-            <div
-              style={{ gridColumn: 1, gridRow: 1 }}
-              className={cn('sticky left-0 top-0 z-30 bg-background', GRID_LINE_B)}
-            />
-            {columns.map((col, colIdx) => (
-              <div
-                key={col.professionalId}
-                style={{ gridColumn: colIdx + 2, gridRow: 1 }}
-                className={cn(
-                  'sticky top-0 z-20 bg-background px-1 py-2 sm:px-2',
-                  GRID_LINE_B,
-                  colIdx < lastColumnIndex && GRID_LINE_R,
-                )}
-              >
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <div className="flex size-6 sm:size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] sm:text-xs font-semibold text-slate-600">
-                    {col.professionalName.charAt(0).toUpperCase()}
+          <div ref={headerRef} className="overflow-x-hidden">
+            <div className="grid min-w-full" style={{ gridTemplateColumns }}>
+              {/* Canto: cobre o cruzamento das duas faixas fixas. */}
+              <div className={cn('sticky left-0 z-10 bg-background', GRID_LINE_B)} />
+              {columns.map((col, colIdx) => (
+                <div
+                  key={col.professionalId}
+                  className={cn(
+                    'min-w-0 px-1 py-2 sm:px-2',
+                    GRID_LINE_B,
+                    colIdx < lastColumnIndex && GRID_LINE_R,
+                  )}
+                >
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="flex size-6 sm:size-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] sm:text-xs font-semibold text-slate-600">
+                      {col.professionalName.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="truncate text-xs sm:text-sm font-medium text-slate-700">
+                      {col.professionalName}
+                    </span>
                   </div>
-                  <span className="truncate text-xs sm:text-sm font-medium text-slate-700">
-                    {col.professionalName}
-                  </span>
                 </div>
-              </div>
-            ))}
-          </>
-        )}
-
-        {/* Divisória desenhada UMA vez por faixa, atravessando todas as
-            colunas. Antes cada célula desenhava a sua, então a espessura
-            variava de coluna pra coluna — e sumia nas faixas cobertas por um
-            bloco, que não renderizam célula nenhuma. */}
-        {slots.map((time, rowIdx) => (
-          <div
-            key={`line-${time}`}
-            aria-hidden="true"
-            style={{ gridColumn: '1 / -1', gridRow: rowIdx + rowOffset }}
-            className={cn('pointer-events-none', GRID_LINE_T)}
-          />
-        ))}
-
-        {slots.map((time, rowIdx) => (
-          <div
-            key={`time-${time}`}
-            style={{ gridColumn: 1, gridRow: rowIdx + rowOffset }}
-            className={cn('sticky left-0 z-10 bg-background pl-4 pt-1.5 sm:pl-2', GRID_LINE_T)}
-          >
-            <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-700">
-              {time}
-            </span>
+              ))}
+            </div>
           </div>
-        ))}
+        )}
+      </div>
 
-        {columns.map((col, colIdx) => {
-          const coverage = coverageByColumn.get(col.professionalId)!
-          const clickable = canClickSlot(col.professionalId)
-          const gridColumn = colIdx + 2
-          // `flex` (não bloco) pra que card e botão estiquem até o fim da
-          // célula: uma faixa alta por causa do card do vizinho deixava o
-          // botão de 44px no topo e o resto virava área morta — o toque no
-          // meio do espaço vazio não fazia nada e exigia um segundo clique.
-          const cellClass = cn(
-            'flex min-w-0 flex-col px-1 pb-2',
-            colIdx < lastColumnIndex && GRID_LINE_R,
-          )
+      {/* Corpo: rola SÓ na horizontal. A vertical continua sendo da página —
+          é isso que separa os eixos e mata o "samba" de rolar nos dois ao
+          mesmo tempo. `overscroll-x-none` tira o elástico nas duas pontas e
+          impede o gesto de virar navegação do navegador. */}
+      <div
+        ref={bodyRef}
+        onScroll={syncHeaderScroll}
+        className="overflow-x-auto overflow-y-hidden overscroll-x-none"
+      >
+        <div className="grid min-w-full" style={{ gridTemplateColumns, gridTemplateRows }}>
+          {/* Divisória desenhada UMA vez por faixa, atravessando todas as
+              colunas. Antes cada célula desenhava a sua, então a espessura
+              variava de coluna pra coluna — e sumia nas faixas cobertas por um
+              bloco, que não renderizam célula nenhuma. */}
+          {slots.map((time, rowIdx) => (
+            <div
+              key={`line-${time}`}
+              aria-hidden="true"
+              style={{ gridColumn: '1 / -1', gridRow: rowIdx + 1 }}
+              className={cn('pointer-events-none', GRID_LINE_T)}
+            />
+          ))}
 
-          return slots.map((time, rowIdx) => {
-            const start = coverage.startsByTime.get(time)
+          {slots.map((time, rowIdx) => (
+            <div
+              key={`time-${time}`}
+              style={{ gridColumn: 1, gridRow: rowIdx + 1 }}
+              className={cn('sticky left-0 z-10 bg-background pl-4 pt-1.5 sm:pl-2', GRID_LINE_T)}
+            >
+              <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-700">
+                {time}
+              </span>
+            </div>
+          ))}
 
-            if (!start && coverage.coveredTimes.has(time)) {
-              // Coberto pela duração de um agendamento iniciado numa faixa
-              // anterior nesta mesma coluna — sem card, sem botão.
-              return null
-            }
+          {columns.map((col, colIdx) => {
+            const coverage = coverageByColumn.get(col.professionalId)!
+            const clickable = canClickSlot(col.professionalId)
+            const gridColumn = colIdx + 2
+            // `flex` (não bloco) pra que card e botão estiquem até o fim da
+            // célula: uma faixa alta por causa do card do vizinho deixava o
+            // botão de 44px no topo e o resto virava área morta — o toque no
+            // meio do espaço vazio não fazia nada e exigia um segundo clique.
+            const cellClass = cn(
+              'flex min-w-0 flex-col px-1 pb-2',
+              colIdx < lastColumnIndex && GRID_LINE_R,
+            )
 
-            const row = rowIdx + rowOffset
+            return slots.map((time, rowIdx) => {
+              const start = coverage.startsByTime.get(time)
 
-            if (start) {
-              const endRow = Math.min(rowIdx + start.span, slots.length) + rowOffset
+              if (!start && coverage.coveredTimes.has(time)) {
+                // Coberto pela duração de um agendamento iniciado numa faixa
+                // anterior nesta mesma coluna — sem card, sem botão.
+                return null
+              }
+
+              const row = rowIdx + 1
+
+              if (start) {
+                const endRow = Math.min(rowIdx + start.span, slots.length) + 1
+                return (
+                  <div
+                    key={`${col.professionalId}-${time}`}
+                    style={{ gridColumn, gridRow: `${row} / ${endRow}` }}
+                    className={cellClass}
+                  >
+                    <div className="flex min-h-0 flex-1 flex-col gap-1.5">
+                      {start.appts.map((appt) => (
+                        <div
+                          key={appt.id}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex min-h-0 flex-1 flex-col"
+                        >
+                          <AppointmentCard
+                            appointment={appt}
+                            onClick={onAppointmentClick}
+                            onConfirm={onConfirm}
+                            onPay={onPay}
+                            onEdit={onEdit}
+                            // Preenche todo o intervalo da duração — o bloco
+                            // ocupado tem a mesma cor de ponta a ponta, em vez
+                            // de cor só na altura do conteúdo e vazio abaixo.
+                            className="h-full"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              }
+
               return (
                 <div
                   key={`${col.professionalId}-${time}`}
-                  style={{ gridColumn, gridRow: `${row} / ${endRow}` }}
+                  style={{ gridColumn, gridRow: row }}
                   className={cellClass}
                 >
-                  <div className="flex min-h-0 flex-1 flex-col gap-1.5">
-                    {start.appts.map((appt) => (
-                      <div
-                        key={appt.id}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex min-h-0 flex-1 flex-col"
-                      >
-                        <AppointmentCard
-                          appointment={appt}
-                          onClick={onAppointmentClick}
-                          onConfirm={onConfirm}
-                          onPay={onPay}
-                          onEdit={onEdit}
-                          // Preenche todo o intervalo da duração — o bloco
-                          // ocupado tem a mesma cor de ponta a ponta, em vez
-                          // de cor só na altura do conteúdo e vazio abaixo.
-                          className="h-full"
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  <button
+                    type="button"
+                    disabled={!clickable}
+                    onClick={() => onSlotClick(col.professionalId, time)}
+                    aria-label={clickable ? `Novo agendamento às ${time}` : undefined}
+                    className={cn(
+                      'min-h-11 w-full flex-1 rounded-lg transition',
+                      clickable ? 'cursor-pointer hover:bg-primary/5' : 'cursor-default',
+                    )}
+                  />
                 </div>
               )
-            }
-
-            return (
-              <div
-                key={`${col.professionalId}-${time}`}
-                style={{ gridColumn, gridRow: row }}
-                className={cellClass}
-              >
-                <button
-                  type="button"
-                  disabled={!clickable}
-                  onClick={() => onSlotClick(col.professionalId, time)}
-                  aria-label={clickable ? `Novo agendamento às ${time}` : undefined}
-                  className={cn(
-                    'min-h-11 w-full flex-1 rounded-lg transition',
-                    clickable ? 'cursor-pointer hover:bg-primary/5' : 'cursor-default',
-                  )}
-                />
-              </div>
-            )
-          })
-        })}
+            })
+          })}
+        </div>
       </div>
     </div>
   )
