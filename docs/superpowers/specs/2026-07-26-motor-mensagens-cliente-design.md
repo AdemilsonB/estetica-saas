@@ -519,16 +519,43 @@ existente. Palavras de opt-out: `PARE`, `PARAR`, `SAIR`, `DESCADASTRAR`, `CANCEL
 
 ---
 
-## 8. Fase 4 — Mensagens agendadas
+## 8. Mensagens agendadas
 
-Não requer model próprio: é uma `Campaign` com `scheduledAt` e status `SCHEDULED`. O tick
-do cron promove para `RUNNING` quando a hora chega.
+> **Recorte revisado em 2026-07-31.** O desenho original desta seção dizia "não requer model
+> próprio: é uma `Campaign` com `scheduledAt`". Isso amarrava a entrega à Fase 3, que não foi
+> implementada — o model `Campaign` não existe. O caso um-para-um foi separado e entregue
+> antes, com model próprio. Ver ADR-019.
 
-`scheduledAt` é sempre interpretado **no fuso do tenant** — a mesma armadilha que a PR #278
-já corrigiu no resumo diário da equipe. O formulário coleta data e hora locais; a conversão
-para UTC acontece no service, nunca no componente.
+**O caso um-para-um (entregue):** o profissional escolhe uma cliente, escreve o texto, marca
+data e hora, e o sistema entrega. Model `ScheduledMessage` — uma mensagem, uma cliente, um
+horário. Não é campanha: não tem segmento, nem destinatários múltiplos, nem throttle.
 
-A mensagem pode usar um template salvo como ponto de partida ou texto livre.
+- `scheduledAt` é gravado em UTC, convertido a partir de data e hora **locais do tenant**,
+  sempre no service, nunca no componente — o formulário manda `date` e `time` separados
+  justamente para tornar impossível uma conversão acidental no fuso do navegador.
+- A entrega roda dentro do `/api/cron/tick`, chamada direta (não é job do pg-boss). Cada
+  linha é reivindicada por um update atômico `PENDING → SENDING`; quem perde a corrida
+  desiste. Reprocessar um lote nunca envia duas vezes.
+- Granularidade real de ~10 minutos, herdada do workflow do cron. A UI diz isso ao usuário
+  em vez de prometer precisão ao minuto.
+- Uma tentativa, sem retry. Falha vira `FAILED` com o motivo vindo do `NotificationLog`,
+  visível na lista. Linha presa em `SENDING` por mais de 15 minutos é derrubada para
+  `FAILED` na varredura seguinte.
+- O envio passa por `customerMessageDispatcherService.dispatch()` num modo `direct`: texto
+  livre, canal explícito, sem consultar o liga/desliga por evento — quem escreveu e marcou
+  a hora já decidiu enviar.
+- O texto pode partir de um template do catálogo ou ser escrito do zero, e aceita
+  `{{variaveis}}`, interpoladas no envio com a mesma função da prévia.
+- Canal: só WhatsApp na v1. O campo `channel` já existe no model para o e-mail plugar depois
+  sem migration.
+- Entrada pela ficha da cliente: botão de WhatsApp ao lado do nome, com contador de
+  lembretes agendados.
+
+**O caso um-para-muitos (Fase 3):** campanha agendada continua sendo `Campaign` com
+`scheduledAt`, como esta seção descrevia. Quando a Fase 3 chegar, ela deve **reusar a máquina
+de agendamento** já entregue — o par `claim` atômico + varredura no tick —, não criar uma
+segunda. O que a campanha acrescenta é o que ela tem de próprio: segmento, throttle, janela
+de horário e teste obrigatório.
 
 ---
 
@@ -722,13 +749,18 @@ Demais coberturas:
 
 Cada fase é uma PR mergeável e útil sozinha.
 
-| # | Entrega | Depende de |
-|---|---|---|
-| 1 | Catálogo, models, migration + backfill, remoção de todo o hardcode, aba de templates | — |
-| 2 | Toggles por evento, flag nos 10 pontos de disparo, modal de no-show, fluxo `appointment_requested` | 1 |
-| 3 | Campanhas: segmentos, editor com mídia, fila throttled, opt-out, teste obrigatório, relatório, permissão `mensagens`, gate `campaigns` | 1, 2 |
-| 4 | Mensagens agendadas | 3 |
-| 5 | Confirmação por resposta, retorno programado, reconquista | 2, 3 |
+| # | Entrega | Depende de | Status |
+|---|---|---|---|
+| 1 | Catálogo, models, migration + backfill, remoção de todo o hardcode, aba de templates | — | ✅ entregue |
+| 2 | Toggles por evento, flag nos 10 pontos de disparo, modal de no-show, fluxo `appointment_requested` | 1 | ✅ entregue |
+| 3 | Campanhas: segmentos, editor com mídia, fila throttled, opt-out, teste obrigatório, relatório, permissão `mensagens`, gate `campaigns` | 1, 2 | pendente |
+| 4 | **Mensagem agendada um-a-um** (model `ScheduledMessage`, entrega pelo tick, UI na ficha da cliente) | 1, 2 | ✅ entregue |
+| 4b | Campanha agendada — `Campaign` com `scheduledAt`, reusando a máquina de agendamento da fase 4 | 3, 4 | pendente |
+| 5 | Confirmação por resposta, retorno programado, reconquista | 2, 3 | pendente |
+
+> A fase 4 foi **antecipada** e desacoplada da 3: o caso um-para-um não precisa de segmento
+> nem de throttle, e entregar valor sozinho não dependia da campanha existir. O que sobrou
+> da fase 4 original virou 4b. Ver ADR-019.
 
 ---
 

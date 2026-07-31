@@ -41,6 +41,25 @@ beneficiando automaticamente quem nunca personalizou. "Restaurar padrão" apaga 
 **Providers são burros.** Nenhum texto de mensagem pode existir em `providers/` —
 eles recebem texto já renderizado e só transportam.
 
+## Mensagem agendada (um-a-um)
+
+`scheduled-messages/` — o profissional marca uma mensagem para uma cliente numa data e hora.
+
+```
+formulário (date + time locais)
+   ↓ conversão para UTC com o fuso do TENANT, no service
+ScheduledMessage (PENDING)
+   ↓ /api/cron/tick, a cada ~10 min
+claim atômico PENDING → SENDING   ← a idempotência mora aqui
+   ↓ interpola {{variaveis}} com buildCustomerMessageVariables
+customerMessageDispatcher.dispatch({ kind: "direct" })
+   ↓
+SENT (+ notificationLogId) ou FAILED (+ motivo do NotificationLog)
+```
+
+Uma tentativa, sem retry. Linha presa em `SENDING` por mais de 15 min vira `FAILED`.
+Não é `Campaign` — ver ADR-019. Quando as campanhas chegarem, devem reusar esta máquina.
+
 ## Transacional × promocional
 
 Campo `nature` no catálogo. Atravessa todo o desenho das fases seguintes:

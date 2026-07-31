@@ -2,7 +2,8 @@
 
 **Última atualização:** 2026-07-27
 **Fase 1:** ✅ entregue, mergeada e aplicada em produção
-**Fase 2:** ✅ entregue (branch `feat/motor-mensagens-cliente-fase-2`) — migration `20260727120000_add_customer_message_setting` **pendente de aplicação manual** em produção
+**Fase 2:** ✅ entregue (branch `feat/motor-mensagens-cliente-fase-2`) — migration `20260727120000_add_customer_message_setting` **aplicada em produção** (confirmado em 2026-07-31)
+**Fase 4 (recorte um-a-um):** ✅ entregue — migration `20260731120000_add_scheduled_message` **pendente de aplicação manual** em produção
 **Próxima:** Fase 3
 
 ---
@@ -123,7 +124,12 @@ horário, teste obrigatório antes de disparar, opt-out por "PARE" no webhook, p
 `mensagens`, capability `campaigns` de `soon` → `ga`.
 
 ### Fase 4 — Mensagens agendadas
-Seção 8. É `Campaign` com `scheduledAt`, interpretado **no fuso do tenant**.
+**Recorte um-a-um: ✅ entregue.** Model `ScheduledMessage`, varredura no `/api/cron/tick`,
+UI na ficha da cliente. Ver ADR-019 e a §8 reescrita da spec.
+
+**Falta (4b):** campanha agendada — `Campaign` com `scheduledAt`. Depende da Fase 3, e deve
+**reusar** a máquina de agendamento já entregue (claim atômico + varredura no tick), não
+criar uma segunda.
 
 ### Fase 5 — Automações
 Seção 9. Confirmação por resposta (1/2) via webhook, retorno programado
@@ -173,6 +179,16 @@ inferir isso do texto estar vazio.
 spec original dizia que o no-show "dispara com um toque, sem diálogo" — mas o
 `AlertDialog` de confirmação já existia no código quando a Fase 2 foi implementada; faltava
 só o toggle dentro dele. Leia o componente real antes de assumir o que a spec descreve.
+
+**`dispatch()` não diz se a mensagem saiu.** `dispatched` só registra que a gravação do log
+não explodiu — o status real (SENT/FAILED/PENDING) mora no `NotificationLog`. Quem precisa
+saber se a entrega aconteceu lê `result.logs`, não `result.dispatched`.
+
+**`P1001` do Prisma CLI quase nunca é o Supabase fora do ar.** Em 2026-07-31 o erro era
+`DIRECT_URL` inexistente: o `prisma.config.ts` caía no fallback `DATABASE_URL`, que apontava
+para um túnel local morto. A correção é um `.env.local` (fora do git) com `DIRECT_URL` no
+pooler, porta **5432**. Depois disso, atenção: **todo comando do Prisma CLI passa a falar com
+produção** — `migrate dev`, `migrate reset` e `db push` viram proibidos, sem rede de proteção.
 
 ---
 

@@ -465,3 +465,39 @@ Durante a implementação, o teste de equivalência descobriu um **bug ativo em 
 - Canal `EMAIL`, quando ligado por um tenant na matriz, passa a mandar e-mail em eventos que hoje só mandam WhatsApp — é opt-in explícito, o padrão continua só WhatsApp.
 - **Achado reutilizável**: qualquer switch de UI que "desliga" mandando string vazia é suspeito — `''` é *falsy* e costuma virar fallback silencioso em vez de um "não" explícito. Foi exatamente o bug do switch de confirmação nesta fase; o contrato `notify?: boolean` existe em parte para não repetir essa classe de erro.
 - As 4 falhas de teste pré-existentes (`scheduling.service.update.test.ts`, `appointment-reminder.test.ts`, `customer-history-client.test.tsx` ×2) seguem presentes e não têm relação com esta entrega.
+
+## ADR-019 — Mensagem agendada um-a-um com model próprio, fora do caminho de campanha (2026-07-31)
+
+**Data**: 2026-07-31
+**Status**: Aceito
+
+**Contexto**: A §8 da spec do motor de mensagens definia mensagem agendada como "uma `Campaign` com `scheduledAt`" — sem model próprio. Só que `Campaign` pertence à Fase 3, que não foi implementada: o model não existe. Seguir a spec ao pé da letra exigiria entregar campanhas segmentadas inteiras (segmento, throttle, janela de horário, opt-out, teste obrigatório, permissão nova, promoção da capability `campaigns` a `ga`) antes de conseguir agendar um único lembrete para uma única cliente — que é a demanda real e cabe numa fração do esforço.
+
+**Decisão**:
+
+1. **Model próprio `ScheduledMessage`, não `Campaign`.** Uma mensagem, uma cliente, um horário. Sem segmento, sem destinatários múltiplos, sem throttle. A abstração de campanha não foi antecipada (YAGNI): quando a Fase 3 chegar, a campanha reusa a **máquina de agendamento** — `claim` atômico + varredura no tick — em vez de duplicá-la.
+
+2. **`scheduledAt` sempre no fuso do tenant, garantido pelo formato do contrato.** A API recebe `date` (`YYYY-MM-DD`) e `time` (`HH:mm`) **separados**, nunca um instante ISO, e converte com `localDateTimeToUtc(date, time, tenant.timezone)` no service. Um ISO vindo do navegador já teria sido convertido no fuso do usuário — que é exatamente o bug que a PR #278 corrigiu no resumo diário da equipe. O formato do contrato torna o erro impossível, em vez de depender de disciplina.
+
+3. **Idempotência por reivindicação atômica na própria tabela, não por fila.** Cada linha vencida é reivindicada com `updateMany({ where: { id, status: "PENDING" }, data: { status: "SENDING" } })`; só quem recebe `count === 1` envia. Por isso a varredura é uma **chamada direta** dentro do `/api/cron/tick` e não um job do pg-boss: o tick é o único worker e busca um job por vez, então enfileirar a cada 10 minutos só criaria backlog, sem acrescentar nenhuma garantia que o claim já não desse.
+
+4. **Uma tentativa, `FAILED` terminal.** Falha registra o motivo real vindo do `NotificationLog` e para. Retry automático arriscaria mensagem duplicada quando o provedor entrega mas responde erro — e uma mensagem duplicada para a cliente é pior do que uma que não saiu, porque a profissional consegue ver a falha na lista e reagendar. Uma varredura derruba para `FAILED` o que ficar preso em `SENDING` por mais de 15 minutos.
+
+5. **Modo `direct` no dispatcher, em vez de um evento novo no catálogo.** Mensagem avulsa não passa pelo liga/desliga por evento (quem escreveu e marcou a hora já decidiu enviar) e tem canal explícito. Um evento novo no catálogo obrigaria a mexer no enum `CustomerMessageEvent` (migration) e faria a mensagem avulsa aparecer como 11ª linha na matriz de configuração, onde um toggle poderia cancelar silenciosamente um envio explícito.
+
+6. **Permissão reusada (`clientes:view`/`clientes:edit`), não `mensagens`.** A permissão `mensagens` da §10 da spec nasce junto com as campanhas, onde ela realmente pesa — poder disparar para a base inteira. Para uma mensagem a uma cliente específica, quem já pode editar aquela cliente pode falar com ela.
+
+**Alternativas rejeitadas**:
+- **Implementar `Campaign` só para ter `scheduledAt`**: carregaria segmento, `CampaignRecipient`, throttle e opt-out — subsistemas inteiros — para atender um caso que não usa nenhum deles.
+- **Job do pg-boss para a varredura**: ver Decisão 3.
+- **Retry com contador de tentativas**: ver Decisão 4.
+- **Evento `custom_message` no catálogo**: ver Decisão 5.
+
+**Consequências**:
+- **Migration `20260731120000_add_scheduled_message` precisa ser aplicada manualmente em produção**: `npx prisma migrate deploy`, porta **5432** do Supabase (a 6543 trava em DDL). **Não há backfill** — a tabela nasce vazia e nenhum comportamento existente muda.
+- A migration foi **escrita à mão** e depois conferida contra o schema real de produção com `prisma migrate diff --from-config-datasource` — a saída bate exatamente com o SQL escrito. Ela ainda não foi *executada*: isso só acontece no `migrate deploy` da janela de produção.
+- **Achado colateral:** o `DIRECT_URL` não existia nesta máquina, e o CLI do Prisma caía num túnel local morto (`P1001`) — era por isso que "o banco estava indisponível". Com a variável apontando para o pooler na porta 5432, ficou registrado que **todo comando do Prisma CLI aqui fala com produção**: `migrate dev`, `migrate reset` e `db push` passam a ser proibidos, porque não há banco local para absorver o erro.
+- **Drift pré-existente detectado e deixado de fora:** produção tem o índice `UserNotificationPreference_tenantId_userId_eventType_channel_ke`, enquanto o schema espera `..._channe_key` (truncamento diferente, herdado da migration de notificações da equipe). Aparece em qualquer `migrate diff` e **não** foi corrigido aqui — é escopo de outra PR.
+- `CustomerMessageDispatchResult` ganhou o campo `logs` (id, status e `errorMessage` por canal). Nenhum chamador existente quebrou, mas testes que comparavam o resultado inteiro com `toEqual` precisaram do campo novo.
+- `motivoDeBloqueio`, que era privada da rota de prévia da Fase 2, virou `customerMessageBlockedReason` em `customer-messages/customer-message-delivery.ts`, consumida pelas duas rotas de prévia.
+- A precisão do envio é de ~10 minutos, herdada do workflow do cron. A UI diz isso explicitamente; aumentar a precisão é aumentar a frequência do workflow (mínimo de 5 minutos no GitHub Actions).
