@@ -17,6 +17,22 @@ export type UpdateScheduledMessageData = {
 const AUTOR = { createdByUser: { select: { id: true, name: true } } } as const;
 
 export class ScheduledMessageRepository {
+  /** Só os campos que a montagem das variáveis do template precisa. */
+  async findTenantContext(tenantId: string) {
+    return prisma.tenant.findFirst({
+      where: { id: tenantId },
+      select: { name: true, slug: true, timezone: true, phone: true, address: true },
+    });
+  }
+
+  /** Filtra o tenant: id de cliente de outro negócio nunca resolve. */
+  async findCustomerForMessage(tenantId: string, customerId: string) {
+    return prisma.customer.findFirst({
+      where: { id: customerId, tenantId },
+      select: { id: true, name: true, phone: true },
+    });
+  }
+
   /** `tenantId` vem sempre do argumento (extraído da sessão), nunca do input. */
   async create(tenantId: string, data: CreateScheduledMessageData) {
     return prisma.scheduledMessage.create({
