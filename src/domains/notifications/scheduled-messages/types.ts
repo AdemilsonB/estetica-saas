@@ -33,3 +33,18 @@ export type ScheduledMessageForDelivery = Prisma.ScheduledMessageGetPayload<{
     };
   };
 }>;
+
+/**
+ * As variáveis que fazem sentido numa mensagem avulsa. Não há agendamento no contexto,
+ * então `data`, `hora`, `servico`, `profissional` e `valor` renderizariam vazio — e um
+ * chip que produz string vazia é pior do que chip nenhum.
+ */
+export const SCHEDULED_MESSAGE_VARIABLES = [
+  "cliente",
+  "primeiro_nome",
+  "negocio",
+  "endereco",
+  "telefone_negocio",
+  "link_agendamento",
+  "link_portal",
+] as const;
