@@ -365,8 +365,11 @@ export function AgendaDayView() {
         </div>
       </div>
 
-      {/* Label do dia selecionado (só no modo dia) */}
-      {viewMode === 'day' && (
+      {/* Label do dia selecionado. Quando a timeline aparece, ela renderiza a
+          própria data dentro da faixa fixa (pra data acompanhar o scroll junto
+          com os nomes dos profissionais) — aqui fica só nos estados em que a
+          timeline não é montada, senão a data apareceria duas vezes. */}
+      {viewMode === 'day' && (isLoading || isLoadingBusinessHours || !!error || isEmpty) && (
         <p className="text-sm font-semibold capitalize text-slate-600">
           {formatDayLabel(selectedDate)}
         </p>
@@ -438,6 +441,7 @@ export function AgendaDayView() {
               columns={timelineColumns}
               appointmentsByProfessional={appointmentsByProfessional}
               slotIntervalMinutes={slotIntervalMinutes}
+              dateLabel={formatDayLabel(selectedDate)}
               canClickSlot={canClickSlot}
               onSlotClick={handleSlotClick}
               onAppointmentClick={handleCardClick}

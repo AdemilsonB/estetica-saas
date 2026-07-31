@@ -45,6 +45,7 @@ describe('AgendaDayTimeline', () => {
         columns={baseColumns}
         appointmentsByProfessional={{}}
         slotIntervalMinutes={30}
+        dateLabel="Sexta-feira, 31 de julho"
         canClickSlot={() => true}
         onSlotClick={onSlotClick}
         onAppointmentClick={vi.fn()}
@@ -58,6 +59,31 @@ describe('AgendaDayTimeline', () => {
     expect(onSlotClick).toHaveBeenCalledWith('p1', '09:30')
   })
 
+  it('mostra a data na faixa que acompanha o scroll junto com os nomes dos profissionais', () => {
+    render(
+      <AgendaDayTimeline
+        slots={['09:00']}
+        columns={[
+          { professionalId: 'p1', professionalName: 'Bruna' },
+          { professionalId: 'p2', professionalName: 'Ademilson' },
+        ]}
+        appointmentsByProfessional={{}}
+        slotIntervalMinutes={30}
+        dateLabel="Sexta-feira, 31 de julho"
+        canClickSlot={() => true}
+        onSlotClick={vi.fn()}
+        onAppointmentClick={vi.fn()}
+        onConfirm={vi.fn()}
+        onPay={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Sexta-feira, 31 de julho')).toBeInTheDocument()
+    expect(screen.getByText('Bruna')).toBeInTheDocument()
+    expect(screen.getByText('Ademilson')).toBeInTheDocument()
+  })
+
   it('não deixa clicar em slot vazio quando canClickSlot nega (sem permissão)', () => {
     const onSlotClick = vi.fn()
     render(
@@ -66,6 +92,7 @@ describe('AgendaDayTimeline', () => {
         columns={baseColumns}
         appointmentsByProfessional={{}}
         slotIntervalMinutes={30}
+        dateLabel="Sexta-feira, 31 de julho"
         canClickSlot={() => false}
         onSlotClick={onSlotClick}
         onAppointmentClick={vi.fn()}
@@ -94,6 +121,7 @@ describe('AgendaDayTimeline', () => {
         columns={baseColumns}
         appointmentsByProfessional={{ p1: [appt] }}
         slotIntervalMinutes={30}
+        dateLabel="Sexta-feira, 31 de julho"
         canClickSlot={() => true}
         onSlotClick={onSlotClick}
         onAppointmentClick={onAppointmentClick}
@@ -119,6 +147,7 @@ describe('AgendaDayTimeline', () => {
         columns={baseColumns}
         appointmentsByProfessional={{ p1: [appt] }}
         slotIntervalMinutes={30}
+        dateLabel="Sexta-feira, 31 de julho"
         canClickSlot={() => true}
         onSlotClick={vi.fn()}
         onAppointmentClick={vi.fn()}
@@ -150,6 +179,7 @@ describe('AgendaDayTimeline', () => {
         columns={columns}
         appointmentsByProfessional={{ p1: [appt], p2: [] }}
         slotIntervalMinutes={30}
+        dateLabel="Sexta-feira, 31 de julho"
         canClickSlot={() => true}
         onSlotClick={vi.fn()}
         onAppointmentClick={vi.fn()}
@@ -191,6 +221,7 @@ describe('AgendaDayTimeline', () => {
         columns={baseColumns}
         appointmentsByProfessional={{ p1: [cancelado, noShow] }}
         slotIntervalMinutes={30}
+        dateLabel="Sexta-feira, 31 de julho"
         canClickSlot={() => true}
         onSlotClick={vi.fn()}
         onAppointmentClick={vi.fn()}
@@ -220,6 +251,7 @@ describe('AgendaDayTimeline', () => {
         columns={baseColumns}
         appointmentsByProfessional={{ p1: [concluido] }}
         slotIntervalMinutes={30}
+        dateLabel="Sexta-feira, 31 de julho"
         canClickSlot={() => true}
         onSlotClick={vi.fn()}
         onAppointmentClick={vi.fn()}
@@ -256,6 +288,7 @@ describe('AgendaDayTimeline', () => {
         columns={baseColumns}
         appointmentsByProfessional={{ p1: [longo, dentro] }}
         slotIntervalMinutes={30}
+        dateLabel="Sexta-feira, 31 de julho"
         canClickSlot={() => true}
         onSlotClick={vi.fn()}
         onAppointmentClick={vi.fn()}
@@ -287,6 +320,7 @@ describe('AgendaDayTimeline', () => {
         columns={baseColumns}
         appointmentsByProfessional={{ p1: [appt1, appt2] }}
         slotIntervalMinutes={30}
+        dateLabel="Sexta-feira, 31 de julho"
         canClickSlot={() => true}
         onSlotClick={vi.fn()}
         onAppointmentClick={vi.fn()}
