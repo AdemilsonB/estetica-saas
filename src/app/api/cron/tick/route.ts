@@ -99,6 +99,12 @@ export async function GET(request: NextRequest) {
     return new Response("Unauthorized", { status: 401 });
   }
 
+  // Roda ANTES do pg-boss e fora do try dele de propósito: mensagens agendadas não
+  // dependem da fila (ver comentário de runMensagensAgendadas e ADR-019, decisão 3). Se o
+  // pg-boss falhar depois, a varredura já rodou de qualquer jeito — só não entra no JSON
+  // de resposta, que nesse caso vira 500 de qualquer forma.
+  const scheduledMessages = await runMensagensAgendadas();
+
   try {
     const boss = await startPgBoss();
 
@@ -153,8 +159,6 @@ export async function GET(request: NextRequest) {
         runBatch<TeamNotificationEmailPayload>(boss, TEAM_NOTIFICATION_EMAIL_JOB, handleTeamNotificationEmail),
         runScheduled(boss, TEAM_DAILY_DIGEST_JOB, handleTeamDailyDigest),
       ]);
-
-    const scheduledMessages = await runMensagensAgendadas();
 
     return Response.json({
       ok: true,

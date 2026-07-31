@@ -110,22 +110,53 @@ describe("scheduledMessageRepository", () => {
     });
   });
 
-  it("claim é atômico: só ganha quem trocou PENDING por SENDING", async () => {
+  it("claim é atômico: só ganha quem trocou PENDING por SENDING, e relê a linha fresca", async () => {
+    const agora = new Date("2026-08-01T12:00:00.000Z");
     prismaMock.scheduledMessage.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.scheduledMessage.findUnique.mockResolvedValue({
+      id: "sm-1",
+      body: "Texto atual",
+    } as never);
 
-    const ganhou = await scheduledMessageRepository.claim("sm-1");
+    const mensagem = await scheduledMessageRepository.claim("sm-1", agora);
 
-    expect(ganhou).toBe(true);
     expect(prismaMock.scheduledMessage.updateMany).toHaveBeenCalledWith({
-      where: { id: "sm-1", status: "PENDING" },
+      where: { id: "sm-1", status: "PENDING", scheduledAt: { lte: agora } },
       data: { status: "SENDING" },
     });
+    expect(prismaMock.scheduledMessage.findUnique).toHaveBeenCalledWith({
+      where: { id: "sm-1" },
+      include: {
+        customer: { select: { id: true, name: true, phone: true } },
+        tenant: {
+          select: { name: true, slug: true, timezone: true, phone: true, address: true },
+        },
+      },
+    });
+    expect(mensagem).toEqual({ id: "sm-1", body: "Texto atual" });
   });
 
-  it("claim devolve false quando outro tick já levou a linha — idempotência", async () => {
+  it("claim devolve null quando outro tick já levou a linha — idempotência", async () => {
     prismaMock.scheduledMessage.updateMany.mockResolvedValue({ count: 0 });
 
-    expect(await scheduledMessageRepository.claim("sm-1")).toBe(false);
+    expect(await scheduledMessageRepository.claim("sm-1", new Date())).toBe(null);
+    expect(prismaMock.scheduledMessage.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("claim não reivindica linha reagendada para o futuro — fecha a corrida com a edição", async () => {
+    // A linha real tem scheduledAt no futuro (foi reagendada depois que o findDue a leu).
+    // O `where` do updateMany exige scheduledAt <= now, então o Postgres não bate 0 linha.
+    const agora = new Date("2026-08-01T12:00:00.000Z");
+    prismaMock.scheduledMessage.updateMany.mockResolvedValue({ count: 0 });
+
+    const mensagem = await scheduledMessageRepository.claim("sm-1", agora);
+
+    expect(prismaMock.scheduledMessage.updateMany).toHaveBeenCalledWith({
+      where: { id: "sm-1", status: "PENDING", scheduledAt: { lte: agora } },
+      data: { status: "SENDING" },
+    });
+    expect(mensagem).toBe(null);
+    expect(prismaMock.scheduledMessage.findUnique).not.toHaveBeenCalled();
   });
 
   it("markSent grava horário de envio e o log gerado", async () => {

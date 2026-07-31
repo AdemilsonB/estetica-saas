@@ -112,17 +112,34 @@ export class ScheduledMessageRepository {
   }
 
   /**
-   * A reivindicação atômica que garante a idempotência: o `where` exige `PENDING`, e
-   * o Postgres só deixa um `updateMany` concorrente ver a linha nesse estado. Quem
-   * recebe `count === 1` é dono do envio; qualquer outro tick recebe `0` e desiste.
-   * Cross-tenant pelo mesmo motivo do `findDue`.
+   * A reivindicação atômica que garante a idempotência: o `where` exige `PENDING` E
+   * `scheduledAt` já vencido NO MOMENTO do claim — não no momento em que `findDue` leu a
+   * linha. Se a profissional reagendou para o futuro entre o `findDue` e aqui, o `where`
+   * não bate e ninguém reivindica. Depois de vencer o claim, relê a linha (não reusa o
+   * que `findDue` tinha em mãos) para nunca enviar um `body` que já foi editado nesse
+   * meio-tempo. Cross-tenant pelo mesmo motivo do `findDue`.
    */
-  async claim(id: string): Promise<boolean> {
+  async claim(id: string, now: Date): Promise<ScheduledMessageForDelivery | null> {
     const { count } = await prisma.scheduledMessage.updateMany({
-      where: { id, status: "PENDING" },
+      where: { id, status: "PENDING", scheduledAt: { lte: now } },
       data: { status: "SENDING" },
     });
-    return count === 1;
+    if (count !== 1) return null;
+
+    return this.findByIdForDelivery(id);
+  }
+
+  /** Leitura fresca de uma linha já reivindicada, com o include que a entrega precisa. */
+  private async findByIdForDelivery(id: string): Promise<ScheduledMessageForDelivery | null> {
+    return prisma.scheduledMessage.findUnique({
+      where: { id },
+      include: {
+        customer: { select: { id: true, name: true, phone: true } },
+        tenant: {
+          select: { name: true, slug: true, timezone: true, phone: true, address: true },
+        },
+      },
+    });
   }
 
   async markSent(id: string, notificationLogId: string, sentAt: Date) {

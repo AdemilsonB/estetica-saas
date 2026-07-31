@@ -90,7 +90,9 @@ export function useScheduledMessagePreview(
         body: JSON.stringify(input),
       }),
     enabled: enabled && Boolean(input.customerId),
-    // A prévia acompanha a digitação; sem isso, cada tecla dispararia uma requisição nova.
+    // O debounce de verdade é responsabilidade de quem chama (o `body` recebido aqui já
+    // deve vir "assentado" — ver scheduled-messages-dialog.tsx). staleTime evita repetir a
+    // MESMA prévia se o usuário voltar a um texto que já tinha sido buscado.
     staleTime: 10_000,
     retry: false,
   });

@@ -251,7 +251,7 @@ describe("scheduledMessageService.deliverDue", () => {
 
   it("entrega pelo dispatcher em modo direto, com o texto já interpolado", async () => {
     repo.findDue.mockResolvedValue([VENCIDA] as never);
-    repo.claim.mockResolvedValue(true);
+    repo.claim.mockResolvedValue(VENCIDA as never);
     dispatcher.dispatch.mockResolvedValue({
       dispatched: ["WHATSAPP"],
       skipReason: null,
@@ -284,7 +284,7 @@ describe("scheduledMessageService.deliverDue", () => {
 
   it("não envia quando outro tick já reivindicou a linha — idempotência", async () => {
     repo.findDue.mockResolvedValue([VENCIDA] as never);
-    repo.claim.mockResolvedValue(false);
+    repo.claim.mockResolvedValue(null);
 
     const resumo = await scheduledMessageService.deliverDue(new Date());
 
@@ -296,7 +296,7 @@ describe("scheduledMessageService.deliverDue", () => {
 
   it("falha de entrega vira FAILED com o motivo real do log, sem reagendar", async () => {
     repo.findDue.mockResolvedValue([VENCIDA] as never);
-    repo.claim.mockResolvedValue(true);
+    repo.claim.mockResolvedValue(VENCIDA as never);
     dispatcher.dispatch.mockResolvedValue({
       dispatched: ["WHATSAPP"],
       skipReason: null,
@@ -322,7 +322,9 @@ describe("scheduledMessageService.deliverDue", () => {
 
   it("exceção numa linha não derruba o lote — a próxima ainda é processada", async () => {
     repo.findDue.mockResolvedValue([VENCIDA, { ...VENCIDA, id: "sm-2" }] as never);
-    repo.claim.mockResolvedValue(true);
+    repo.claim.mockImplementation(
+      async (id: string) => ({ ...VENCIDA, id }) as never,
+    );
     dispatcher.dispatch
       .mockRejectedValueOnce(new Error("banco fora do ar"))
       .mockResolvedValueOnce({
@@ -350,10 +352,9 @@ describe("scheduledMessageService.deliverDue", () => {
   });
 
   it("cliente que perdeu o telefone entre agendar e enviar falha com motivo legível", async () => {
-    repo.findDue.mockResolvedValue([
-      { ...VENCIDA, customer: { ...CLIENTE, phone: null } },
-    ] as never);
-    repo.claim.mockResolvedValue(true);
+    const SEM_TELEFONE = { ...VENCIDA, customer: { ...CLIENTE, phone: null } };
+    repo.findDue.mockResolvedValue([SEM_TELEFONE] as never);
+    repo.claim.mockResolvedValue(SEM_TELEFONE as never);
 
     await scheduledMessageService.deliverDue(new Date());
 
@@ -371,7 +372,7 @@ describe("scheduledMessageService.deliverDue", () => {
     // "sem-destinatario"`, é porque o catch interno dele engoliu uma falha ao gravar o
     // NotificationLog — não porque falta telefone. O motivo salvo precisa refletir isso.
     repo.findDue.mockResolvedValue([VENCIDA] as never);
-    repo.claim.mockResolvedValue(true);
+    repo.claim.mockResolvedValue(VENCIDA as never);
     dispatcher.dispatch.mockResolvedValue({
       dispatched: [],
       skipReason: "sem-destinatario",
@@ -397,5 +398,24 @@ describe("scheduledMessageService.deliverDue", () => {
     // 15 minutos antes de agora.
     expect(repo.expireStuck).toHaveBeenCalledWith(new Date("2026-08-01T11:45:00.000Z"));
     expect(resumo.expiradas).toBe(2);
+  });
+
+  it("usa o corpo relido no claim, não o que o findDue tinha em mãos — a mensagem pode ter sido editada nesse meio-tempo", async () => {
+    repo.findDue.mockResolvedValue([VENCIDA] as never); // body antigo: "Oi {{primeiro_nome}}"
+    repo.claim.mockResolvedValue({
+      ...VENCIDA,
+      body: "Texto editado depois do findDue",
+    } as never);
+    dispatcher.dispatch.mockResolvedValue({
+      dispatched: ["WHATSAPP"],
+      skipReason: null,
+      logs: [{ channel: "WHATSAPP", notificationLogId: "log-x", status: "SENT", errorMessage: null }],
+    });
+
+    await scheduledMessageService.deliverDue(new Date("2026-08-01T12:05:00.000Z"));
+
+    expect(dispatcher.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Texto editado depois do findDue" }),
+    );
   });
 });

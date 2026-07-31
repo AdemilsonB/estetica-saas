@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ptBR } from "react-day-picker/locale";
 import { AlertTriangle, CalendarIcon, Check, Clock, Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -275,6 +275,15 @@ function FormularioDeLembrete({
   onCancelar,
 }: FormularioProps) {
   const [texto, setTexto] = useState(emEdicao?.body ?? "");
+  // Assenta o texto antes de entrar na queryKey da prévia — sem isso, cada tecla gera
+  // uma queryKey nova e o staleTime do hook nunca chega a valer (ver I2 do review final).
+  const [textoParaPrevia, setTextoParaPrevia] = useState(texto);
+
+  useEffect(() => {
+    const temporizador = setTimeout(() => setTextoParaPrevia(texto), 400);
+    return () => clearTimeout(temporizador);
+  }, [texto]);
+
   // Vêm prontos do servidor, no fuso do tenant, e voltam iguais no PATCH — nenhuma
   // conversão acontece aqui.
   const [data, setData] = useState(emEdicao?.scheduledDate ?? "");
@@ -283,8 +292,8 @@ function FormularioDeLembrete({
 
   const opcoes = useScheduledMessageOptions(true);
   const previa = useScheduledMessagePreview(
-    { customerId, body: texto },
-    texto.trim().length > 0,
+    { customerId, body: textoParaPrevia },
+    textoParaPrevia.trim().length > 0,
   );
   const criar = useCreateScheduledMessage(customerId);
   const editar = useUpdateScheduledMessage(customerId);

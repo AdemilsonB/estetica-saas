@@ -23,8 +23,8 @@ import type {
   UpdateScheduledMessageInput,
 } from "./scheduled-message.schemas";
 
-/** Quantas mensagens vencidas um único tick processa. */
-const TAMANHO_DO_LOTE = 50;
+/** Quantas mensagens vencidas um único tick processa. Mesmo teto de `runBatch` no cron tick. */
+const TAMANHO_DO_LOTE = 10;
 
 /**
  * Depois disso, uma linha em SENDING é considerada abandonada. Precisa ser bem maior
@@ -171,9 +171,9 @@ export class ScheduledMessageService {
     let enviadas = 0;
     let falhas = 0;
 
-    for (const mensagem of vencidas) {
-      const ganhou = await scheduledMessageRepository.claim(mensagem.id);
-      if (!ganhou) continue;
+    for (const candidata of vencidas) {
+      const mensagem = await scheduledMessageRepository.claim(candidata.id, now);
+      if (!mensagem) continue;
 
       try {
         const saiu = await this.entregar(mensagem, now);
@@ -183,7 +183,7 @@ export class ScheduledMessageService {
         // Uma linha problemática não pode derrubar o lote inteiro nem deixar a linha
         // presa em SENDING até a janela de travamento expirar.
         await scheduledMessageRepository.markFailed(
-          mensagem.id,
+          candidata.id,
           `Falha inesperada no envio: ${err instanceof Error ? err.message : "erro desconhecido"}`,
           null,
         );

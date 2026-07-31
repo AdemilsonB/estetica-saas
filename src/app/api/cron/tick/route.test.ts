@@ -58,4 +58,15 @@ describe("/api/cron/tick — mensagens agendadas", () => {
       expiradas: 0,
     });
   });
+
+  it("a varredura de mensagens agendadas roda mesmo se o pg-boss falhar ao iniciar", async () => {
+    const { startPgBoss } = await import("@/shared/queue/pg-boss");
+    vi.mocked(startPgBoss).mockRejectedValueOnce(new Error("pg-boss fora do ar"));
+    service.deliverDue.mockResolvedValue({ enviadas: 1, falhas: 0, expiradas: 0 });
+
+    const res = await GET(requisicao());
+
+    expect(service.deliverDue).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(500);
+  });
 });
