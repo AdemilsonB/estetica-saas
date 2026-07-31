@@ -150,9 +150,12 @@ export function CreateAppointmentModal({
     setServiceId('')
     setPackageId('')
     setPromotionId('')
-    setSelectedTime('')
-    setCustomTime('')
-
+    // O horário NÃO é limpo aqui de propósito: ele é uma escolha explícita do
+    // usuário (clique num slot da grade, digitação manual ou sugestão) e
+    // trocar de serviço não invalida essa escolha. Limpar apagava o horário
+    // que veio do clique na grade — o serviço é escolhido depois, então o
+    // campo sempre voltava vazio. Se o novo serviço não couber no horário, a
+    // lista de sugestões marca o conflito e o backend valida no submit.
     if (selection.type === 'service') {
       setServiceId(selection.item.id)
     } else if (selection.type === 'package') {

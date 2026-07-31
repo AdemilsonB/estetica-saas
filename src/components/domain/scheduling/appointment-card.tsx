@@ -48,9 +48,11 @@ type Props = {
   onConfirm?: (appointment: Appointment) => void
   onPay?: (appointment: Appointment) => void
   onEdit?: (appointment: Appointment) => void
+  /** Usado pela timeline pra esticar o card por toda a duração do agendamento. */
+  className?: string
 }
 
-export function AppointmentCard({ appointment, onClick, onConfirm, onPay, onEdit }: Props) {
+export function AppointmentCard({ appointment, onClick, onConfirm, onPay, onEdit, className }: Props) {
   const config = STATUS_CONFIG[appointment.status]
   const isActive = !['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(appointment.status)
   const serviceName = appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'
@@ -61,7 +63,11 @@ export function AppointmentCard({ appointment, onClick, onConfirm, onPay, onEdit
       tabIndex={0}
       onClick={() => onClick(appointment)}
       onKeyDown={(e) => e.key === 'Enter' && onClick(appointment)}
-      className={cn('relative w-full cursor-pointer rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md', config.cardClass)}
+      className={cn(
+        'relative w-full cursor-pointer rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md',
+        config.cardClass,
+        className,
+      )}
     >
       {/* Linha 1: status + lápis */}
       <div className="flex items-center justify-between gap-2">
