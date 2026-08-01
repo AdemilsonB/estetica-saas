@@ -35,10 +35,10 @@ export function ImportContactsButton() {
       <Button
         variant="outline"
         onClick={() => setMode('chooser')}
-        className="shrink-0 rounded-full"
+        className="h-11 shrink-0 gap-2 rounded-lg px-3"
       >
-        <ContactRound className="size-4" />
-        <span className="hidden sm:inline">Importar</span>
+        <ContactRound className="size-5" />
+        <span>Importar</span>
       </Button>
 
       {/* Seletor de origem — um Dialog por vez, nunca aninhados */}

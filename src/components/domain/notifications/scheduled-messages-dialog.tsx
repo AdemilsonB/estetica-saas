@@ -384,8 +384,8 @@ function FormularioDeLembrete({
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-col gap-3 sm:flex-row">
-        <div className="min-w-0 space-y-2 sm:w-3/5">
+      <div className="flex min-w-0 gap-3">
+        <div className="w-3/5 min-w-0 space-y-2">
           <Label htmlFor="data-lembrete">Data</Label>
           <Popover open={calendarioAberto} onOpenChange={setCalendarioAberto}>
             <PopoverTrigger asChild>
@@ -415,14 +415,14 @@ function FormularioDeLembrete({
             </PopoverContent>
           </Popover>
         </div>
-        <div className="min-w-0 space-y-2 sm:w-2/5">
+        <div className="w-2/5 min-w-24 space-y-2">
           <Label htmlFor="hora-lembrete">Horário</Label>
           <Input
             id="hora-lembrete"
             type="time"
             value={hora}
             onChange={(e) => setHora(e.target.value)}
-            className="min-h-11 w-full"
+            className="min-h-11 w-full px-1.5"
           />
         </div>
       </div>

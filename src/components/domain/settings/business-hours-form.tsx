@@ -44,36 +44,41 @@ export function BusinessHoursForm() {
         return (
           <div
             key={day}
-            className="flex items-center gap-4 rounded-2xl border border-white/80 bg-white/85 px-4 py-3"
+            className="flex flex-col gap-3 rounded-2xl border border-white/80 bg-white/85 px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
           >
-            <Switch
-              checked={cfg.active}
-              onCheckedChange={(v: boolean) => setDay(day, 'active', v)}
-              id={`day-${day}`}
-            />
-            <Label
-              htmlFor={`day-${day}`}
-              className="w-20 text-sm font-medium text-slate-700"
-            >
-              {DAY_LABELS[day]}
-            </Label>
-            <div className={`flex items-center gap-2 transition-opacity ${cfg.active ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={cfg.active}
+                onCheckedChange={(v: boolean) => setDay(day, 'active', v)}
+                id={`day-${day}`}
+              />
+              <Label
+                htmlFor={`day-${day}`}
+                className="text-sm font-medium text-slate-700 sm:w-20"
+              >
+                {DAY_LABELS[day]}
+              </Label>
+              {!cfg.active && (
+                <span className="ml-auto text-xs text-slate-400 sm:hidden">Fechado</span>
+              )}
+            </div>
+            <div className={`flex items-center gap-2 transition-opacity ${cfg.active ? 'opacity-100' : 'pointer-events-none opacity-30'}`}>
               <Input
                 type="time"
                 value={cfg.open}
                 onChange={(e) => setDay(day, 'open', e.target.value)}
-                className="w-28"
+                className="w-full min-w-0 flex-1 sm:w-28 sm:flex-none"
               />
-              <span className="text-slate-400">até</span>
+              <span className="shrink-0 text-slate-400">até</span>
               <Input
                 type="time"
                 value={cfg.close}
                 onChange={(e) => setDay(day, 'close', e.target.value)}
-                className="w-28"
+                className="w-full min-w-0 flex-1 sm:w-28 sm:flex-none"
               />
             </div>
             {!cfg.active && (
-              <span className="ml-auto text-xs text-slate-400">Fechado</span>
+              <span className="hidden text-xs text-slate-400 sm:ml-auto sm:inline">Fechado</span>
             )}
           </div>
         )

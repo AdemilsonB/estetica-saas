@@ -427,7 +427,7 @@ export function AppShell({ children, logoUrl, businessName }: AppShellProps) {
         {/* Área principal */}
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <SwipeNavWrapper>
-            <div className="flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-6 xl:px-8 xl:py-8">
+            <div className="flex-1 px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 md:pb-6 xl:px-8 xl:py-8">
               {children}
             </div>
           </SwipeNavWrapper>
