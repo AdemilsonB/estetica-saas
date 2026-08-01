@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
+import * as React from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom/vitest'
 
@@ -113,6 +114,75 @@ describe('DialogContent empilhado', () => {
     expect(onOpenChangeNivel1).not.toHaveBeenCalledWith(false)
     expect(onOpenChangeNivel2).not.toHaveBeenCalledWith(false)
     expect(screen.getByText('Novo agendamento')).toBeInTheDocument()
+    expect(screen.getByText('Novo cliente')).toBeInTheDocument()
+  })
+
+  /**
+   * Bug real (parte 2, sobrevivia ao fix de Branch acima — só aparecia em toque/mobile):
+   * em touch, o Radix adia a checagem de "clique fora" do pointerdown pro evento
+   * 'click' seguinte, e cada dialog empilhado roda essa checagem na sua própria vez,
+   * uma de cada vez — não todas juntas contra o mesmo estado do DOM. Se o próprio
+   * toque troca de etapa (ex: escolher "Do WhatsApp" dentro do importador) ou fecha
+   * o nível mais interno, o elemento tocado já saiu do DOM antes da checagem dos
+   * níveis de cima rodar. Um nó desconectado não é filho de nenhum branch
+   * registrado, então o Radix concluía (errado) que o clique foi "fora" e fechava o
+   * dialog de baixo em cascata — mesmo ele sendo um branch legítimo. `onInteractOutside`
+   * em `DialogContent` agora ignora a checagem quando o alvo já está desconectado.
+   */
+  it('toque (touch) que troca de etapa e desmonta o alvo clicado não fecha o dialog de baixo', async () => {
+    const onOpenChangeNivel2 = vi.fn()
+
+    function Nivel3ComTroca() {
+      const [step, setStep] = React.useState<'chooser' | 'depois'>('chooser')
+      return (
+        <Dialog open modal={false}>
+          <DialogContent stacked>
+            <DialogHeader>
+              <DialogTitle>Importar contato</DialogTitle>
+            </DialogHeader>
+            {step === 'chooser' ? (
+              <button type="button" onClick={() => setStep('depois')}>
+                Do WhatsApp conectado
+              </button>
+            ) : (
+              <p>Contatos do WhatsApp</p>
+            )}
+          </DialogContent>
+        </Dialog>
+      )
+    }
+
+    render(
+      <Dialog open>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo agendamento</DialogTitle>
+          </DialogHeader>
+        </DialogContent>
+
+        <Dialog open modal={false} onOpenChange={onOpenChangeNivel2}>
+          <DialogContent stacked>
+            <DialogHeader>
+              <DialogTitle>Novo cliente</DialogTitle>
+            </DialogHeader>
+          </DialogContent>
+
+          <Nivel3ComTroca />
+        </Dialog>
+      </Dialog>,
+    )
+
+    // Deixa os listeners de pointerdown (armados via setTimeout(0) pelo Radix)
+    // se registrarem antes do toque — senão o teste passaria mesmo com bug real.
+    await new Promise((r) => setTimeout(r, 10))
+
+    const button = screen.getByText('Do WhatsApp conectado')
+    fireEvent.pointerDown(button, { pointerType: 'touch', isPrimary: true })
+    fireEvent.pointerUp(button, { pointerType: 'touch', isPrimary: true })
+    fireEvent.click(button)
+    await new Promise((r) => setTimeout(r, 10))
+
+    expect(onOpenChangeNivel2).not.toHaveBeenCalledWith(false)
     expect(screen.getByText('Novo cliente')).toBeInTheDocument()
   })
 })
