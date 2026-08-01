@@ -81,7 +81,7 @@ export const PercentageInput = forwardRef<HTMLInputElement, PercentageInputProps
     )
 
     return (
-      <div className="relative w-full">
+      <div className={cn('relative w-full', className)}>
         <Input
           ref={ref}
           {...props}
@@ -92,7 +92,7 @@ export const PercentageInput = forwardRef<HTMLInputElement, PercentageInputProps
           placeholder={placeholder}
           inputMode="decimal"
           autoComplete="off"
-          className={cn('pr-7', className)}
+          className={cn('h-full w-full pr-7', className)}
         />
         <span
           aria-hidden="true"
