@@ -113,7 +113,7 @@ export function PickContactModal({ open, onClose, onPick }: Props) {
                 este container tinha um max-h fixo DENTRO de um DialogContent que
                 também rolava sozinho (overflow-y-auto duplo), e nem toque nem a
                 digitação na busca conseguiam rolar a lista de forma confiável. */}
-            <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain">
               {whatsapp.isLoading ? (
                 <div className="flex h-32 items-center justify-center">
                   <Loader2 className="size-6 animate-spin text-slate-400" />
@@ -215,7 +215,7 @@ export function PickContactModal({ open, onClose, onPick }: Props) {
             )}
 
             {vcf.step === 'preview' && (
-              <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+              <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain">
                 {vcf.contacts.map((contact) => (
                   <button
                     key={contact.phone}

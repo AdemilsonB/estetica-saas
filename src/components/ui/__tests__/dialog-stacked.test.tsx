@@ -45,7 +45,7 @@ describe('DialogContent empilhado', () => {
     )
 
     const content = document.querySelector('[data-slot="dialog-content"]')
-    expect(content?.className).toContain('z-60')
+    expect(content?.className).toContain('z-[60]')
   })
 
   it('sem stacked, mantém o overlay padrão e não cria o fundo extra', () => {
