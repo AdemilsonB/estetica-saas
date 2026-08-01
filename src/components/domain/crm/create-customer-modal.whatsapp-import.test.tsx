@@ -10,8 +10,9 @@ vi.mock('@/hooks/settings/use-evolution-status', () => ({
     data: {
       contacts: [
         { phone: '5511999998888', name: 'Ana da Silva', profilePicUrl: null, inCrm: false },
+        { phone: '5511988887777', name: 'Bruno Costa', profilePicUrl: null, inCrm: false },
       ],
-      total: 1,
+      total: 2,
     },
     isLoading: false,
     isError: false,
@@ -127,5 +128,49 @@ describe('Importar contato do WhatsApp dentro de Novo cliente (empilhado sobre N
 
     const nameInput = document.querySelector('input[placeholder="Nome completo"]') as HTMLInputElement
     expect(nameInput?.value).toBe('Ana da Silva')
+  })
+
+  it('a busca filtra a lista de contatos do WhatsApp por nome', async () => {
+    const user = userEvent.setup()
+    render(<Harness onLevel1OpenChange={vi.fn()} />)
+
+    await user.click(screen.getByText('Importar contato (WhatsApp ou celular)'))
+    await user.click(screen.getByText('Do WhatsApp conectado'))
+
+    expect(screen.getByText('Ana da Silva')).toBeInTheDocument()
+    expect(screen.getByText('Bruno Costa')).toBeInTheDocument()
+
+    await user.type(screen.getByPlaceholderText('Buscar por nome ou número...'), 'bruno')
+
+    expect(screen.queryByText('Ana da Silva')).not.toBeInTheDocument()
+    expect(screen.getByText('Bruno Costa')).toBeInTheDocument()
+  })
+
+  it('a lista de contatos rola num único container flex (sem overflow-y-auto duplicado)', async () => {
+    const user = userEvent.setup()
+    render(<Harness onLevel1OpenChange={vi.fn()} />)
+
+    await user.click(screen.getByText('Importar contato (WhatsApp ou celular)'))
+    await user.click(screen.getByText('Do WhatsApp conectado'))
+
+    // DialogContent do PickContactModal não pode mais rolar sozinho — só a
+    // lista, ou toque/busca ficam quebrados por causa do scroll aninhado
+    // (regressão real de produção corrigida junto com este teste).
+    const dialogContent = screen.getByText('Contatos do WhatsApp').closest('[data-slot="dialog-content"]')
+    expect(dialogContent?.className).toContain('overflow-hidden')
+    expect(dialogContent?.className).not.toContain('overflow-y-auto')
+
+    const list = screen.getByText('Ana da Silva').closest('.overflow-y-auto')
+    expect(list).not.toBeNull()
+    expect(list?.className).toContain('flex-1')
+    expect(list?.className).toContain('min-h-0')
+  })
+
+  it('o botão "Importar contato" usa a cor de fundo de seleção (accent) configurada no tenant', () => {
+    render(<Harness onLevel1OpenChange={vi.fn()} />)
+
+    const button = screen.getByText('Importar contato (WhatsApp ou celular)').closest('button')
+    expect(button?.className).toContain('bg-accent')
+    expect(button?.className).toContain('text-accent-foreground')
   })
 })

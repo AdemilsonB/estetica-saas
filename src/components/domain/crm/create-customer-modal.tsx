@@ -76,7 +76,7 @@ export function CreateCustomerModal({ open, onClose, onCreated, modal = true }: 
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 py-2.5 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:bg-slate-50"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-medium text-accent-foreground transition hover:opacity-90"
         >
           <ContactRound className="size-4" />
           Importar contato (WhatsApp ou celular)
