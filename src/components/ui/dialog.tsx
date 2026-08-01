@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { Dialog as DialogPrimitive } from "radix-ui"
+import { DismissableLayer } from "radix-ui/internal"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -131,56 +132,72 @@ function DialogContent({
 }) {
   const trapRef = useStackedFocusTrap(stacked)
 
-  return (
-    <DialogPortal>
-      {stacked ? (
+  const content = (
+    <DialogPrimitive.Content
+      data-slot="dialog-content"
+      ref={(node: HTMLDivElement | null) => {
+        trapRef.current = node
+        if (typeof forwardedRef === "function") forwardedRef(node)
+        else if (forwardedRef) forwardedRef.current = node
+      }}
+      className={cn(
+        "fixed top-1/2 left-1/2 z-50 grid grid-cols-1 w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-x-hidden scrollbar-none rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+        stacked && "z-60",
+        className
+      )}
+      onOpenAutoFocus={(event) => {
+        event.preventDefault()
+        onOpenAutoFocus?.(event)
+      }}
+      onClick={(event) => {
+        const active = document.activeElement
+        if (isTextEntryElement(active) && !isTextEntryElement(event.target as Element)) {
+          active.blur()
+        }
+        onClick?.(event)
+      }}
+      {...props}
+    >
+      {children}
+      {showCloseButton && (
+        <DialogPrimitive.Close data-slot="dialog-close" asChild>
+          <Button
+            variant="ghost"
+            className="absolute top-2 right-2"
+            size="icon-sm"
+          >
+            <XIcon
+            />
+            <span className="sr-only">Close</span>
+          </Button>
+        </DialogPrimitive.Close>
+      )}
+    </DialogPrimitive.Content>
+  )
+
+  if (stacked) {
+    return (
+      <DialogPortal>
         <div
           data-slot="dialog-stacked-backdrop"
           className="fixed inset-0 z-60 bg-black/40 supports-backdrop-filter:backdrop-blur-sm"
         />
-      ) : (
-        <DialogOverlay />
-      )}
-      <DialogPrimitive.Content
-        data-slot="dialog-content"
-        ref={(node: HTMLDivElement | null) => {
-          trapRef.current = node
-          if (typeof forwardedRef === "function") forwardedRef(node)
-          else if (forwardedRef) forwardedRef.current = node
-        }}
-        className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid grid-cols-1 w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-x-hidden scrollbar-none rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          stacked && "z-60",
-          className
-        )}
-        onOpenAutoFocus={(event) => {
-          event.preventDefault()
-          onOpenAutoFocus?.(event)
-        }}
-        onClick={(event) => {
-          const active = document.activeElement
-          if (isTextEntryElement(active) && !isTextEntryElement(event.target as Element)) {
-            active.blur()
-          }
-          onClick?.(event)
-        }}
-        {...props}
-      >
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close data-slot="dialog-close" asChild>
-            <Button
-              variant="ghost"
-              className="absolute top-2 right-2"
-              size="icon-sm"
-            >
-              <XIcon
-              />
-              <span className="sr-only">Close</span>
-            </Button>
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Content>
+        {/* Registra o conteúdo empilhado como "branch" do dismissable-layer: sem isso,
+            o Dialog de baixo (que renderiza este como filho JSX, não como filho do seu
+            próprio DialogContent) enxerga qualquer clique aqui dentro como "fora" e se
+            fecha sozinho — o portal deste conteúdo é um irmão de DOM do de baixo, não
+            um descendente, então o capture-phase do de baixo nunca passa por aqui.
+            O backdrop fica fora do branch de propósito: clicar nele ainda deve fechar
+            este próprio dialog, só não deve mais fechar os de baixo. */}
+        <DismissableLayer.Branch className="contents">{content}</DismissableLayer.Branch>
+      </DialogPortal>
+    )
+  }
+
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      {content}
     </DialogPortal>
   )
 }
