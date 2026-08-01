@@ -3,6 +3,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { ContactRound } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCreateCustomer } from '@/hooks/crm/use-customers'
+import { formatBrazilianPhone } from '@/shared/utils/phone'
+import { PickContactModal } from './pick-contact-modal'
 
 type Props = {
   open: boolean
@@ -28,6 +31,7 @@ export function CreateCustomerModal({ open, onClose, onCreated, modal = true }: 
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [birthDate, setBirthDate] = useState('')
+  const [pickerOpen, setPickerOpen] = useState(false)
   const createCustomer = useCreateCustomer()
 
   function handleClose() {
@@ -68,6 +72,15 @@ export function CreateCustomerModal({ open, onClose, onCreated, modal = true }: 
         <DialogHeader>
           <DialogTitle>Novo cliente</DialogTitle>
         </DialogHeader>
+
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 py-2.5 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:bg-slate-50"
+        >
+          <ContactRound className="size-4" />
+          Importar contato (WhatsApp ou celular)
+        </button>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="space-y-1.5">
@@ -129,6 +142,15 @@ export function CreateCustomerModal({ open, onClose, onCreated, modal = true }: 
           </div>
         </form>
       </DialogContent>
+
+      <PickContactModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={(contact) => {
+          setName(contact.name)
+          setPhone(formatBrazilianPhone(contact.phone))
+        }}
+      />
     </Dialog>
   )
 }
