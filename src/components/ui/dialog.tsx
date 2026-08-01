@@ -119,6 +119,7 @@ function DialogContent({
   stacked = false,
   onOpenAutoFocus,
   onClick,
+  onInteractOutside,
   ref: forwardedRef,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
@@ -155,6 +156,24 @@ function DialogContent({
           active.blur()
         }
         onClick?.(event)
+      }}
+      onInteractOutside={(event) => {
+        // Em toque (mobile), o Radix adia a checagem de "clique fora" do
+        // pointerdown pro evento 'click' seguinte — e cada dialog empilhado
+        // checa isso na sua própria vez, uma de cada vez, não todas juntas.
+        // Se o clique tocado troca de etapa/fecha um nível mais interno (ex:
+        // escolher "Do WhatsApp" ou selecionar um contato), o elemento tocado
+        // já saiu do DOM antes da checagem dos níveis de cima rodar — e um nó
+        // desconectado não é filho de nenhum branch registrado, então o Radix
+        // conclui (errado) que o clique foi "fora" e fecha o dialog de baixo
+        // em cascata. Um nó desconectado nunca é evidência confiável de clique
+        // fora — ignora a checagem nesse caso.
+        const target = event.target as Node | null
+        if (target && !target.isConnected) {
+          event.preventDefault()
+          return
+        }
+        onInteractOutside?.(event)
       }}
       {...props}
     >
