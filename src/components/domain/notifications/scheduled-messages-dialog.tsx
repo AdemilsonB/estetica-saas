@@ -101,7 +101,7 @@ export function ScheduledMessagesDialog({
 
   return (
     <Dialog open={open} onOpenChange={(aberto) => !aberto && fechar()}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[85vh] overflow-y-auto scrollbar-none sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <WhatsAppIcon className="size-5 text-emerald-600" />
@@ -287,7 +287,7 @@ function FormularioDeLembrete({
   // Vêm prontos do servidor, no fuso do tenant, e voltam iguais no PATCH — nenhuma
   // conversão acontece aqui.
   const [data, setData] = useState(emEdicao?.scheduledDate ?? "");
-  const [hora, setHora] = useState(emEdicao?.scheduledTime ?? "");
+  const [hora, setHora] = useState(emEdicao?.scheduledTime ?? "09:00");
   const [calendarioAberto, setCalendarioAberto] = useState(false);
 
   const opcoes = useScheduledMessageOptions(true);
@@ -384,8 +384,8 @@ function FormularioDeLembrete({
         </div>
       </div>
 
-      <div className="flex min-w-0 gap-3">
-        <div className="w-3/5 min-w-0 space-y-2">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row">
+        <div className="min-w-0 space-y-2 sm:w-3/5">
           <Label htmlFor="data-lembrete">Data</Label>
           <Popover open={calendarioAberto} onOpenChange={setCalendarioAberto}>
             <PopoverTrigger asChild>
@@ -415,14 +415,14 @@ function FormularioDeLembrete({
             </PopoverContent>
           </Popover>
         </div>
-        <div className="w-2/5 min-w-24 space-y-2">
+        <div className="min-w-0 space-y-2 sm:w-2/5">
           <Label htmlFor="hora-lembrete">Horário</Label>
           <Input
             id="hora-lembrete"
             type="time"
             value={hora}
             onChange={(e) => setHora(e.target.value)}
-            className="min-h-11 px-1.5"
+            className="min-h-11 w-full"
           />
         </div>
       </div>
