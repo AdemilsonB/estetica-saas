@@ -33,7 +33,7 @@ export function LandingNav() {
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
         <Link href="/" aria-label="Agendê — página inicial" className="shrink-0">
           <Image
-            src="/brand/logo-horizontal.png"
+            src="/brand/logo-horizontal.svg"
             alt="Agendê"
             width={550}
             height={136}
@@ -65,7 +65,7 @@ export function LandingNav() {
           </Link>
           <Link
             href="/login?tab=signup"
-            className="rounded-lg bg-gradient-to-r from-violet-600 to-pink-600 px-3 py-2 text-sm font-bold text-white shadow-md shadow-violet-200 transition-opacity hover:opacity-90 sm:px-4"
+            className="rounded-sm bg-[#B9673C] px-3 py-2 text-sm font-bold text-[#FBF4EA] transition-opacity hover:opacity-90 sm:px-4"
           >
             <span className="hidden sm:inline">Começar grátis →</span>
             <span className="sm:hidden">Grátis →</span>

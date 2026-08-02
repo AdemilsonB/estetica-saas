@@ -16,7 +16,7 @@ export function LandingFooter({ whatsappNumber }: LandingFooterProps) {
         <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <Image src="/brand/logo-mark.png" alt="" width={512} height={512} className="h-8 w-8" />
+              <Image src="/brand/logo-mark.svg" alt="" width={512} height={512} className="h-8 w-8" />
               <span className="font-display text-lg font-extrabold text-white">Agendê</span>
             </div>
             <p className="max-w-xs leading-relaxed">

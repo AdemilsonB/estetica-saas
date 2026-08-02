@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Agendê">
+  <defs>
+    <radialGradient id="seal" cx="35%" cy="28%" r="75%">
+      <stop offset="0%" stop-color="#C97A4E" />
+      <stop offset="55%" stop-color="#B9673C" />
+      <stop offset="100%" stop-color="#7A4227" />
+    </radialGradient>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="url(#seal)" />
+  <circle cx="32" cy="32" r="30" fill="none" stroke="#7A4227" stroke-width="1" stroke-dasharray="1.6 3.4" opacity="0.55" />
+  <circle cx="32" cy="32" r="25.5" fill="none" stroke="#F3E6D4" stroke-width="1" opacity="0.35" />
+  <text
+    x="32" y="33"
+    text-anchor="middle" dominant-baseline="central"
+    font-family="-apple-system, 'Segoe UI', system-ui, sans-serif"
+    font-weight="800" font-size="27"
+    fill="#FBF4EA"
+  >a</text>
+</svg>

@@ -145,7 +145,7 @@ function LeftPanel({
             <img src={branding.logoUrl} alt={branding.displayName} className="h-8 w-auto" />
           ) : (
             <Image
-              src="/brand/logo-horizontal.png"
+              src="/brand/logo-horizontal.svg"
               alt="Agendê"
               width={550}
               height={136}
@@ -236,7 +236,7 @@ function RightPanel({
           <div className="relative flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2" aria-label="Voltar ao site">
               <Image
-                src="/brand/logo-horizontal.png"
+                src="/brand/logo-horizontal.svg"
                 alt="Agendê"
                 width={550}
                 height={136}
