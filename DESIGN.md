@@ -75,12 +75,13 @@ cada tenant (`src/lib/branding/build-css-variables.ts`) — cor, fonte (enum de 
 escolhidos pelo próprio dono do salão, sobrepostos via CSS custom properties. Este DESIGN.md
 não se aplica a essas telas.
 
-**Status de implementação (2026-08-01):** construído — `landing-hero.tsx`, CTA do
+**Status de implementação (2026-08-02):** construído — `landing-hero.tsx`, CTA do
 `landing-nav.tsx`, `public/brand/logo-mark.svg` e `logo-horizontal.svg` (referenciados em
-6 pontos: nav, footer, login ×2, planos, legal-shell). **Pendente** — resto das seções da
-landing (features, depoimentos, footer, FAQ, pricing), `/login` (ainda tem gradiente
-roxo/rosa em 2 pontos, `login-client.tsx:171,254`), `/planos` (header solto "Estética SaaS",
-bug pré-existente documentado em `docs/landing-page-auditoria-2026-07.md`), `(admin)`.
+6 pontos: nav, footer, login ×2, planos, legal-shell), e `/login` inteira (`login-client.tsx`
+— painel esquerdo, cabeçalho mobile, tabs, links e os 2 botões de submit; zero ocorrência de
+`violet`/`pink` restante, detector limpo). **Pendente** — resto das seções da landing
+(features, depoimentos, footer, FAQ, pricing), `/planos` (header solto "Estética SaaS", bug
+pré-existente documentado em `docs/landing-page-auditoria-2026-07.md`), `(admin)`.
 
 ## Colors
 
