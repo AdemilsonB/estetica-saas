@@ -5,7 +5,7 @@ export function LandingPain() {
   return (
     <section className="bg-[#FAFAFA] px-4 py-16 sm:px-6 sm:py-20">
       <Reveal className="mx-auto max-w-3xl text-center">
-        <p className="text-sm font-extrabold uppercase tracking-wide text-pink-600">
+        <p className="text-sm font-extrabold uppercase tracking-wide text-[#B9673C]">
           A sexta-feira que você conhece bem
         </p>
         <h2 className="font-display mt-4 text-[clamp(1.6rem,4.5vw,2.4rem)] font-extrabold leading-tight text-slate-900">

@@ -10,10 +10,10 @@ const STEPS = [
 
 export function LandingDemoMobile() {
   return (
-    <section id="demo" className="bg-gradient-to-b from-[#F5F3FF] to-[#FAFAFA] px-4 py-16 sm:px-6 sm:py-20">
+    <section id="demo" className="bg-[#FBF4EA] px-4 py-16 sm:px-6 sm:py-20">
       <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2 md:gap-14">
         <Reveal>
-          <p className="text-sm font-extrabold uppercase tracking-wide text-violet-600">
+          <p className="text-sm font-extrabold uppercase tracking-wide text-[#B9673C]">
             7 em cada 10 clientes agendam pelo celular
           </p>
           <h2 className="font-display mt-3 text-[clamp(1.6rem,4.5vw,2.4rem)] font-extrabold text-slate-900">
@@ -26,7 +26,7 @@ export function LandingDemoMobile() {
           <ul className="mt-6 flex flex-col gap-3">
             {STEPS.map((step, i) => (
               <li key={step} className="flex items-start gap-3 text-sm text-slate-700 sm:text-base">
-                <span className="font-extrabold text-violet-600">{i + 1}.</span>
+                <span className="font-extrabold text-[#B9673C]">{i + 1}.</span>
                 <span>{step}</span>
               </li>
             ))}

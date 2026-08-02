@@ -20,7 +20,7 @@ export function LandingTestimonials({ testimonials }: LandingTestimonialsProps) 
 
         <div className="grid gap-6 md:grid-cols-3">
           {testimonials.map((t) => (
-            <div key={t.id} className="rounded-2xl border border-violet-100 bg-violet-50/50 p-6">
+            <div key={t.id} className="rounded-none border-t-[3px] border-[#EDE1D1] bg-[#FBF4EA]/60 p-6">
               {/* Estrelas */}
               <div className="mb-3 flex gap-0.5">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -44,7 +44,7 @@ export function LandingTestimonials({ testimonials }: LandingTestimonialsProps) 
                     className="h-10 w-10 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-pink-600 text-sm font-bold text-white">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#B9673C] text-sm font-bold text-white">
                     {t.authorName.charAt(0).toUpperCase()}
                   </div>
                 )}

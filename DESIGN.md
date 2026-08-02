@@ -75,13 +75,21 @@ cada tenant (`src/lib/branding/build-css-variables.ts`) — cor, fonte (enum de 
 escolhidos pelo próprio dono do salão, sobrepostos via CSS custom properties. Este DESIGN.md
 não se aplica a essas telas.
 
-**Status de implementação (2026-08-02):** construído — `landing-hero.tsx`, CTA do
-`landing-nav.tsx`, `public/brand/logo-mark.svg` e `logo-horizontal.svg` (referenciados em
-6 pontos: nav, footer, login ×2, planos, legal-shell), e `/login` inteira (`login-client.tsx`
-— painel esquerdo, cabeçalho mobile, tabs, links e os 2 botões de submit; zero ocorrência de
-`violet`/`pink` restante, detector limpo). **Pendente** — resto das seções da landing
-(features, depoimentos, footer, FAQ, pricing), `/planos` (header solto "Estética SaaS", bug
-pré-existente documentado em `docs/landing-page-auditoria-2026-07.md`), `(admin)`.
+**Status de implementação (2026-08-02):** construído — landing inteira (`landing-hero.tsx`,
+`landing-nav.tsx`, `landing-features.tsx`, `landing-proof-bar.tsx`, `landing-pain.tsx`,
+`landing-mechanism.tsx`, `landing-guarantee.tsx`, `landing-how-it-works.tsx`,
+`landing-whatsapp.tsx`, `landing-demo-mobile.tsx`, `landing-feature-mockups.tsx`,
+`landing-plans.tsx`, `landing-pricing-cta.tsx`, `landing-case-real.tsx`,
+`landing-marquee.tsx`, `landing-testimonials.tsx`), `/login` inteira (`login-client.tsx`),
+`public/brand/logo-mark.svg`/`logo-horizontal.svg` (6 pontos: nav, footer, login ×2, planos,
+legal-shell). Zero ocorrência de `violet`/`pink`/`fuchsia`/`purple` restante nessas telas —
+confirmado por grep e pelo detector do impeccable. `landing-branding.tsx` mantém intencionalmente
+2 swatches roxo/rosa como *conteúdo* (demo do seletor de cor real do tenant, não chrome da
+página). **Pendente** — `/planos` (header próprio simplificado, não herda `LandingNav`;
+sem violet/pink, só uma inconsistência estrutural pré-existente), `(admin)`. Fora de escopo
+por design — telas do tenant (`[slug]/*`, `agendar/[slug]/*`, portal do cliente): mantêm
+fallback `#7C3AED` quando o tenant não tem `BrandingConfig`, mas isso é o sistema de branding
+do tenant, não este DESIGN.md.
 
 ## Colors
 
