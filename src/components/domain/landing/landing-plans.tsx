@@ -13,7 +13,7 @@ export function LandingPlans({ plans, trialDays }: LandingPlansProps) {
   const trialLabel = trialDays ? `${trialDays} dias grátis` : 'Trial grátis'
 
   return (
-    <section id="planos" className="bg-gradient-to-br from-violet-50 to-pink-50 px-4 py-12 sm:px-6 sm:py-20">
+    <section id="planos" className="bg-[#FBF4EA] px-4 py-12 sm:px-6 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 text-center sm:mb-12">
           <h2 className="text-2xl font-extrabold text-slate-900 sm:text-3xl md:text-4xl">
@@ -30,7 +30,7 @@ export function LandingPlans({ plans, trialDays }: LandingPlansProps) {
         <div className="mt-6 text-center">
           <Link
             href="/planos"
-            className="text-sm font-semibold text-violet-600 transition-colors hover:text-violet-800"
+            className="text-sm font-semibold text-[#B9673C] transition-colors hover:text-[#7A4227]"
           >
             Ver comparação completa dos planos →
           </Link>

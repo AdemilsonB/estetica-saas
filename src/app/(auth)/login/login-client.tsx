@@ -133,10 +133,7 @@ function LeftPanel({
   const isCustomBranding = branding.displayName !== "SaaS Estetica" && branding.displayName !== "Agendê";
 
   return (
-    <div className="hidden md:flex md:w-[45%] flex-col relative overflow-hidden bg-gradient-to-br from-violet-50 to-pink-50 p-12">
-      {/* Blobs decorativos */}
-      <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-violet-200/40 blur-3xl" />
-      <div className="pointer-events-none absolute -left-16 bottom-0 h-64 w-64 rounded-full bg-pink-200/30 blur-3xl" />
+    <div className="hidden md:flex md:w-[45%] flex-col relative overflow-hidden bg-[#FBF4EA] p-12">
 
       <div className="relative flex items-center justify-between gap-2">
         <Link href="/" className="flex items-center gap-2" aria-label="Voltar ao site">
@@ -145,7 +142,7 @@ function LeftPanel({
             <img src={branding.logoUrl} alt={branding.displayName} className="h-8 w-auto" />
           ) : (
             <Image
-              src="/brand/logo-horizontal.png"
+              src="/brand/logo-horizontal.svg"
               alt="Agendê"
               width={550}
               height={136}
@@ -162,17 +159,14 @@ function LeftPanel({
       <div className="relative my-auto space-y-8">
         <div>
           {plan && (
-            <div className="mb-4 inline-block rounded-full border border-violet-200 bg-white/70 px-3 py-1 text-xs font-semibold text-violet-700">
+            <div className="mb-4 inline-block rounded-full border border-[#EDE1D1] bg-white/70 px-3 py-1 text-xs font-semibold text-[#7A4227]">
               ✓ {PLAN_LABEL[plan] ?? plan} selecionado
             </div>
           )}
-          <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-slate-900">
-            Seu salão no{" "}
-            <span className="bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
-              piloto automático.
-            </span>
+          <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-[#2E2A26]">
+            A gestão completa do seu <span className="text-[#B9673C]">salão</span>.
           </h1>
-          <p className="mt-3 text-base leading-relaxed text-slate-500">
+          <p className="mt-3 text-base leading-relaxed text-[#6b5c4f]">
             Agenda, CRM e financeiro em uma plataforma só.
           </p>
         </div>
@@ -181,7 +175,7 @@ function LeftPanel({
           {benefits.map((b) => (
             <div
               key={b.text}
-              className="flex items-center gap-3 rounded-xl border border-violet-100 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm"
+              className="flex items-center gap-3 rounded-xl border border-[#EDE1D1] bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm"
             >
               <span className="text-base">{b.icon}</span>
               <span className="text-sm font-medium text-slate-700">{b.text}</span>
@@ -190,12 +184,12 @@ function LeftPanel({
         </div>
 
         {/* Mini mockup decorativo */}
-        <div className="rounded-xl border border-violet-100 bg-white/60 p-4 backdrop-blur-sm shadow-sm">
+        <div className="rounded-xl border border-[#EDE1D1] bg-white/60 p-4 backdrop-blur-sm shadow-sm">
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: "hoje", value: "47", color: "text-violet-600" },
-              { label: "faturado", value: "R$2.840", color: "text-pink-600" },
-              { label: "faltas evitadas", value: "3", color: "text-emerald-600" },
+              { label: "hoje", value: "47", color: "text-[#B9673C]" },
+              { label: "faturado", value: "R$2.840", color: "text-[#7A4227]" },
+              { label: "faltas evitadas", value: "3", color: "text-[#8A9A7E]" },
             ].map(({ label, value, color }) => (
               <div key={label} className="rounded-lg border border-slate-100 bg-white p-2 text-center">
                 <div className={`text-sm font-extrabold ${color}`}>{value}</div>
@@ -230,13 +224,11 @@ function RightPanel({
     <div className="flex w-full flex-col items-center bg-white md:justify-center md:p-8 lg:w-[55%]">
       <div className="w-full max-w-md">
         {/* Cabeçalho — visível apenas no mobile, o LeftPanel cobre isso no desktop */}
-        <div className="md:hidden relative overflow-hidden rounded-b-3xl bg-gradient-to-br from-violet-50 to-pink-50 px-6 pt-6 pb-5">
-          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-200/40 blur-2xl" />
-
+        <div className="md:hidden relative overflow-hidden rounded-b-3xl bg-[#FBF4EA] px-6 pt-6 pb-5">
           <div className="relative flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2" aria-label="Voltar ao site">
               <Image
-                src="/brand/logo-horizontal.png"
+                src="/brand/logo-horizontal.svg"
                 alt="Agendê"
                 width={550}
                 height={136}
@@ -249,18 +241,15 @@ function RightPanel({
             </Link>
           </div>
 
-          <h1 className="relative mt-3 text-lg font-extrabold leading-snug text-slate-900">
-            Seu salão no{" "}
-            <span className="bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
-              piloto automático.
-            </span>
+          <h1 className="relative mt-3 text-lg font-extrabold leading-snug text-[#2E2A26]">
+            A gestão completa do seu <span className="text-[#B9673C]">salão</span>.
           </h1>
-          <p className="relative mt-1 text-xs text-slate-500">
+          <p className="relative mt-1 text-xs text-[#6b5c4f]">
             Agenda, CRM e financeiro numa plataforma só.
           </p>
 
           {plan && (
-            <div className="relative mt-3 inline-flex items-center gap-1 rounded-full border border-violet-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-violet-700">
+            <div className="relative mt-3 inline-flex items-center gap-1 rounded-full border border-[#EDE1D1] bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-[#7A4227]">
               ✓ {PLAN_LABEL[plan] ?? plan} selecionado
             </div>
           )}
@@ -269,7 +258,7 @@ function RightPanel({
             {MOBILE_BENEFIT_CHIPS.map((b) => (
               <div
                 key={b.text}
-                className="flex shrink-0 items-center gap-1.5 rounded-full border border-violet-100 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-slate-700"
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-[#EDE1D1] bg-white/90 px-3 py-1.5 text-[11px] font-medium text-slate-700"
               >
                 {b.icon} {b.text}
               </div>
@@ -282,13 +271,13 @@ function RightPanel({
             <TabsList className="grid w-full grid-cols-2 bg-slate-100">
               <TabsTrigger
                 value="login"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+                className="data-[state=active]:bg-[#B9673C] data-[state=active]:text-white data-[state=active]:shadow-md"
               >
                 Entrar
               </TabsTrigger>
               <TabsTrigger
                 value="signup"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+                className="data-[state=active]:bg-[#B9673C] data-[state=active]:text-white data-[state=active]:shadow-md"
               >
                 Criar conta
               </TabsTrigger>
@@ -367,7 +356,7 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
           </Label>
           <a
             href="/forgot-password"
-            className="text-xs text-violet-500 hover:text-violet-700"
+            className="text-xs text-[#B9673C] hover:text-[#7A4227]"
           >
             Esqueceu sua senha?
           </a>
@@ -397,7 +386,7 @@ function LoginForm({ router }: { router: ReturnType<typeof useRouter> }) {
 
       <Button
         type="submit"
-        className="w-full bg-gradient-to-r from-violet-600 to-pink-600 text-white shadow-md shadow-violet-200 hover:opacity-90 transition-opacity"
+        className="w-full rounded-sm bg-[#B9673C] text-white hover:opacity-90 transition-opacity"
         disabled={isSubmitting}
       >
         {isSubmitting ? (
@@ -574,7 +563,7 @@ function SignupFormComponent({
 
       <Button
         type="submit"
-        className="w-full bg-gradient-to-r from-violet-600 to-pink-600 text-white shadow-md shadow-violet-200 hover:opacity-90 transition-opacity"
+        className="w-full rounded-sm bg-[#B9673C] text-white hover:opacity-90 transition-opacity"
         disabled={isSubmitting}
       >
         {isSubmitting ? (

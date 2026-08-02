@@ -14,7 +14,7 @@ function MetricItem({ value, label, active }: { value: string; label: string; ac
   const display = useCountUp(value, active)
   return (
     <div className="text-center">
-      <div className="font-display bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-3xl font-extrabold text-transparent sm:text-4xl">
+      <div className="font-display text-3xl font-extrabold text-[#B9673C] sm:text-4xl">
         {display}
       </div>
       <div className="mt-1 text-xs text-slate-500 sm:text-sm">{label}</div>
@@ -29,7 +29,7 @@ export function LandingProofBar({ metrics }: LandingProofBarProps) {
   if (metrics.length === 0) return null
 
   return (
-    <section ref={ref} className="border-y border-violet-100 bg-white px-6 py-8 sm:py-10">
+    <section ref={ref} className="border-y border-[#EDE1D1] bg-white px-6 py-8 sm:py-10">
       <div className="mx-auto grid max-w-4xl grid-cols-2 gap-6 md:grid-cols-4">
         {metrics.map((metric) => (
           <MetricItem key={metric.id} value={metric.value} label={metric.label} active={inView} />

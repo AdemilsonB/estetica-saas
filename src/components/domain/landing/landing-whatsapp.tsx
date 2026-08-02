@@ -5,7 +5,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 
 const BUBBLES: { side: 'in' | 'out'; text: string; delay: number }[] = [
-  { side: 'in', text: 'Oi Marina! 💜 Confirmando seu horário de amanhã 14h — Escova + Hidratação. Está de pé?', delay: 0.2 },
+  { side: 'in', text: 'Oi Marina! Confirmando seu horário de amanhã 14h — Escova + Hidratação. Está de pé?', delay: 0.2 },
   { side: 'out', text: 'Tá sim! Obrigada 😊', delay: 0.5 },
   { side: 'in', text: 'Perfeito, te espero! Qualquer coisa é só responder por aqui. ✨', delay: 0.8 },
 ]
@@ -35,7 +35,7 @@ export function LandingWhatsApp() {
 
         <div className="rounded-2xl bg-[#0b141a] p-5 shadow-2xl shadow-black/40">
           <div className="mb-4 flex items-center gap-3 border-b border-white/10 pb-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-pink-500 text-sm font-extrabold">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#B9673C] text-sm font-extrabold">
               SB
             </span>
             <div>

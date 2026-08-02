@@ -5,9 +5,9 @@ export function LandingGuarantee({ trialDays }: { trialDays: number | null }) {
   const dias = trialDays ?? 14
 
   return (
-    <section className="bg-[#F5F3FF] px-4 py-16 sm:px-6 sm:py-20">
+    <section className="bg-[#FBF4EA] px-4 py-16 sm:px-6 sm:py-20">
       <Reveal className="mx-auto max-w-2xl text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-violet-200 bg-white text-3xl">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#EDE1D1] bg-white text-3xl">
           🛡️
         </div>
         <h2 className="font-display mt-5 text-[clamp(1.4rem,4vw,2rem)] font-extrabold text-slate-900">

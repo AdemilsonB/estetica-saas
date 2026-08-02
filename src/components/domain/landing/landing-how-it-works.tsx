@@ -21,7 +21,7 @@ const STEPS = [
 
 export function LandingHowItWorks() {
   return (
-    <section id="como-funciona" className="bg-linear-to-br from-violet-50 to-pink-50 px-4 sm:px-6 py-10 sm:py-20">
+    <section id="como-funciona" className="bg-[#FBF4EA] px-4 sm:px-6 py-10 sm:py-20">
       <div className="mx-auto max-w-4xl">
         <Reveal className="mb-8 sm:mb-14 text-center">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 md:text-4xl">Pronto em 3 passos</h2>
@@ -31,7 +31,7 @@ export function LandingHowItWorks() {
         <div className="grid gap-6 sm:gap-10 md:grid-cols-3">
           {STEPS.map((step, index) => (
             <Reveal key={step.number} delay={index * 100} className="text-center">
-              <div className="mx-auto mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-linear-to-br from-violet-600 to-pink-600 text-base sm:text-lg font-extrabold text-white shadow-lg shadow-violet-200">
+              <div className="mx-auto mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#B9673C] text-base sm:text-lg font-extrabold text-white">
                 {step.number}
               </div>
               <h3 className="mb-2 text-lg font-bold text-slate-900">{step.title}</h3>

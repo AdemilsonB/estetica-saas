@@ -13,7 +13,7 @@ export function LandingPricingCTA({ starterPrice, trialDays }: LandingPricingCTA
   const trialLabel = trialDays ? `${trialDays} dias grátis` : 'Trial grátis'
 
   return (
-    <section className="bg-gradient-to-br from-[#4C1D95] via-[#7C3AED] to-[#DB2777] px-4 py-16 text-center text-white sm:px-6 sm:py-24">
+    <section className="bg-[#7A4227] px-4 py-16 text-center text-white sm:px-6 sm:py-24">
       <h2 className="font-display mx-auto max-w-2xl text-[clamp(1.8rem,5vw,2.75rem)] font-extrabold leading-tight">
         Sua próxima sexta pode ser diferente.
       </h2>
@@ -23,7 +23,7 @@ export function LandingPricingCTA({ starterPrice, trialDays }: LandingPricingCTA
       </p>
       <Link
         href="/login?tab=signup"
-        className="mt-8 inline-block w-full max-w-xs rounded-xl bg-white px-8 py-4 text-base font-extrabold text-violet-700 shadow-xl transition-transform hover:scale-105 sm:w-auto"
+        className="mt-8 inline-block w-full max-w-xs rounded-sm bg-white px-8 py-4 text-base font-extrabold text-[#7A4227] shadow-xl transition-transform hover:scale-105 sm:w-auto"
       >
         Começar meus {trialDays ?? 14} dias grátis →
       </Link>
