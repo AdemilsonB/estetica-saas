@@ -3,6 +3,12 @@ import { env } from '@/shared/config/env'
 import { classifyIntent } from '@/domains/notifications/chatbot/intent-classifier'
 import { evolutionProvider } from '@/domains/notifications/providers/evolution.provider'
 import { isValidEvolutionWebhookToken } from '@/shared/auth/evolution-webhook-token'
+import { ehPedidoDeDescadastro } from '@/domains/notifications/opt-out/opt-out-keywords'
+import { optOutService } from '@/domains/crm/opt-out.service'
+
+const OPT_OUT_CONFIRMACAO =
+  'Pronto! Você não receberá mais nossas promoções. ' +
+  'Avisos sobre os seus horários agendados continuam chegando normalmente.'
 
 type EvolutionMessageEvent = {
   event: string
@@ -90,10 +96,29 @@ export async function POST(request: Request): Promise<Response> {
     },
   })
 
-  if (!tenant || !tenant.autoReplyEnabled) return new Response(null, { status: 200 })
+  if (!tenant) return new Response(null, { status: 200 })
 
   const phone = event.data.key.remoteJid.replace('@s.whatsapp.net', '')
   const instanceName = tenant.evolutionInstanceId!
+
+  // ── 1. Opt-out ───────────────────────────────────────────────────────────
+  // Roda antes do gate de `autoReplyEnabled` e antes do throttle de anti-flood,
+  // de propósito: descadastro não pode ser engolido por uma janela desenhada
+  // para outra finalidade, nem depender de o tenant ter chatbot ligado.
+  // A confirmação enviada aqui também não conta para o throttle do passo 3.
+  if (ehPedidoDeDescadastro(text)) {
+    await optOutService.marcarPorTelefone(tenant.id, phone, 'whatsapp_reply')
+    await evolutionProvider
+      .sendRawText(instanceName, phone, OPT_OUT_CONFIRMACAO)
+      .catch(() => {})
+    return new Response(null, { status: 200 })
+  }
+
+  // ── 2. Confirmação por resposta (1/2) ────────────────────────────────────
+  // Entra aqui na Etapa 2, entre o opt-out e o chatbot.
+
+  // ── 3. Auto-resposta / chatbot ───────────────────────────────────────────
+  if (!tenant.autoReplyEnabled) return new Response(null, { status: 200 })
 
   const businessHours = tenant.businessHours as BusinessHours | null
   const withinHours = isWithinBusinessHours(businessHours, tenant.timezone)
