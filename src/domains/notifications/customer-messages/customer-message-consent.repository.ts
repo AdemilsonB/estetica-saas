@@ -23,7 +23,7 @@ export class CustomerMessageConsentRepository {
    */
   async carregarSnapshot(tenantId: string, customerId: string): Promise<ConsentSnapshot | null> {
     const cliente = await prisma.customer.findFirst({
-      where: { id: customerId, tenantId },
+      where: { id: customerId, tenantId, deletedAt: null },
       select: { consentGiven: true, marketingOptOut: true },
     });
 

@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prisma } from "@/shared/database/prisma";
 import { customerMessageConsentRepository } from "./customer-message-consent.repository";
 import { PROMOCIONAIS_EVENT_TEMPLATES } from "./customer-message-consent.repository";
+import {
+  CUSTOMER_MESSAGE_CATALOG,
+  CUSTOMER_MESSAGE_TEMPLATE_KEY,
+} from "./customer-message-catalog";
 
 const prismaMock = prisma as unknown as {
   customer: { findFirst: ReturnType<typeof vi.fn> };
@@ -23,7 +27,16 @@ describe("customerMessageConsentRepository.carregarSnapshot", () => {
     expect(prismaMock.notificationLog.count).not.toHaveBeenCalled();
   });
 
-  it("filtra o cliente por tenantId", async () => {
+  it("devolve null quando o cliente foi soft-deleted", async () => {
+    prismaMock.customer.findFirst.mockResolvedValue(null);
+
+    const snapshot = await customerMessageConsentRepository.carregarSnapshot("t1", "c1-deleted");
+
+    expect(snapshot).toBeNull();
+    expect(prismaMock.notificationLog.count).not.toHaveBeenCalled();
+  });
+
+  it("filtra o cliente por tenantId e deletedAt", async () => {
     prismaMock.customer.findFirst.mockResolvedValue({
       consentGiven: true,
       marketingOptOut: false,
@@ -33,7 +46,7 @@ describe("customerMessageConsentRepository.carregarSnapshot", () => {
     await customerMessageConsentRepository.carregarSnapshot("t1", "c1");
 
     expect(prismaMock.customer.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: "c1", tenantId: "t1" } }),
+      expect.objectContaining({ where: { id: "c1", tenantId: "t1", deletedAt: null } }),
     );
   });
 
@@ -60,9 +73,22 @@ describe("customerMessageConsentRepository.carregarSnapshot", () => {
   });
 
   it("a lista de templates promocionais vem do catálogo, não é hardcoded", () => {
-    // Se alguém acrescentar um evento promocional ao catálogo, ele entra aqui
-    // sozinho. Uma lista fixa sairia de sincronia em silêncio.
+    // Deriva os templates no próprio teste para garantir que qualquer hardcoding
+    // seria detectado. Se alguém trocasse a derivação por uma lista literal,
+    // este teste continuaria falhando até a lista ser mantida em sincronia.
+    const computedPromocionais = CUSTOMER_MESSAGE_CATALOG
+      .filter((entrada) => entrada.nature === "promotional")
+      .map((entrada) => CUSTOMER_MESSAGE_TEMPLATE_KEY[entrada.event]);
+
+    expect(PROMOCIONAIS_EVENT_TEMPLATES).toEqual(computedPromocionais);
+
+    // Verificação adicional: cobre todos os 3 eventos promocionais
     expect(PROMOCIONAIS_EVENT_TEMPLATES).toContain("birthday");
+    expect(PROMOCIONAIS_EVENT_TEMPLATES).toContain("return-due");
+    expect(PROMOCIONAIS_EVENT_TEMPLATES).toContain("winback");
+
+    // Não contém transacionais
     expect(PROMOCIONAIS_EVENT_TEMPLATES).not.toContain("appointment-reminder");
+    expect(PROMOCIONAIS_EVENT_TEMPLATES).not.toContain("appointment-confirmed");
   });
 });
