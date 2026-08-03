@@ -72,22 +72,23 @@ describe("customerMessageConsentRepository.carregarSnapshot", () => {
     expect(where.createdAt.gte).toBeInstanceOf(Date);
   });
 
-  it("a lista de templates promocionais vem do catálogo, não é hardcoded", () => {
-    // Deriva os templates no próprio teste para garantir que qualquer hardcoding
-    // seria detectado. Se alguém trocasse a derivação por uma lista literal,
-    // este teste continuaria falhando até a lista ser mantida em sincronia.
+  it("acompanha o catalogo: evento promocional novo entra na lista sem tocar no repositorio", () => {
+    // Testa sincronismo: duplica a expressão do repositório aqui para garantir que qualquer
+    // evento novo adicionado ao catálogo quebrará o teste enquanto a repository não for
+    // atualizada. A expressão duplicada é intencional — a guarda de sincronia.
+    // (Não detecta substituição por literal com mesmos valores — isso não é risco realista.)
     const computedPromocionais = CUSTOMER_MESSAGE_CATALOG
       .filter((entrada) => entrada.nature === "promotional")
       .map((entrada) => CUSTOMER_MESSAGE_TEMPLATE_KEY[entrada.event]);
 
     expect(PROMOCIONAIS_EVENT_TEMPLATES).toEqual(computedPromocionais);
 
-    // Verificação adicional: cobre todos os 3 eventos promocionais
+    // Cobertura dos eventos atuais
     expect(PROMOCIONAIS_EVENT_TEMPLATES).toContain("birthday");
     expect(PROMOCIONAIS_EVENT_TEMPLATES).toContain("return-due");
     expect(PROMOCIONAIS_EVENT_TEMPLATES).toContain("winback");
 
-    // Não contém transacionais
+    // Exclui transacionais (guarda contra erro de filtro)
     expect(PROMOCIONAIS_EVENT_TEMPLATES).not.toContain("appointment-reminder");
     expect(PROMOCIONAIS_EVENT_TEMPLATES).not.toContain("appointment-confirmed");
   });
