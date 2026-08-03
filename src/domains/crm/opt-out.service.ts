@@ -1,4 +1,4 @@
-import { prisma } from "@/shared/database/prisma";
+import { customerRepository } from "./customer.repository";
 
 export type OptOutOrigem = "whatsapp_reply" | "portal" | "panel";
 
@@ -7,11 +7,11 @@ export type OptOutOrigem = "whatsapp_reply" | "portal" | "panel";
  * o prefixo, mas o WhatsApp entrega o `remoteJid` com ele — sem as duas variantes,
  * o descadastro não encontra a pessoa.
  */
-function variantesDeTelefone(telefone: string): string[] {
+export function variantesDeTelefone(telefone: string): string[] {
   const digitos = telefone.replace(/\D/g, "");
   const variantes = new Set([digitos]);
 
-  if (digitos.startsWith("55") && digitos.length > 12) {
+  if (digitos.startsWith("55") && digitos.length >= 12) {
     variantes.add(digitos.slice(2));
   } else {
     variantes.add(`55${digitos}`);
@@ -31,14 +31,12 @@ export class OptOutService {
     telefone: string,
     origem: OptOutOrigem,
   ): Promise<{ marcados: number }> {
-    const { count } = await prisma.customer.updateMany({
-      where: { tenantId, phone: { in: variantesDeTelefone(telefone) } },
-      data: {
-        marketingOptOut: true,
-        marketingOptOutAt: new Date(),
-        marketingOptOutOrigin: origem,
-      },
-    });
+    const telefones = variantesDeTelefone(telefone);
+    const { count } = await customerRepository.marcarOptOutPorTelefones(
+      tenantId,
+      telefones,
+      origem,
+    );
 
     return { marcados: count };
   }
