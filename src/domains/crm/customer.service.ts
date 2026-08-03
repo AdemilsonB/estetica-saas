@@ -21,6 +21,18 @@ export class CustomerService {
     return customerRepository.findAll(tenantId, filters);
   }
 
+  /**
+   * Campos de consentimento gravados juntos. Marcar o booleano sem a data destrói o
+   * valor probatório do registro — a trilha é o que defende o tenant se alguém
+   * questionar. `undefined` significa "não mexe", não "desliga".
+   */
+  private consentFields(consentGiven: boolean | undefined, origem: string) {
+    if (consentGiven === undefined) return {};
+    return consentGiven
+      ? { consentGiven: true, consentDate: new Date(), consentOrigin: origem }
+      : { consentGiven: false, consentDate: null, consentOrigin: null };
+  }
+
   async create(tenantId: string, input: CreateCustomerInput) {
     const customerCount = await customerRepository.count(tenantId);
     await featureGuard.assertWithinLimit(tenantId, "customers", customerCount);
@@ -40,6 +52,11 @@ export class CustomerService {
       email: input.email,
       notes: input.notes,
       tags: input.tags,
+      // `birthDate` era aceito pelo schema e enviado pelo formulário, mas nunca
+      // chegava ao repositório: a data digitada no cadastro era descartada em
+      // silêncio — e é ela que dispara a mensagem de aniversário.
+      birthDate: input.birthDate ? new Date(input.birthDate) : undefined,
+      ...this.consentFields(input.consentGiven, "panel"),
     });
 
     eventBus.publish({
@@ -146,6 +163,12 @@ export class CustomerService {
       email: input.email,
       notes: input.notes,
       tags: input.tags,
+      // `birthDate` estava sendo aceito pelo schema e enviado pelo formulário, mas
+      // nunca chegava ao repositório: a profissional corrigia a data e nada era
+      // salvo. Importa em dobro aqui, porque é esta data que dispara a mensagem
+      // de aniversário.
+      birthDate: input.birthDate ? new Date(input.birthDate) : undefined,
+      ...this.consentFields(input.consentGiven, "panel"),
     });
 
     eventBus.publish({

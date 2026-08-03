@@ -26,6 +26,12 @@ export const createCustomerSchema = z.object({
   birthDate: z.string().date().optional(),
   notes: z.string().trim().max(500).optional(),
   tags: z.array(z.string().trim().min(1).max(30)).max(10).default([]),
+  /**
+   * Consentimento para receber mensagem promocional. `marketingOptOut` NÃO entra
+   * aqui de propósito: o descadastro é um pedido do cliente, e o profissional não
+   * deve conseguir desfazê-lo por um formulário do painel.
+   */
+  consentGiven: z.boolean().optional(),
 });
 
 export const updateCustomerSchema = createCustomerSchema.partial().refine(

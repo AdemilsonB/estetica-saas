@@ -14,6 +14,10 @@ export type Customer = {
   blockedReason: string | null
   blockedAt: string | null
   deletedAt: string | null
+  /** Consentimento para receber mensagem promocional. */
+  consentGiven: boolean
+  /** O cliente pediu para não receber mais promoção. Bloqueia mesmo com consentimento. */
+  marketingOptOut: boolean
   createdAt: string
   updatedAt: string
 }
@@ -25,6 +29,7 @@ export type CreateCustomerInput = {
   birthDate?: string
   notes?: string
   tags?: string[]
+  consentGiven?: boolean
 }
 
 export type CustomersPage = {
