@@ -451,7 +451,14 @@ pessoas denunciam, nenhuma engenharia salva.
 #### 7.3.1 Curva de aquecimento — valores de partida
 
 Teto de mensagens **promocionais** por dia, por instância, medido pela idade da conexão
-(`Tenant.evolutionConnectedAt`, campo novo — hoje só existe o booleano `evolutionConnected`):
+(`Tenant.evolutionConnectedAt`).
+
+> **Correção de 2026-08-03:** este documento afirmava que o campo era novo e que "hoje só
+> existe o booleano `evolutionConnected`". Está errado — `evolutionConnectedAt` já existe em
+> `prisma/schema.prisma:178` e já é mantido pelas rotas de conexão/desconexão do Evolution
+> (`src/app/api/webhooks/evolution/connection/route.ts`). Nada a criar. Isso é melhor do que
+> o desenho supunha: tenants que conectaram recentemente já têm data real, então a curva de
+> aquecimento nasce com dado de verdade em vez de tratar todo mundo como maduro.
 
 | Idade da conexão | Teto diário |
 |---|---|
@@ -604,15 +611,15 @@ Fase 3 — a maior e mais arriscada — fica por último, quando a guarda de con
 | Alvo | O que entra |
 |---|---|
 | `Customer` | `marketingOptOut`, `marketingOptOutAt`, `marketingOptOutOrigin` (§4.2) |
-| `Tenant` | `replyConfirmEnabled`, `replyConfirmInvite` (§5.1), `evolutionConnectedAt` (§7.3.1) |
+| `Tenant` | `replyConfirmEnabled`, `replyConfirmInvite` (§5.1) + os 3 textos de auto-resposta (§4.4) |
 | `Service` | `returnIntervalDays` (§5.2) |
 | Models novos | `Campaign`, `CampaignRecipient` + enums de status (§6.1) |
 | `NotificationLog` | os dois índices da §4.7 |
 
-`evolutionConnectedAt` nasce `null` para os tenants existentes. Conexão sem data conhecida é
-tratada como **madura** (teto mais alto): o tenant já opera há tempo, e rebaixá-lo ao teto de
-instância nova seria degradar um serviço que já funciona. Conexões novas passam a gravar a
-data.
+`evolutionConnectedAt` **não entra na migration** — já existe e já é preenchido (ver §7.3.1).
+Onde estiver `null` (tenant que conectou antes de o campo passar a ser gravado), a conexão é
+tratada como **madura**, com o teto mais alto: o tenant já opera há tempo, e rebaixá-lo ao
+teto de instância nova degradaria um serviço que funciona.
 
 Colunas aditivas não usadas não custam nada, e isso troca três janelas manuais de produção
 por uma. Este projeto já teve logout global duas vezes por migration atrasada; reduzir o
