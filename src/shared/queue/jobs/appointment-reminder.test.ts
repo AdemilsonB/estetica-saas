@@ -11,6 +11,7 @@ const bossMock = {
 vi.mock("@/shared/database/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/shared/queue/pg-boss", () => ({
   getPgBoss: () => bossMock,
+  startPgBoss: async () => bossMock,
 }));
 
 const dispatch = vi.fn();

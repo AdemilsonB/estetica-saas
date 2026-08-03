@@ -23,14 +23,15 @@ export async function POST(request: Request) {
         status: { notIn: ["CANCELLED"] },
       },
       include: {
-        customer: { select: { id: true, phone: true, name: true, consentGiven: true } },
+        customer: { select: { id: true, phone: true, name: true } },
         service: { select: { name: true } },
       },
     });
 
-    const eligible = appointments.filter(
-      (a) => a.customer.phone && a.customer.consentGiven,
-    );
+    // Só telefone: `appointment_reminder` é transacional, e consentimento de
+    // marketing não pode bloquear aviso sobre um horário que o cliente marcou.
+    // Quem decide o envio é a guarda do dispatcher.
+    const eligible = appointments.filter((a) => a.customer.phone);
 
     const resultados = await Promise.all(
       eligible.map((a) =>

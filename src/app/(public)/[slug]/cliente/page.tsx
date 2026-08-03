@@ -46,6 +46,8 @@ export default async function ClientePage({
       phone: true,
       email: true,
       birthDate: true,
+      consentGiven: true,
+      marketingOptOut: true,
       appointments: {
         where: { tenantId: tenant.id },
         orderBy: { startsAt: 'desc' },
@@ -91,6 +93,9 @@ export default async function ClientePage({
         phone: customer.phone,
         email: customer.email,
         birthDate: customer.birthDate?.toISOString() ?? null,
+        // Uma chave só para o cliente: ele não precisa entender a diferença entre
+        // consentimento de cadastro e opt-out posterior.
+        aceitaPromocoes: customer.consentGiven && !customer.marketingOptOut,
       }}
       upcoming={upcoming.map((a) => ({
         id: a.id,

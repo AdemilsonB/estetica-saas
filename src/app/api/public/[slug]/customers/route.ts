@@ -17,6 +17,15 @@ const CreateCustomerSchema = z.object({
   phone: z.string().min(10).max(20),
   email: z.string().email().max(100),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /**
+   * Caixa pré-marcada na vitrine, por decisão de produto. O `default(true)` mantém
+   * compatível qualquer cliente do formulário que não envie o campo.
+   *
+   * Antes desta entrega a rota gravava `consentGiven: true` fixo, sem perguntar nada
+   * — um registro de consentimento que nunca existiu. Agora grava o que a pessoa
+   * escolheu.
+   */
+  consentGiven: z.boolean().default(true),
 })
 
 function normalizeCpf(cpf: string): string {
@@ -68,9 +77,9 @@ export async function POST(req: Request, context: RouteContext) {
       email: parsed.data.email,
       birthDate,
       cpf,
-      consentGiven: true,
-      consentDate: new Date(),
-      consentOrigin: 'public_booking',
+      consentGiven: parsed.data.consentGiven,
+      consentDate: parsed.data.consentGiven ? new Date() : null,
+      consentOrigin: parsed.data.consentGiven ? 'public_booking' : null,
       deletedAt: null, // reativar cliente arquivado que se recadastra
     }
 

@@ -33,6 +33,14 @@ import {
 import { TEAM_DAILY_DIGEST_JOB, handleTeamDailyDigest } from "@/shared/queue/jobs/team-daily-digest";
 import { scheduledMessageService } from "@/domains/notifications/scheduled-messages/scheduled-message.service";
 
+/**
+ * Teto explícito de duração. O tick já roda doze jobs do pg-boss mais a varredura
+ * de mensagens agendadas; a Etapa 3 acrescenta o lote de campanha, que envia com
+ * jitter e por isso leva ~70 s. Sem teto declarado, o limite implícito da
+ * plataforma derruba a função no meio e mata os jobs que ainda não rodaram.
+ */
+export const maxDuration = 300;
+
 type EmptyPayload = Record<string, never>;
 type PgBossInstance = Awaited<ReturnType<typeof startPgBoss>>;
 

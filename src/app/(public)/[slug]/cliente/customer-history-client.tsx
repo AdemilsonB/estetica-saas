@@ -28,6 +28,8 @@ type Customer = {
   phone: string | null
   email: string | null
   birthDate: string | null
+  /** Uma chave só: consentimento dado E sem pedido de descadastro. */
+  aceitaPromocoes: boolean
 }
 
 type BusinessInfo = {
@@ -70,6 +72,8 @@ export function CustomerHistoryClient({
   const [phone, setPhone] = useState(customer.phone ?? '')
   const [email, setEmail] = useState(customer.email ?? '')
   const [saving, setSaving] = useState(false)
+  const [aceitaPromocoes, setAceitaPromocoes] = useState(customer.aceitaPromocoes)
+  const [salvandoPreferencia, setSalvandoPreferencia] = useState(false)
   const [page, setPage] = useState(0)
   const [hoursOpen, setHoursOpen] = useState(false)
 
@@ -105,6 +109,29 @@ export function CustomerHistoryClient({
       toast.error('Falha ao atualizar dados')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function salvarPreferencia(valor: boolean) {
+    // Otimista: a chave responde na hora. Reverte se a gravação falhar — deixar a
+    // chave mentindo sobre um opt-out que não foi salvo seria pior que o erro.
+    setAceitaPromocoes(valor)
+    setSalvandoPreferencia(true)
+    try {
+      const res = await fetch(`/api/public/${slug}/me`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aceitaPromocoes: valor }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success(
+        valor ? 'Você voltará a receber nossas promoções' : 'Você não receberá mais promoções',
+      )
+    } catch {
+      setAceitaPromocoes(!valor)
+      toast.error('Falha ao salvar a preferência')
+    } finally {
+      setSalvandoPreferencia(false)
     }
   }
 
@@ -192,6 +219,29 @@ export function CustomerHistoryClient({
               {saving ? 'Salvando...' : 'Atualizar dados'}
             </Button>
           </form>
+
+          {/*
+            Preferência de mensagens: salva sozinha ao alternar, fora do formulário
+            acima. O cliente que só quer sair da lista não deveria ter que preencher
+            telefone e e-mail para conseguir.
+          */}
+          <label className="flex min-h-11 cursor-pointer items-start justify-between gap-3 rounded-2xl bg-card px-4 py-3 shadow-sm">
+            <span className="space-y-0.5">
+              <span className="block text-sm font-medium">Receber promoções e novidades</span>
+              <span className="block text-xs text-muted-foreground">
+                Avisos sobre os seus horários chegam de qualquer forma.
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={aceitaPromocoes}
+              disabled={salvandoPreferencia}
+              onChange={(e) => void salvarPreferencia(e.target.checked)}
+              className="mt-0.5 size-5 shrink-0 rounded"
+              style={{ accentColor: primaryColor }}
+            />
+          </label>
         </div>
 
         {/* Próximo agendamento */}

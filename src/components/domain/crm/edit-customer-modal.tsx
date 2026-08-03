@@ -4,9 +4,16 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { useUpdateCustomer } from '@/hooks/crm/use-customers'
 
 type Customer = {
@@ -16,6 +23,8 @@ type Customer = {
   email: string | null
   birthDate: string | null
   notes: string | null
+  consentGiven?: boolean
+  marketingOptOut?: boolean
 }
 
 type Props = {
@@ -32,6 +41,7 @@ export function EditCustomerModal({ open, onClose, customer }: Props) {
   const [email, setEmail] = useState('')
   const [birthDate, setBirthDate] = useState('')
   const [notes, setNotes] = useState('')
+  const [consentGiven, setConsentGiven] = useState(false)
 
   useEffect(() => {
     if (open && customer) {
@@ -41,6 +51,7 @@ export function EditCustomerModal({ open, onClose, customer }: Props) {
       // birthDate pode vir como ISO string (ex: "1990-03-15T00:00:00.000Z") ou YYYY-MM-DD
       setBirthDate(customer.birthDate ? customer.birthDate.substring(0, 10) : '')
       setNotes(customer.notes ?? '')
+      setConsentGiven(customer.consentGiven ?? false)
     }
   }, [open, customer])
 
@@ -55,6 +66,7 @@ export function EditCustomerModal({ open, onClose, customer }: Props) {
           email: email.trim() || undefined,
           birthDate: birthDate || undefined,
           notes: notes.trim() || undefined,
+          consentGiven,
         },
       },
       {
@@ -71,9 +83,12 @@ export function EditCustomerModal({ open, onClose, customer }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Editar dados do cliente</DialogTitle>
+          <DialogDescription>
+            Atualize os dados de contato e a preferência de mensagens promocionais.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="space-y-1.5">
@@ -125,6 +140,34 @@ export function EditCustomerModal({ open, onClose, customer }: Props) {
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
+          {/*
+            A chave fica DESABILITADA quando o cliente pediu descadastro. Religar por
+            um formulário do painel desfaria o pedido dele sem que ele soubesse —
+            reverter exige o próprio cliente refazer, pelo Portal ou pelo WhatsApp.
+          */}
+          <div className="flex items-start justify-between gap-3 rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="edit-consent" className="text-sm font-medium">
+                Receber promoções e novidades
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Avisos sobre horários agendados são enviados de qualquer forma.
+              </p>
+              {customer.marketingOptOut && (
+                <p className="text-xs font-medium text-amber-600 dark:text-amber-500">
+                  Este cliente pediu para não receber promoções.
+                </p>
+              )}
+            </div>
+            <Switch
+              id="edit-consent"
+              className="mt-0.5"
+              checked={consentGiven}
+              onCheckedChange={setConsentGiven}
+              disabled={customer.marketingOptOut}
+            />
+          </div>
+
           <div className="flex gap-2 pt-2">
             <Button
               type="button"

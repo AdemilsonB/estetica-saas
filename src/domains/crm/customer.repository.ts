@@ -267,6 +267,23 @@ export class CustomerRepository {
       },
     });
   }
+
+  async marcarOptOutPorTelefones(
+    tenantId: string,
+    telefones: string[],
+    origem: "whatsapp_reply" | "portal" | "panel",
+  ): Promise<{ count: number }> {
+    if (telefones.length === 0) return { count: 0 };
+    const { count } = await prisma.customer.updateMany({
+      where: { tenantId, phone: { in: telefones }, deletedAt: null },
+      data: {
+        marketingOptOut: true,
+        marketingOptOutAt: new Date(),
+        marketingOptOutOrigin: origem,
+      },
+    });
+    return { count };
+  }
 }
 
 export const customerRepository = new CustomerRepository();

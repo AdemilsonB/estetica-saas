@@ -1,6 +1,8 @@
 import { NotificationChannel, type NotificationStatus } from "@prisma/client";
 
 import { CUSTOMER_MESSAGE_TEMPLATE_KEY } from "./customer-message-catalog";
+import { avaliarConsentimento } from "./customer-message-consent";
+import { customerMessageConsentRepository } from "./customer-message-consent.repository";
 import { customerMessageSettingService } from "./customer-message-setting.service";
 import type { CustomerMessageChannel, CustomerMessageEventKey } from "./types";
 
@@ -51,7 +53,13 @@ export type CustomerMessageDispatchLog = {
 
 export type CustomerMessageDispatchResult = {
   dispatched: CustomerMessageChannel[];
-  skipReason: "desligado" | "sem-destinatario" | null;
+  skipReason:
+    | "desligado"
+    | "sem-destinatario"
+    | "sem-consentimento"
+    | "opt-out"
+    | "anti-fadiga"
+    | null;
   /**
    * Um registro por canal em que a entrega foi tentada. `dispatched` só diz que a
    * gravação do log não explodiu; o status REAL da entrega mora aqui, porque é o
@@ -98,6 +106,34 @@ export class CustomerMessageDispatcherService {
           err instanceof Error ? err.message : err,
         );
         return { dispatched: [], skipReason: null, logs: [] };
+      }
+
+      // Guarda de consentimento. Só no caminho do catálogo: `kind: "direct"` é
+      // mensagem individual escrita e agendada por uma pessoa, que já decidiu enviar.
+      // Sem `customerId` não há a quem consultar — casos legados de envio avulso.
+      if (input.customerId) {
+        try {
+          const snapshot = await customerMessageConsentRepository.carregarSnapshot(
+            input.tenantId,
+            input.customerId,
+          );
+
+          // Cliente não encontrado não vira bloqueio: o evento já passou pelo
+          // liga/desliga do tenant, e engolir a mensagem aqui a faria sumir sem
+          // rastro — o mesmo tipo de bug histórico do reagendamento.
+          if (snapshot) {
+            const decisao = avaliarConsentimento(input.event, snapshot);
+            if (!decisao.permitido) {
+              return { dispatched: [], skipReason: decisao.motivo, logs: [] };
+            }
+          }
+        } catch (err) {
+          console.error(
+            "[customer-messages] Falha ao avaliar consentimento",
+            input.event,
+            err instanceof Error ? err.message : err,
+          );
+        }
       }
 
       template = CUSTOMER_MESSAGE_TEMPLATE_KEY[input.event];

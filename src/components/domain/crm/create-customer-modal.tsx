@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { useCreateCustomer } from '@/hooks/crm/use-customers'
 import { formatBrazilianPhone } from '@/shared/utils/phone'
 import { PickContactModal } from './pick-contact-modal'
@@ -32,6 +33,9 @@ export function CreateCustomerModal({ open, onClose, onCreated, modal = true }: 
   const [email, setEmail] = useState('')
   const [birthDate, setBirthDate] = useState('')
   const [pickerOpen, setPickerOpen] = useState(false)
+  // Desmarcado por padrão: a profissional marca quando o cliente autoriza. Cadastro
+  // feito na recepção é o momento mais realista de perguntar.
+  const [consentGiven, setConsentGiven] = useState(false)
   const createCustomer = useCreateCustomer()
 
   function handleClose() {
@@ -39,6 +43,7 @@ export function CreateCustomerModal({ open, onClose, onCreated, modal = true }: 
     setPhone('')
     setEmail('')
     setBirthDate('')
+    setConsentGiven(false)
     onClose()
   }
 
@@ -52,6 +57,7 @@ export function CreateCustomerModal({ open, onClose, onCreated, modal = true }: 
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
         birthDate: birthDate || undefined,
+        consentGiven,
       },
       {
         onSuccess: (customer) => {
@@ -68,7 +74,7 @@ export function CreateCustomerModal({ open, onClose, onCreated, modal = true }: 
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()} modal={modal}>
-      <DialogContent className="sm:max-w-sm" stacked={!modal}>
+      <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-sm" stacked={!modal}>
         <DialogHeader>
           <DialogTitle>Novo cliente</DialogTitle>
         </DialogHeader>
@@ -119,6 +125,23 @@ export function CreateCustomerModal({ open, onClose, onCreated, modal = true }: 
               type="date"
               value={birthDate}
               onChange={(e) => setBirthDate(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-start justify-between gap-3 rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="new-consent" className="text-sm font-medium">
+                Receber promoções e novidades
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Avisos sobre horários agendados são enviados de qualquer forma.
+              </p>
+            </div>
+            <Switch
+              id="new-consent"
+              className="mt-0.5"
+              checked={consentGiven}
+              onCheckedChange={setConsentGiven}
             />
           </div>
 

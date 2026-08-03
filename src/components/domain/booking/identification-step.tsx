@@ -40,6 +40,9 @@ export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryCo
   const [newPhone, setNewPhone] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [newBirthDate, setNewBirthDate] = useState('')
+  // Pré-marcado por decisão de produto. O cliente enxerga a opção e pode desmarcar —
+  // antes desta entrega a rota gravava consentimento fixo, sem perguntar nada.
+  const [aceitaPromocoes, setAceitaPromocoes] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -99,6 +102,7 @@ export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryCo
           phone: newPhone.replace(/\D/g, ''),
           email: newEmail,
           birthDate: newBirthDate,
+          consentGiven: aceitaPromocoes,
         }),
       })
       const data = (await res.json()) as { id?: string; name?: string; error?: { message: string } }
@@ -274,6 +278,21 @@ export function IdentificationStep({ tenantSlug, onIdentified, onBack, primaryCo
                 required
               />
             </div>
+            {/* Alvo de toque de 44px (min-h-11) — o rótulo inteiro alterna a caixa. */}
+            <label className="flex min-h-11 cursor-pointer items-start gap-2.5 text-sm">
+              <input
+                id="reg-consent"
+                type="checkbox"
+                checked={aceitaPromocoes}
+                onChange={(e) => setAceitaPromocoes(e.target.checked)}
+                className="mt-0.5 size-4 shrink-0 rounded border-slate-300 accent-[var(--brand-primary,#0f172a)]"
+              />
+              <span className="text-slate-600 dark:text-slate-300">
+                Quero receber promoções e novidades no WhatsApp. Avisos sobre os meus
+                horários chegam de qualquer forma.
+              </span>
+            </label>
+
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
               {loading ? <Loader2 className="size-4 animate-spin" /> : 'Cadastrar e continuar'}
             </Button>
