@@ -39,6 +39,8 @@ export async function GET(req: Request, context: RouteContext) {
         phone: true,
         email: true,
         birthDate: true,
+        consentGiven: true,
+        marketingOptOut: true,
         appointments: {
           where: { tenantId: tenant.id },
           orderBy: { startsAt: 'desc' },
@@ -67,6 +69,9 @@ export async function GET(req: Request, context: RouteContext) {
       phone: customer.phone,
       email: customer.email,
       birthDate: customer.birthDate,
+      // Uma chave só para o cliente: ele não precisa entender a diferença entre
+      // consentimento de cadastro e opt-out posterior.
+      aceitaPromocoes: customer.consentGiven && !customer.marketingOptOut,
       appointments: customer.appointments.map((a) => ({
         id: a.id,
         startsAt: a.startsAt,
@@ -88,8 +93,14 @@ const UpdateMeSchema = z
   .object({
     phone: z.string().min(10).max(20).optional(),
     email: z.string().email().max(100).optional(),
+    aceitaPromocoes: z.boolean().optional(),
   })
-  .refine((d) => d.phone ?? d.email, { message: 'Pelo menos um campo.' })
+  // Checagem explícita por `undefined`: com `??`, um `aceitaPromocoes: false` seria
+  // falsy e a requisição legítima de DESLIGAR a preferência cairia em 422.
+  .refine(
+    (d) => d.phone !== undefined || d.email !== undefined || d.aceitaPromocoes !== undefined,
+    { message: 'Pelo menos um campo.' },
+  )
 
 export async function PATCH(req: Request, context: RouteContext) {
   try {
@@ -110,9 +121,34 @@ export async function PATCH(req: Request, context: RouteContext) {
       return Response.json({ error: { code: 'VALIDATION_ERROR', message: 'Dados inválidos.' } }, { status: 422 })
     }
 
+    const { aceitaPromocoes, ...contato } = parsed.data
+
+    // Desligar NÃO zera `consentGiven`: o consentimento de cadastro continua
+    // registrado, e o opt-out é o pedido posterior de não receber. Zerar os dois
+    // apagaria a trilha de que houve consentimento antes.
+    const data = {
+      ...contato,
+      ...(aceitaPromocoes === undefined
+        ? {}
+        : aceitaPromocoes
+          ? {
+              consentGiven: true,
+              consentDate: new Date(),
+              consentOrigin: 'portal',
+              marketingOptOut: false,
+              marketingOptOutAt: null,
+              marketingOptOutOrigin: null,
+            }
+          : {
+              marketingOptOut: true,
+              marketingOptOutAt: new Date(),
+              marketingOptOutOrigin: 'portal',
+            }),
+    }
+
     const updated = await prisma.customer.update({
       where: { id: session.customerId, tenantId: tenant.id },
-      data: parsed.data,
+      data,
       select: { id: true, name: true, phone: true, email: true },
     })
 
