@@ -9,15 +9,14 @@ export async function handleBirthdayReminder(_jobs: Job<Record<string, never>>[]
   const day = now.getDate()
 
   const customers = await prisma.$queryRaw<
-    { id: string; tenantId: string; name: string; phone: string; birthdayMessage: string | null }[]
+    { id: string; tenantId: string; name: string; phone: string }[]
   >`
-    SELECT c.id, c."tenantId", c.name, c.phone, t."birthdayMessage"
+    SELECT c.id, c."tenantId", c.name, c.phone
     FROM "Customer" c
     INNER JOIN "Tenant" t ON t.id = c."tenantId"
     WHERE c."birthDate" IS NOT NULL
       AND EXTRACT(MONTH FROM c."birthDate") = ${month}
       AND EXTRACT(DAY FROM c."birthDate") = ${day}
-      AND c."consentGiven" = true
       AND c.phone IS NOT NULL
       AND t."birthdayEnabled" = true
       AND t."evolutionConnected" = true
@@ -35,9 +34,6 @@ export async function handleBirthdayReminder(_jobs: Job<Record<string, never>>[]
       event: 'birthday',
       customerId: customer.id,
       recipient: { phone: customer.phone, email: null },
-      // `birthdayMessage` do tenant é a mensagem pontual: continua tendo precedência
-      // sobre o template, como antes.
-      message: customer.birthdayMessage ?? undefined,
       payload: { customerName: customer.name },
     })
   }
