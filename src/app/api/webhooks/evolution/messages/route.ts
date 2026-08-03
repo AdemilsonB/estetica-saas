@@ -5,6 +5,12 @@ import { evolutionProvider } from '@/domains/notifications/providers/evolution.p
 import { isValidEvolutionWebhookToken } from '@/shared/auth/evolution-webhook-token'
 import { ehPedidoDeDescadastro } from '@/domains/notifications/opt-out/opt-out-keywords'
 import { optOutService } from '@/domains/crm/opt-out.service'
+import {
+  montarRespostaBook,
+  montarRespostaCancel,
+  montarRespostaPrecos,
+  montarRespostaHorarios,
+} from '@/domains/notifications/auto-reply/auto-reply-messages'
 
 const OPT_OUT_CONFIRMACAO =
   'Pronto! Você não receberá mais nossas promoções. ' +
@@ -90,6 +96,9 @@ export async function POST(request: Request): Promise<Response> {
       autoReplyEnabled: true,
       autoReplyIntervalHours: true,
       autoReplyMessage: true,
+      autoReplyCancelMessage: true,
+      autoReplyPriceIntro: true,
+      autoReplyHoursIntro: true,
       offHoursEnabled: true,
       offHoursMessage: true,
       evolutionInstanceId: true,
@@ -142,12 +151,11 @@ export async function POST(request: Request): Promise<Response> {
   let response: string | null = null
 
   if (intent === 'BOOK' || intent === 'FALLBACK') {
-    const msg = tenant.autoReplyMessage ?? 'Olá! Para agendar seu horário, acesse: {booking_link}'
-    response = msg.replace('{booking_link}', bookingLink)
+    response = montarRespostaBook(tenant, bookingLink)
   }
 
   if (intent === 'CANCEL') {
-    response = `Para cancelar seu agendamento acesse: ${bookingLink} ou ligue para o salão.`
+    response = montarRespostaCancel(tenant, bookingLink)
   }
 
   if (intent === 'PRICE') {
@@ -157,31 +165,11 @@ export async function POST(request: Request): Promise<Response> {
       orderBy: { name: 'asc' },
       take: 10,
     })
-    const lines = svcs.map(s =>
-      s.priceType === 'ON_CONSULTATION'
-        ? `• ${s.name}: Sob consulta`
-        : `• ${s.name}: R$ ${Number(s.price).toFixed(2).replace('.', ',')}`
-    )
-    response = lines.length > 0
-      ? `Nossos serviços:\n${lines.join('\n')}`
-      : 'Entre em contato para conhecer nossos serviços.'
+    response = montarRespostaPrecos(tenant, svcs)
   }
 
   if (intent === 'HOURS') {
-    if (!businessHours) {
-      response = 'Entre em contato para saber nosso horário de funcionamento.'
-    } else {
-      const dayNames: Record<string, string> = {
-        sun: 'Dom', mon: 'Seg', tue: 'Ter', wed: 'Qua',
-        thu: 'Qui', fri: 'Sex', sat: 'Sáb',
-      }
-      const lines = Object.entries(businessHours)
-        .filter(([, v]) => v.enabled)
-        .map(([k, v]) => `${dayNames[k] ?? k}: ${v.open}–${v.close}`)
-      response = lines.length > 0
-        ? `Nosso horário de funcionamento:\n${lines.join('\n')}`
-        : 'Entre em contato para saber nosso horário.'
-    }
+    response = montarRespostaHorarios(tenant, businessHours)
   }
 
   if (!response) return new Response(null, { status: 200 })
