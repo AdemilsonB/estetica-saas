@@ -167,6 +167,10 @@ model Tenant {
   reminderWindowStart         Int                          @default(7)
   reminderWindowEnd           Int                          @default(22)
   businessHours               Json?
+  /// Confirmação por resposta (1/2) ao lembrete — Etapa 2. Desligada por padrão.
+  replyConfirmEnabled         Boolean                      @default(false)
+  /// Convite anexado ao lembrete renderizado. `null` = usa o padrão do catálogo.
+  replyConfirmInvite          String?
   // Evolution API
   evolutionInstanceId         String?
   evolutionConnected          Boolean                      @default(false)
@@ -176,6 +180,11 @@ model Tenant {
   autoReplyEnabled            Boolean                      @default(false)
   autoReplyIntervalHours      Int                          @default(6)
   autoReplyMessage            String?
+  /// Personalizações das respostas automáticas do webhook. `null` = usa o padrão
+  /// do catálogo (`auto-reply-catalog.ts`), nunca "sem mensagem".
+  autoReplyCancelMessage      String?
+  autoReplyPriceIntro         String?
+  autoReplyHoursIntro         String?
   offHoursEnabled             Boolean                      @default(false)
   offHoursMessage             String?
   dailyStatusEnabled          Boolean                      @default(false)
@@ -228,6 +237,8 @@ model Tenant {
   customerMessageTemplates    CustomerMessageTemplate[]
   customerMessageSettings     CustomerMessageSetting[]
   scheduledMessages           ScheduledMessage[]
+  campaigns                   Campaign[]
+  campaignRecipients          CampaignRecipient[]
 }
 
 model BrandingConfig {
@@ -338,6 +349,7 @@ model User {
   userNotifications        UserNotification[]
   notificationPreferences  UserNotificationPreference[]
   scheduledMessages        ScheduledMessage[]           @relation("ScheduledMessageCreatedBy")
+  campaignsCreated         Campaign[]                   @relation("CampaignCreatedBy")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -421,33 +433,41 @@ model TenantInvite {
 }
 
 model Customer {
-  id                 String              @id @default(cuid())
-  tenantId           String
-  name               String
-  phone              String?
-  email              String?
-  notes              String?
-  tags               String[]
-  consentGiven       Boolean             @default(false)
-  consentDate        DateTime?
-  consentOrigin      String?
-  birthDate          DateTime?
-  cpf                String?
-  isVip              Boolean             @default(false)
-  vipUpdatedAt       DateTime?
-  isBlocked          Boolean             @default(false)
-  blockedReason      String?
-  blockedAt          DateTime?
-  favoriteServiceIds String[]            @default([])
-  favoritePackageIds String[]            @default([])
-  deletedAt          DateTime?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  appointments       Appointment[]
-  anamnese           CustomerAnamnese?
-  reviews            AppointmentReview[]
-  scheduledMessages  ScheduledMessage[]
+  id                    String              @id @default(cuid())
+  tenantId              String
+  name                  String
+  phone                 String?
+  email                 String?
+  notes                 String?
+  tags                  String[]
+  consentGiven          Boolean             @default(false)
+  consentDate           DateTime?
+  consentOrigin         String?
+  /// Pedido explícito de não receber mais mensagem promocional. Independente de
+  /// `consentGiven`, que é consentimento de cadastro: "aceitei me cadastrar" e
+  /// "não quero mais promoção" são coisas diferentes. Nunca bloqueia transacional.
+  marketingOptOut       Boolean             @default(false)
+  marketingOptOutAt     DateTime?
+  /// Por onde o cliente pediu para sair: `whatsapp_reply`, `portal`, `panel`.
+  marketingOptOutOrigin String?
+  birthDate             DateTime?
+  cpf                   String?
+  isVip                 Boolean             @default(false)
+  vipUpdatedAt          DateTime?
+  isBlocked             Boolean             @default(false)
+  blockedReason         String?
+  blockedAt             DateTime?
+  favoriteServiceIds    String[]            @default([])
+  favoritePackageIds    String[]            @default([])
+  deletedAt             DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  tenant                Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments          Appointment[]
+  anamnese              CustomerAnamnese?
+  reviews               AppointmentReview[]
+  scheduledMessages     ScheduledMessage[]
+  campaignRecipients    CampaignRecipient[]
 
   @@index([tenantId])
   @@index([tenantId, phone])
@@ -511,6 +531,8 @@ model Service {
   anamneseMode         AnamneseMode          @default(NONE)
   anamneseBlocks       String[]              @default([])
   anamneseValidityDays Int                   @default(90)
+  /// Retorno programado — Etapa 2. Sem valor, o serviço não participa.
+  returnIntervalDays   Int?
   categoryId           String?
   category             ServiceCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   catalogServiceId     String?
@@ -628,6 +650,11 @@ model NotificationLog {
   @@index([tenantId, channel, status])
   @@index([appointmentId])
   @@index([customerId])
+  /// Anti-fadiga: conta promocionais dos últimos 7 dias por cliente.
+  @@index([tenantId, customerId, createdAt])
+  /// Casamento da confirmação por resposta: lembrete enviado a este telefone nas
+  /// últimas 48 h.
+  @@index([tenantId, recipient, createdAt])
 }
 
 model UserNotification {
@@ -772,6 +799,81 @@ enum ScheduledMessageStatus {
   SENT
   FAILED
   CANCELLED
+}
+
+/// Campanha segmentada — Etapa 3. Nasce nesta migration sem uso.
+model Campaign {
+  id              String         @id @default(cuid())
+  tenantId        String
+  name            String
+  body            String         @db.Text
+  /// Segmento resolvido (preset + refinos), validado por Zod na escrita.
+  segment         Json
+  status          CampaignStatus @default(DRAFT)
+  /// Disparo só habilita depois de um envio de teste. Editar o corpo zera isto.
+  testSentAt      DateTime?
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  totalRecipients Int            @default(0)
+  sentCount       Int            @default(0)
+  failedCount     Int            @default(0)
+  skippedCount    Int            @default(0)
+  createdByUserId String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  tenant        Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdByUser User                @relation("CampaignCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  recipients    CampaignRecipient[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([createdByUserId])
+}
+
+/// Um registro por destinatário. É o que dá idempotência: reprocessar um lote
+/// nunca envia duas vezes para a mesma pessoa.
+model CampaignRecipient {
+  id                String                  @id @default(cuid())
+  tenantId          String
+  campaignId        String
+  customerId        String
+  status            CampaignRecipientStatus @default(PENDING)
+  /// Preenchido quando SKIPPED: `sem-telefone`, `sem-consentimento`, `opt-out`,
+  /// `anti-fadiga`, `sem-atendimento`.
+  skipReason        String?
+  failureReason     String?
+  notificationLogId String?
+  sentAt            DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  /// Idempotência: uma pessoa entra uma vez só em cada campanha.
+  @@unique([campaignId, customerId])
+  @@index([tenantId])
+  /// Índice da varredura do cron: sem tenantId de propósito, o tick processa
+  /// todos os tenants numa passada só. Mesmo padrão de ScheduledMessage.
+  @@index([status, campaignId])
+  @@index([customerId])
+}
+
+enum CampaignStatus {
+  DRAFT
+  RUNNING
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum CampaignRecipientStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
 }
 
 model WhatsAppAutoReplyLog {
