@@ -8,7 +8,10 @@ import {
   ValidationError,
 } from "@/shared/errors";
 
-import { customerMessageDispatcher } from "../customer-messages/customer-message-dispatcher.service";
+import {
+  customerMessageDispatcher,
+  type CustomerMessageDispatchResult,
+} from "../customer-messages/customer-message-dispatcher.service";
 import { buildCustomerMessageVariables } from "../customer-messages/customer-message-variables";
 import { interpolateTemplate } from "../user-notifications/notification-template-engine";
 
@@ -254,7 +257,7 @@ export class ScheduledMessageService {
   }
 
   private motivoDaFalha(
-    skipReason: "desligado" | "sem-destinatario" | null,
+    skipReason: CustomerMessageDispatchResult["skipReason"],
     errorMessage: string | null,
   ): string {
     if (errorMessage) return errorMessage;
@@ -265,6 +268,11 @@ export class ScheduledMessageService {
     if (skipReason === "sem-destinatario") {
       return "Nao foi possivel registrar o envio. Tente agendar de novo.";
     }
+    // Os motivos de consentimento ("sem-consentimento"/"opt-out"/"anti-fadiga") nunca
+    // acontecem de fato aqui: a guarda só roda no caminho `kind: "catalog"` do
+    // dispatcher, e mensagem agendada sempre chama em modo `direct`. O tipo é
+    // compartilhado com o dispatcher, então o compilador exige tratar o caso mesmo
+    // assim — cai no mesmo texto genérico abaixo.
     // Status PENDING no log: o gateway não chegou a tentar (WhatsApp desligado ou
     // desconectado). Não é erro de entrega, e por isso não tem errorMessage.
     return "O WhatsApp do seu negocio nao estava pronto para enviar.";
