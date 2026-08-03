@@ -501,3 +501,35 @@ Durante a implementação, o teste de equivalência descobriu um **bug ativo em 
 - `CustomerMessageDispatchResult` ganhou o campo `logs` (id, status e `errorMessage` por canal). Nenhum chamador existente quebrou, mas testes que comparavam o resultado inteiro com `toEqual` precisaram do campo novo.
 - `motivoDeBloqueio`, que era privada da rota de prévia da Fase 2, virou `customerMessageBlockedReason` em `customer-messages/customer-message-delivery.ts`, consumida pelas duas rotas de prévia.
 - A precisão do envio é de ~10 minutos, herdada do workflow do cron. A UI diz isso explicitamente; aumentar a precisão é aumentar a frequência do workflow (mínimo de 5 minutos no GitHub Actions).
+
+---
+
+## ADR-020 — Consolidação do motor de mensagens: dispatcher como guardião único do consentimento (Etapa 1, 2026-08-03)
+
+**Contexto.** As Fases 1, 2 e 4 do motor de mensagens estavam em produção. Antes de construir as Fases 3 (campanhas) e 5 (automações), uma auditoria do que já existia encontrou defeitos que as fases novas herdariam — e um deles as tornaria inoperantes.
+
+**Decisões.**
+
+1. **O `customerMessageDispatcher` passa a ser o guardião único do consentimento**, decidindo por **natureza do evento lida do catálogo**, não por lista mantida à mão. Transacional envia sempre e não é bloqueado por opt-out; promocional exige `consentGiven`, ausência de `marketingOptOut` e passa pela anti-fadiga. Derivar da natureza declarada no catálogo torna impossível esquecer a regra ao acrescentar um evento novo — que era exatamente o modo de falha do desenho anterior, com o filtro repetido em três lugares diferentes e ausente justamente no dispatcher.
+
+2. **A regra "≥1 atendimento concluído" NÃO entra no dispatcher.** Ela é regra de segmento de campanha (Etapa 3). Se entrasse aqui, mudaria em silêncio o comportamento do aniversário, que hoje alcança qualquer cliente com consentimento. Mudança silenciosa em recurso vivo é como se cria bug que ninguém acha.
+
+3. **`kind: "direct"` não passa pela guarda.** Mensagem agendada um-a-um (ADR-019) é individual e foi escrita e marcada por uma pessoa que já decidiu enviar.
+
+4. **Snapshot nulo não bloqueia — envia mesmo assim.** Contraintuitivo, mas deliberado: `dispatch()` roda em handler assíncrono do event bus, que engole rejeições. Bloquear numa leitura falha faria a mensagem sumir sem rastro — o mesmo modo de falha do bug histórico do reagendamento (ADR-017).
+
+5. **`marketingOptOut` é campo próprio, com trilha (`marketingOptOutAt`, `marketingOptOutOrigin`).** Separado de `consentGiven`, que é consentimento de cadastro: "aceitei me cadastrar" e "não quero mais promoção" são coisas diferentes. A trilha do opt-out é gravada corretamente desde o início — quando o cliente pede para sair, a data e o canal do pedido são a defesa do tenant.
+
+6. **O webhook do Evolution foi reordenado: opt-out → confirmação por resposta → chatbot**, com os dois primeiros **fora** do gate de `autoReplyEnabled` e **antes** do throttle de anti-flood. Descadastro e cancelamento de horário não podem depender de o tenant ter chatbot ligado, nem ser engolidos por uma janela desenhada para outra finalidade.
+
+7. **Uma única migration para as três etapas do pacote.** Colunas aditivas não usadas não custam nada, e isso troca três janelas manuais de produção por uma. O projeto já teve logout global duas vezes por migration atrasada.
+
+8. **A migration é aplicada ANTES do merge, invertendo o hábito do projeto.** O `GET /me` do portal passou a ler `marketingOptOut`; subir o código antes da coluna existir dá P2022 e quebra o perfil de todo cliente. Migration aditiva com código antigo rodando é segura; o inverso não é.
+
+**Decisões de produto do usuário, registradas com as ressalvas apresentadas antes da escolha.** O motor usa `consentGiven` como está, sem apoio em legítimo interesse e sem reclassificar o histórico; a caixa da vitrine é pré-marcada. Ambas ficaram com ressalva escrita na §3.2 da spec: caixa pré-marcada não é manifestação afirmativa pela LGPD, e os registros de `public_booking` afirmam consentimento que não houve. Nenhuma bloqueia a entrega; ambas seguem abertas.
+
+**Consequência operacional aceita.** Com `consentGiven` como porta e o filtro de "só clientes atendidos" da Etapa 3, o público elegível é a interseção de dois filtros estreitos — num salão que cadastra a clientela na recepção, pode ser fração pequena da base. Por isso a entrega inclui três pontos de coleta (painel, vitrine, portal) e a prévia da campanha mostrará o motivo de cada exclusão com número, transformando o buraco em algo acionável.
+
+**Bugs de produção corrigidos nesta etapa.** O opt-out nunca funcionaria (item 6). A vitrine gravava consentimento que nunca existiu. `Tenant.birthdayMessage` continuava vencendo o template do catálogo depois de sair da interface. `birthDate` era aceito pelo schema e enviado pelos formulários do painel mas nunca chegava ao repositório, em `create` **e** em `update` — a data que dispara o aniversário era descartada em silêncio. E o `.refine` do `UpdateMeSchema` do portal usava `d.phone ?? d.email`, então um `aceitaPromocoes: false` — o pedido legítimo de desligar — cairia em 422.
+
+**O que ficou registrado e não resolvido.** Três testes falham na `main` por causas anteriores a esta branch: o checkout não-atômico da auditoria de QA, e dois no portal do cliente que documentam funcionalidade perdida — o bloco "Informações" aparece quando há endereço mas nunca renderiza o endereço, e o card de localização com Google que o `CLAUDE.md` documenta não existe no componente. Os testes **não** foram ajustados para passar: eles estão certos, e silenciá-los apagaria a informação.
