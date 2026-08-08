@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Flame, Filter, Timer } from 'lucide-react'
 import { EntityImage } from '@/components/domain/shared/entity-image'
+import { useWheelHorizontalScroll } from '@/hooks/shared/use-wheel-horizontal-scroll'
 import { useVitrineInteraction } from './vitrine-interaction-context'
 import {
   VitrineFilterSheet,
@@ -148,6 +149,7 @@ function PromotionCard({
 }
 
 export function VitrinePromotionsSection({ promotions, bookingBaseUrl, primaryColor }: Props) {
+  const cardsScrollRef = useWheelHorizontalScroll<HTMLDivElement>()
   const [filter, setFilter] = useState<VitrineFilterState>(EMPTY_FILTER_STATE)
   const [filterOpen, setFilterOpen] = useState(false)
 
@@ -189,7 +191,7 @@ export function VitrinePromotionsSection({ promotions, bookingBaseUrl, primaryCo
           Nenhuma promoção encontrada com esse filtro.
         </p>
       ) : (
-        <div className="flex min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
+        <div ref={cardsScrollRef} className="flex min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {filtered.map((promo) => (
             <PromotionCard key={promo.id} promo={promo} bookingBaseUrl={bookingBaseUrl} primaryColor={primaryColor} />
           ))}

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { formatDuration } from '@/lib/format-duration'
 import { Input } from '@/components/ui/input'
 import { EntityImage } from '@/components/domain/shared/entity-image'
+import { useWheelHorizontalScroll } from '@/hooks/shared/use-wheel-horizontal-scroll'
 import { PickerDetailModal, type PickerDetailItem } from './picker-detail-modal'
 
 export type PickerService = {
@@ -121,6 +122,8 @@ export function cheapestPromotionOption(promo: PickerPromotion): PromoPricedItem
 }
 
 export function ServicePickerWithCategories({ services, packages = [], promotions = [], categories, selectedId, onSelect }: Props) {
+  const chipsScrollRef = useWheelHorizontalScroll<HTMLDivElement>()
+  const cardsScrollRef = useWheelHorizontalScroll<HTMLDivElement>()
   const [search, setSearch] = useState('')
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
   const [expandedPromoId, setExpandedPromoId] = useState<string | null>(null)
@@ -406,7 +409,7 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
       </div>
 
       {!isSearching && chips.length > 1 && (
-        <div className="flex min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
+        <div ref={chipsScrollRef} className="flex min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {chips.map((chip) => (
             <button
               key={chip.id ?? 'all'}
@@ -430,7 +433,7 @@ export function ServicePickerWithCategories({ services, packages = [], promotion
           {isSearching ? `Nenhum item encontrado para "${search.trim()}".` : 'Nenhum item disponível.'}
         </p>
       ) : (
-        <div className="flex min-w-0 items-start gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
+        <div ref={cardsScrollRef} className="flex min-w-0 items-start gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {visibleServices.map((s) => renderServiceCard(s))}
           {visiblePackages.map((p) => renderPackageCard(p))}
           {visiblePromotions.map((p) => renderPromotionCard(p))}

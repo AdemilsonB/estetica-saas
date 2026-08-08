@@ -226,8 +226,15 @@ export function CreateAppointmentModal({
     serviceId && professionalsByService && !professionalsByService.filtered
   const isFormValid = customerId && (serviceId || packageId) && professionalId && date && selectedTime
 
+  // modal={!newCustomerOpen}: com o dialog raiz modal, o bloqueio global de scroll do
+  // Radix (react-remove-scroll) intercepta wheel/touch no documento inteiro e não
+  // reconhece o dialog empilhado "Novo cliente" (portal irmão, fora da subárvore
+  // rastreada) como área rolável — o scroll dele (e do "Contatos do WhatsApp" dentro
+  // dele) fica preso sem responder a mouse nem toque. Desligar o modal-lock do pai
+  // enquanto o filho empilhado está aberto libera o scroll; o próprio filho já tem
+  // seu focus trap via `useStackedFocusTrap`.
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && handleClose()} modal={!newCustomerOpen}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto scrollbar-none">
         <DialogHeader>
           <DialogTitle>Novo agendamento</DialogTitle>
