@@ -533,3 +533,37 @@ Durante a implementação, o teste de equivalência descobriu um **bug ativo em 
 **Bugs de produção corrigidos nesta etapa.** O opt-out nunca funcionaria (item 6). A vitrine gravava consentimento que nunca existiu. `Tenant.birthdayMessage` continuava vencendo o template do catálogo depois de sair da interface. `birthDate` era aceito pelo schema e enviado pelos formulários do painel mas nunca chegava ao repositório, em `create` **e** em `update` — a data que dispara o aniversário era descartada em silêncio. E o `.refine` do `UpdateMeSchema` do portal usava `d.phone ?? d.email`, então um `aceitaPromocoes: false` — o pedido legítimo de desligar — cairia em 422.
 
 **O que ficou registrado e não resolvido.** Três testes falham na `main` por causas anteriores a esta branch: o checkout não-atômico da auditoria de QA, e dois no portal do cliente que documentam funcionalidade perdida — o bloco "Informações" aparece quando há endereço mas nunca renderiza o endereço, e o card de localização com Google que o `CLAUDE.md` documenta não existe no componente. Os testes **não** foram ajustados para passar: eles estão certos, e silenciá-los apagaria a informação.
+
+---
+
+## ADR-021 — Fase 5: confirmação por resposta e retorno programado (Etapa 2, 2026-08-08)
+
+**Contexto.** Com a fundação da Etapa 1 no ar (guarda única de consentimento, webhook reordenado, opt-out funcionando), as duas automações da Fase 5 puderam ser construídas sobre ela. Nenhuma migration foi necessária: os campos já tinham entrado na migration única da Etapa 1.
+
+**Decisões.**
+
+1. **O convite de confirmação é anexado ao lembrete já renderizado, no gateway — nunca embutido no template.** Desligar a automação não pode deixar um pedido órfão dentro de um texto que o tenant editou, e ligar não pode exigir que ele edite nada. O gateway é o ponto certo porque já carrega o tenant e já tem o texto pronto, e a anexação acontece **antes** do roteamento de provedor, ficando agnóstica de Evolution/Twilio.
+
+2. **A janela de 48 h de lembrete é o que separa resposta de conversa.** Só interpreta `1`/`2` se houve lembrete àquele telefone nas últimas 48 h, consultado no `NotificationLog` — sem model novo, porque o log já é a memória de tudo que saiu. Sem essa checagem, um "1" solto no meio de um papo confirmaria um horário sozinho.
+
+3. **Com mais de um candidato, age no mais próximo e diz qual foi.** Nunca agir em silêncio sobre horário ambíguo: o cliente precisa saber em qual dos horários dele a ação caiu.
+
+4. **`notify: false` na ação disparada pela resposta.** A ação nasce de uma mensagem do próprio cliente; reenviar a ele o aviso do motor seria duplicata. A equipe continua sendo notificada pelos eventos de domínio que `updateAppointmentStatus` publica.
+
+5. **Falha da ação é engolida com log, devolvendo `null`.** O código roda dentro do webhook: deixar a exceção escapar derruba o handler, e o WhatsApp **reentrega** o evento — podendo agir duas vezes sobre o mesmo horário.
+
+6. **A confirmação roda fora do gate de `autoReplyEnabled` e antes do throttle**, pelo mesmo motivo do opt-out da Etapa 1: cancelar ou confirmar um horário não pode depender de o tenant ter chatbot ligado, nem ser engolido por uma janela de anti-flood desenhada para outra finalidade.
+
+7. **O SQL do retorno programado não filtra consentimento.** O `customerMessageDispatcher` já é o guardião único e aplica consentimento, opt-out e anti-fadiga para todo evento promocional. Repetir o filtro recriaria exatamente o problema que a Etapa 1 resolveu — a checagem espalhada em três lugares e ausente justamente no dispatcher.
+
+8. **Reconquista visivelmente indisponível.** O evento `winback` ganhou `status: "soon"` no catálogo, propagado pelas duas rotas e dois hooks que alimentam a matriz, resultando em selo "Em breve" e toggle desabilitado. Um controle que a profissional aciona e nada acontece é pior que a ausência do recurso.
+
+**Exceção arquitetural consciente.** `reply-confirm.service.ts` importa `schedulingService` **diretamente**, contra a regra "domínios não se importam diretamente" do `CLAUDE.md`. A resposta ao cliente depende do resultado imediato da ação, e um evento assíncrono não entrega isso. Prescrito pela spec §5.1, não é desvio de implementação.
+
+**Dois bugs críticos pegos pela revisão, antes de produção.**
+
+O primeiro é o mais instrutivo: **a mensagem de retorno sairia quebrada em 100% dos envios.** O texto padrão de `return_due` usa `{{dias_sem_vir}}` e `{{ultimo_servico}}`, mas o job mandava `customerName`/`serviceName`, e — empilhado nisso — o cast de payload do `whatsapp.gateway.ts` descarta silenciosamente qualquer campo fora de uma lista fixa, então as chaves certas seriam cortadas mesmo se enviadas. Toda cliente receberia *"Já faz  dias desde seu último  — costuma ser a hora de renovar"*. Sem erro, sem log, testes verdes. **A lição:** um teste de payload não prova nada quando existe um cast de truncamento no meio do caminho — a cobertura precisa seguir a cadeia até o texto final.
+
+O segundo: `NOW() AT TIME ZONE 'UTC' AT TIME ZONE tz` está errado, porque `NOW()` já é `timestamptz` e a cadeia dupla desloca por duas vezes o offset. O idioma correto é a cadeia dupla **apenas** para colunas `timestamp` naive (como `startsAt`), e uma conversão só para `NOW()`. Estava mascarado porque São Paulo é UTC-3 e o cron roda às 12:00, sem cruzar a meia-noite.
+
+Ambos nasceram no plano, não na implementação — sétimo e oitavo defeitos de planejamento pegos pela revisão independente neste pacote.
