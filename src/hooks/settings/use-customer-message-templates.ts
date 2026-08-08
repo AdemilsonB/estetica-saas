@@ -6,6 +6,8 @@ export type CustomerMessageTemplateItem = {
   label: string;
   description: string;
   nature: "transactional" | "promotional";
+  /** `"soon"` = o evento existe no catálogo mas nada o dispara ainda. */
+  status: "ga" | "soon";
   variables: string[];
   subject: string | null;
   body: string;

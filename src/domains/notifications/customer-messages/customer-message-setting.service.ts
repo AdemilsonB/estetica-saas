@@ -19,6 +19,12 @@ export type ResolvedCustomerMessageSetting = {
   channels: CustomerMessageChannel[];
   /** true = o tenant mudou este evento; false = está no padrão do sistema. */
   isCustom: boolean;
+  /**
+   * `"soon"` = o evento existe no catálogo mas nada o dispara ainda. A UI desabilita
+   * o liga/desliga — um controle que o profissional aciona e nada acontece é pior
+   * que a ausência do recurso.
+   */
+  status: "ga" | "soon";
 };
 
 function combinar(
@@ -35,6 +41,8 @@ function combinar(
       ? (registro.channels as CustomerMessageChannel[])
       : entrada.defaultChannels,
     isCustom: Boolean(registro),
+    // Ausente no catálogo = disponível.
+    status: entrada.status ?? "ga",
   };
 }
 

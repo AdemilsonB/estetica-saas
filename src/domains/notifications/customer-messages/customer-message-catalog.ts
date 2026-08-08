@@ -277,6 +277,10 @@ export const CUSTOMER_MESSAGE_CATALOG: CustomerMessageCatalogEntry[] = [
     event: "winback",
     label: "Reconquista",
     description: "Enviada para clientes que estão há muito tempo sem aparecer.",
+    // Nada dispara este evento: a reconquista saiu de escopo por decisão de produto.
+    // O evento permanece no catálogo porque removê-lo exigiria mexer no enum do Prisma,
+    // mas a UI precisa deixar claro que ele ainda não funciona.
+    status: "soon",
     nature: "promotional",
     defaultEnabled: false,
     defaultChannels: ["WHATSAPP"],

@@ -8,6 +8,8 @@ export type CustomerMessageSettingItem = {
   enabled: boolean;
   channels: ("WHATSAPP" | "EMAIL")[];
   isCustom: boolean;
+  /** `"soon"` = o evento existe no catálogo mas nada o dispara ainda. */
+  status: "ga" | "soon";
 };
 
 const CHAVE = ["customer-message-settings"];
