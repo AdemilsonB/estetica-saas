@@ -23,14 +23,16 @@ export async function handleReturnDue(_jobs: Job<Record<string, never>>[]): Prom
       customerName: string;
       phone: string;
       serviceName: string;
+      daysSinceLastVisit: number;
     }[]
   >`
     SELECT DISTINCT ON (c.id)
-      c.id            AS "customerId",
-      c."tenantId"    AS "tenantId",
-      c.name          AS "customerName",
-      c.phone         AS "phone",
-      s.name          AS "serviceName"
+      c.id                       AS "customerId",
+      c."tenantId"               AS "tenantId",
+      c.name                     AS "customerName",
+      c.phone                    AS "phone",
+      s.name                     AS "serviceName",
+      s."returnIntervalDays"     AS "daysSinceLastVisit"
     FROM "Appointment" a
     INNER JOIN "Service"  s ON s.id = a."serviceId"
     INNER JOIN "Customer" c ON c.id = a."customerId"
@@ -40,12 +42,16 @@ export async function handleReturnDue(_jobs: Job<Record<string, never>>[]): Prom
       AND c.phone IS NOT NULL
       AND c."deletedAt" IS NULL
       AND t."evolutionConnected" = true
-      -- "Hoje" no fuso do tenant, nunca no fuso do processo.
+      -- "Hoje" no fuso do tenant, nunca no fuso do processo. startsAt é timestamp
+      -- naive gravado como UTC — a primeira conversão o interpreta como UTC, a
+      -- segunda devolve o horário local. NOW() já é timestamptz (instante
+      -- absoluto): aplicar a MESMA cadeia dupla nele deslocaria o resultado por
+      -- duas vezes o offset, na direção errada — por isso leva só uma conversão.
       AND (
         (a."startsAt" AT TIME ZONE 'UTC' AT TIME ZONE t.timezone)::date
         + (s."returnIntervalDays" * INTERVAL '1 day')
       )::date
-      = (NOW() AT TIME ZONE 'UTC' AT TIME ZONE t.timezone)::date
+      = (NOW() AT TIME ZONE t.timezone)::date
       -- Quem já tem horário marcado não precisa ser lembrado de voltar.
       AND NOT EXISTS (
         SELECT 1 FROM "Appointment" fut
@@ -70,7 +76,11 @@ export async function handleReturnDue(_jobs: Job<Record<string, never>>[]): Prom
         event: "return_due",
         customerId: item.customerId,
         recipient: { phone: item.phone, email: null },
-        payload: { customerName: item.customerName, serviceName: item.serviceName },
+        payload: {
+          customerName: item.customerName,
+          lastServiceName: item.serviceName,
+          daysSinceLastVisit: item.daysSinceLastVisit,
+        },
       });
     } catch (err) {
       // Um telefone inválido não pode impedir os demais lembretes do dia.

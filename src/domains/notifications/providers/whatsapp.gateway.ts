@@ -59,6 +59,8 @@ export class WhatsAppGateway {
       startsAt?: string;
       newStartsAt?: string;
       message?: string;
+      daysSinceLastVisit?: number;
+      lastServiceName?: string;
     };
 
     let rendered: RenderedCustomerMessage;
@@ -88,6 +90,8 @@ export class WhatsAppGateway {
           serviceName: payload.serviceName,
           professionalName: payload.professionalName,
           startsAt: quando ? new Date(quando) : undefined,
+          daysSinceLastVisit: payload.daysSinceLastVisit,
+          lastServiceName: payload.lastServiceName,
           tenant: {
             name: tenant.name,
             slug: tenant.slug,

@@ -217,6 +217,38 @@ describe("WhatsAppGateway", () => {
     mockEnv.EVOLUTION_API_URL = undefined;
   });
 
+  it("repassa daysSinceLastVisit e lastServiceName ao renderizador (retorno programado)", async () => {
+    // Regressão: o cast do payload tinha uma lista fixa de campos que não incluía
+    // esses dois — mesmo o job enviando-os, eram descartados em silêncio antes de
+    // chegar ao interpolador, e a mensagem de retorno saía com buracos no texto.
+    mockEnv.EVOLUTION_API_URL = "https://evolution.example.com";
+    prismaMock.tenant.findFirst.mockResolvedValue({
+      id: "t1", name: "Salão", slug: "salao", timezone: "America/Sao_Paulo",
+      phone: null, address: null, whatsappEnabled: true, whatsappTemplateConfig: null,
+      evolutionInstanceId: "inst-1", evolutionConnected: true, evolutionStatus: "CONNECTED", evolutionPhone: null,
+    } as never);
+
+    const renderSpy = vi.spyOn(customerMessageService, "render").mockResolvedValue({
+      subject: null, text: "Renderizado!", mediaUrl: null,
+    });
+    vi.spyOn(evolutionProvider, "send").mockResolvedValue({ success: true, provider: "evolution" });
+
+    await gateway.send({
+      tenantId: "t1", channel: "WHATSAPP", template: "return-due",
+      recipient: "11999990000",
+      payload: { customerName: "Maria", daysSinceLastVisit: 30, lastServiceName: "Escova" },
+    } as never);
+
+    expect(renderSpy).toHaveBeenCalledWith(
+      "t1",
+      "return_due",
+      "WHATSAPP",
+      expect.objectContaining({ daysSinceLastVisit: 30, lastServiceName: "Escova" }),
+    );
+
+    mockEnv.EVOLUTION_API_URL = undefined;
+  });
+
   it("mensagem pontual do modal tem precedência sobre o template", async () => {
     mockEnv.EVOLUTION_API_URL = "https://evolution.example.com";
     prismaMock.tenant.findFirst.mockResolvedValue({
