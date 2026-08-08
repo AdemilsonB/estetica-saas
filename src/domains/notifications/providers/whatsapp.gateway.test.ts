@@ -217,6 +217,38 @@ describe("WhatsAppGateway", () => {
     mockEnv.EVOLUTION_API_URL = undefined;
   });
 
+  it("repassa daysSinceLastVisit e lastServiceName ao renderizador (retorno programado)", async () => {
+    // Regressão: o cast do payload tinha uma lista fixa de campos que não incluía
+    // esses dois — mesmo o job enviando-os, eram descartados em silêncio antes de
+    // chegar ao interpolador, e a mensagem de retorno saía com buracos no texto.
+    mockEnv.EVOLUTION_API_URL = "https://evolution.example.com";
+    prismaMock.tenant.findFirst.mockResolvedValue({
+      id: "t1", name: "Salão", slug: "salao", timezone: "America/Sao_Paulo",
+      phone: null, address: null, whatsappEnabled: true, whatsappTemplateConfig: null,
+      evolutionInstanceId: "inst-1", evolutionConnected: true, evolutionStatus: "CONNECTED", evolutionPhone: null,
+    } as never);
+
+    const renderSpy = vi.spyOn(customerMessageService, "render").mockResolvedValue({
+      subject: null, text: "Renderizado!", mediaUrl: null,
+    });
+    vi.spyOn(evolutionProvider, "send").mockResolvedValue({ success: true, provider: "evolution" });
+
+    await gateway.send({
+      tenantId: "t1", channel: "WHATSAPP", template: "return-due",
+      recipient: "11999990000",
+      payload: { customerName: "Maria", daysSinceLastVisit: 30, lastServiceName: "Escova" },
+    } as never);
+
+    expect(renderSpy).toHaveBeenCalledWith(
+      "t1",
+      "return_due",
+      "WHATSAPP",
+      expect.objectContaining({ daysSinceLastVisit: 30, lastServiceName: "Escova" }),
+    );
+
+    mockEnv.EVOLUTION_API_URL = undefined;
+  });
+
   it("mensagem pontual do modal tem precedência sobre o template", async () => {
     mockEnv.EVOLUTION_API_URL = "https://evolution.example.com";
     prismaMock.tenant.findFirst.mockResolvedValue({
@@ -277,5 +309,95 @@ describe("WhatsAppGateway", () => {
     expect(sendSpy).not.toHaveBeenCalled();
 
     mockEnv.EVOLUTION_API_URL = undefined;
+  });
+
+  describe("convite de confirmação por resposta", () => {
+    it("anexa o convite ao lembrete quando a automação está ligada", async () => {
+      prismaMock.tenant.findFirst.mockResolvedValue({
+        ...mockTenant,
+        replyConfirmEnabled: true,
+        replyConfirmInvite: null,
+      } as never);
+      vi.spyOn(customerMessageService, "render").mockResolvedValue({
+        subject: null, text: "Seu horário é amanhã às 10h.", mediaUrl: null,
+      });
+      vi.mocked(twilioProvider.send).mockResolvedValue({ success: true, externalId: "SM1", provider: "twilio" });
+
+      await gateway.send({ ...mockDraft, template: "appointment-reminder" });
+
+      const textoEnviado = vi.mocked(twilioProvider.send).mock.calls[0][2].text;
+      expect(textoEnviado).toContain("Responda *1* para confirmar");
+    });
+
+    it("NÃO anexa o convite quando a automação está desligada", async () => {
+      prismaMock.tenant.findFirst.mockResolvedValue({
+        ...mockTenant,
+        replyConfirmEnabled: false,
+        replyConfirmInvite: null,
+      } as never);
+      vi.spyOn(customerMessageService, "render").mockResolvedValue({
+        subject: null, text: "Seu horário é amanhã às 10h.", mediaUrl: null,
+      });
+      vi.mocked(twilioProvider.send).mockResolvedValue({ success: true, externalId: "SM2", provider: "twilio" });
+
+      await gateway.send({ ...mockDraft, template: "appointment-reminder" });
+
+      const textoEnviado = vi.mocked(twilioProvider.send).mock.calls[0][2].text;
+      expect(textoEnviado).not.toContain("Responda *1*");
+    });
+
+    it("NÃO anexa o convite em eventos que não são o lembrete", async () => {
+      prismaMock.tenant.findFirst.mockResolvedValue({
+        ...mockTenant,
+        replyConfirmEnabled: true,
+        replyConfirmInvite: null,
+      } as never);
+      vi.spyOn(customerMessageService, "render").mockResolvedValue({
+        subject: null, text: "Seu horário foi cancelado.", mediaUrl: null,
+      });
+      vi.mocked(twilioProvider.send).mockResolvedValue({ success: true, externalId: "SM3", provider: "twilio" });
+
+      await gateway.send({ ...mockDraft, template: "appointment-cancelled" });
+
+      const textoEnviado = vi.mocked(twilioProvider.send).mock.calls[0][2].text;
+      expect(textoEnviado).not.toContain("Responda *1*");
+    });
+
+    it("usa o convite personalizado do tenant quando existe", async () => {
+      prismaMock.tenant.findFirst.mockResolvedValue({
+        ...mockTenant,
+        replyConfirmEnabled: true,
+        replyConfirmInvite: "\n\nResponda 1 (sim) ou 2 (nao)",
+      } as never);
+      vi.spyOn(customerMessageService, "render").mockResolvedValue({
+        subject: null, text: "Seu horário é amanhã às 10h.", mediaUrl: null,
+      });
+      vi.mocked(twilioProvider.send).mockResolvedValue({ success: true, externalId: "SM4", provider: "twilio" });
+
+      await gateway.send({ ...mockDraft, template: "appointment-reminder" });
+
+      const textoEnviado = vi.mocked(twilioProvider.send).mock.calls[0][2].text;
+      expect(textoEnviado).toContain("Responda 1 (sim) ou 2 (nao)");
+      expect(textoEnviado).not.toContain("Responda *1* para confirmar");
+    });
+
+    it("não anexa o convite quando o profissional escreveu a mensagem na hora", async () => {
+      prismaMock.tenant.findFirst.mockResolvedValue({
+        ...mockTenant,
+        replyConfirmEnabled: true,
+        replyConfirmInvite: null,
+      } as never);
+      vi.mocked(twilioProvider.send).mockResolvedValue({ success: true, externalId: "SM5", provider: "twilio" });
+
+      await gateway.send({
+        ...mockDraft,
+        template: "appointment-reminder",
+        payload: { ...mockDraft.payload, message: "Chegue 10 minutos antes." },
+      });
+
+      const textoEnviado = vi.mocked(twilioProvider.send).mock.calls[0][2].text;
+      expect(textoEnviado).not.toContain("Responda *1*");
+      expect(textoEnviado).toBe("Chegue 10 minutos antes.");
+    });
   });
 });

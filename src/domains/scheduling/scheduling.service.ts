@@ -83,6 +83,7 @@ export class SchedulingService {
       description: input.description,
       categoryId: input.categoryId,
       active: input.active,
+      returnIntervalDays: input.returnIntervalDays,
     });
   }
 
@@ -400,6 +401,7 @@ export class SchedulingService {
       ...(input.anamneseMode !== undefined && { anamneseMode: input.anamneseMode as AnamneseMode }),
       ...(input.anamneseBlocks !== undefined && { anamneseBlocks: input.anamneseBlocks }),
       ...(input.anamneseValidityDays !== undefined && { anamneseValidityDays: input.anamneseValidityDays }),
+      ...(input.returnIntervalDays !== undefined && { returnIntervalDays: input.returnIntervalDays }),
     });
   }
 

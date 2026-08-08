@@ -19,6 +19,7 @@ export type Service = {
   anamneseMode: 'NONE' | 'OPTIONAL' | 'REQUIRED'
   anamneseBlocks: string[]
   anamneseValidityDays: number
+  returnIntervalDays: number | null
 }
 
 export type CreateServiceInput = {
@@ -31,6 +32,7 @@ export type CreateServiceInput = {
   description?: string | null
   categoryId?: string | null
   active?: boolean
+  returnIntervalDays?: number | null
 }
 
 export type UpdateServiceInput = {
@@ -49,6 +51,7 @@ export type UpdateServiceInput = {
   anamneseMode?: 'NONE' | 'OPTIONAL' | 'REQUIRED'
   anamneseBlocks?: string[]
   anamneseValidityDays?: number
+  returnIntervalDays?: number | null
 }
 
 async function listServices(): Promise<Service[]> {

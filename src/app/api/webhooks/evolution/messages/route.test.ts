@@ -4,9 +4,14 @@ import { POST } from "./route";
 
 const marcarPorTelefone = vi.fn().mockResolvedValue({ marcados: 1 });
 const sendRawText = vi.fn().mockResolvedValue(undefined);
+const processar = vi.fn().mockResolvedValue(null);
 
 vi.mock("@/domains/crm/opt-out.service", () => ({
   optOutService: { marcarPorTelefone: (...a: unknown[]) => marcarPorTelefone(...a) },
+}));
+
+vi.mock("@/domains/notifications/reply-confirm/reply-confirm.service", () => ({
+  replyConfirmService: { processar: (...a: unknown[]) => processar(...a) },
 }));
 
 vi.mock("@/domains/notifications/providers/evolution.provider", () => ({
@@ -54,6 +59,7 @@ function tenant(overrides: Record<string, unknown> = {}) {
     autoReplyCancelMessage: null,
     autoReplyPriceIntro: null,
     autoReplyHoursIntro: null,
+    replyConfirmEnabled: false,
     ...overrides,
   };
 }
@@ -108,5 +114,71 @@ describe("webhook do Evolution — opt-out", () => {
 
     expect(marcarPorTelefone).not.toHaveBeenCalled();
     expect(prismaMock.whatsAppAutoReplyLog.create).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("webhook do Evolution — confirmação por resposta", () => {
+  it("confirma o horário mesmo com autoReplyEnabled desligado", async () => {
+    // Mesma razão do opt-out: cancelar ou confirmar um horário não pode depender
+    // de o tenant ter chatbot ligado.
+    prismaMock.tenant.findFirst.mockResolvedValue(
+      tenant({ autoReplyEnabled: false, replyConfirmEnabled: true }),
+    );
+    processar.mockResolvedValue({ resposta: "Prontinho!" });
+
+    await POST(requisicao("1"));
+
+    expect(processar).toHaveBeenCalledTimes(1);
+    expect(sendRawText).toHaveBeenCalledTimes(1);
+    expect(sendRawText.mock.calls[0][2]).toBe("Prontinho!");
+  });
+
+  it("processa a resposta mesmo dentro da janela de anti-flood", async () => {
+    prismaMock.whatsAppAutoReplyLog.findFirst.mockResolvedValue({ id: "recente" });
+    prismaMock.tenant.findFirst.mockResolvedValue(tenant({ replyConfirmEnabled: true }));
+    processar.mockResolvedValue({ resposta: "Prontinho!" });
+
+    await POST(requisicao("1"));
+
+    expect(processar).toHaveBeenCalledTimes(1);
+  });
+
+  it("não chama o service quando a automação está desligada no tenant", async () => {
+    prismaMock.tenant.findFirst.mockResolvedValue(tenant({ replyConfirmEnabled: false }));
+
+    await POST(requisicao("1"));
+
+    expect(processar).not.toHaveBeenCalled();
+  });
+
+  it("segue para o chatbot quando o service devolve null", async () => {
+    // "1" sem lembrete recente ou sem candidato não é resposta de confirmação —
+    // o comportamento antigo do chatbot precisa ficar intacto.
+    prismaMock.tenant.findFirst.mockResolvedValue(tenant({ replyConfirmEnabled: true }));
+    processar.mockResolvedValue(null);
+
+    await POST(requisicao("1"));
+
+    expect(processar).toHaveBeenCalledTimes(1);
+    expect(prismaMock.whatsAppAutoReplyLog.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("não grava no log de anti-flood ao responder a confirmação", async () => {
+    // A resposta da confirmação não pode consumir a janela do chatbot.
+    prismaMock.tenant.findFirst.mockResolvedValue(tenant({ replyConfirmEnabled: true }));
+    processar.mockResolvedValue({ resposta: "Prontinho!" });
+
+    await POST(requisicao("1"));
+
+    expect(prismaMock.whatsAppAutoReplyLog.create).not.toHaveBeenCalled();
+  });
+
+  it("o opt-out continua tendo precedência sobre a confirmação", async () => {
+    prismaMock.tenant.findFirst.mockResolvedValue(tenant({ replyConfirmEnabled: true }));
+
+    await POST(requisicao("PARE"));
+
+    expect(marcarPorTelefone).toHaveBeenCalledTimes(1);
+    expect(processar).not.toHaveBeenCalled();
   });
 });

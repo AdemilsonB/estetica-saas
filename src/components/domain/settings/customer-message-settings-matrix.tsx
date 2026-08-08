@@ -81,8 +81,18 @@ export function CustomerMessageSettingsMatrix({ onEditTemplate }: Props) {
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-medium text-foreground">{item.label}</p>
                   {item.nature === "promotional" && <Badge variant="outline">Promocional</Badge>}
+                  {item.status === "soon" && (
+                    <Badge className="border-transparent bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-300">
+                      Em breve
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">{item.description}</p>
+                {item.status === "soon" && (
+                  <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+                    Ainda não é enviada automaticamente. Vamos avisar quando estiver pronta.
+                  </p>
+                )}
               </div>
               {/* Wrapper com min-h-11: o primitivo `Switch` (h-[18.4px] + hit-slop de 8px por lado
                   via `after:-inset-y-2`) fica com ~34.4px de alvo efetivo, abaixo dos 44px exigidos.
@@ -90,8 +100,8 @@ export function CustomerMessageSettingsMatrix({ onEditTemplate }: Props) {
                   já existe em `team-notification-business-settings.tsx`, fora do escopo desta task). */}
               <div className="flex min-h-11 shrink-0 items-center">
                 <Switch
-                  checked={item.enabled}
-                  disabled={update.isPending}
+                  checked={item.status === "soon" ? false : item.enabled}
+                  disabled={update.isPending || item.status === "soon"}
                   onCheckedChange={(v) => salvar(item, v, canais)}
                   aria-label={`Avisar o cliente: ${item.label}`}
                 />

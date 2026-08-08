@@ -59,6 +59,7 @@ export class CatalogServiceRepository {
       imageCropX?: number | null
       imageCropY?: number | null
       imageCropZoom?: number | null
+      returnIntervalDays?: number | null
     },
   ) {
     return prisma.service.update({

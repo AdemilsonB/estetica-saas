@@ -31,6 +31,7 @@ import {
   type TeamNotificationEmailPayload,
 } from "@/shared/queue/jobs/team-notification-email";
 import { TEAM_DAILY_DIGEST_JOB, handleTeamDailyDigest } from "@/shared/queue/jobs/team-daily-digest";
+import { RETURN_DUE_JOB, handleReturnDue } from "@/shared/queue/jobs/return-due";
 import { scheduledMessageService } from "@/domains/notifications/scheduled-messages/scheduled-message.service";
 
 /**
@@ -135,6 +136,7 @@ export async function GET(request: NextRequest) {
       boss.createQueue(USER_BIRTHDAY_DIGEST_JOB),
       boss.createQueue(TEAM_NOTIFICATION_EMAIL_JOB),
       boss.createQueue(TEAM_DAILY_DIGEST_JOB),
+      boss.createQueue(RETURN_DUE_JOB),
     ]);
 
     // Registra/atualiza os crons no banco (idempotente).
@@ -150,9 +152,10 @@ export async function GET(request: NextRequest) {
       boss.schedule(WHATSAPP_QUOTA_CLEANUP_JOB, "0 2 1 * *", {}),
       boss.schedule(USER_BIRTHDAY_DIGEST_JOB, "0 8 * * 1", {}),
       boss.schedule(TEAM_DAILY_DIGEST_JOB, "0 * * * *", {}),
+      boss.schedule(RETURN_DUE_JOB, "0 12 * * *", {}),
     ]);
 
-    const [reminders, billing, birthday, dailyStatus, recurring, vip, expiry, snapshot, quota, userBirthday, teamEmail, teamDigest] =
+    const [reminders, billing, birthday, dailyStatus, recurring, vip, expiry, snapshot, quota, userBirthday, teamEmail, teamDigest, returnDue] =
       await Promise.all([
         runBatch<AppointmentReminderPayload>(boss, APPOINTMENT_REMINDER_JOB, handleAppointmentReminder),
         runScheduled(boss, BILLING_EXPIRE_SWEEP_JOB, handleBillingExpireSweep),
@@ -166,6 +169,7 @@ export async function GET(request: NextRequest) {
         runScheduled(boss, USER_BIRTHDAY_DIGEST_JOB, handleUserBirthdayDigest),
         runBatch<TeamNotificationEmailPayload>(boss, TEAM_NOTIFICATION_EMAIL_JOB, handleTeamNotificationEmail),
         runScheduled(boss, TEAM_DAILY_DIGEST_JOB, handleTeamDailyDigest),
+        runBatch(boss, RETURN_DUE_JOB, handleReturnDue),
       ]);
 
     return Response.json({
@@ -183,6 +187,7 @@ export async function GET(request: NextRequest) {
         userBirthday,
         teamEmail,
         teamDigest,
+        returnDue,
         scheduledMessages,
       },
     });

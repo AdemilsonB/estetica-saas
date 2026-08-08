@@ -8,6 +8,8 @@ export type NotificationSettings = {
   reminderLeadHours: number;
   reminderWindowStart: number;
   reminderWindowEnd: number;
+  replyConfirmEnabled: boolean;
+  replyConfirmInvite: string | null;
 };
 
 type UpdateNotificationSettings = {
@@ -16,6 +18,8 @@ type UpdateNotificationSettings = {
   reminderLeadHours?: number;
   reminderWindowStart?: number;
   reminderWindowEnd?: number;
+  replyConfirmEnabled?: boolean;
+  replyConfirmInvite?: string | null;
 };
 
 async function fetchNotificationSettings(): Promise<NotificationSettings> {

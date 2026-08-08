@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ComboboxField } from '@/components/ui/combobox-field'
 import { Separator } from '@/components/ui/separator'
 import { CurrencyInput } from '@/components/ui/currency-input'
+import { NumberInput } from '@/components/ui/number-input'
 import { ImageUploadField } from '@/components/ui/image-upload-field'
 import type { CropValues } from '@/components/domain/shared/image-crop-editor'
 import { useCreateService, useUpdateService, type Service } from '@/hooks/scheduling/use-services'
@@ -45,6 +46,7 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
   const [price, setPrice] = useState('')
   const [priceMax, setPriceMax] = useState('')
   const [durationHHMM, setDurationHHMM] = useState('01:00')
+  const [returnIntervalDays, setReturnIntervalDays] = useState('')
   const [productItems, setProductItems] = useState<ProductItem[]>([])
   const [savingTemplate, setSavingTemplate] = useState(false)
   const [anamneseMode, setAnamneseMode] = useState<'NONE' | 'OPTIONAL' | 'REQUIRED'>('NONE')
@@ -69,6 +71,7 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
       setPrice(Number(service.price).toFixed(2))
       setPriceMax(service.priceMax ? Number(service.priceMax).toFixed(2) : '')
       setDurationHHMM(minutesToHHMM(service.duration))
+      setReturnIntervalDays(service.returnIntervalDays != null ? String(service.returnIntervalDays) : '')
       setAnamneseMode(service.anamneseMode ?? 'NONE')
       setAnamneseValidityDays(service.anamneseValidityDays ?? 90)
       // Busca template de produtos do serviço
@@ -90,6 +93,7 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
       setPrice('')
       setPriceMax('')
       setDurationHHMM('01:00')
+      setReturnIntervalDays('')
       setProductItems([])
       setAnamneseMode('NONE')
       setAnamneseValidityDays(90)
@@ -134,6 +138,7 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
       anamneseMode,
       anamneseBlocks: anamneseMode !== 'NONE' ? ['capilar'] : [],
       anamneseValidityDays,
+      returnIntervalDays: returnIntervalDays ? parseInt(returnIntervalDays, 10) : null,
     }
 
     setSavingTemplate(true)
@@ -398,17 +403,33 @@ export function ServiceFormModal({ open, onClose, service }: Props) {
             </div>
           )}
 
-          {/* Duração HH:MM */}
-          <div className="space-y-2">
-            <Label htmlFor="service-duration">Tempo médio (HH:MM)</Label>
-            <Input
-              id="service-duration"
-              value={durationHHMM}
-              onChange={(e) => setDurationHHMM(e.target.value)}
-              placeholder="01:30"
-              required
-            />
+          {/* Duração HH:MM e retorno programado */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="service-duration">Tempo médio (HH:MM)</Label>
+              <Input
+                id="service-duration"
+                value={durationHHMM}
+                onChange={(e) => setDurationHHMM(e.target.value)}
+                placeholder="01:30"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="return-interval">Lembrar de voltar após (dias)</Label>
+              <NumberInput
+                id="return-interval"
+                value={returnIntervalDays}
+                onChange={setReturnIntervalDays}
+                min={1}
+                max={730}
+                placeholder="Ex.: 30"
+              />
+            </div>
           </div>
+          <p className="-mt-2 text-xs text-muted-foreground">
+            Deixe vazio para não enviar lembrete de retorno deste serviço.
+          </p>
 
           <Separator />
 

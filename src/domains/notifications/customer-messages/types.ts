@@ -42,6 +42,13 @@ export type CustomerMessageCatalogEntry = {
   variables: string[];
   defaults: Record<CustomerMessageChannel, { subject: string | null; body: string }>;
   legacy: LegacyTemplateBinding | null;
+  /**
+   * `"soon"` quando o evento existe no catálogo mas **nada o dispara** ainda. A UI
+   * mostra o texto e desabilita o liga/desliga, em vez de oferecer um controle que
+   * não faz nada — um toggle que o profissional liga e nada acontece é pior que a
+   * ausência do recurso. Ausente = `"ga"`.
+   */
+  status?: "ga" | "soon";
 };
 
 export type RenderedCustomerMessage = {

@@ -26,6 +26,9 @@ export async function GET(request: Request) {
           label: entrada.label,
           description: entrada.description,
           nature: entrada.nature,
+          // Ausente no catálogo = disponível. A UI usa isto para desabilitar o
+          // liga/desliga de evento que ainda não é disparado por nada.
+          status: entrada.status ?? "ga",
           variables: entrada.variables,
           subject: personalizado?.subject ?? padrao.subject,
           body: personalizado?.body ?? padrao.body,

@@ -111,6 +111,32 @@ describe("customerMessageService", () => {
     expect(whats.text).toContain("<script>");
   });
 
+  it("renderiza o padrão de return_due sem buracos, com dias e serviço preenchidos", async () => {
+    // Prova que os campos que o job de retorno programado manda no payload
+    // (daysSinceLastVisit/lastServiceName) são exatamente os que o catálogo espera
+    // (dias_sem_vir/ultimo_servico) — sem eles a mensagem sai com buracos visíveis
+    // ("Já faz  dias desde seu último  —"), sem erro e sem log.
+    repo.findByEvent.mockResolvedValue(null);
+
+    const render = await customerMessageService.render(
+      "tenant-1",
+      "return_due",
+      "WHATSAPP",
+      {
+        customerName: "Maria Silva",
+        daysSinceLastVisit: 30,
+        lastServiceName: "Escova",
+        tenant,
+      },
+    );
+
+    expect(render.text).not.toMatch(/\{\{.*\}\}/);
+    expect(render.text).toContain("30 dias");
+    expect(render.text).toContain("último Escova");
+    expect(render.text).not.toMatch(/faz\s{2,}dias/);
+    expect(render.text).not.toMatch(/último\s{2,}—/);
+  });
+
   it("propaga a mediaUrl da personalização", async () => {
     repo.findByEvent.mockResolvedValue({
       subject: null,

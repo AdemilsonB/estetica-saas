@@ -31,6 +31,16 @@ const updateNotificationSettingsSchema = z.object({
   reminderLeadHours: z.number().int().refine((v) => (REMINDER_LEAD_HOURS as readonly number[]).includes(v)).optional(),
   reminderWindowStart: z.number().int().min(0).max(23).optional(),
   reminderWindowEnd: z.number().int().min(0).max(23).optional(),
+  replyConfirmEnabled: z.boolean().optional(),
+  // String vazia é tratada como "sem personalização" e vira null — mantém o
+  // dado limpo (a arquitetura de duas camadas do projeto: ausência = padrão).
+  replyConfirmInvite: z
+    .string()
+    .trim()
+    .max(300)
+    .nullable()
+    .optional()
+    .transform((v) => (v === "" ? null : v)),
 });
 
 export async function GET(request: Request) {
@@ -52,6 +62,8 @@ export async function GET(request: Request) {
         reminderLeadHours: 24,
         reminderWindowStart: 7,
         reminderWindowEnd: 22,
+        replyConfirmEnabled: false,
+        replyConfirmInvite: null,
       });
     }
 
@@ -62,6 +74,8 @@ export async function GET(request: Request) {
       reminderLeadHours: tenant.reminderLeadHours,
       reminderWindowStart: tenant.reminderWindowStart,
       reminderWindowEnd: tenant.reminderWindowEnd,
+      replyConfirmEnabled: tenant.replyConfirmEnabled,
+      replyConfirmInvite: tenant.replyConfirmInvite,
     });
   } catch (error) {
     return handleApiError(error);
@@ -96,6 +110,8 @@ export async function PATCH(request: Request) {
       reminderLeadHours: tenant.reminderLeadHours,
       reminderWindowStart: tenant.reminderWindowStart,
       reminderWindowEnd: tenant.reminderWindowEnd,
+      replyConfirmEnabled: tenant.replyConfirmEnabled,
+      replyConfirmInvite: tenant.replyConfirmInvite,
     });
   } catch (error) {
     return handleApiError(error);
