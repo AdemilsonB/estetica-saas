@@ -7,6 +7,8 @@ import { MessageCircle, Lock, Send, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -19,9 +21,12 @@ import {
   useUpdateNotificationSettings,
   useBulkReminder,
 } from "@/hooks/settings/use-notification-settings";
+import { REPLY_CONFIRM_DEFAULTS } from "@/domains/notifications/reply-confirm/reply-confirm-catalog";
 import { WhatsAppUsageCard } from "./whatsapp-usage-card";
 import { EvolutionConnection } from "./evolution-connection";
 import { EvolutionContactsImport } from "./evolution-contacts-import";
+
+const REPLY_CONFIRM_INVITE_PLACEHOLDER = REPLY_CONFIRM_DEFAULTS.convite.trim();
 
 const TIMEZONES = [
   { value: "America/Sao_Paulo",   label: "Brasília (UTC-3)" },
@@ -223,6 +228,54 @@ export function WhatsAppSettingsForm() {
             <p className="text-xs text-slate-400">
               O lembrete será ajustado para ficar dentro da janela configurada.
             </p>
+          </div>
+
+          {/* Confirmação por resposta */}
+          <div className="space-y-3 rounded-2xl border border-white/80 bg-white/85 p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="reply-confirm" className="text-sm font-semibold text-slate-700">
+                  Confirmação pelo WhatsApp
+                </Label>
+                <p className="text-xs text-slate-500">
+                  O cliente responde <strong>1</strong> para confirmar ou <strong>2</strong> para
+                  cancelar, direto na conversa. O horário cancelado libera na hora.
+                </p>
+              </div>
+              <Switch
+                id="reply-confirm"
+                className="mt-0.5"
+                checked={data?.replyConfirmEnabled ?? false}
+                onCheckedChange={(v) => mutate(
+                  { replyConfirmEnabled: v },
+                  { onError: () => toast.error('Erro ao salvar configuração') }
+                )}
+                disabled={isPending}
+              />
+            </div>
+
+            {data?.replyConfirmEnabled && (
+              <div className="space-y-1.5">
+                <Label htmlFor="reply-confirm-invite" className="text-xs text-slate-500">
+                  Texto do convite, anexado ao final do lembrete
+                </Label>
+                <Textarea
+                  id="reply-confirm-invite"
+                  rows={2}
+                  className="resize-none"
+                  defaultValue={data.replyConfirmInvite ?? ""}
+                  placeholder={REPLY_CONFIRM_INVITE_PLACEHOLDER}
+                  disabled={isPending}
+                  onBlur={(e) => mutate(
+                    { replyConfirmInvite: e.target.value },
+                    { onError: () => toast.error('Erro ao salvar configuração') }
+                  )}
+                />
+                <p className="text-xs text-slate-400">
+                  Deixe em branco para usar o texto padrão.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl border border-white/80 bg-white/85 p-5 shadow-sm">
