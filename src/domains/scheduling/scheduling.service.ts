@@ -15,6 +15,7 @@ import {
   AppointmentAlreadyPaidError,
   AppointmentNotFoundError,
   AppointmentAlreadyCancelledError,
+  AppointmentNotPendingError,
   CustomerBlockedError,
   CustomerNotFoundError,
   ProfessionalNotFoundError,
@@ -320,23 +321,27 @@ export class SchedulingService {
     const current = await appointmentRepository.findById(tenantId, appointmentId);
     if (!current) throw new AppointmentNotFoundError();
 
+    const timeOrProfessionalChanged =
+      input.startsAt !== undefined ||
+      input.endsAt !== undefined ||
+      input.professionalId !== undefined;
+    const structuralChange = timeOrProfessionalChanged || input.serviceId !== undefined;
+
+    // A observação (notes) é editável a qualquer momento, inclusive em
+    // agendamento já concluído/cancelado — qualquer outro campo (horário,
+    // profissional ou serviço) segue exigindo um agendamento ainda ativo.
     const nonReschedulable: AppointmentStatus[] = [
       AppointmentStatus.CANCELLED,
       AppointmentStatus.COMPLETED,
       AppointmentStatus.NO_SHOW,
     ];
-    if (nonReschedulable.includes(current.status)) {
+    if (structuralChange && nonReschedulable.includes(current.status)) {
       throw new AppointmentAlreadyCancelledError();
     }
 
     const newStartsAt = input.startsAt ? new Date(input.startsAt) : current.startsAt;
     const newEndsAt = input.endsAt ? new Date(input.endsAt) : current.endsAt;
     const newProfessionalId = input.professionalId ?? current.professionalId;
-
-    const timeOrProfessionalChanged =
-      input.startsAt !== undefined ||
-      input.endsAt !== undefined ||
-      input.professionalId !== undefined;
 
     if (timeOrProfessionalChanged) {
       await availabilityService.ensureSlotAvailableExcluding(
@@ -353,28 +358,63 @@ export class SchedulingService {
       endsAt: input.endsAt !== undefined ? newEndsAt : undefined,
       professionalId: input.professionalId,
       serviceId: input.serviceId,
+      notes: input.notes !== undefined ? (input.notes || null) : undefined,
     });
 
-    eventBus.publish({
-      type: "scheduling.appointment.rescheduled",
-      payload: {
-        tenantId,
-        appointmentId: updated.id,
-        customerId: updated.customerId,
-        customerName: current.customer.name,
-        customerPhone: current.customer.phone,
-        customerEmail: current.customer.email,
-        serviceName: current.service?.name ?? current.package?.name ?? current.promotion?.name ?? "",
-        professionalName: updated.professional.name,
-        oldStartsAt: current.startsAt,
-        newStartsAt: updated.startsAt,
-        newEndsAt: updated.endsAt,
-        notificationMessage: input.notificationMessage ?? "",
-        notify: input.notify,
-      },
-    });
+    if (timeOrProfessionalChanged) {
+      eventBus.publish({
+        type: "scheduling.appointment.rescheduled",
+        payload: {
+          tenantId,
+          appointmentId: updated.id,
+          customerId: updated.customerId,
+          customerName: current.customer.name,
+          customerPhone: current.customer.phone,
+          customerEmail: current.customer.email,
+          serviceName: current.service?.name ?? current.package?.name ?? current.promotion?.name ?? "",
+          professionalName: updated.professional.name,
+          oldStartsAt: current.startsAt,
+          newStartsAt: updated.startsAt,
+          newEndsAt: updated.endsAt,
+          notificationMessage: input.notificationMessage ?? "",
+          notify: input.notify,
+        },
+      });
+    }
 
     return updated;
+  }
+
+  async listPendingCompletion(
+    tenantId: string,
+    options: { professionalId?: string } = {},
+  ) {
+    const policy = await schedulingPolicyRepository.findOrCreateByTenant(tenantId);
+    return appointmentRepository.findPendingCompletion(
+      tenantId,
+      policy.pendingCompletionGraceHours,
+      options,
+    );
+  }
+
+  async snoozeCompletion(
+    tenantId: string,
+    appointmentId: string,
+    days: 1 | 3 | 7,
+  ) {
+    const current = await appointmentRepository.findById(tenantId, appointmentId);
+    if (!current) throw new AppointmentNotFoundError();
+
+    const pendingStatuses: AppointmentStatus[] = [
+      AppointmentStatus.SCHEDULED,
+      AppointmentStatus.CONFIRMED,
+    ];
+    if (!pendingStatuses.includes(current.status)) {
+      throw new AppointmentNotPendingError();
+    }
+
+    const until = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    return appointmentRepository.snoozeCompletion(tenantId, appointmentId, until);
   }
 
   async updateService(tenantId: string, serviceId: string, input: UpdateServiceInput) {
@@ -658,6 +698,7 @@ export class SchedulingService {
         discountTypeId: appointment.discountTypeId,
         discountValue: appointment.discountValue,
         notes: appointment.notes,
+        completionSnoozedUntil: appointment.completionSnoozedUntil,
         allowOverlap: appointment.allowOverlap,
         price: appointment.price,
         confirmedPrice: appointment.confirmedPrice,

@@ -46,6 +46,14 @@ const MAX_ADVANCE_OPTIONS = [
   { value: '90', label: '90 dias' },
 ]
 
+const PENDING_COMPLETION_GRACE_OPTIONS = [
+  { value: '6', label: '6 horas' },
+  { value: '12', label: '12 horas' },
+  { value: '24', label: '24 horas' },
+  { value: '48', label: '48 horas' },
+  { value: '72', label: '72 horas' },
+]
+
 export function SchedulingPolicyForm() {
   const { data: policy, isLoading: policyLoading } = useSchedulingPolicy()
   const { data: tenant, isLoading: tenantLoading } = useTenantSettings()
@@ -55,6 +63,7 @@ export function SchedulingPolicyForm() {
   const [paddingMinutes, setPaddingMinutes] = useState('0')
   const [minAdvanceMinutes, setMinAdvanceMinutes] = useState('0')
   const [maxAdvanceDays, setMaxAdvanceDays] = useState('30')
+  const [pendingCompletionGraceHours, setPendingCompletionGraceHours] = useState('24')
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -63,6 +72,7 @@ export function SchedulingPolicyForm() {
       setPaddingMinutes(String(policy.paddingMinutes))
       setMinAdvanceMinutes(String(policy.minAdvanceMinutes))
       setMaxAdvanceDays(String(policy.maxAdvanceDays))
+      setPendingCompletionGraceHours(String(policy.pendingCompletionGraceHours))
     }
   }, [policy])
 
@@ -84,6 +94,7 @@ export function SchedulingPolicyForm() {
         paddingMinutes: parseInt(paddingMinutes, 10),
         minAdvanceMinutes: parseInt(minAdvanceMinutes, 10),
         maxAdvanceDays: parseInt(maxAdvanceDays, 10),
+        pendingCompletionGraceHours: parseInt(pendingCompletionGraceHours, 10),
       },
       {
         onSuccess: () => toast.success('Configurações salvas'),
@@ -196,6 +207,29 @@ export function SchedulingPolicyForm() {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* Prazo para concluir atendimento */}
+      <div className="space-y-1.5">
+        <Label className="text-sm font-medium text-slate-700">
+          Prazo para concluir atendimento
+        </Label>
+        <p className="text-xs text-slate-500">
+          Passado esse tempo depois do horário previsto, o atendimento sem conclusão aparece
+          como pendência no Dashboard e destacado na Agenda
+        </p>
+        <Select value={pendingCompletionGraceHours} onValueChange={setPendingCompletionGraceHours}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PENDING_COMPLETION_GRACE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <Button onClick={handleSave} disabled={update.isPending} size="sm">

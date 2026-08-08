@@ -9,6 +9,7 @@ const UpdatePolicySchema = z.object({
   maxAdvanceDays: z.number().int().min(1).max(365).optional(),
   allowPublicBooking: z.boolean().optional(),
   slotIntervalMinutes: z.number().int().min(5).max(120).optional(),
+  pendingCompletionGraceHours: z.number().int().min(1).max(168).optional(),
 })
 
 export async function GET(req: Request) {

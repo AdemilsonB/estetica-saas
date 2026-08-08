@@ -1,6 +1,7 @@
 import { DashboardMetrics } from '@/components/domain/dashboard/dashboard-metrics'
 import { UsageWidget } from '@/components/domain/billing/usage-widget'
 import { ReviewsSummaryCard } from '@/components/domain/reviews/reviews-summary-card'
+import { PendingCompletionCard } from '@/components/domain/scheduling/pending-completion-card'
 
 export const metadata = { title: 'Dashboard · Estética SaaS' }
 
@@ -15,6 +16,8 @@ export default function DashboardPage() {
           Resumo operacional · atualiza automaticamente a cada 30s
         </p>
       </div>
+
+      <PendingCompletionCard />
 
       <DashboardMetrics />
 

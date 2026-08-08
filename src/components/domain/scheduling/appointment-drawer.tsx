@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Pencil, StickyNote } from 'lucide-react'
+import { Pencil, StickyNote, AlertTriangle } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -26,13 +27,16 @@ import {
   useUpdateAppointmentStatus,
   useRescheduleAppointment,
   useRefundAppointment,
+  useSnoozeAppointmentCompletion,
 } from '@/hooks/scheduling/use-appointments'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
 import { useAvailableSlots } from '@/hooks/scheduling/use-availability'
 import { useTeamMembers } from '@/hooks/iam/use-team'
 import { useEvolutionStatus } from '@/hooks/settings/use-evolution-status'
+import { useSchedulingPolicy } from '@/hooks/settings/use-scheduling-policy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { cn } from '@/lib/utils'
+import { isPendingCompletion } from '@/shared/utils/appointment-pending'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -114,11 +118,16 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
   const [notifyReagendamento, setNotifyReagendamento] = useState<boolean | undefined>(undefined)
   const [notifyNoShow, setNotifyNoShow] = useState<boolean | undefined>(undefined)
   const [mensagemNoShow, setMensagemNoShow] = useState('')
+  const [isEditingNotes, setIsEditingNotes] = useState(false)
+  const [notesDraft, setNotesDraft] = useState('')
 
   const { data: teamMembers = [] } = useTeamMembers()
   const { can } = usePermissions()
   const canCheckout = can('financeiro', 'edit')
+  const canEdit = can('agenda', 'edit')
   const reschedule = useRescheduleAppointment()
+  const snoozeCompletion = useSnoozeAppointmentCompletion()
+  const { data: policy } = useSchedulingPolicy()
 
   const { data: slots = [], isLoading: loadingSlots } = useAvailableSlots(
     isEditing ? editProfessionalId || null : null,
@@ -173,7 +182,46 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
 
   function handleClose() {
     setIsEditing(false)
+    setIsEditingNotes(false)
     onClose()
+  }
+
+  function startEditingNotes() {
+    if (!appointment) return
+    setNotesDraft(appointment.notes ?? '')
+    setIsEditingNotes(true)
+  }
+
+  function handleSaveNotes() {
+    if (!appointment) return
+    reschedule.mutate(
+      { id: appointment.id, notes: notesDraft.trim() || null },
+      {
+        onSuccess: () => {
+          toast.success('Observação salva')
+          setIsEditingNotes(false)
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : 'Erro ao salvar observação')
+        },
+      },
+    )
+  }
+
+  function handleSnoozeCompletion(days: 1 | 3 | 7) {
+    if (!appointment) return
+    snoozeCompletion.mutate(
+      { id: appointment.id, days },
+      {
+        onSuccess: () => {
+          toast.success(`Lembrete adiado por ${days} ${days === 1 ? 'dia' : 'dias'}`)
+          onClose()
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : 'Erro ao adiar lembrete')
+        },
+      },
+    )
   }
 
   function handleStatus(status: 'CONFIRMED' | 'COMPLETED' | 'NO_SHOW') {
@@ -244,6 +292,7 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
   if (!appointment) return null
 
   const isActive = !['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(appointment.status)
+  const isPending = isPendingCompletion(appointment, policy?.pendingCompletionGraceHours ?? 24)
 
   return (
     <>
@@ -386,6 +435,34 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
                   )}
                 </div>
 
+                {isPending && (
+                  <div className="space-y-2 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
+                      <p className="text-sm text-amber-800">
+                        Atendimento vencido sem conclusão. Confirme, registre falta ou adie o lembrete.
+                      </p>
+                    </div>
+                    {canEdit && (
+                      <div className="flex flex-wrap items-center gap-2 pl-6">
+                        <span className="text-xs text-amber-700">Lembrar em:</span>
+                        {([1, 3, 7] as const).map((days) => (
+                          <Button
+                            key={days}
+                            type="button"
+                            variant="outline"
+                            className="min-h-11 border-amber-300 bg-white text-xs text-amber-800 hover:bg-amber-100"
+                            onClick={() => handleSnoozeCompletion(days)}
+                            disabled={snoozeCompletion.isPending}
+                          >
+                            {days === 1 ? '1 dia' : `${days} dias`}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div>
                     <p className="text-xs font-medium text-slate-400 uppercase">Cliente</p>
@@ -460,15 +537,49 @@ export function AppointmentDrawer({ appointment, open, onClose, onCompleted, sta
                       </div>
                     </>
                   )}
-                  {appointment.notes && (
-                    <>
-                      <Separator />
-                      <div>
-                        <p className="text-xs font-medium text-slate-400 uppercase">Observações do atendimento</p>
-                        <p className="mt-0.5 text-sm text-slate-700 whitespace-pre-line">{appointment.notes}</p>
+                  <Separator />
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium text-slate-400 uppercase">Observações do atendimento</p>
+                      {canEdit && !isEditingNotes && (
+                        <button
+                          onClick={startEditingNotes}
+                          className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                          aria-label="Editar observação"
+                        >
+                          <Pencil className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {isEditingNotes ? (
+                      <div className="mt-1.5 space-y-2">
+                        <Textarea
+                          value={notesDraft}
+                          onChange={(e) => setNotesDraft(e.target.value)}
+                          maxLength={500}
+                          rows={3}
+                          className="resize-none"
+                          autoFocus
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => setIsEditingNotes(false)}
+                            disabled={reschedule.isPending}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button onClick={handleSaveNotes} disabled={reschedule.isPending}>
+                            {reschedule.isPending ? 'Salvando...' : 'Salvar'}
+                          </Button>
+                        </div>
                       </div>
-                    </>
-                  )}
+                    ) : appointment.notes ? (
+                      <p className="mt-0.5 text-sm text-slate-700 whitespace-pre-line">{appointment.notes}</p>
+                    ) : (
+                      <p className="mt-0.5 text-sm text-slate-400">Nenhuma observação registrada.</p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Ficha de anamnese e sugestão de preço */}

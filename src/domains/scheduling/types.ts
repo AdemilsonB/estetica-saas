@@ -87,12 +87,21 @@ export const updateAppointmentSchema = z
     endsAt: z.string().datetime().optional(),
     professionalId: z.string().uuid().optional(),
     serviceId: z.string().cuid().optional(),
+    notes: z.string().trim().max(500).optional().nullable(),
     notificationMessage: z.string().min(1).max(1000).optional(),
     notify: z.boolean().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, "Informe ao menos um campo para atualizar.");
 
 export type UpdateAppointmentInput = z.infer<typeof updateAppointmentSchema>;
+
+export const snoozeAppointmentCompletionSchema = z.object({
+  days: z.union([z.literal(1), z.literal(3), z.literal(7)]),
+});
+
+export type SnoozeAppointmentCompletionInput = z.infer<
+  typeof snoozeAppointmentCompletionSchema
+>;
 
 export const createPackageSchema = z.object({
   name: z.string().trim().min(2).max(100),

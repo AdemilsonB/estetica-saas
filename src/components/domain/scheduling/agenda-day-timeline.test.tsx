@@ -2,10 +2,21 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type { ReactElement } from 'react'
 import { AgendaDayTimeline, type TimelineColumn } from './agenda-day-timeline'
 import type { Appointment } from '@/hooks/scheduling/use-appointments'
 
 afterEach(cleanup)
+
+// AppointmentCard consulta useSchedulingPolicy (TanStack Query) para saber a
+// tolerância de "pendência de conclusão" — precisa de um QueryClient no ar,
+// mesmo sem mockar o fetch (a query falha silenciosamente e o card cai no
+// fallback de 24h, o que não afeta nenhuma das asserções deste arquivo).
+function renderTimeline(ui: ReactElement) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
+}
 
 function makeAppointment(overrides: Partial<Appointment> = {}): Appointment {
   return {
@@ -39,7 +50,7 @@ const baseColumns: TimelineColumn[] = [{ professionalId: 'p1', professionalName:
 describe('AgendaDayTimeline', () => {
   it('chama onSlotClick com profissional e horário ao clicar num slot vazio', () => {
     const onSlotClick = vi.fn()
-    render(
+    renderTimeline(
       <AgendaDayTimeline
         slots={['09:00', '09:30']}
         columns={baseColumns}
@@ -60,7 +71,7 @@ describe('AgendaDayTimeline', () => {
   })
 
   it('mostra a data na faixa que acompanha o scroll junto com os nomes dos profissionais', () => {
-    render(
+    renderTimeline(
       <AgendaDayTimeline
         slots={['09:00']}
         columns={[
@@ -86,7 +97,7 @@ describe('AgendaDayTimeline', () => {
 
   it('não deixa clicar em slot vazio quando canClickSlot nega (sem permissão)', () => {
     const onSlotClick = vi.fn()
-    render(
+    renderTimeline(
       <AgendaDayTimeline
         slots={['09:00']}
         columns={baseColumns}
@@ -115,7 +126,7 @@ describe('AgendaDayTimeline', () => {
     const onAppointmentClick = vi.fn()
     const appt = makeAppointment()
 
-    render(
+    renderTimeline(
       <AgendaDayTimeline
         slots={['09:00']}
         columns={baseColumns}
@@ -141,7 +152,7 @@ describe('AgendaDayTimeline', () => {
   it('agrupa um agendamento com horário fora do slot exato (ex.: 09:15) na linha anterior', () => {
     const appt = makeAppointment({ startsAt: '2026-08-03T09:15:00', endsAt: '2026-08-03T09:45:00' })
 
-    render(
+    renderTimeline(
       <AgendaDayTimeline
         slots={['09:00', '09:30', '10:00']}
         columns={baseColumns}
@@ -173,7 +184,7 @@ describe('AgendaDayTimeline', () => {
       { professionalId: 'p2', professionalName: 'Ademilson' },
     ]
 
-    render(
+    renderTimeline(
       <AgendaDayTimeline
         slots={['09:00', '09:30', '10:00', '10:30']}
         columns={columns}
@@ -215,7 +226,7 @@ describe('AgendaDayTimeline', () => {
       customer: { id: 'c2', name: 'Joana', phone: null, notes: null },
     })
 
-    render(
+    renderTimeline(
       <AgendaDayTimeline
         slots={['09:00', '09:30', '10:00', '10:30', '11:00']}
         columns={baseColumns}
@@ -245,7 +256,7 @@ describe('AgendaDayTimeline', () => {
       endsAt: '2026-08-03T10:00:00',
     })
 
-    render(
+    renderTimeline(
       <AgendaDayTimeline
         slots={['09:00', '09:30', '10:00']}
         columns={baseColumns}
@@ -282,7 +293,7 @@ describe('AgendaDayTimeline', () => {
       customer: { id: 'c2', name: 'Joana', phone: null, notes: null },
     })
 
-    render(
+    renderTimeline(
       <AgendaDayTimeline
         slots={['09:00', '09:30', '10:00', '10:30', '11:00']}
         columns={baseColumns}
@@ -314,7 +325,7 @@ describe('AgendaDayTimeline', () => {
       customer: { id: 'c2', name: 'Joana', phone: null, notes: null },
     })
 
-    render(
+    renderTimeline(
       <AgendaDayTimeline
         slots={['09:00']}
         columns={baseColumns}

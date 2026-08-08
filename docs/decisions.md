@@ -566,4 +566,28 @@ O primeiro é o mais instrutivo: **a mensagem de retorno sairia quebrada em 100%
 
 O segundo: `NOW() AT TIME ZONE 'UTC' AT TIME ZONE tz` está errado, porque `NOW()` já é `timestamptz` e a cadeia dupla desloca por duas vezes o offset. O idioma correto é a cadeia dupla **apenas** para colunas `timestamp` naive (como `startsAt`), e uma conversão só para `NOW()`. Estava mascarado porque São Paulo é UTC-3 e o cron roda às 12:00, sem cruzar a meia-noite.
 
+---
+
+## ADR-022 — Pendência de conclusão de atendimento + observação editável (2026-08-08)
+
+**Contexto.** Profissionais realizam o atendimento mas esquecem de marcar como concluído no sistema, deixando o agendamento em SCHEDULED/CONFIRMED indefinidamente — distorce faturamento e comissão, e ninguém percebe até fechar o mês. Junto veio um pedido menor: um campo de observação no agendamento, editável a qualquer momento (ex.: "cliente pediu para outro profissional atender"), sem virar histórico/log de mudanças.
+
+**Decisões.**
+
+1. **"Pendente" é calculado on-the-fly via query, sem job/cron novo.** `status IN (SCHEDULED, CONFIRMED)` e `endsAt` antes do corte de `pendingCompletionGraceHours` (config por tenant em `SchedulingPolicy`, default 24h) e sem `completionSnoozedUntil` vigente. Sem tabela de estado derivado para manter sincronizada — a única razão para um job seria notificação proativa, que ficou fora do escopo (decisão do usuário: só destaque passivo no Dashboard + Agenda, sem push/WhatsApp).
+
+2. **CANCELLED, NO_SHOW e COMPLETED nunca contam como pendência** — são estados finais, a pergunta é só "ninguém decidiu o que aconteceu com este atendimento".
+
+3. **"Lembrar depois" é um campo (`Appointment.completionSnoozedUntil`), não um novo status.** Presets fixos de 1/3/7 dias (`AppointmentNotPendingError` se tentado num agendamento não mais SCHEDULED/CONFIRMED). Evita inflar o enum `AppointmentStatus` e as regras de transição que várias partes do código já assumem fechadas em 5 valores.
+
+4. **`Appointment.notes` já existia no schema desde antes** — só faltava UI. Editável a qualquer momento, inclusive em agendamento COMPLETED/CANCELLED/NO_SHOW, via o mesmo endpoint de reagendamento (`PATCH /api/scheduling/appointments/[id]`), sem rota nova. Reaproveitado também pelo fluxo de snooze (a nota explica o motivo do adiamento).
+
+5. **`agenda:view_all` decide o escopo de quem vê o quê** — mesmo padrão de permissão já usado pela Agenda. Profissional comum vê só as próprias pendências; quem tem `view_all` (ou é dono) vê o consolidado da equipe.
+
+**Bug de regressão pego na auto-revisão antes do PR.** O refactor do guard de estado terminal em `updateAppointment` originalmente só olhava `startsAt`/`endsAt`/`professionalId` para decidir se bloqueava a edição — mas `serviceId` nunca entrava nessa checagem (também não entrava antes da mudança, só que antes o guard rodava incondicionalmente em qualquer update, escondendo o buraco). Isolar a liberação do `notes` teria destravado, como efeito colateral, trocar o `serviceId` de um agendamento já COMPLETED/CANCELLED/NO_SHOW sem passar pelo guard. Corrigido incluindo `serviceId` na condição `structuralChange`; coberto por teste de regressão.
+
+**Consequências.**
+- Migration `20260808195825_add_appointment_completion_pending` (aditiva: `Appointment.completionSnoozedUntil`, `SchedulingPolicy.pendingCompletionGraceHours` default 24, índice `Appointment_tenantId_status_endsAt_idx`) **aplicada em produção antes do merge** (`npx prisma migrate deploy`, porta 5432) — seguindo a lição do ADR-020 em vez de repeti-la. Sem backfill: colunas nascem com os valores default, nenhum comportamento muda.
+- Nenhuma notificação proativa (push/WhatsApp) foi construída — fica para uma fase futura se o destaque passivo não for suficiente na prática.
+
 Ambos nasceram no plano, não na implementação — sétimo e oitavo defeitos de planejamento pegos pela revisão independente neste pacote.
