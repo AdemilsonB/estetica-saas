@@ -1,3 +1,5 @@
+import { normalizarTexto } from '../../../shared/utils/normalizar-texto'
+
 /**
  * Palavras que significam "não quero mais receber". Casam apenas com a mensagem
  * inteira, nunca dentro de uma frase: "pode parar de mandar às 7h?" é conversa,
@@ -9,17 +11,8 @@ const PALAVRAS_DE_DESCADASTRO = new Set([
   "sair",
   "descadastrar",
   "cancelar inscricao",
-]);
-
-function normalizar(texto: string): string {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
-}
+])
 
 export function ehPedidoDeDescadastro(texto: string): boolean {
-  return PALAVRAS_DE_DESCADASTRO.has(normalizar(texto));
+  return PALAVRAS_DE_DESCADASTRO.has(normalizarTexto(texto));
 }
