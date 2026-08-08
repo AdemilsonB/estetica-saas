@@ -5,6 +5,7 @@ import { evolutionProvider } from '@/domains/notifications/providers/evolution.p
 import { isValidEvolutionWebhookToken } from '@/shared/auth/evolution-webhook-token'
 import { ehPedidoDeDescadastro } from '@/domains/notifications/opt-out/opt-out-keywords'
 import { optOutService } from '@/domains/crm/opt-out.service'
+import { replyConfirmService } from '@/domains/notifications/reply-confirm/reply-confirm.service'
 import {
   montarRespostaBook,
   montarRespostaCancel,
@@ -102,6 +103,7 @@ export async function POST(request: Request): Promise<Response> {
       offHoursEnabled: true,
       offHoursMessage: true,
       evolutionInstanceId: true,
+      replyConfirmEnabled: true,
     },
   })
 
@@ -124,7 +126,25 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // ── 2. Confirmação por resposta (1/2) ────────────────────────────────────
-  // Entra aqui na Etapa 2, entre o opt-out e o chatbot.
+  // Também fora do gate de `autoReplyEnabled` e antes do throttle: confirmar ou
+  // cancelar um horário não pode depender de o tenant ter chatbot ligado, nem ser
+  // engolido pela janela de anti-flood. A resposta enviada aqui não grava no
+  // WhatsAppAutoReplyLog — ela não é auto-resposta.
+  if (tenant.replyConfirmEnabled) {
+    const resultado = await replyConfirmService.processar({
+      tenantId: tenant.id,
+      telefone: phone,
+      texto: text,
+      timezone: tenant.timezone,
+    })
+
+    if (resultado) {
+      await evolutionProvider
+        .sendRawText(instanceName, phone, resultado.resposta)
+        .catch(() => {})
+      return new Response(null, { status: 200 })
+    }
+  }
 
   // ── 3. Auto-resposta / chatbot ───────────────────────────────────────────
   if (!tenant.autoReplyEnabled) return new Response(null, { status: 200 })
