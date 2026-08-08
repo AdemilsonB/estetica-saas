@@ -278,4 +278,94 @@ describe("WhatsAppGateway", () => {
 
     mockEnv.EVOLUTION_API_URL = undefined;
   });
+
+  describe("convite de confirmação por resposta", () => {
+    it("anexa o convite ao lembrete quando a automação está ligada", async () => {
+      prismaMock.tenant.findFirst.mockResolvedValue({
+        ...mockTenant,
+        replyConfirmEnabled: true,
+        replyConfirmInvite: null,
+      } as never);
+      vi.spyOn(customerMessageService, "render").mockResolvedValue({
+        subject: null, text: "Seu horário é amanhã às 10h.", mediaUrl: null,
+      });
+      vi.mocked(twilioProvider.send).mockResolvedValue({ success: true, externalId: "SM1", provider: "twilio" });
+
+      await gateway.send({ ...mockDraft, template: "appointment-reminder" });
+
+      const textoEnviado = vi.mocked(twilioProvider.send).mock.calls[0][2].text;
+      expect(textoEnviado).toContain("Responda *1* para confirmar");
+    });
+
+    it("NÃO anexa o convite quando a automação está desligada", async () => {
+      prismaMock.tenant.findFirst.mockResolvedValue({
+        ...mockTenant,
+        replyConfirmEnabled: false,
+        replyConfirmInvite: null,
+      } as never);
+      vi.spyOn(customerMessageService, "render").mockResolvedValue({
+        subject: null, text: "Seu horário é amanhã às 10h.", mediaUrl: null,
+      });
+      vi.mocked(twilioProvider.send).mockResolvedValue({ success: true, externalId: "SM2", provider: "twilio" });
+
+      await gateway.send({ ...mockDraft, template: "appointment-reminder" });
+
+      const textoEnviado = vi.mocked(twilioProvider.send).mock.calls[0][2].text;
+      expect(textoEnviado).not.toContain("Responda *1*");
+    });
+
+    it("NÃO anexa o convite em eventos que não são o lembrete", async () => {
+      prismaMock.tenant.findFirst.mockResolvedValue({
+        ...mockTenant,
+        replyConfirmEnabled: true,
+        replyConfirmInvite: null,
+      } as never);
+      vi.spyOn(customerMessageService, "render").mockResolvedValue({
+        subject: null, text: "Seu horário foi cancelado.", mediaUrl: null,
+      });
+      vi.mocked(twilioProvider.send).mockResolvedValue({ success: true, externalId: "SM3", provider: "twilio" });
+
+      await gateway.send({ ...mockDraft, template: "appointment-cancelled" });
+
+      const textoEnviado = vi.mocked(twilioProvider.send).mock.calls[0][2].text;
+      expect(textoEnviado).not.toContain("Responda *1*");
+    });
+
+    it("usa o convite personalizado do tenant quando existe", async () => {
+      prismaMock.tenant.findFirst.mockResolvedValue({
+        ...mockTenant,
+        replyConfirmEnabled: true,
+        replyConfirmInvite: "\n\nResponda 1 (sim) ou 2 (nao)",
+      } as never);
+      vi.spyOn(customerMessageService, "render").mockResolvedValue({
+        subject: null, text: "Seu horário é amanhã às 10h.", mediaUrl: null,
+      });
+      vi.mocked(twilioProvider.send).mockResolvedValue({ success: true, externalId: "SM4", provider: "twilio" });
+
+      await gateway.send({ ...mockDraft, template: "appointment-reminder" });
+
+      const textoEnviado = vi.mocked(twilioProvider.send).mock.calls[0][2].text;
+      expect(textoEnviado).toContain("Responda 1 (sim) ou 2 (nao)");
+      expect(textoEnviado).not.toContain("Responda *1* para confirmar");
+    });
+
+    it("não anexa o convite quando o profissional escreveu a mensagem na hora", async () => {
+      prismaMock.tenant.findFirst.mockResolvedValue({
+        ...mockTenant,
+        replyConfirmEnabled: true,
+        replyConfirmInvite: null,
+      } as never);
+      vi.mocked(twilioProvider.send).mockResolvedValue({ success: true, externalId: "SM5", provider: "twilio" });
+
+      await gateway.send({
+        ...mockDraft,
+        template: "appointment-reminder",
+        payload: { ...mockDraft.payload, message: "Chegue 10 minutos antes." },
+      });
+
+      const textoEnviado = vi.mocked(twilioProvider.send).mock.calls[0][2].text;
+      expect(textoEnviado).not.toContain("Responda *1*");
+      expect(textoEnviado).toBe("Chegue 10 minutos antes.");
+    });
+  });
 });

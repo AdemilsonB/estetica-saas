@@ -8,6 +8,7 @@ import { twilioProvider } from "./whatsapp.provider";
 import { evolutionProvider } from "./evolution.provider";
 import { customerMessageService } from "../customer-messages/customer-message.service";
 import { LEGACY_TEMPLATE_TO_EVENT } from "../customer-messages/customer-message-catalog";
+import { montarConvite } from "../reply-confirm/reply-confirm-catalog";
 import type { NotificationDraft, NotificationDeliveryResult } from "../types";
 import type { TenantWhatsAppConfig } from "./whatsapp-provider.interface";
 import type { RenderedCustomerMessage } from "../customer-messages/types";
@@ -35,6 +36,8 @@ export class WhatsAppGateway {
         evolutionConnected: true,
         evolutionStatus: true,
         evolutionPhone: true,
+        replyConfirmEnabled: true,
+        replyConfirmInvite: true,
       },
     });
 
@@ -103,6 +106,23 @@ export class WhatsAppGateway {
           errorMessage: `Falha ao renderizar mensagem: ${err instanceof Error ? err.message : "erro desconhecido"}`,
         };
       }
+    }
+
+    // O convite de confirmação é ANEXADO ao texto já renderizado, nunca embutido no
+    // template: assim, desligar a automação não deixa um pedido órfão num texto que o
+    // tenant editou, e ligar não exige que ele edite nada.
+    //
+    // Só no lembrete, e só quando o texto veio do template — mensagem escrita na hora
+    // pelo profissional é dele, e anexar algo a ela seria alterá-la sem avisar.
+    if (
+      tenant.replyConfirmEnabled &&
+      draft.template === "appointment-reminder" &&
+      !payload.message
+    ) {
+      rendered = {
+        ...rendered,
+        text: `${rendered.text}${montarConvite(tenant.replyConfirmInvite)}`,
+      };
     }
 
     // Evolution é o provedor PRIMÁRIO e por-tenant: se o tenant conectou o
