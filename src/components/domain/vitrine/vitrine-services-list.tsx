@@ -5,6 +5,7 @@ import { ClipboardList, Filter, Heart, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { EntityImage } from '@/components/domain/shared/entity-image'
 import { formatDuration } from '@/lib/format-duration'
+import { useWheelHorizontalScroll } from '@/hooks/shared/use-wheel-horizontal-scroll'
 import { useVitrineInteraction } from './vitrine-interaction-context'
 import { MostBookedBadge } from './most-booked-badge'
 import {
@@ -151,6 +152,8 @@ export function VitrineServicesList({
   team = [],
   mostBookedServiceId,
 }: Props) {
+  const chipsScrollRef = useWheelHorizontalScroll<HTMLDivElement>()
+  const cardsScrollRef = useWheelHorizontalScroll<HTMLDivElement>()
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [filter, setFilter] = useState<VitrineFilterState>(EMPTY_FILTER_STATE)
@@ -231,7 +234,7 @@ export function VitrineServicesList({
       </div>
 
       {!isSearching && chips.length > 1 && (
-        <div className="mb-3 flex min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
+        <div ref={chipsScrollRef} className="mb-3 flex min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {chips.map((chip) => (
             <button
               key={chip.id ?? 'all'}
@@ -254,7 +257,7 @@ export function VitrineServicesList({
           {isSearching ? `Nenhum serviço encontrado para "${search.trim()}".` : 'Nenhum serviço encontrado com esse filtro.'}
         </p>
       ) : (
-        <div className="flex min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
+        <div ref={cardsScrollRef} className="flex min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none">
           {visibleServices.map((s) => (
             <ServiceCard
               key={s.id}
