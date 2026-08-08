@@ -1,8 +1,10 @@
 // src/components/domain/scheduling/appointment-card.tsx
-import { Pencil } from 'lucide-react'
+import { AlertTriangle, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import type { Appointment, AppointmentStatus } from '@/hooks/scheduling/use-appointments'
+import { useSchedulingPolicy } from '@/hooks/settings/use-scheduling-policy'
+import { isPendingCompletion } from '@/shared/utils/appointment-pending'
 
 const STATUS_CONFIG: Record<
   AppointmentStatus,
@@ -56,6 +58,8 @@ export function AppointmentCard({ appointment, onClick, onConfirm, onPay, onEdit
   const config = STATUS_CONFIG[appointment.status]
   const isActive = !['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(appointment.status)
   const serviceName = appointment.service?.name ?? appointment.package?.name ?? appointment.promotion?.name ?? 'Serviço'
+  const { data: policy } = useSchedulingPolicy()
+  const isPending = isPendingCompletion(appointment, policy?.pendingCompletionGraceHours ?? 24)
 
   return (
     <div
@@ -66,14 +70,23 @@ export function AppointmentCard({ appointment, onClick, onConfirm, onPay, onEdit
       className={cn(
         'relative w-full cursor-pointer rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md',
         config.cardClass,
+        isPending && 'border-amber-400 ring-1 ring-amber-300',
         className,
       )}
     >
-      {/* Linha 1: status + lápis */}
+      {/* Linha 1: status + vencido + lápis */}
       <div className="flex items-center justify-between gap-2">
-        <Badge className={cn('text-xs', config.badgeClass)}>
-          {config.label}
-        </Badge>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Badge className={cn('text-xs', config.badgeClass)}>
+            {config.label}
+          </Badge>
+          {isPending && (
+            <Badge className="gap-1 bg-amber-100 text-xs text-amber-800">
+              <AlertTriangle className="size-3" />
+              Vencido
+            </Badge>
+          )}
+        </div>
         {onEdit && isActive && (
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(appointment) }}

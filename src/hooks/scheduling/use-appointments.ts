@@ -23,6 +23,7 @@ export type Appointment = {
   status: AppointmentStatus
   paymentStatus: AppointmentPaymentStatus
   notes: string | null
+  completionSnoozedUntil: string | null
   price: string
   confirmedPrice: string | null
   customer: { id: string; name: string; phone: string | null; notes: string | null }
@@ -51,6 +52,7 @@ export type UpdateAppointmentInput = {
   endsAt?: string
   professionalId?: string
   serviceId?: string
+  notes?: string | null
   notificationMessage?: string
   notify?: boolean
 }
@@ -181,6 +183,44 @@ export function useRefundAppointment() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: refundAppointment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] })
+    },
+  })
+}
+
+async function listPendingCompletionAppointments(): Promise<Appointment[]> {
+  const res = await fetch('/api/scheduling/appointments/pending-completion')
+  if (!res.ok) throw new Error('Falha ao carregar atendimentos pendentes')
+  return res.json()
+}
+
+export function usePendingCompletionAppointments() {
+  return useQuery({
+    queryKey: ['appointments', 'pending-completion'],
+    queryFn: listPendingCompletionAppointments,
+    staleTime: 60 * 1000,
+  })
+}
+
+async function snoozeAppointmentCompletion(id: string, days: 1 | 3 | 7): Promise<Appointment> {
+  const res = await fetch(`/api/scheduling/appointments/${id}/snooze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ days }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message ?? 'Falha ao adiar lembrete')
+  }
+  return res.json()
+}
+
+export function useSnoozeAppointmentCompletion() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, days }: { id: string; days: 1 | 3 | 7 }) =>
+      snoozeAppointmentCompletion(id, days),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] })
     },

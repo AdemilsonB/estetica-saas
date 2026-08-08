@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { AppointmentStatus, AppointmentPaymentStatus } from "@prisma/client";
 import { prismaMock } from "@/shared/test/prisma-mock";
 import { eventBus } from "@/shared/events/event-bus";
@@ -6,6 +6,7 @@ import { SchedulingService } from "./scheduling.service";
 import {
   AppointmentNotFoundError,
   AppointmentAlreadyCancelledError,
+  AppointmentNotPendingError,
   RefundNotAllowedError,
   SlotUnavailableError,
 } from "@/shared/errors";
@@ -27,6 +28,13 @@ vi.mock("./appointment.repository", () => ({
     countThisMonth: vi.fn(),
     create: vi.fn(),
     updateStatus: vi.fn(),
+    findPendingCompletion: vi.fn(),
+    snoozeCompletion: vi.fn(),
+  },
+}));
+vi.mock("./scheduling-policy.repository", () => ({
+  schedulingPolicyRepository: {
+    findOrCreateByTenant: vi.fn(),
   },
 }));
 vi.mock("@/domains/billing/feature-guard", () => ({
@@ -39,6 +47,7 @@ vi.mock("@/shared/queue/jobs/appointment-reminder", () => ({
 
 import { appointmentRepository } from "./appointment.repository";
 import { availabilityService } from "./availability.service";
+import { schedulingPolicyRepository } from "./scheduling-policy.repository";
 
 const mockAppointment = {
   id: "appt-1",
@@ -159,6 +168,144 @@ describe("SchedulingService.updateAppointment", () => {
     );
     expect(eventBus.publish).toHaveBeenCalledWith(
       expect.objectContaining({ type: "scheduling.appointment.rescheduled" }),
+    );
+  });
+
+  it("permite editar apenas a observação (notes) de um agendamento COMPLETED, sem exigir remarcação", async () => {
+    const completed = { ...mockAppointment, status: AppointmentStatus.COMPLETED };
+    vi.mocked(appointmentRepository.findById).mockResolvedValue(completed as never);
+    vi.mocked(appointmentRepository.update).mockResolvedValue({
+      ...completed,
+      notes: "Cliente pediu para outro profissional atender",
+    } as never);
+
+    await service.updateAppointment("tenant-1", "appt-1", {
+      notes: "Cliente pediu para outro profissional atender",
+    });
+
+    expect(availabilityService.ensureSlotAvailableExcluding).not.toHaveBeenCalled();
+    expect(appointmentRepository.update).toHaveBeenCalledWith(
+      "tenant-1",
+      "appt-1",
+      expect.objectContaining({ notes: "Cliente pediu para outro profissional atender" }),
+    );
+    // Sem mudança de horário/profissional, não é remarcação — não publica evento.
+    expect(eventBus.publish).not.toHaveBeenCalled();
+  });
+
+  it("limpa a observação quando notes é enviado como string vazia", async () => {
+    vi.mocked(appointmentRepository.findById).mockResolvedValue(mockAppointment as never);
+    vi.mocked(appointmentRepository.update).mockResolvedValue(mockAppointment as never);
+
+    await service.updateAppointment("tenant-1", "appt-1", { notes: "" });
+
+    expect(appointmentRepository.update).toHaveBeenCalledWith(
+      "tenant-1",
+      "appt-1",
+      expect.objectContaining({ notes: null }),
+    );
+  });
+
+  it("ainda bloqueia remarcação de horário em agendamento COMPLETED", async () => {
+    vi.mocked(appointmentRepository.findById).mockResolvedValue({
+      ...mockAppointment,
+      status: AppointmentStatus.COMPLETED,
+    } as never);
+
+    await expect(
+      service.updateAppointment("tenant-1", "appt-1", {
+        startsAt: "2026-06-11T10:00:00Z",
+        endsAt: "2026-06-11T11:00:00Z",
+      }),
+    ).rejects.toThrow(AppointmentAlreadyCancelledError);
+  });
+
+  it("ainda bloqueia troca de serviço isolada (sem horário/profissional) em agendamento COMPLETED", async () => {
+    vi.mocked(appointmentRepository.findById).mockResolvedValue({
+      ...mockAppointment,
+      status: AppointmentStatus.COMPLETED,
+    } as never);
+
+    await expect(
+      service.updateAppointment("tenant-1", "appt-1", { serviceId: "svc-2" }),
+    ).rejects.toThrow(AppointmentAlreadyCancelledError);
+    expect(appointmentRepository.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("SchedulingService.snoozeCompletion", () => {
+  let service: SchedulingService;
+
+  beforeEach(() => {
+    service = new SchedulingService();
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-15T12:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("lança AppointmentNotFoundError quando agendamento não existe", async () => {
+    vi.mocked(appointmentRepository.findById).mockResolvedValue(null);
+
+    await expect(service.snoozeCompletion("tenant-1", "appt-999", 3)).rejects.toThrow(
+      AppointmentNotFoundError,
+    );
+  });
+
+  it.each([AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED, AppointmentStatus.NO_SHOW])(
+    "lança AppointmentNotPendingError para agendamento %s",
+    async (status) => {
+      vi.mocked(appointmentRepository.findById).mockResolvedValue({
+        ...mockAppointment,
+        status,
+      } as never);
+
+      await expect(service.snoozeCompletion("tenant-1", "appt-1", 3)).rejects.toThrow(
+        AppointmentNotPendingError,
+      );
+      expect(appointmentRepository.snoozeCompletion).not.toHaveBeenCalled();
+    },
+  );
+
+  it("calcula completionSnoozedUntil como agora + N dias e delega ao repository", async () => {
+    vi.mocked(appointmentRepository.findById).mockResolvedValue(mockAppointment as never);
+    vi.mocked(appointmentRepository.snoozeCompletion).mockResolvedValue(mockAppointment as never);
+
+    await service.snoozeCompletion("tenant-1", "appt-1", 3);
+
+    expect(appointmentRepository.snoozeCompletion).toHaveBeenCalledWith(
+      "tenant-1",
+      "appt-1",
+      new Date("2026-06-18T12:00:00Z"),
+    );
+  });
+});
+
+describe("SchedulingService.listPendingCompletion", () => {
+  let service: SchedulingService;
+
+  beforeEach(() => {
+    service = new SchedulingService();
+    vi.clearAllMocks();
+  });
+
+  it("lê pendingCompletionGraceHours da política do tenant e delega ao repository", async () => {
+    vi.mocked(schedulingPolicyRepository.findOrCreateByTenant).mockResolvedValue({
+      id: "policy-1",
+      tenantId: "tenant-1",
+      pendingCompletionGraceHours: 48,
+    } as never);
+    vi.mocked(appointmentRepository.findPendingCompletion).mockResolvedValue([]);
+
+    await service.listPendingCompletion("tenant-1", { professionalId: "prof-1" });
+
+    expect(appointmentRepository.findPendingCompletion).toHaveBeenCalledWith(
+      "tenant-1",
+      48,
+      { professionalId: "prof-1" },
     );
   });
 });

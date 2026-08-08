@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
@@ -93,6 +94,7 @@ export function CreateAppointmentModal({
   const [createdCustomerName, setCreatedCustomerName] = useState('')
   const [allowOverlap, setAllowOverlap] = useState(false)
   const [allowPastDate, setAllowPastDate] = useState(false)
+  const [notes, setNotes] = useState('')
   const [notificationMessage, setNotificationMessage] = useState('')
   const [notify, setNotify] = useState<boolean | undefined>(undefined)
 
@@ -176,6 +178,7 @@ export function CreateAppointmentModal({
     setCreatedCustomerName('')
     setAllowOverlap(false)
     setAllowPastDate(false)
+    setNotes('')
     setNotificationMessage('')
     setNotify(undefined)
     onClose()
@@ -197,6 +200,7 @@ export function CreateAppointmentModal({
         startsAt,
         allowOverlap,
         allowPastDate,
+        notes: notes.trim() || undefined,
         notificationMessage: notificationMessage || undefined,
         notify,
       },
@@ -506,6 +510,20 @@ export function CreateAppointmentModal({
                 )}
               </>
             )}
+          </div>
+
+          {/* 5b. Observação — interna, nunca enviada ao cliente */}
+          <div className="space-y-2">
+            <Label htmlFor="apt-notes">Observação (opcional)</Label>
+            <Textarea
+              id="apt-notes"
+              placeholder="Ex.: cliente pediu para outro profissional atender, alergia a produto X..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              maxLength={500}
+              rows={2}
+              className="min-h-16 resize-none"
+            />
           </div>
 
           {/* 6. Mensagem ao cliente — só quando formulário completo */}

@@ -15,6 +15,7 @@ export function makeAppointment(overrides: Partial<Appointment> = {}): Appointme
     endsAt,
     status: AppointmentStatus.SCHEDULED,
     notes: null,
+    completionSnoozedUntil: null,
     allowOverlap: false,
     price: new Prisma.Decimal('50.00'),
     createdAt: new Date('2026-01-01T00:00:00Z'),

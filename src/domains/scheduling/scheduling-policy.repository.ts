@@ -19,6 +19,7 @@ export class SchedulingPolicyRepository {
       maxAdvanceDays?: number
       slotIntervalMinutes?: number
       allowPublicBooking?: boolean
+      pendingCompletionGraceHours?: number
     },
   ) {
     return prisma.schedulingPolicy.upsert({

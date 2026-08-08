@@ -84,6 +84,16 @@ export class AppointmentAlreadyPaidError extends DomainError {
   }
 }
 
+export class AppointmentNotPendingError extends DomainError {
+  constructor() {
+    super(
+      "Agendamento não está pendente de conclusão.",
+      "APPOINTMENT_NOT_PENDING",
+      422,
+    );
+  }
+}
+
 export class ServiceNotFoundError extends DomainError {
   constructor() {
     super("Servico nao encontrado.", "SERVICE_NOT_FOUND", 404);

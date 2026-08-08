@@ -2,6 +2,7 @@ import { AppointmentStatus, type Appointment, type Prisma } from "@prisma/client
 
 import { startOfMonth, endOfDay } from "@/lib/dates";
 import { prisma } from "@/shared/database/prisma";
+import { computePendingCompletionCutoff } from "@/shared/utils/appointment-pending";
 
 export type AppointmentFilters = {
   from?: Date;
@@ -160,6 +161,7 @@ export class AppointmentRepository {
       endsAt?: Date;
       professionalId?: string;
       serviceId?: string;
+      notes?: string | null;
     },
   ) {
     await prisma.appointment.updateMany({
@@ -175,6 +177,42 @@ export class AppointmentRepository {
         package: true,
         promotion: true,
       },
+    });
+  }
+
+  async findPendingCompletion(
+    tenantId: string,
+    graceHours: number,
+    options: { professionalId?: string } = {},
+    now: Date = new Date(),
+  ) {
+    const cutoff = computePendingCompletionCutoff(graceHours, now);
+    return prisma.appointment.findMany({
+      where: {
+        tenantId,
+        status: { in: [AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED] },
+        endsAt: { lt: cutoff },
+        OR: [{ completionSnoozedUntil: null }, { completionSnoozedUntil: { lt: now } }],
+        ...(options.professionalId && { professionalId: options.professionalId }),
+      },
+      include: {
+        customer: { select: { id: true, name: true, phone: true } },
+        professional: { select: { id: true, name: true } },
+        service: { select: { id: true, name: true } },
+        package: { select: { id: true, name: true } },
+        promotion: { select: { id: true, name: true } },
+      },
+      orderBy: { endsAt: "asc" },
+    });
+  }
+
+  async snoozeCompletion(tenantId: string, appointmentId: string, until: Date) {
+    await prisma.appointment.updateMany({
+      where: { id: appointmentId, tenantId },
+      data: { completionSnoozedUntil: until },
+    });
+    return prisma.appointment.findFirstOrThrow({
+      where: { id: appointmentId, tenantId },
     });
   }
 }

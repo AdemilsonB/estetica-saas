@@ -563,6 +563,8 @@ model Appointment {
   status              AppointmentStatus        @default(SCHEDULED)
   origin              AppointmentOrigin        @default(PANEL)
   notes               String?
+  /// "Lembrar depois" da pendência de conclusão — oculta da lista até esta data, sem mudar o status.
+  completionSnoozedUntil DateTime?
   allowOverlap        Boolean                  @default(false)
   paymentStatus       AppointmentPaymentStatus @default(PENDING)
   paymentMethod       PaymentMethod?
@@ -593,6 +595,7 @@ model Appointment {
   @@index([tenantId, professionalId, startsAt])
   @@index([tenantId, customerId])
   @@index([tenantId, status])
+  @@index([tenantId, status, endsAt])
   @@index([serviceId])
   @@index([createdByUserId])
   @@index([discountTypeId])
@@ -1162,6 +1165,8 @@ model SchedulingPolicy {
   maxAdvanceDays      Int      @default(60)
   slotIntervalMinutes Int      @default(30)
   allowPublicBooking  Boolean  @default(true)
+  /// Horas após `endsAt` até um agendamento SCHEDULED/CONFIRMED contar como pendência de conclusão.
+  pendingCompletionGraceHours Int @default(24)
   updatedAt           DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
