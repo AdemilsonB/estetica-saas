@@ -20,6 +20,11 @@ export const createServiceSchema = z.object({
   description: z.string().trim().max(1000).optional().nullable(),
   categoryId: z.string().cuid().optional().nullable(),
   active: z.boolean().default(true),
+  /**
+   * Retorno programado: dias após o atendimento em que o cliente é lembrado de
+   * voltar. Sem valor, o serviço não participa da automação.
+   */
+  returnIntervalDays: z.number().int().min(1).max(730).optional().nullable(),
 })
 
 export const updateServiceSchema = z.object({
@@ -38,6 +43,11 @@ export const updateServiceSchema = z.object({
   anamneseMode: z.enum(['NONE', 'OPTIONAL', 'REQUIRED']).optional(),
   anamneseBlocks: z.array(z.string().min(1)).optional(),
   anamneseValidityDays: z.number().int().min(7).max(365).optional(),
+  /**
+   * Retorno programado: dias após o atendimento em que o cliente é lembrado de
+   * voltar. Sem valor, o serviço não participa da automação.
+   */
+  returnIntervalDays: z.number().int().min(1).max(730).optional().nullable(),
 })
 
 export type UpdateServiceInput = z.infer<typeof updateServiceSchema>;
